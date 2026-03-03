@@ -57,8 +57,13 @@ def init_memory_db():
                 updated_at TEXT
             )
         """)
+        try:
+            c.execute("ALTER TABLE marketplace ADD COLUMN wallet_address TEXT DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass  # Column already exists
         c.execute("CREATE INDEX IF NOT EXISTS idx_mp_category ON marketplace(category)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_mp_active ON marketplace(is_active)")
+        init_payment_splits_table()
 
 
 def memory_set(agent_id: str, key: str, value, tags: list = None) -> dict:
@@ -164,7 +169,8 @@ import uuid as _uuid
 def marketplace_list_service(agent_id: str, name: str, description: str,
                               endpoint: str, price_usd: float,
                               category: str = "general",
-                              capabilities: list = None) -> dict:
+                              capabilities: list = None,
+                              wallet_address: str = "") -> dict:
     """Register/update a service in the agent marketplace."""
     now = datetime.utcnow().isoformat()
     caps_str = json.dumps(capabilities or [])
@@ -179,16 +185,16 @@ def marketplace_list_service(agent_id: str, name: str, description: str,
             listing_id = existing["listing_id"]
             c.execute("""
                 UPDATE marketplace SET description=?, endpoint=?, price_usd=?,
-                    category=?, capabilities=?, is_active=1, updated_at=?
+                    category=?, capabilities=?, wallet_address=?, is_active=1, updated_at=?
                 WHERE listing_id=?
-            """, (description, endpoint, price_usd, category, caps_str, now, listing_id))
+            """, (description, endpoint, price_usd, category, caps_str, wallet_address, now, listing_id))
         else:
             c.execute("""
                 INSERT INTO marketplace (listing_id, agent_id, name, description, endpoint,
-                    price_usd, category, capabilities, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    price_usd, category, capabilities, wallet_address, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (listing_id, agent_id, name, description, endpoint,
-                  price_usd, category, caps_str, now, now))
+                  price_usd, category, caps_str, wallet_address, now, now))
     return {"listing_id": listing_id, "listed": True}
 
 
@@ -243,3 +249,38 @@ def marketplace_deregister(listing_id: str, agent_id: str) -> bool:
             (listing_id, agent_id)
         )
     return cur.rowcount > 0
+
+
+# ── Payment Splits (95/5) ────────────────────────────────────────────────────
+
+def init_payment_splits_table():
+    with _conn() as c:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS payment_splits (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                listing_id TEXT NOT NULL,
+                seller_wallet TEXT NOT NULL,
+                seller_amount REAL NOT NULL,
+                platform_fee REAL NOT NULL,
+                status TEXT DEFAULT 'pending',
+                created_at TEXT NOT NULL
+            )
+        """)
+
+def queue_seller_payment(seller_wallet: str, seller_amount: float, platform_fee: float, listing_id: str) -> dict:
+    """Queue a payment split for later settlement."""
+    now = datetime.utcnow().isoformat()
+    with _conn() as c:
+        c.execute(
+            "INSERT INTO payment_splits (listing_id, seller_wallet, seller_amount, platform_fee, created_at) VALUES (?, ?, ?, ?, ?)",
+            (listing_id, seller_wallet, seller_amount, platform_fee, now),
+        )
+    return {"seller_wallet": seller_wallet, "seller_amount": seller_amount, "platform_fee": platform_fee, "status": "pending"}
+
+def get_pending_payments(limit: int = 100) -> list[dict]:
+    """Get pending payment splits for batch settlement."""
+    with _conn() as c:
+        rows = c.execute(
+            "SELECT * FROM payment_splits WHERE status = 'pending' ORDER BY created_at LIMIT ?", (limit,)
+        ).fetchall()
+    return [dict(r) for r in rows]
