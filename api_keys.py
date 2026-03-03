@@ -87,3 +87,29 @@ def deduct(key: str, amount: float) -> bool:
             (amount, amount, now, key, amount),
         )
     return cur.rowcount > 0
+
+
+def deduct_metered(key: str, input_tokens: int, output_tokens: int,
+                   input_rate: float, output_rate: float) -> dict | None:
+    """Deduct actual token cost from key balance. Returns cost info or None if insufficient.
+
+    Rates are USD per million tokens.
+    """
+    cost = (input_tokens * input_rate + output_tokens * output_rate) / 1_000_000
+    now = datetime.utcnow().isoformat()
+    with _conn() as c:
+        row = c.execute(
+            "SELECT balance_usd FROM api_keys WHERE key = ? AND is_active = 1",
+            (key,),
+        ).fetchone()
+        if not row or row["balance_usd"] < cost:
+            return None
+        c.execute(
+            "UPDATE api_keys SET balance_usd = balance_usd - ?, total_spent = total_spent + ?, "
+            "call_count = call_count + 1, last_used_at = ? WHERE key = ?",
+            (cost, cost, now, key),
+        )
+        new_balance = c.execute(
+            "SELECT balance_usd FROM api_keys WHERE key = ?", (key,),
+        ).fetchone()["balance_usd"]
+    return {"cost": round(cost, 8), "balance_remaining": round(new_balance, 8)}
