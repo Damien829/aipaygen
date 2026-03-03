@@ -103,6 +103,23 @@ def _check_rate_limit(ip: str) -> bool:
     _ip_rate[ip] = times
     return True
 
+_identity_rate: dict = {}
+_IDENTITY_RATE_LIMIT = 10
+_IDENTITY_RATE_WINDOW = 60
+
+def _check_identity_rate_limit(ip: str) -> bool:
+    """Stricter rate limit for identity endpoints (10 req/min)."""
+    now = _time.time()
+    window_start = now - _IDENTITY_RATE_WINDOW
+    times = _identity_rate.get(ip, [])
+    times = [t for t in times if t > window_start]
+    if len(times) >= _IDENTITY_RATE_LIMIT:
+        _identity_rate[ip] = times
+        return False
+    times.append(now)
+    _identity_rate[ip] = times
+    return True
+
 
 # ── Cost-Aware Model Selection ────────────────────────────────────────────────
 DAILY_COST_LIMIT_USD = float(os.getenv("DAILY_COST_LIMIT_USD", "10.0"))
@@ -717,13 +734,21 @@ def _call_llm(messages, system="", max_tokens=1024, endpoint="unknown", model_ov
     pricing_mode = request.environ.get("X_PRICING_MODE", "flat")
     if api_key and pricing_mode == "metered":
         cfg = get_model_config(model_name)
-        deduction = deduct_metered(
-            api_key, result["input_tokens"], result["output_tokens"],
-            cfg["input_cost_per_m"], cfg["output_cost_per_m"],
-        )
-        if deduction:
-            result["metered_cost"] = deduction["cost"]
-            result["balance_remaining"] = deduction["balance_remaining"]
+        # Per-request spend cap: reject if single call would cost > $1.00
+        estimated_cost = (result["input_tokens"] * cfg["input_cost_per_m"] + result["output_tokens"] * cfg["output_cost_per_m"]) / 1_000_000
+        if estimated_cost > 1.00:
+            result["metered_warning"] = f"Request cost ${estimated_cost:.4f} exceeds $1.00 cap — deduction skipped"
+        else:
+            deduction = deduct_metered(
+                api_key, result["input_tokens"], result["output_tokens"],
+                cfg["input_cost_per_m"], cfg["output_cost_per_m"],
+            )
+            if deduction:
+                result["metered_cost"] = deduction["cost"]
+                result["balance_remaining"] = deduction["balance_remaining"]
+                # Low balance warning
+                if deduction["balance_remaining"] < 0.10:
+                    result["metered_warning"] = f"Low balance: ${deduction['balance_remaining']:.4f} remaining"
     return result, None
 
 
@@ -5785,6 +5810,9 @@ def memory_clear_route():
 @app.route("/agents/challenge", methods=["POST"])
 def agent_challenge():
     """Step 1: Request a challenge to prove wallet ownership."""
+    _ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
+    if not _check_identity_rate_limit(_ip):
+        return jsonify({"error": "rate_limited", "message": "Too many identity requests. Max 10/min."}), 429
     data = request.get_json() or {}
     wallet = data.get("wallet_address", "")
     if not wallet:
@@ -5796,6 +5824,9 @@ def agent_challenge():
 @app.route("/agents/verify", methods=["POST"])
 def agent_verify():
     """Step 2: Submit signed challenge to get JWT."""
+    _ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
+    if not _check_identity_rate_limit(_ip):
+        return jsonify({"error": "rate_limited", "message": "Too many identity requests. Max 10/min."}), 429
     data = request.get_json() or {}
     nonce = data.get("nonce", "")
     signature = data.get("signature", "")
@@ -5868,7 +5899,9 @@ def agents_search():
         score = 0
         if q_lower in (a.get("name", "") or "").lower():
             score += 3
-        if q_lower in (a.get("capabilities", "") or "").lower():
+        caps = a.get("capabilities", "")
+        caps_str = ",".join(caps) if isinstance(caps, list) else (caps or "")
+        if q_lower in caps_str.lower():
             score += 2
         if q_lower in (a.get("description", "") or "").lower():
             score += 1
