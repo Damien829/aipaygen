@@ -1,6 +1,6 @@
 {
   "name": "aipaygent",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "JavaScript SDK for AiPayGent — AI agent marketplace with 123 endpoints. Pay per call via x402 (USDC on Base) or prepaid API key.",
   "main": "index.js",
   "scripts": {
@@ -29,7 +29,7 @@
   "homepage": "https://api.aipaygent.xyz",
   "repository": {
     "type": "git",
-    "url": "https://github.com/aipaygent/sdk"
+    "url": "https://github.com/djautomd-lab/aipaygent"
   },
   "bugs": {
     "url": "https://api.aipaygent.xyz"
