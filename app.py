@@ -59,6 +59,10 @@ from discovery_engine import (
     track_cost, get_daily_cost, is_cost_throttled,
 )
 from model_router import call_model, list_models, get_model_config, calculate_cost, resolve_model_name, ModelNotFoundError
+from agent_identity import (
+    generate_challenge, verify_challenge, verify_jwt,
+    InvalidSignatureError, ChallengeExpiredError,
+)
 import io
 import base64
 import socket
@@ -661,6 +665,23 @@ class _TrackedClaude:
         return getattr(self._client, name)
 
 claude = _TrackedClaude(anthropic.Anthropic(api_key=ANTHROPIC_API_KEY))
+
+
+def require_verified_agent(f):
+    """Decorator: require JWT from a verified agent wallet."""
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer ey"):
+            try:
+                payload = verify_jwt(auth[7:])
+                request.agent = payload
+                return f(*args, **kwargs)
+            except Exception:
+                pass
+        return jsonify({"error": "Verified agent required. See /agents/challenge"}), 401
+    return decorated
 
 
 def _call_llm(messages, system="", max_tokens=1024, endpoint="unknown", model_override=None):
@@ -5548,6 +5569,59 @@ def memory_clear_route():
     deleted = memory_clear(agent_id)
     log_payment("/memory/clear", 0.01, request.remote_addr)
     return jsonify(agent_response({"agent_id": agent_id, "deleted": deleted}, "/memory/clear"))
+
+
+# ─── Agent Identity (wallet auth) ─────────────────────────────────────────
+
+@app.route("/agents/challenge", methods=["POST"])
+def agent_challenge():
+    """Step 1: Request a challenge to prove wallet ownership."""
+    data = request.get_json() or {}
+    wallet = data.get("wallet_address", "")
+    if not wallet:
+        return jsonify({"error": "wallet_address required"}), 400
+    ch = generate_challenge(wallet)
+    return jsonify(ch)
+
+
+@app.route("/agents/verify", methods=["POST"])
+def agent_verify():
+    """Step 2: Submit signed challenge to get JWT."""
+    data = request.get_json() or {}
+    nonce = data.get("nonce", "")
+    signature = data.get("signature", "")
+    chain = data.get("chain", "evm")
+    if not nonce or not signature:
+        return jsonify({"error": "nonce and signature required"}), 400
+    try:
+        result = verify_challenge(nonce, signature, chain)
+        # Auto-register in agent registry if not exists
+        try:
+            register_agent(
+                result["agent_id"],
+                data.get("name", f"agent-{result['agent_id'][:8]}"),
+                data.get("description", ""),
+                data.get("capabilities", ""),
+                data.get("endpoint", ""),
+            )
+        except Exception:
+            pass
+        return jsonify(result)
+    except (InvalidSignatureError, ChallengeExpiredError) as e:
+        return jsonify({"error": str(e)}), 401
+
+
+@app.route("/agents/me", methods=["GET"])
+def agent_me():
+    """Get current agent profile (requires JWT)."""
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer ey"):
+        return jsonify({"error": "JWT required. Use /agents/challenge + /agents/verify first."}), 401
+    try:
+        payload = verify_jwt(auth[7:])
+        return jsonify(payload)
+    except Exception as e:
+        return jsonify({"error": f"Invalid token: {e}"}), 401
 
 
 # ─── Agent Registry (free) ────────────────────────────────────────────────
