@@ -3818,6 +3818,14 @@ def discover():
             {"endpoint": "/data/random/name", "method": "GET", "price_usd": 0.00, "input": {"count": 5}, "description": "Random person names, emails, phone, location. Free."},
             {"endpoint": "/data/color", "method": "GET", "price_usd": 0.00, "input": {"hex": "ff5733"}, "description": "Color info — RGB, HSL, complementary color, brightness, CSS. Free."},
             {"endpoint": "/data/screenshot", "method": "GET", "price_usd": 0.00, "input": {"url": "https://example.com"}, "description": "Website screenshot URL (1280px wide). Free via thum.io."},
+            # ── v2: Multi-Model, Identity, Metered Pricing, Agent Economy ──────
+            {"endpoint": "/models", "method": "GET", "price_usd": 0.00, "description": "List all supported LLM models (11 models, 5 providers) with pricing and capabilities. Free."},
+            {"endpoint": "/agents/challenge", "method": "POST", "price_usd": 0.00, "input": {"wallet_address": "0x...", "chain": "evm|solana"}, "description": "Request a wallet-verification challenge string. Free."},
+            {"endpoint": "/agents/verify", "method": "POST", "price_usd": 0.00, "input": {"wallet_address": "0x...", "signature": "0x...", "chain": "evm|solana"}, "description": "Submit signed challenge to verify wallet, get JWT session token. Free."},
+            {"endpoint": "/agents/me", "method": "GET", "price_usd": 0.00, "description": "View your verified agent profile (requires JWT). Free."},
+            {"endpoint": "/agents/search", "method": "GET", "price_usd": 0.00, "input": {"q": "query", "capability": "optional"}, "description": "Search wallet-verified agents by name, capability, or address. Free."},
+            {"endpoint": "/agents/<agent_id>/portfolio", "method": "GET", "price_usd": 0.00, "description": "View a verified agent's public portfolio and reputation. Free."},
+            {"endpoint": "/credits/buy", "method": "POST", "price_usd": 5.00, "input": {"amount_usd": 5.0, "label": "optional"}, "description": "Buy a $5 USDC credit pack — returns prepaid API key for metered token-based billing."},
         ]
     })
 
@@ -3983,6 +3991,44 @@ All 79+ tools available without x402 payment via MCP.
 | /memory/search | $0.02 | `{"agent_id": "string", "query": "string"}` | matching key-value pairs |
 | /memory/clear | $0.01 | `{"agent_id": "string"}` | deleted count |
 
+## v2: Multi-Model Support
+
+All AI endpoints accept an optional `model` parameter. Default: `claude-haiku`.
+
+| Model | Provider | Input $/M | Output $/M |
+|---|---|---|---|
+| claude-haiku | Anthropic | $0.80 | $4.00 |
+| claude-sonnet | Anthropic | $3.00 | $15.00 |
+| gpt-4o | OpenAI | $2.50 | $10.00 |
+| gpt-4o-mini | OpenAI | $0.15 | $0.60 |
+| deepseek-v3 | DeepSeek | $0.27 | $1.10 |
+| gemini-2.5-flash | Google | $0.15 | $0.60 |
+
+`GET /models` — full list of 11 models with pricing.
+
+## v2: Wallet Identity & Agent Economy
+
+Agents can verify wallet ownership (EVM or Solana) for identity-based features.
+
+| Endpoint | Method | Price | Description |
+|---|---|---|---|
+| /agents/challenge | POST | Free | Request wallet verification challenge |
+| /agents/verify | POST | Free | Submit signed challenge, get JWT |
+| /agents/me | GET | Free | View your agent profile (JWT required) |
+| /agents/search | GET | Free | Search verified agents by capability |
+| /agents/{id}/portfolio | GET | Free | View agent portfolio and reputation |
+
+## v2: Metered Token-Based Pricing
+
+Buy a credit pack, then pay per-token instead of per-call.
+
+| Endpoint | Method | Price | Description |
+|---|---|---|---|
+| /credits/buy | POST | $5.00 | Buy credit pack, get prepaid API key |
+
+Usage: Add `X-Pricing: metered` header + `Authorization: Bearer apk_xxx` to any AI endpoint.
+Cost is deducted based on actual tokens used, not fixed per-call price.
+
 ## Free Endpoints (no payment needed)
 
 - `GET /discover` — full machine-readable service manifest (JSON)
@@ -3993,6 +4039,12 @@ All 79+ tools available without x402 payment via MCP.
 - `POST /run-discovery` — trigger API discovery agents
 - `GET /health` — service health check
 - `POST /preview` — free 120-token Claude demo
+- `GET /models` — list all supported AI models
+- `POST /agents/challenge` — request wallet verification challenge
+- `POST /agents/verify` — verify wallet, get JWT session
+- `GET /agents/me` — view your agent profile (JWT required)
+- `GET /agents/search` — search verified agents
+- `GET /agents/{id}/portfolio` — view agent portfolio
 - `GET /.well-known/agents.json` — Wild Card AI agents.json standard
 - `GET /.well-known/ai-plugin.json` — OpenAI plugin manifest
 - `GET /llms.txt` — this file
@@ -4039,12 +4091,12 @@ def openapi_spec():
         "info": {
             "title": "AiPayGent",
             "description": (
-                "Pay-per-use Claude AI API for autonomous agents. "
-                "No API keys. Pay in USDC on Base Mainnet via x402 protocol. "
-                "POST to any endpoint — receive HTTP 402 with payment instructions — "
-                "retry with signed USDC payment header — get your result."
+                "Multi-model AI platform (11 LLMs, 5 providers) for autonomous agents. "
+                "No API keys required. Pay in USDC on Base Mainnet via x402 protocol, "
+                "or buy credits for metered token-based billing. "
+                "Wallet identity verification (EVM/Solana) with JWT sessions."
             ),
-            "version": "1.0.0",
+            "version": "2.0.0",
             "x-payment-protocol": "x402",
             "x-payment-network": EVM_NETWORK,
             "x-payment-token": "USDC",
@@ -4853,6 +4905,109 @@ def openapi_spec():
                     "responses": {"200": {"description": "Plan, steps, results, summary"}, "402": {"description": "Payment required"}}
                 }
             },
+            "/models": {
+                "get": {
+                    "operationId": "list_models",
+                    "summary": "List available AI models (FREE)",
+                    "description": "List all supported LLM models with provider, pricing, and capabilities. Free.",
+                    "x-price-usd": 0.00,
+                    "responses": {"200": {"description": "Array of models with provider, cost, and max_tokens"}}
+                }
+            },
+            "/agents/challenge": {
+                "post": {
+                    "operationId": "agent_challenge",
+                    "summary": "Request wallet verification challenge (FREE)",
+                    "description": "Start wallet-based identity verification. Returns a challenge string to sign. Free.",
+                    "x-price-usd": 0.00,
+                    "requestBody": {
+                        "required": True,
+                        "content": {"application/json": {"schema": {
+                            "type": "object",
+                            "required": ["wallet_address"],
+                            "properties": {
+                                "wallet_address": {"type": "string", "description": "EVM or Solana wallet address"},
+                                "chain": {"type": "string", "enum": ["evm", "solana"], "default": "evm"}
+                            }
+                        }}}
+                    },
+                    "responses": {"200": {"description": "challenge string and expiry"}}
+                }
+            },
+            "/agents/verify": {
+                "post": {
+                    "operationId": "agent_verify",
+                    "summary": "Verify wallet signature, get JWT (FREE)",
+                    "description": "Submit signed challenge to verify wallet ownership. Returns a JWT session token. Free.",
+                    "x-price-usd": 0.00,
+                    "requestBody": {
+                        "required": True,
+                        "content": {"application/json": {"schema": {
+                            "type": "object",
+                            "required": ["wallet_address", "signature"],
+                            "properties": {
+                                "wallet_address": {"type": "string", "description": "Wallet address used in challenge"},
+                                "signature": {"type": "string", "description": "Signed challenge message"},
+                                "chain": {"type": "string", "enum": ["evm", "solana"], "default": "evm"}
+                            }
+                        }}}
+                    },
+                    "responses": {"200": {"description": "JWT token and agent profile"}}
+                }
+            },
+            "/agents/me": {
+                "get": {
+                    "operationId": "agent_profile",
+                    "summary": "Get current agent profile (FREE)",
+                    "description": "View your agent profile. Requires JWT in Authorization header. Free.",
+                    "x-price-usd": 0.00,
+                    "parameters": [{"name": "Authorization", "in": "header", "required": True, "schema": {"type": "string"}, "description": "Bearer <JWT>"}],
+                    "responses": {"200": {"description": "Agent profile with wallet, reputation, and capabilities"}}
+                }
+            },
+            "/agents/search": {
+                "get": {
+                    "operationId": "search_agents",
+                    "summary": "Search verified agents (FREE)",
+                    "description": "Search wallet-verified agents by capability, name, or wallet address. Free.",
+                    "x-price-usd": 0.00,
+                    "parameters": [
+                        {"name": "q", "in": "query", "schema": {"type": "string"}, "description": "Search query (name, capability, wallet)"},
+                        {"name": "capability", "in": "query", "schema": {"type": "string"}, "description": "Filter by capability tag"},
+                        {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 20}, "description": "Max results"}
+                    ],
+                    "responses": {"200": {"description": "Array of matching agent profiles"}}
+                }
+            },
+            "/agents/{agent_id}/portfolio": {
+                "get": {
+                    "operationId": "agent_portfolio",
+                    "summary": "View agent portfolio (FREE)",
+                    "description": "View a verified agent's public portfolio: capabilities, reputation, and transaction history. Free.",
+                    "x-price-usd": 0.00,
+                    "parameters": [{"name": "agent_id", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Agent wallet address or ID"}],
+                    "responses": {"200": {"description": "Agent portfolio with reputation score and history"}}
+                }
+            },
+            "/credits/buy": {
+                "post": {
+                    "operationId": "buy_credits",
+                    "summary": "Buy prepaid credit pack",
+                    "description": "Purchase a $5 USDC credit pack via x402. Returns a prepaid API key for metered token-based billing. Costs $5.00 USDC via x402.",
+                    "x-price-usd": 5.00,
+                    "requestBody": {
+                        "required": False,
+                        "content": {"application/json": {"schema": {
+                            "type": "object",
+                            "properties": {
+                                "amount_usd": {"type": "number", "default": 5.0, "description": "Credit amount in USD"},
+                                "label": {"type": "string", "default": "x402-credit-pack", "description": "Label for the API key"}
+                            }
+                        }}}
+                    },
+                    "responses": {"200": {"description": "API key, balance, and pricing instructions"}, "402": {"description": "Payment required"}}
+                }
+            },
         }
     })
 
@@ -5033,14 +5188,16 @@ def agents_json():
         "scrape/youtube", "scrape/web", "scrape/tiktok", "scrape/facebook-ads", "scrape/actor",
     ]
     memory_endpoints = ["memory/set", "memory/get", "memory/search", "memory/clear"]
+    identity_endpoints = ["agents/challenge", "agents/verify", "agents/me", "agents/search"]
     free_endpoints = ["preview", "discover", "openapi.json", "catalog", "agents", "agents/register",
-                      "run-discovery", "api-call", ".well-known/agents.json", "health"]
+                      "run-discovery", "api-call", ".well-known/agents.json", "health", "models"]
     return jsonify({
         "$schema": "https://agentsfoundation.org/agents.json/schema/v1",
         "agents": [{
             "name": "AiPayGent",
             "description": (
-                "140+ Claude-powered AI tools + web scrapers + agent memory + file storage + webhook relay + async jobs, available as pay-per-use endpoints. "
+                "Multi-model AI platform (11 LLMs, 5 providers) with 140+ endpoints + web scrapers + agent memory + "
+                "wallet-based identity + metered token pricing + agent economy. "
                 "Research, write, code, analyze, vision, RAG, diagrams, test-cases, workflows, "
                 "web scraping (Google Maps, Twitter, LinkedIn, TikTok, YouTube), persistent agent memory, "
                 "and a searchable catalog of 200+ discovered APIs. "
@@ -5056,16 +5213,20 @@ def agents_json():
                 "batch-processing", "pipeline-chaining", "image-analysis",
                 "rag", "diagram-generation", "test-generation", "workflow-orchestration",
                 "web-scraping", "agent-memory", "api-catalog", "agent-registry",
+                "multi-model", "wallet-identity", "metered-pricing", "agent-search",
+                "agent-portfolio", "reputation",
             ],
             "endpoints": (
                 [{"path": f"/{ep}", "method": "POST", "free": False, "category": "ai"} for ep in ai_endpoints] +
                 [{"path": f"/{ep}", "method": "POST", "free": False, "category": "scraping"} for ep in scrape_endpoints] +
                 [{"path": f"/{ep}", "method": "POST", "free": False, "category": "memory"} for ep in memory_endpoints] +
+                [{"path": f"/{ep}", "method": "POST", "free": True, "category": "identity"} for ep in identity_endpoints] +
+                [{"path": "/credits/buy", "method": "POST", "free": False, "category": "pricing"}] +
                 [{"path": f"/{ep}", "method": "GET", "free": True} for ep in free_endpoints]
             ),
             "authentication": {
                 "type": "x402",
-                "description": "HTTP 402 payment protocol. No API key required.",
+                "description": "HTTP 402 payment protocol. No API key required. Also supports prepaid API keys with metered token-based billing.",
                 "payment": {
                     "protocol": "x402",
                     "network": EVM_NETWORK,
@@ -5073,6 +5234,14 @@ def agents_json():
                     "prices_from": "0.01",
                     "prices_to": "0.20",
                     "currency": "USD",
+                },
+                "prepaid": {
+                    "description": "Buy credit pack via /credits/buy, get API key, use X-Pricing: metered header for per-token billing",
+                    "pricing_modes": ["flat", "metered"],
+                },
+                "wallet_identity": {
+                    "description": "EVM/Solana wallet verification via /agents/challenge + /agents/verify, returns JWT session",
+                    "chains": ["evm", "solana"],
                 },
             },
             "mcp": {
