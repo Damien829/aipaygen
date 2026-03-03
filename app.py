@@ -3920,6 +3920,8 @@ def robots_txt():
         "User-agent: *\n"
         "Allow: /\n"
         "\n"
+        "Sitemap: https://api.aipaygent.xyz/sitemap.xml\n"
+        "\n"
         "# AI Agent Discovery\n"
         "# LLMs.txt: https://api.aipaygent.xyz/llms.txt\n"
         "# OpenAPI: https://api.aipaygent.xyz/openapi.json\n"
