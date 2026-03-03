@@ -45,6 +45,7 @@ from agent_network import (
     send_message, get_inbox, add_knowledge, search_knowledge,
     get_trending_topics, submit_task, browse_tasks, get_task,
 )
+from mcp.server.transport_security import TransportSecuritySettings
 import requests as _mcp_requests
 
 mcp = FastMCP(
@@ -59,8 +60,13 @@ mcp = FastMCP(
         "All tools run directly — no x402 payment needed via MCP. "
         "For HTTP access: https://api.aipaygent.xyz"
     ),
-    host="127.0.0.1",
+    host="0.0.0.0",
     port=5002,
+    transport_security=TransportSecuritySettings(
+        enable_dns_rebinding_protection=True,
+        allowed_hosts=["mcp.aipaygent.xyz", "localhost", "127.0.0.1"],
+        allowed_origins=["https://mcp.aipaygent.xyz"],
+    ),
 )
 
 

@@ -1,0 +1,22 @@
+[Unit]
+Description=AiPayGent Flask API
+After=network.target
+
+[Service]
+User=damien809
+WorkingDirectory=/home/damien809/agent-service
+ExecStart=/home/damien809/agent-service/venv/bin/gunicorn \
+    --workers 4 \
+    --worker-class sync \
+    --bind 127.0.0.1:5001 \
+    --timeout 120 \
+    --keep-alive 5 \
+    --access-logfile /home/damien809/agent-service/access.log \
+    --error-logfile /home/damien809/agent-service/agent.log \
+    --log-level info \
+    app:app
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -12,3 +12,6 @@ dist/
 build/
 node_modules/
 .work402/
+.mcpregistry_*
+payments.jsonl
+cloudflared

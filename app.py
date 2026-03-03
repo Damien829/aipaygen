@@ -627,7 +627,12 @@ def _api_key_wsgi(environ, start_response):
             except Exception:
                 pass
 
-    # 2. Free daily tier bypass — 10 free AI calls/day per IP (no payment needed)
+    # 2. If request carries an X-Payment header, it's an x402-paying agent —
+    #    skip free tier entirely and let x402 middleware handle verification.
+    if environ.get("HTTP_X_PAYMENT"):
+        return _x402_wsgi(environ, start_response)
+
+    # 3. Free daily tier bypass — 10 free AI calls/day per IP (no payment needed)
     route_cfg = routes.get(route_key)
     if route_cfg:
         try:
@@ -638,40 +643,11 @@ def _api_key_wsgi(environ, start_response):
             if check_and_use_free_tier(ip):
                 environ["X_FREE_TIER_BYPASS"] = "1"
                 return _raw_flask_wsgi(environ, start_response)
-            else:
-                # Free tier exhausted — return smart conversion nudge instead of raw 402
-                status = get_free_tier_status(ip)
-                nudge = json.dumps({
-                    "error": "free_tier_exhausted",
-                    "message": f"You've used all {status['daily_limit']} free calls for today.",
-                    "resets_at": "midnight UTC",
-                    "upgrade": {
-                        "option_1": {
-                            "label": "Get a $5 starter key (~500 calls)",
-                            "url": f"{BASE_URL}/buy-credits",
-                            "price": "$5"
-                        },
-                        "option_2": {
-                            "label": "Pay per call with USDC on Base",
-                            "docs": f"{BASE_URL}/discover",
-                            "price": "$0.01–$0.25 per call"
-                        }
-                    },
-                    "tip": f"Use 'Authorization: Bearer apk_xxx' header to skip daily limits.",
-                    "you_called": path,
-                    "calls_used_today": status["calls_used_today"],
-                    "buy_credits": f"{BASE_URL}/buy-credits",
-                }).encode()
-                start_response("402 Payment Required", [
-                    ("Content-Type", "application/json"),
-                    ("Content-Length", str(len(nudge))),
-                    ("Access-Control-Allow-Origin", "*"),
-                    ("X-Powered-By", "claude-haiku-4-5 + x402"),
-                ])
-                return [nudge]
         except Exception:
             pass
 
+    # 4. Free tier exhausted or no free tier — fall through to x402 middleware
+    #    which returns a proper 402 with X-Payment-Info header that agents can pay.
     return _x402_wsgi(environ, start_response)
 
 
