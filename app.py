@@ -5520,55 +5520,67 @@ def workflow_route():
 
 # ─── Agent Memory Endpoints ────────────────────────────────────────────────
 
+def _resolve_agent_id(data):
+    """Resolve agent_id from JWT (verified) or request body (unverified)."""
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer ey"):
+        try:
+            payload = verify_jwt(auth[7:])
+            return payload["agent_id"], True
+        except Exception:
+            pass
+    return data.get("agent_id", ""), False
+
+
 @app.route("/memory/set", methods=["POST"])
 def memory_set_route():
     data = request.get_json() or {}
-    agent_id = data.get("agent_id", "")
+    agent_id, verified = _resolve_agent_id(data)
     key = data.get("key", "")
     value = data.get("value")
     tags = data.get("tags", [])
     if not agent_id or not key or value is None:
-        return jsonify({"error": "agent_id, key, and value required"}), 400
+        return jsonify({"error": "agent_id, key, and value required (or use JWT auth)"}), 400
     result = memory_set(agent_id, key, value, tags if isinstance(tags, list) else [tags])
     log_payment("/memory/set", 0.01, request.remote_addr)
-    return jsonify(agent_response(result, "/memory/set"))
+    return jsonify(agent_response({**result, "verified": verified}, "/memory/set"))
 
 
 @app.route("/memory/get", methods=["POST"])
 def memory_get_route():
     data = request.get_json() or {}
-    agent_id = data.get("agent_id", "")
+    agent_id, verified = _resolve_agent_id(data)
     key = data.get("key", "")
     if not agent_id or not key:
-        return jsonify({"error": "agent_id and key required"}), 400
+        return jsonify({"error": "agent_id and key required (or use JWT auth)"}), 400
     result = memory_get(agent_id, key)
     log_payment("/memory/get", 0.01, request.remote_addr)
     if not result:
         return jsonify({"error": "not_found", "agent_id": agent_id, "key": key}), 404
-    return jsonify(agent_response(result, "/memory/get"))
+    return jsonify(agent_response({**result, "verified": verified}, "/memory/get"))
 
 
 @app.route("/memory/search", methods=["POST"])
 def memory_search_route():
     data = request.get_json() or {}
-    agent_id = data.get("agent_id", "")
+    agent_id, verified = _resolve_agent_id(data)
     query = data.get("query", "")
     if not agent_id or not query:
-        return jsonify({"error": "agent_id and query required"}), 400
+        return jsonify({"error": "agent_id and query required (or use JWT auth)"}), 400
     results = memory_search(agent_id, query)
     log_payment("/memory/search", 0.02, request.remote_addr)
-    return jsonify(agent_response({"agent_id": agent_id, "query": query, "results": results, "count": len(results)}, "/memory/search"))
+    return jsonify(agent_response({"agent_id": agent_id, "query": query, "results": results, "count": len(results), "verified": verified}, "/memory/search"))
 
 
 @app.route("/memory/clear", methods=["POST"])
 def memory_clear_route():
     data = request.get_json() or {}
-    agent_id = data.get("agent_id", "")
+    agent_id, verified = _resolve_agent_id(data)
     if not agent_id:
-        return jsonify({"error": "agent_id required"}), 400
+        return jsonify({"error": "agent_id required (or use JWT auth)"}), 400
     deleted = memory_clear(agent_id)
     log_payment("/memory/clear", 0.01, request.remote_addr)
-    return jsonify(agent_response({"agent_id": agent_id, "deleted": deleted}, "/memory/clear"))
+    return jsonify(agent_response({"agent_id": agent_id, "deleted": deleted, "verified": verified}, "/memory/clear"))
 
 
 # ─── Agent Identity (wallet auth) ─────────────────────────────────────────
