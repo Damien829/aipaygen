@@ -5658,6 +5658,43 @@ def agents_list():
     return jsonify({"agents": agents, "count": len(agents), "_meta": {"endpoint": "/agents", "ts": datetime.utcnow().isoformat() + "Z"}})
 
 
+@app.route("/agents/search", methods=["GET"])
+def agents_search():
+    """Search agents by capability, name, or description."""
+    q = request.args.get("q", "")
+    if not q:
+        return jsonify({"error": "q parameter required"}), 400
+    agents = list_agents()
+    results = []
+    q_lower = q.lower()
+    for a in agents:
+        score = 0
+        if q_lower in (a.get("name", "") or "").lower():
+            score += 3
+        if q_lower in (a.get("capabilities", "") or "").lower():
+            score += 2
+        if q_lower in (a.get("description", "") or "").lower():
+            score += 1
+        if score > 0:
+            results.append({**a, "_relevance": score})
+    results.sort(key=lambda x: x["_relevance"], reverse=True)
+    return jsonify({"query": q, "results": results[:20]})
+
+
+@app.route("/agents/<agent_id>/portfolio", methods=["GET"])
+def agent_portfolio(agent_id):
+    """Get agent's full portfolio: reputation, marketplace listings."""
+    rep = get_reputation(agent_id)
+    all_listings, _ = marketplace_get_services(per_page=200)
+    agent_listings = [l for l in all_listings if l.get("agent_id") == agent_id]
+    return jsonify({
+        "agent_id": agent_id,
+        "reputation": rep,
+        "marketplace_listings": agent_listings,
+        "verified": False,
+    })
+
+
 @app.route("/catalog", methods=["GET"])
 def catalog():
     page = int(request.args.get("page", 1))
