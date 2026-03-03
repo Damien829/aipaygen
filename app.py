@@ -746,6 +746,13 @@ def add_cors(response):
     response.headers["Access-Control-Expose-Headers"] = "X-Request-ID, X-Payment-Info"
     response.headers["X-Request-ID"] = request.headers.get("X-Idempotency-Key", str(uuid.uuid4())[:8])
     response.headers["X-Powered-By"] = "claude-haiku-4-5 + x402"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    if "Cache-Control" not in response.headers:
+        response.headers["Cache-Control"] = "no-store"
     return response
 
 
