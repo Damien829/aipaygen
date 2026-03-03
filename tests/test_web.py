@@ -1,0 +1,39 @@
+import pytest
+from unittest.mock import patch, MagicMock
+
+
+def test_scrape_returns_text():
+    from web import scrape_url
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.text = "<html><body><p>Hello world</p><nav>skip</nav></body></html>"
+    mock_response.raise_for_status = MagicMock()
+    with patch("web.requests.get", return_value=mock_response):
+        result = scrape_url("http://example.com")
+    assert "Hello world" in result["text"]
+    assert result["url"] == "http://example.com"
+    assert "word_count" in result
+
+
+def test_scrape_timeout_returns_error():
+    from web import scrape_url
+    import requests as req
+    with patch("web.requests.get", side_effect=req.exceptions.Timeout):
+        result = scrape_url("http://example.com")
+    assert result["error"] == "timeout"
+
+
+def test_search_returns_results():
+    from web import search_web
+    fake_results = [
+        {"title": "Test", "href": "http://example.com", "body": "A snippet"},
+    ]
+    with patch("web.DDGS") as MockDDGS:
+        instance = MockDDGS.return_value.__enter__.return_value
+        instance.text.return_value = fake_results
+        result = search_web("test query", n=1)
+    assert result["query"] == "test query"
+    assert len(result["results"]) == 1
+    assert result["results"][0]["title"] == "Test"
+    assert result["results"][0]["url"] == "http://example.com"
+    assert result["results"][0]["snippet"] == "A snippet"

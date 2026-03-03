@@ -1,0 +1,41 @@
+{
+  "name": "aipaygent",
+  "version": "1.0.0",
+  "description": "JavaScript SDK for AiPayGent — AI agent marketplace with 123 endpoints. Pay per call via x402 (USDC on Base) or prepaid API key.",
+  "main": "index.js",
+  "scripts": {
+    "test": "node -e \"const {AiPayGent} = require('./index'); const c = new AiPayGent(); c.joke().then(r => console.log('OK:', r.setup)).catch(e => console.error(e))\""
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "x402",
+    "claude",
+    "anthropic",
+    "mcp",
+    "marketplace",
+    "payment",
+    "usdc",
+    "base",
+    "web3",
+    "llm",
+    "research",
+    "scraping",
+    "weather",
+    "crypto"
+  ],
+  "author": "AiPayGent",
+  "license": "MIT",
+  "homepage": "https://api.aipaygent.xyz",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/aipaygent/sdk"
+  },
+  "bugs": {
+    "url": "https://api.aipaygent.xyz"
+  },
+  "engines": {
+    "node": ">=14"
+  },
+  "dependencies": {}
+}
