@@ -4895,7 +4895,7 @@ def openapi_spec():
 @app.route("/llms.txt")
 def llms_txt():
     from flask import Response
-    return Response(LLMS_TXT, mimetype="text/plain; charset=utf-8")
+    return Response(LLMS_TXT, content_type="text/plain; charset=utf-8")
 
 
 @app.route("/.well-known/ai-plugin.json")
