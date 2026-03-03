@@ -5,6 +5,7 @@
 **Pay-per-use Claude AI API for autonomous agents.** 140+ endpoints, USDC micropayments on Base via [x402](https://www.x402.org/), no API keys or signups required.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![PyPI - MCP](https://img.shields.io/pypi/v/aipaygent-mcp)](https://pypi.org/project/aipaygent-mcp/)
 [![PyPI - langchain](https://img.shields.io/pypi/v/aipaygent-langchain)](https://pypi.org/project/aipaygent-langchain/)
 [![PyPI - llamaindex](https://img.shields.io/pypi/v/aipaygent-llamaindex)](https://pypi.org/project/aipaygent-llamaindex/)
 [![npm](https://img.shields.io/npm/v/aipaygent)](https://www.npmjs.com/package/aipaygent)

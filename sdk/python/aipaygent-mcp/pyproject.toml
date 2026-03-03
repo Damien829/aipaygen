@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aipaygent-mcp"
+version = "1.1.0"
+description = "65+ AI tools for Claude, Cursor, and any MCP-compatible agent — research, write, code, scrape, translate, and more"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [{name = "AiPayGent", email = "hello@aipaygent.xyz"}]
+keywords = [
+    "mcp", "claude", "ai", "tools", "agent", "llm",
+    "research", "scraping", "translation", "code-generation",
+    "model-context-protocol", "cursor", "windsurf", "anthropic",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "mcp>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://aipaygent.xyz"
+Documentation = "https://api.aipaygent.xyz/discover"
+Repository = "https://github.com/djautomd-lab/aipaygent"
+Issues = "https://github.com/djautomd-lab/aipaygent/issues"
+
+[project.scripts]
+aipaygent-mcp = "aipaygent_mcp.server:main"

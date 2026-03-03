@@ -1,9 +1,9 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.djautomd-lab/aipaygent",
-  "title": "AiPayGent — Claude AI Tools",
-  "description": "Claude-powered AI tools: research, write, code, analyze, translate, debate, pitch, score, and more.",
-  "version": "1.0.1",
+  "title": "AiPayGent — 65+ AI Tools for Agents",
+  "description": "Research, write, code, translate, scrape the web, store agent memory, and more. 65+ tools via MCP. Free tier: 10 calls/day. No API keys needed.",
+  "version": "1.1.0",
   "remotes": [
     {
       "type": "streamable-http",
@@ -14,13 +14,14 @@
     {
       "registryType": "pypi",
       "identifier": "aipaygent-mcp",
-      "version": "1.0.1",
+      "version": "1.1.0",
+      "runtime": "python",
       "transport": { "type": "stdio" },
       "environmentVariables": [
         {
-          "name": "ANTHROPIC_API_KEY",
-          "description": "Your Anthropic API key",
-          "isRequired": true,
+          "name": "AIPAYGENT_API_KEY",
+          "description": "Optional API key for unlimited access. Free tier (10 calls/day) works without it.",
+          "isRequired": false,
           "isSecret": true,
           "format": "string"
         }
