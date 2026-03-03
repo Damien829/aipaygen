@@ -58,6 +58,7 @@ from discovery_engine import (
     run_maintenance, register_db_paths,
     track_cost, get_daily_cost, is_cost_throttled,
 )
+from model_router import call_model, list_models, get_model_config, calculate_cost, resolve_model_name, ModelNotFoundError
 import io
 import base64
 import socket
@@ -661,6 +662,22 @@ class _TrackedClaude:
 
 claude = _TrackedClaude(anthropic.Anthropic(api_key=ANTHROPIC_API_KEY))
 
+
+def _call_llm(messages, system="", max_tokens=1024, endpoint="unknown", model_override=None):
+    """Route LLM call through model_router. Reads 'model' from request JSON if not overridden."""
+    model_name = model_override or (request.get_json(silent=True) or {}).get("model", "claude-haiku")
+    try:
+        result = call_model(model_name, messages, system=system, max_tokens=max_tokens)
+    except ModelNotFoundError as e:
+        return None, str(e)
+    # Track cost via discovery engine
+    try:
+        track_cost(endpoint, result["model_id"], result["input_tokens"], result["output_tokens"])
+    except Exception:
+        pass
+    return result, None
+
+
 init_db()
 init_memory_db()
 init_network_db()
@@ -779,6 +796,12 @@ def internal_error(e):
 @app.route("/<path:path>", methods=["OPTIONS"])
 def options(path):
     return "", 204
+
+
+@app.route("/models", methods=["GET"])
+def models_list():
+    """List all available AI models with pricing."""
+    return jsonify({"models": list_models(), "default": "claude-haiku"})
 
 
 @app.route("/scrape", methods=["POST"])
@@ -922,20 +945,20 @@ def code():
 def summarize():
     data = request.get_json() or {}
     text = data.get("text", "")
-    length = data.get("length", "short")
+    length = data.get("length", "bullets")
     if not text:
         return jsonify({"error": "text required"}), 400
-
-    msg = claude.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=512,
-        messages=[{
-            "role": "user",
-            "content": f"Summarize the following text. Length: {length} (short=2-3 sentences, medium=1 paragraph, detailed=3-4 paragraphs). Return only the summary.\n\n{text}"
-        }]
+    result, err = _call_llm(
+        [{"role": "user", "content": f"Summarize in {length} form:\n\n{text}"}],
+        max_tokens=1024, endpoint="/summarize",
     )
+    if err:
+        return jsonify({"error": err}), 400
     log_payment("/summarize", 0.01, request.remote_addr)
-    return jsonify(agent_response({"result": msg.content[0].text, "length": length}, "/summarize"))
+    return jsonify(agent_response({
+        "summary": result["text"], "original_length": len(text),
+        "model": result["model"], "tokens": result["input_tokens"] + result["output_tokens"],
+    }, "/summarize"))
 
 
 @app.route("/translate", methods=["POST"])
