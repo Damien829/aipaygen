@@ -2,8 +2,13 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.djautomd-lab/aipaygent",
   "title": "AiPayGent — 65+ AI Tools for Agents",
-  "description": "Research, write, code, translate, scrape the web, store agent memory, and more. 65+ tools via MCP. Free tier: 10 calls/day. No API keys needed.",
+  "description": "65+ AI tools: research, write, code, translate, scrape, agent memory. Free tier included.",
   "version": "1.1.0",
+  "repository": {
+    "url": "https://github.com/djautomd-lab/aipaygent",
+    "source": "github"
+  },
+  "websiteUrl": "https://api.aipaygent.xyz/discover",
   "remotes": [
     {
       "type": "streamable-http",
@@ -13,17 +18,17 @@
   "packages": [
     {
       "registryType": "pypi",
+      "registryBaseUrl": "https://pypi.org",
       "identifier": "aipaygent-mcp",
       "version": "1.1.0",
-      "runtime": "python",
+      "runtimeHint": "uvx",
       "transport": { "type": "stdio" },
       "environmentVariables": [
         {
           "name": "AIPAYGENT_API_KEY",
           "description": "Optional API key for unlimited access. Free tier (10 calls/day) works without it.",
           "isRequired": false,
-          "isSecret": true,
-          "format": "string"
+          "isSecret": true
         }
       ]
     }

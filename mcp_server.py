@@ -868,6 +868,64 @@ def check_api_key_balance(key: str) -> dict:
         return {"error": str(e)}
 
 
+# ── Skills System ─────────────────────────────────────────────────────────
+
+@mcp.tool()
+def ask(question: str) -> dict:
+    """Universal endpoint — ask anything. AiPayGent picks the best skill and model automatically."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/ask",
+            json={"question": question}, timeout=120)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@mcp.tool()
+def list_skills(category: str = "") -> dict:
+    """List all available skills. AiPayGent has built-in + dynamically absorbed skills."""
+    try:
+        params = {"category": category} if category else {}
+        resp = _mcp_requests.get("http://localhost:5001/skills", params=params, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@mcp.tool()
+def execute_skill(skill_name: str, input_text: str) -> dict:
+    """Execute a specific skill by name. Use list_skills to see what's available."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/skills/execute",
+            json={"skill": skill_name, "input": input_text}, timeout=120)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@mcp.tool()
+def create_skill(name: str, description: str, prompt_template: str, category: str = "general") -> dict:
+    """Create a new reusable skill. prompt_template must contain {{input}} placeholder."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/skills/create",
+            json={"name": name, "description": description,
+                  "prompt_template": prompt_template, "category": category}, timeout=30)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@mcp.tool()
+def absorb_skill(url: str = "", text: str = "") -> dict:
+    """Absorb a new skill from a URL or text. AiPayGent reads and creates a callable skill."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/skills/absorb",
+            json={"url": url, "text": text}, timeout=60)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def main():
     import sys
     if "--http" in sys.argv:

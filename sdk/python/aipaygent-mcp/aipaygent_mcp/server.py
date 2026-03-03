@@ -487,6 +487,50 @@ def list_models() -> dict:
     return _get("models")
 
 
+# ── Skills System ─────────────────────────────────────────────────────────
+
+@mcp.tool()
+def ask(question: str) -> dict:
+    """Universal endpoint — ask anything. AiPayGent picks the best skill and model automatically."""
+    return _call("ask", {"question": question})
+
+
+@mcp.tool()
+def list_skills(category: str = "") -> dict:
+    """List all available skills. AiPayGent has 65+ built-in skills and absorbs new ones dynamically."""
+    params = {}
+    if category:
+        params["category"] = category
+    return _get("skills", params)
+
+
+@mcp.tool()
+def execute_skill(skill_name: str, input_text: str) -> dict:
+    """Execute a specific skill by name. Use list_skills to see available skills."""
+    return _call("skills/execute", {"skill": skill_name, "input": input_text})
+
+
+@mcp.tool()
+def create_skill(name: str, description: str, prompt_template: str, category: str = "general") -> dict:
+    """Create a new reusable skill. prompt_template must contain {{input}} placeholder."""
+    return _call("skills/create", {
+        "name": name, "description": description,
+        "prompt_template": prompt_template, "category": category,
+    })
+
+
+@mcp.tool()
+def absorb_skill(url: str = "", text: str = "") -> dict:
+    """Absorb a new skill from a URL or text description. AiPayGent reads it and creates a callable skill."""
+    return _call("skills/absorb", {"url": url, "text": text})
+
+
+@mcp.tool()
+def search_skills(query: str) -> dict:
+    """Search for skills by keyword."""
+    return _get("skills/search", {"q": query})
+
+
 def main():
     if "--http" in sys.argv:
         mcp.run(transport="streamable-http")
