@@ -1957,6 +1957,20 @@ LANDING_HTML = '''<!DOCTYPE html>
 <title>AiPayGent — AI Economy Infrastructure</title>
 <link rel="alternate" type="text/plain" href="/llms.txt" title="LLMs.txt">
 <meta name="description" content="Pay-per-use Claude AI API for autonomous agents. Research, write, code, translate — pay in USDC on Base via x402 protocol. No API keys required.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="AiPayGent — AI Economy Infrastructure">
+<meta property="og:description" content="Pay-per-use Claude AI API for autonomous agents. Research, write, code, translate — pay in USDC on Base via x402 protocol.">
+<meta property="og:url" content="https://api.aipaygent.xyz">
+<meta property="og:image" content="https://api.aipaygent.xyz/og-image.png">
+<meta property="og:site_name" content="AiPayGent">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AiPayGent — AI Economy Infrastructure">
+<meta name="twitter:description" content="Pay-per-use Claude AI API for autonomous agents. 140+ endpoints, USDC on Base, no API keys.">
+<meta name="twitter:image" content="https://api.aipaygent.xyz/og-image.png">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"AiPayGent","url":"https://api.aipaygent.xyz","description":"Pay-per-use Claude AI API for autonomous agents. 140+ endpoints via x402 micropayments on Base.","applicationCategory":"DeveloperApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0.01","priceCurrency":"USD","description":"Per API call, paid in USDC on Base"},"provider":{"@type":"Organization","name":"AiPayGent","url":"https://api.aipaygent.xyz"}}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
@@ -7602,6 +7616,20 @@ def og_image():
   <text x="600" y="521" font-family="system-ui,sans-serif" font-size="20" font-weight="600" fill="#fff" text-anchor="middle">Try free — no credit card</text>
 </svg>"""
     return svg, 200, {"Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=86400"}
+
+
+@app.route("/favicon.svg")
+def favicon_svg():
+    svg = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#6366f1"/>
+  <text x="32" y="46" font-family="system-ui,sans-serif" font-size="36" font-weight="800" fill="#fff" text-anchor="middle">Ai</text>
+</svg>"""
+    return svg, 200, {"Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=604800"}
+
+
+@app.route("/favicon.ico")
+def favicon_ico():
+    return "", 204
 
 
 # ── Changelog ─────────────────────────────────────────────────────────────────
