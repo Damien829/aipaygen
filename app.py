@@ -39,7 +39,7 @@ from agent_network import (
     subscribe_tasks, get_task_subscribers,
 )
 from specialist_agents import bootstrap_all_agents
-from api_keys import init_keys_db, generate_key, topup_key, get_key_status, validate_key, deduct
+from api_keys import init_keys_db, generate_key, topup_key, get_key_status, validate_key, deduct, deduct_metered
 from async_jobs import init_jobs_db, submit_job, get_job, run_job_async
 from file_storage import init_files_db, save_file, get_file, delete_file, list_files, storage_stats
 from webhook_relay import (
@@ -541,6 +541,11 @@ routes: dict[str, RouteConfig] = {
         mime_type="application/json",
         description="Entity enrichment — aggregate data about an IP, crypto, country, or company ($0.05)",
     ),
+    "POST /credits/buy": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$5.00", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Buy $5 credit pack — returns prepaid API key for metered token-based billing",
+    ),
 }
 
 _raw_flask_wsgi = app.wsgi_app  # save original Flask WSGI before x402 wraps it
@@ -583,14 +588,25 @@ def _api_key_wsgi(environ, start_response):
     if auth.startswith("Bearer apk_"):
         key = auth[7:]  # strip "Bearer "
         route_cfg = routes.get(route_key)
+        pricing_mode = environ.get("HTTP_X_PRICING", "flat").lower()
         if route_cfg:
             try:
-                price_str = route_cfg.accepts[0].price  # e.g. "$0.01"
-                cost = float(price_str.lstrip("$"))
-                key_data = validate_key(key)
-                if key_data and key_data.get("balance_usd", 0) >= cost and deduct(key, cost):
-                    environ["X_APIKEY_BYPASS"] = key
-                    return _raw_flask_wsgi(environ, start_response)
+                if pricing_mode == "metered":
+                    # Metered: validate key exists and has minimum balance
+                    key_data = validate_key(key)
+                    if key_data and key_data.get("balance_usd", 0) >= 0.001:
+                        environ["X_APIKEY_BYPASS"] = key
+                        environ["X_PRICING_MODE"] = "metered"
+                        return _raw_flask_wsgi(environ, start_response)
+                else:
+                    # Flat: deduct fixed amount upfront (existing behavior)
+                    price_str = route_cfg.accepts[0].price  # e.g. "$0.01"
+                    cost = float(price_str.lstrip("$"))
+                    key_data = validate_key(key)
+                    if key_data and key_data.get("balance_usd", 0) >= cost and deduct(key, cost):
+                        environ["X_APIKEY_BYPASS"] = key
+                        environ["X_PRICING_MODE"] = "flat"
+                        return _raw_flask_wsgi(environ, start_response)
             except Exception:
                 pass
 
@@ -696,6 +712,18 @@ def _call_llm(messages, system="", max_tokens=1024, endpoint="unknown", model_ov
         track_cost(endpoint, result["model_id"], result["input_tokens"], result["output_tokens"])
     except Exception:
         pass
+    # Metered deduction if applicable
+    api_key = request.environ.get("X_APIKEY_BYPASS", "")
+    pricing_mode = request.environ.get("X_PRICING_MODE", "flat")
+    if api_key and pricing_mode == "metered":
+        cfg = get_model_config(model_name)
+        deduction = deduct_metered(
+            api_key, result["input_tokens"], result["output_tokens"],
+            cfg["input_cost_per_m"], cfg["output_cost_per_m"],
+        )
+        if deduction:
+            result["metered_cost"] = deduction["cost"]
+            result["balance_remaining"] = deduction["balance_remaining"]
     return result, None
 
 
@@ -6877,6 +6905,21 @@ def auth_status():
     if not status:
         return jsonify({"error": "key_not_found"}), 404
     return jsonify(status)
+
+
+@app.route("/credits/buy", methods=["POST"])
+def buy_credits():
+    """Buy token credits via x402. Returns a prepaid API key."""
+    data = request.get_json() or {}
+    amount = data.get("amount_usd", 5.0)
+    label = data.get("label", "x402-credit-pack")
+    key_data = generate_key(initial_balance=amount, label=label)
+    return jsonify({
+        "key": key_data["key"],
+        "balance_usd": amount,
+        "label": label,
+        "pricing": "Use 'X-Pricing: metered' header for token-based billing",
+    })
 
 
 # ── SSE Streaming Endpoints ─────────────────────────────────────────────────────
