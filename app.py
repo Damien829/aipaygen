@@ -2805,7 +2805,7 @@ LANDING_HTML = '''<!DOCTYPE html>
     Powered by Claude
   </div>
   <div class="footer-right">
-    <div class="network-badge"><div class="dot"></div>BASE SEPOLIA · x402 PROTOCOL</div>
+    <div class="network-badge"><div class="dot"></div>BASE MAINNET · x402 PROTOCOL</div>
     <div style="margin-top: 8px;">api.aipaygent.xyz</div>
   </div>
 </footer>
@@ -3930,7 +3930,7 @@ AiPayGent is an x402-native resource server and MCP tool provider. Call any endp
 ## Payment Protocol
 
 - **Standard**: [x402](https://x402.org) — HTTP 402 Payment Required
-- **Network**: Base Sepolia (eip155:84532)
+- **Network**: Base Mainnet (eip155:8453)
 - **Token**: USDC (6 decimals — $0.01 = 10000 units)
 - **No auth, no API keys, no rate limits, no accounts**
 
@@ -4059,7 +4059,7 @@ print(f"{len(manifest['services'])} services available")
 
 - All paid responses include `_meta` with endpoint, model, network, timestamp.
 - Fetch `/discover` to get the machine-readable manifest before calling endpoints.
-- USDC precision: $0.01 = 10000 (6 decimals). Network: Base Sepolia (eip155:84532).
+- USDC precision: $0.01 = 10000 (6 decimals). Network: Base Mainnet (eip155:8453).
 - Agent memory persists indefinitely — use a stable `agent_id` (e.g. your agent's DID or UUID).
 - `/workflow` uses Claude Sonnet (more capable) for complex multi-step reasoning.
 - The `/catalog` endpoint lists 500+ APIs discovered by our 6 autonomous discovery agents.
@@ -5240,7 +5240,7 @@ curl -X POST https://api.aipaygent.xyz/research \\
   -H "Content-Type: application/json" \\
   -d \'{"topic": "quantum computing breakthroughs 2025"}\'
 
-<span class="comment"># With x402 payment header (Base Sepolia USDC)</span>
+<span class="comment"># With x402 payment header (Base Mainnet USDC)</span>
 curl -X POST https://api.aipaygent.xyz/research \\
   -H "Content-Type: application/json" \\
   -H "X-Payment: &lt;signed-x402-tx&gt;" \\
@@ -5256,7 +5256,7 @@ curl -X POST https://api.aipaygent.xyz/research \\
 <span class="kw">from</span> eth_account <span class="kw">import</span> Account
 <span class="kw">import</span> json
 
-<span class="comment"># Your EVM wallet (Base Sepolia for testnet)</span>
+<span class="comment"># Your EVM wallet (Base Mainnet)</span>
 account = Account.<span class="fn">from_key</span>(<span class="str">"YOUR_PRIVATE_KEY"</span>)
 client = <span class="fn">X402Client</span>(account)
 
@@ -7364,7 +7364,7 @@ _KNOWLEDGE_SEEDS = [
         "topic": "x402-payment-protocol",
         "content": (
             "x402 is a payment protocol for AI agents. HTTP 402 response includes payment details. "
-            "Agents pay USDC on Base Sepolia (testnet). AiPayGent wallet: 0x3E9C23822184c7E0D1f2b650bef6218a56B9EeeD. "
+            "Agents pay USDC on Base Mainnet. AiPayGent wallet: 0x3E9C23822184c7E0D1f2b650bef6218a56B9EeeD."
             "Facilitator: https://x402.org/facilitator. Use x402-python or x402-js SDK."
         ),
         "tags": ["x402", "payment", "usdc", "base"],
