@@ -1,68 +1,78 @@
-# AiPayGent MCP Server
+# AiPayGent
 
 <!-- mcp-name: io.github.djautomd-lab/aipaygent -->
 
-36 Claude-powered AI tools available as an MCP server. Connect directly as a remote server or run locally.
+**Pay-per-use Claude AI API for autonomous agents.** 140+ endpoints, USDC micropayments on Base via [x402](https://www.x402.org/), no API keys or signups required.
 
-## Remote (no setup)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![PyPI - langchain](https://img.shields.io/pypi/v/aipaygent-langchain)](https://pypi.org/project/aipaygent-langchain/)
+[![PyPI - llamaindex](https://img.shields.io/pypi/v/aipaygent-llamaindex)](https://pypi.org/project/aipaygent-llamaindex/)
+[![npm](https://img.shields.io/npm/v/aipaygent)](https://www.npmjs.com/package/aipaygent)
 
-Connect your MCP client to:
+## How it works
+
+1. Agent calls any endpoint (e.g. `POST /research`)
+2. First 10 calls/day are **free** — no payment needed
+3. After that, the server returns **HTTP 402** with payment instructions
+4. Agent signs a USDC transaction on Base and retries with an `X-Payment` header
+5. Server verifies payment via [CDP x402](https://docs.cdp.coinbase.com/x402/docs/overview) and returns the result
+
+```
+Agent ──POST /research──▶ AiPayGent ──402 + payment info──▶ Agent
+Agent ──POST /research + X-Payment──▶ AiPayGent ──200 + result──▶ Agent
+```
+
+## Quick start
+
+### Try free (no setup)
+
+```bash
+curl -X POST https://api.aipaygent.xyz/preview \
+  -H "Content-Type: application/json" \
+  -d '{"query": "What is x402?"}'
+```
+
+### Python
+
+```bash
+pip install aipaygent-langchain
+```
+
+```python
+from aipaygent_langchain import AiPayGentToolkit
+
+tools = AiPayGentToolkit(x402_token="your_token").get_tools()
+# Use with LangChain agents, CrewAI, etc.
+```
+
+### JavaScript / TypeScript
+
+```bash
+npm install aipaygent
+```
+
+```javascript
+import { AiPayGent } from "aipaygent";
+const client = new AiPayGent({ token: "your_token" });
+const result = await client.research("quantum computing trends");
+```
+
+### MCP Server (Claude Desktop, Cursor, etc.)
+
+Connect as a remote MCP server — no local install:
+
 ```
 https://mcp.aipaygent.xyz/mcp
 ```
 
-## Local (stdio)
+Or run locally:
 
 ```bash
 pip install aipaygent-mcp
 aipaygent-mcp
 ```
 
-Requires `ANTHROPIC_API_KEY` in your environment.
-
-## Tools
-
-| Tool | Description |
-|------|-------------|
-| `research` | Research any topic — summary, key points, sources |
-| `summarize` | Compress text (short / medium / detailed) |
-| `analyze` | Structured analysis with findings and confidence |
-| `translate` | Translate to any language |
-| `social` | Platform-optimized posts for Twitter, LinkedIn, Instagram |
-| `write` | Articles, copy, content to spec |
-| `code` | Generate code in any language |
-| `extract` | Pull structured JSON from unstructured text |
-| `qa` | Q&A over a document with source quote |
-| `classify` | Classify text into your categories |
-| `sentiment` | Polarity, score, emotions, key phrases |
-| `keywords` | Extract keywords and topics |
-| `compare` | Compare two texts with similarity score |
-| `transform` | Rewrite, reformat, expand, condense |
-| `chat` | Stateless multi-turn Claude chat |
-| `plan` | Step-by-step action plan for any goal |
-| `decide` | Decision framework with pros, cons, recommendation |
-| `proofread` | Grammar corrections with quality score |
-| `explain` | Explain any concept at any level |
-| `questions` | Generate FAQ, interview, quiz questions |
-| `outline` | Hierarchical outline with subsections |
-| `email` | Compose professional emails |
-| `sql` | Natural language to SQL |
-| `regex` | Regex pattern from plain English |
-| `mock` | Generate realistic mock data |
-| `score` | Score content on a custom rubric |
-| `timeline` | Extract chronological timeline from text |
-| `action` | Extract action items and owners |
-| `pitch` | Generate elevator pitch (15s / 30s / 60s) |
-| `debate` | Arguments for and against any position |
-| `headline` | Generate headline variations |
-| `fact` | Extract factual claims with verifiability scores |
-| `rewrite` | Rewrite for a target audience or brand voice |
-| `tag` | Auto-tag content with taxonomy or free-form |
-| `pipeline` | Chain up to 5 tools with `{{prev}}` output passing |
-| `batch` | Run up to 5 tools in one call |
-
-## Claude Desktop Config
-
+Claude Desktop config:
 ```json
 {
   "mcpServers": {
@@ -73,8 +83,81 @@ Requires `ANTHROPIC_API_KEY` in your environment.
 }
 ```
 
+## Endpoints
+
+### AI / NLP
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/research` | POST | Deep research on any topic |
+| `/summarize` | POST | Compress text (bullets, paragraph, TLDR) |
+| `/analyze` | POST | Structured analysis with findings |
+| `/translate` | POST | Translate to any language |
+| `/sentiment` | POST | Polarity, score, emotions |
+| `/keywords` | POST | Extract keywords and topics |
+| `/classify` | POST | Classify into custom categories |
+| `/rewrite` | POST | Rewrite for audience or voice |
+| `/extract` | POST | Pull structured JSON from text |
+| `/qa` | POST | Q&A over a document |
+| `/code` | POST | Generate code in any language |
+| `/diagram` | POST | Generate Mermaid diagrams |
+| `/chain` | POST | Multi-step AI pipelines |
+
+### Web Intelligence
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/scrape` | POST | Scrape any webpage |
+| `/search` | POST | Web search with AI summary |
+| `/research` | POST | Deep multi-source research |
+| `/extract/{url}` | GET | Extract structured data from URL |
+| `/scrape/tweets` | POST | Search and scrape tweets |
+| `/scrape/google-maps` | POST | Google Maps business data |
+
+### Agent Memory
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/memory/set` | POST | Store persistent key-value data |
+| `/memory/get` | POST | Retrieve stored data |
+| `/memory/search` | POST | Search memories by keyword |
+
+### Discovery
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/discover` | GET | Full endpoint catalog |
+| `/catalog` | GET | Browse discovered APIs |
+| `/openapi.json` | GET | OpenAPI 3.0 spec |
+| `/llms.txt` | GET | LLMs.txt for AI agents |
+| `/.well-known/agent.json` | GET | Agent discovery manifest |
+| `/preview` | POST | Free 120-token Claude demo |
+
+Full list: [api.aipaygent.xyz/discover](https://api.aipaygent.xyz/discover)
+
+## Architecture
+
+- **Runtime**: Flask + Gunicorn on Raspberry Pi 5
+- **AI**: Claude Haiku 4.5 via Anthropic API
+- **Payments**: x402 protocol, USDC on Base Mainnet, verified via CDP
+- **Tunnel**: Cloudflare Tunnel → `api.aipaygent.xyz`
+- **Storage**: SQLite (memory, usage tracking, API keys)
+- **Discovery**: OpenAPI, LLMs.txt, MCP, agents.json, ai-plugin.json
+
 ## Links
 
-- REST API: https://api.aipaygent.xyz
-- Discover: https://api.aipaygent.xyz/discover
-- OpenAPI: https://api.aipaygent.xyz/openapi.json
+| Resource | URL |
+|----------|-----|
+| Live API | https://api.aipaygent.xyz |
+| Discover endpoints | https://api.aipaygent.xyz/discover |
+| OpenAPI spec | https://api.aipaygent.xyz/openapi.json |
+| LLMs.txt | https://api.aipaygent.xyz/llms.txt |
+| MCP server | https://mcp.aipaygent.xyz/mcp |
+| Blog | https://api.aipaygent.xyz/blog |
+| npm SDK | https://www.npmjs.com/package/aipaygent |
+| PyPI (LangChain) | https://pypi.org/project/aipaygent-langchain/ |
+| PyPI (LlamaIndex) | https://pypi.org/project/aipaygent-llamaindex/ |
+
+## License
+
+[MIT](LICENSE)
