@@ -6,7 +6,7 @@ long_desc = content.split('"""')[1].strip()
 
 setup(
     name="aipaygent-llamaindex",
-    version="1.0.0",
+    version="1.0.1",
     description="LlamaIndex ToolSpec for AiPayGent — 123 AI endpoints via x402 micropayments (USDC on Base)",
     long_description=long_desc,
     long_description_content_type="text/x-rst",

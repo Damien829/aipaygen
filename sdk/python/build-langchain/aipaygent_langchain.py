@@ -8,7 +8,7 @@ Install:
     pip install langchain-core requests
 
 Usage:
-    from langchain_tool import AiPayGentTool, AiPayGentToolkit
+    from aipaygent_langchain import AiPayGentToolkit
     from langchain.agents import AgentExecutor, create_openai_tools_agent
 
     tools = AiPayGentToolkit(x402_token="your_token").get_tools()

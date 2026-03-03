@@ -8,7 +8,7 @@ Install:
     pip install llama-index-core requests
 
 Usage:
-    from llamaindex_tool import AiPayGentToolSpec
+    from aipaygent_llamaindex import AiPayGentToolSpec
 
     tool_spec = AiPayGentToolSpec(x402_token="your_token")
     tools = tool_spec.to_tool_list()
