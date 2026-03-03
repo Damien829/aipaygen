@@ -3783,7 +3783,7 @@ def discover():
             {"endpoint": "/scrape/tiktok", "method": "POST", "price_usd": 0.05, "input": {"username": "string", "max_items": 5}, "description": "Scrape TikTok profile videos and metadata"},
             {"endpoint": "/scrape/facebook-ads", "method": "POST", "price_usd": 0.10, "input": {"url": "Facebook Ad Library URL", "max_items": 10}, "description": "Scrape Facebook Ad Library for competitor ad research"},
             {"endpoint": "/scrape/actor", "method": "POST", "price_usd": 0.10, "input": {"actor_id": "Apify actor ID", "run_input": {}, "max_items": 10}, "description": "Run any Apify actor with custom input — access the full Apify ecosystem"},
-            {"endpoint": "/catalog", "method": "GET", "price_usd": 0.00, "input": {"category": "optional", "min_score": 0, "free_only": False, "page": 1}, "description": "Browse 500+ discovered APIs — filtered by category, quality score, auth requirement"},
+            {"endpoint": "/catalog", "method": "GET", "price_usd": 0.00, "input": {"category": "optional", "min_score": 0, "free_only": False, "page": 1}, "description": "Browse 200+ discovered APIs — filtered by category, quality score, auth requirement"},
             {"endpoint": "/run-discovery", "method": "POST", "price_usd": 0.00, "description": "Trigger API discovery agents to scan the web for new APIs"},
             {"endpoint": "/agents/register", "method": "POST", "price_usd": 0.00, "input": {"agent_id": "string", "name": "string", "description": "string", "capabilities": [], "endpoint": "optional URL"}, "description": "Register your agent in the AiPayGent agent registry — free"},
             {"endpoint": "/agents", "method": "GET", "price_usd": 0.00, "description": "Browse all registered agents in the registry"},
@@ -3937,7 +3937,7 @@ AiPayGent is an x402-native resource server and MCP tool provider. Call any endp
 - **Diagrams**: generate Mermaid diagrams (flowchart, sequence, ERD, gantt, mindmap)
 - **Web scraping**: Google Maps, Twitter/X, Instagram, LinkedIn, YouTube, TikTok, Facebook Ads, any website
 - **Agent memory**: persistent key-value store keyed by agent_id — survives across sessions
-- **API catalog**: 500+ discovered APIs, browsable and proxy-callable
+- **API catalog**: 200+ discovered APIs, browsable and proxy-callable
 - **Agent registry**: register and discover other agents
 - **MCP tools**: all capabilities available as MCP tools at mcp.aipaygent.xyz/mcp
 
@@ -4036,7 +4036,7 @@ All 79+ tools available without x402 payment via MCP.
 
 - `GET /discover` — full machine-readable service manifest (JSON)
 - `GET /openapi.json` — OpenAPI 3.1 spec
-- `GET /catalog` — browse 500+ discovered APIs (filterable)
+- `GET /catalog` — browse 200+ discovered APIs (filterable)
 - `GET /agents` — browse registered agents
 - `POST /agents/register` — register your agent
 - `POST /run-discovery` — trigger API discovery agents
@@ -5092,7 +5092,7 @@ def agents_json():
                 "140+ Claude-powered AI tools + web scrapers + agent memory + file storage + webhook relay + async jobs, available as pay-per-use endpoints. "
                 "Research, write, code, analyze, vision, RAG, diagrams, test-cases, workflows, "
                 "web scraping (Google Maps, Twitter, LinkedIn, TikTok, YouTube), persistent agent memory, "
-                "and a searchable catalog of 500+ discovered APIs. "
+                "and a searchable catalog of 200+ discovered APIs. "
                 "No API key required — pay in USDC on Base via x402 protocol. "
                 "Also available as MCP tools: mcp install aipaygent-mcp"
             ),
@@ -5157,7 +5157,7 @@ def x402_manifest():
         "name": "AiPayGent",
         "description": (
             "140+ Claude-powered AI tools, web scrapers, agent memory, file storage, "
-            "webhook relay, async jobs, and an API catalog of 500+ discovered APIs. "
+            "webhook relay, async jobs, and an API catalog of 200+ discovered APIs. "
             "No API key required — pay per call in USDC on Base via x402 protocol."
         ),
         "url": base,
@@ -7558,19 +7558,23 @@ def rss_feed():
     """RSS 2.0 feed of blog posts — enables syndication to aggregators."""
     posts = list_blog_posts()
     items_xml = ""
+    import re as _re2
     for p in posts[:20]:
         pub_date = p.get("generated_at", "")[:10]
         slug = p["slug"]
         link = f"https://api.aipaygent.xyz/blog/{slug}"
-        # Strip HTML tags for description
-        import re as _re2
-        desc = _re2.sub(r'<[^>]+>', '', p.get("content", ""))[:300].strip()
+        full = get_blog_post(slug)
+        raw = full.get("content", "") if full else ""
+        raw = _re2.sub(r'^```html\s*', '', raw)
+        desc = _re2.sub(r'<[^>]+>', '', raw)[:300].strip()
+        if not desc:
+            desc = p.get("title", "")
         items_xml += f"""
   <item>
     <title><![CDATA[{p['title']}]]></title>
     <link>{link}</link>
     <guid isPermaLink="true">{link}</guid>
-    <description><![CDATA[{desc}...]]></description>
+    <description><![CDATA[{desc}]]></description>
     <pubDate>{pub_date}</pubDate>
     <category>{p.get('endpoint','api')}</category>
   </item>"""
