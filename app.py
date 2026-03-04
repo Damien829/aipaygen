@@ -3896,180 +3896,328 @@ _ASYNC_HANDLERS.update({
 })
 
 
+def _build_discover_services():
+    """Return services organized by category for the /discover endpoint."""
+    _all_services = [
+        # --- Web Intelligence ---
+        {"endpoint": "/scrape", "method": "POST", "price_usd": 0.01, "input": {"url": "string"}, "output": {"url": "string", "text": "string", "word_count": "int"}, "description": "Fetch any URL, return clean markdown text"},
+        {"endpoint": "/search", "method": "POST", "price_usd": 0.01, "input": {"query": "string", "n": "int (default 5, max 10)"}, "output": {"query": "string", "results": [{"title": "string", "url": "string", "snippet": "string"}]}, "description": "DuckDuckGo web search, returns top N results"},
+        {"endpoint": "/extract", "method": "POST", "price_usd": 0.02, "input": {"url": "string OR text: string", "schema": {"field": "description"}, "fields": ["field1"]}, "description": "Extract structured data from URL or text using a schema"},
+        {"endpoint": "/research", "method": "POST", "price_usd": 0.15, "input": {"question": "string"}, "output": {"question": "string", "answer": "string", "sources": [{"title": "string", "url": "string"}]}, "description": "Deep research: search + scrape + AI synthesis with citations"},
+        {"endpoint": "/vision", "method": "POST", "price_usd": 0.05, "input": {"url": "image_url", "question": "optional"}, "description": "Analyze any image URL with Claude Vision — describe, extract text, answer questions"},
+        {"endpoint": "/web/search", "method": "GET", "price_usd": 0.02, "input": {"q": "query", "n": 10}, "description": "Web search via DuckDuckGo instant answers — returns results with title, URL, snippet."},
+        {"endpoint": "/enrich", "method": "POST", "price_usd": 0.05, "input": {"entity": "string", "type": "ip|crypto|country|url|company"}, "description": "Aggregate multiple data sources into a unified enrichment profile for any entity."},
+        # --- AI Processing ---
+        {"endpoint": "/summarize", "method": "POST", "price_usd": 0.01, "input": {"text": "string", "length": "short|medium|detailed"}, "description": "Summarize long text into key points"},
+        {"endpoint": "/analyze", "method": "POST", "price_usd": 0.02, "input": {"content": "string", "question": "string"}, "description": "Analyze data or text, returns structured insights"},
+        {"endpoint": "/translate", "method": "POST", "price_usd": 0.02, "input": {"text": "string", "language": "string"}, "description": "Translate text to any language"},
+        {"endpoint": "/social", "method": "POST", "price_usd": 0.03, "input": {"topic": "string", "platforms": ["twitter", "linkedin", "instagram"], "tone": "string"}, "description": "Generate platform-optimized social media posts"},
+        {"endpoint": "/write", "method": "POST", "price_usd": 0.05, "input": {"spec": "string", "type": "article|post|copy"}, "description": "Write articles, copy, or content to spec"},
+        {"endpoint": "/code", "method": "POST", "price_usd": 0.05, "input": {"description": "string", "language": "string"}, "description": "Generate code in any language"},
+        {"endpoint": "/qa", "method": "POST", "price_usd": 0.02, "input": {"context": "string", "question": "string"}, "description": "Q&A over a document — answer + confidence + source quote. Core RAG building block."},
+        {"endpoint": "/classify", "method": "POST", "price_usd": 0.01, "input": {"text": "string", "categories": ["cat1", "cat2"]}, "description": "Classify text into your defined categories with per-category confidence scores"},
+        {"endpoint": "/sentiment", "method": "POST", "price_usd": 0.01, "input": {"text": "string"}, "description": "Deep sentiment — polarity, score, emotions, confidence, key phrases"},
+        {"endpoint": "/keywords", "method": "POST", "price_usd": 0.01, "input": {"text": "string", "max_keywords": 10}, "description": "Extract keywords, topics, tags from any text"},
+        {"endpoint": "/compare", "method": "POST", "price_usd": 0.02, "input": {"text_a": "string", "text_b": "string", "focus": "optional"}, "description": "Compare two texts — similarities, differences, similarity score, recommendation"},
+        {"endpoint": "/transform", "method": "POST", "price_usd": 0.02, "input": {"text": "string", "instruction": "string"}, "description": "Transform text with any instruction — rewrite, reformat, expand, condense, translate style"},
+        {"endpoint": "/chat", "method": "POST", "price_usd": 0.03, "input": {"messages": [{"role": "user", "content": "string"}], "system": "optional"}, "description": "Stateless multi-turn chat — send full message history, get Claude reply"},
+        {"endpoint": "/plan", "method": "POST", "price_usd": 0.03, "input": {"goal": "string", "context": "optional", "steps": 7}, "description": "Step-by-step action plan with effort estimate and first action"},
+        {"endpoint": "/decide", "method": "POST", "price_usd": 0.03, "input": {"decision": "string", "options": ["A", "B"], "criteria": "optional"}, "description": "Decision framework — pros, cons, risks, recommendation, confidence"},
+        {"endpoint": "/proofread", "method": "POST", "price_usd": 0.02, "input": {"text": "string", "style": "professional"}, "description": "Grammar/spelling/clarity corrections with tracked issues and writing score"},
+        {"endpoint": "/explain", "method": "POST", "price_usd": 0.02, "input": {"concept": "string", "level": "beginner|intermediate|expert", "analogy": True}, "description": "Explain any concept with analogy, key points, common misconceptions"},
+        {"endpoint": "/questions", "method": "POST", "price_usd": 0.02, "input": {"content": "string", "type": "faq|interview|quiz|comprehension", "count": 5}, "description": "Generate questions + answers from any content"},
+        {"endpoint": "/outline", "method": "POST", "price_usd": 0.02, "input": {"topic": "string", "depth": 2, "sections": 6}, "description": "Hierarchical outline with headings, summaries, and subsections"},
+        {"endpoint": "/email", "method": "POST", "price_usd": 0.03, "input": {"purpose": "string", "tone": "professional", "recipient": "optional", "length": "short|medium|long"}, "description": "Compose professional emails with subject and body"},
+        {"endpoint": "/sql", "method": "POST", "price_usd": 0.05, "input": {"description": "string", "dialect": "postgresql", "schema": "optional"}, "description": "Natural language to SQL — query + explanation + notes"},
+        {"endpoint": "/regex", "method": "POST", "price_usd": 0.02, "input": {"description": "string", "language": "python", "flags": "optional"}, "description": "Regex pattern from description with examples and non-examples"},
+        {"endpoint": "/mock", "method": "POST", "price_usd": 0.03, "input": {"description": "string", "count": 5, "format": "json|csv|list"}, "description": "Generate realistic mock data records with schema"},
+        {"endpoint": "/preview", "method": "POST", "price_usd": 0.00, "input": {"topic": "string"}, "description": "Free 120-token Claude preview — no payment required"},
+        {"endpoint": "/score", "method": "POST", "price_usd": 0.02, "input": {"content": "string", "criteria": ["clarity", "accuracy"], "scale": 10}, "description": "Score content quality on any custom rubric — per-criterion scores + strengths/weaknesses"},
+        {"endpoint": "/timeline", "method": "POST", "price_usd": 0.02, "input": {"text": "string", "direction": "chronological"}, "description": "Extract or reconstruct a chronological timeline of events from any text"},
+        {"endpoint": "/action", "method": "POST", "price_usd": 0.01, "input": {"text": "string"}, "description": "Extract action items, tasks, owners, and due dates from meeting notes or any text"},
+        {"endpoint": "/pitch", "method": "POST", "price_usd": 0.03, "input": {"product": "string", "audience": "string", "length": "15s|30s|60s"}, "description": "Generate elevator pitch — hook, value prop, call to action, full script"},
+        {"endpoint": "/debate", "method": "POST", "price_usd": 0.03, "input": {"topic": "string", "perspective": "balanced|for|against"}, "description": "Arguments for and against any position with strength ratings and verdict"},
+        {"endpoint": "/headline", "method": "POST", "price_usd": 0.01, "input": {"content": "string", "count": 5, "style": "engaging|clickbait|informative"}, "description": "Generate compelling headlines and titles for any content"},
+        {"endpoint": "/fact", "method": "POST", "price_usd": 0.02, "input": {"text": "string", "count": 10}, "description": "Extract factual claims from text with verifiability scores and source hints"},
+        {"endpoint": "/rewrite", "method": "POST", "price_usd": 0.02, "input": {"text": "string", "audience": "string", "tone": "string"}, "description": "Rewrite text for a specific audience, reading level, or brand voice"},
+        {"endpoint": "/tag", "method": "POST", "price_usd": 0.01, "input": {"text": "string", "taxonomy": ["optional", "tags"], "max_tags": 10}, "description": "Auto-tag content using a provided taxonomy or free-form tagging"},
+        {"endpoint": "/rag", "method": "POST", "price_usd": 0.05, "input": {"documents": "text (use --- to separate docs)", "query": "string"}, "description": "Grounded Q&A — answer questions using only your provided documents, with citations"},
+        {"endpoint": "/diagram", "method": "POST", "price_usd": 0.03, "input": {"description": "string", "type": "flowchart|sequence|erd|gantt|mindmap"}, "description": "Generate Mermaid diagrams from a plain English description"},
+        {"endpoint": "/json-schema", "method": "POST", "price_usd": 0.02, "input": {"description": "string", "example": "optional JSON example"}, "description": "Generate JSON Schema (draft-07) from a plain English description of your data"},
+        {"endpoint": "/test-cases", "method": "POST", "price_usd": 0.03, "input": {"code": "code or description", "language": "python"}, "description": "Generate comprehensive unit test cases with edge cases for any code or feature"},
+        {"endpoint": "/code/run", "method": "POST", "price_usd": 0.05, "input": {"code": "python code string", "timeout": 10}, "description": "Execute Python code in a sandboxed subprocess. Returns stdout, stderr, exit code."},
+        # --- Scraping ---
+        {"endpoint": "/scrape/google-maps", "method": "POST", "price_usd": 0.10, "input": {"query": "string (e.g. restaurants in NYC)", "max_items": 5}, "description": "Scrape Google Maps — business names, addresses, ratings, reviews, phone numbers"},
+        {"endpoint": "/scrape/tweets", "method": "POST", "price_usd": 0.05, "input": {"query": "string or #hashtag", "max_items": 25}, "description": "Scrape Twitter/X — tweet text, author, engagement metrics"},
+        {"endpoint": "/scrape/instagram", "method": "POST", "price_usd": 0.05, "input": {"username": "string", "max_items": 5}, "description": "Scrape Instagram profile posts and metadata"},
+        {"endpoint": "/scrape/linkedin", "method": "POST", "price_usd": 0.15, "input": {"url": "LinkedIn profile URL"}, "description": "Scrape LinkedIn profile — experience, skills, education"},
+        {"endpoint": "/scrape/youtube", "method": "POST", "price_usd": 0.05, "input": {"query": "string", "max_items": 5}, "description": "Search YouTube and return video metadata — title, channel, views, URL"},
+        {"endpoint": "/scrape/web", "method": "POST", "price_usd": 0.05, "input": {"url": "string", "max_pages": 5}, "description": "Crawl any website and extract structured text content"},
+        {"endpoint": "/scrape/tiktok", "method": "POST", "price_usd": 0.05, "input": {"username": "string", "max_items": 5}, "description": "Scrape TikTok profile videos and metadata"},
+        {"endpoint": "/scrape/facebook-ads", "method": "POST", "price_usd": 0.10, "input": {"url": "Facebook Ad Library URL", "max_items": 10}, "description": "Scrape Facebook Ad Library for competitor ad research"},
+        {"endpoint": "/scrape/actor", "method": "POST", "price_usd": 0.10, "input": {"actor_id": "Apify actor ID", "run_input": {}, "max_items": 10}, "description": "Run any Apify actor with custom input — access the full Apify ecosystem"},
+        # --- Data & Utilities ---
+        {"endpoint": "/data/weather", "method": "GET", "price_usd": 0.00, "input": {"city": "string"}, "description": "Real-time weather — temperature, wind speed, weather code. Free."},
+        {"endpoint": "/data/crypto", "method": "GET", "price_usd": 0.00, "input": {"symbol": "bitcoin,ethereum"}, "description": "Live crypto prices in USD/EUR/GBP with 24hr change. Free."},
+        {"endpoint": "/data/exchange-rates", "method": "GET", "price_usd": 0.00, "input": {"base": "USD"}, "description": "Exchange rates for any base currency vs 160+ currencies. Free."},
+        {"endpoint": "/data/country", "method": "GET", "price_usd": 0.00, "input": {"name": "France"}, "description": "Country info — capital, population, currencies, languages, flag. Free."},
+        {"endpoint": "/data/ip", "method": "GET", "price_usd": 0.00, "input": {"ip": "optional"}, "description": "IP geolocation — country, city, ISP, timezone. Free."},
+        {"endpoint": "/data/news", "method": "GET", "price_usd": 0.00, "description": "Top 10 Hacker News stories — title, URL, score, comments. Free."},
+        {"endpoint": "/data/stocks", "method": "GET", "price_usd": 0.00, "input": {"symbol": "AAPL"}, "description": "Stock price, previous close, market state via Yahoo Finance. Free."},
+        {"endpoint": "/data/joke", "method": "GET", "price_usd": 0.00, "description": "Random joke — setup + punchline. Free."},
+        {"endpoint": "/data/quote", "method": "GET", "price_usd": 0.00, "input": {"category": "optional"}, "description": "Random inspirational quote with author. Free."},
+        {"endpoint": "/data/timezone", "method": "GET", "price_usd": 0.00, "input": {"tz": "America/New_York"}, "description": "Current datetime, UTC offset, week number for any timezone. Free."},
+        {"endpoint": "/data/holidays", "method": "GET", "price_usd": 0.00, "input": {"country": "US", "year": "2026"}, "description": "Public holidays for any country and year. Free."},
+        {"endpoint": "/data/wikipedia", "method": "GET", "price_usd": 0.00, "input": {"q": "quantum computing"}, "description": "Wikipedia article summary — title, extract, URL, description. Free."},
+        {"endpoint": "/data/arxiv", "method": "GET", "price_usd": 0.00, "input": {"q": "LLM agents", "limit": 5}, "description": "Search arXiv academic papers — title, authors, summary, URL. Free."},
+        {"endpoint": "/data/github/trending", "method": "GET", "price_usd": 0.00, "input": {"lang": "python", "since": "daily"}, "description": "GitHub trending repositories — repo, stars, description, language. Free."},
+        {"endpoint": "/data/reddit", "method": "GET", "price_usd": 0.00, "input": {"q": "AI agents", "sub": "MachineLearning"}, "description": "Reddit search — posts with score, comments, URL. Free."},
+        {"endpoint": "/data/youtube/transcript", "method": "GET", "price_usd": 0.00, "input": {"video_id": "dQw4w9WgXcQ"}, "description": "YouTube video transcript/captions — full text and segments. Free."},
+        {"endpoint": "/data/qr", "method": "GET", "price_usd": 0.00, "input": {"text": "https://api.aipaygent.xyz"}, "description": "Generate QR code — returns PNG as base64 and data URL. Free."},
+        {"endpoint": "/data/dns", "method": "GET", "price_usd": 0.00, "input": {"domain": "api.aipaygent.xyz"}, "description": "DNS lookup — A, AAAA records and reverse hostname. Free."},
+        {"endpoint": "/data/validate/email", "method": "GET", "price_usd": 0.00, "input": {"email": "test@example.com"}, "description": "Email validation — format check, domain reachability, disposable detection. Free."},
+        {"endpoint": "/data/validate/url", "method": "GET", "price_usd": 0.00, "input": {"url": "https://example.com"}, "description": "URL reachability check — status code, final URL, content type. Free."},
+        {"endpoint": "/data/random/name", "method": "GET", "price_usd": 0.00, "input": {"count": 5}, "description": "Random person names, emails, phone, location. Free."},
+        {"endpoint": "/data/color", "method": "GET", "price_usd": 0.00, "input": {"hex": "ff5733"}, "description": "Color info — RGB, HSL, complementary color, brightness, CSS. Free."},
+        {"endpoint": "/data/screenshot", "method": "GET", "price_usd": 0.00, "input": {"url": "https://example.com"}, "description": "Website screenshot URL (1280px wide). Free via thum.io."},
+        {"endpoint": "/free/time", "method": "GET", "price_usd": 0.00, "description": "Current UTC time, Unix timestamp, date, day of week — completely free"},
+        {"endpoint": "/free/uuid", "method": "GET", "price_usd": 0.00, "description": "Generate UUID4 values — completely free"},
+        {"endpoint": "/free/ip", "method": "GET", "price_usd": 0.00, "description": "Caller's IP address and user agent info — completely free"},
+        {"endpoint": "/free/hash", "method": "GET", "price_usd": 0.00, "input": {"text": "string"}, "description": "Hash text with MD5, SHA1, SHA256, SHA512 — completely free"},
+        {"endpoint": "/free/base64", "method": "GET", "price_usd": 0.00, "input": {"text": "string to encode", "decode": "string to decode"}, "description": "Encode/decode base64 — completely free"},
+        {"endpoint": "/free/random", "method": "GET", "price_usd": 0.00, "input": {"n": 5, "min": 1, "max": 100}, "description": "Random integers, floats, booleans, and strings — completely free"},
+        {"endpoint": "/free-tier/status", "method": "GET", "price_usd": 0.00, "description": "Check how many free AI calls remain today for your IP. 10 free calls/day, resets midnight UTC."},
+        {"endpoint": "/sdk/code", "method": "GET", "price_usd": 0.00, "input": {"lang": "python|javascript|curl", "endpoint": "optional"}, "description": "Get copy-paste SDK code in Python, JavaScript, or cURL — completely free"},
+        {"endpoint": "/sitemap.xml", "method": "GET", "price_usd": 0.00, "description": "XML sitemap of all public endpoints for crawlers and agents"},
+        {"endpoint": "/catalog", "method": "GET", "price_usd": 0.00, "input": {"category": "optional", "min_score": 0, "free_only": False, "page": 1}, "description": "Browse 200+ discovered APIs — filtered by category, quality score, auth requirement"},
+        {"endpoint": "/models", "method": "GET", "price_usd": 0.00, "description": "List all supported LLM models (11 models, 5 providers) with pricing and capabilities. Free."},
+        {"endpoint": "/api-call", "method": "POST", "price_usd": 0.05, "input": {"api_id": "int from /catalog", "endpoint": "/path", "params": {}, "api_key": "optional", "enrich": False}, "description": "Proxy-call any API in the catalog — optionally enrich results with Claude analysis"},
+        # --- Agent Platform ---
+        {"endpoint": "/agents/register", "method": "POST", "price_usd": 0.00, "input": {"agent_id": "string", "name": "string", "description": "string", "capabilities": [], "endpoint": "optional URL"}, "description": "Register your agent in the AiPayGent agent registry — free"},
+        {"endpoint": "/agents", "method": "GET", "price_usd": 0.00, "description": "Browse all registered agents in the registry"},
+        {"endpoint": "/agents/leaderboard", "method": "GET", "price_usd": 0.00, "description": "Top agents by reputation score. Score = task_completions*3 + knowledge*1.5 + upvotes*0.5"},
+        {"endpoint": "/agent/reputation/<agent_id>", "method": "GET", "price_usd": 0.00, "description": "Get reputation score and stats for any agent."},
+        {"endpoint": "/agents/challenge", "method": "POST", "price_usd": 0.00, "input": {"wallet_address": "0x...", "chain": "evm|solana"}, "description": "Request a wallet-verification challenge string. Free."},
+        {"endpoint": "/agents/verify", "method": "POST", "price_usd": 0.00, "input": {"wallet_address": "0x...", "signature": "0x...", "chain": "evm|solana"}, "description": "Submit signed challenge to verify wallet, get JWT session token. Free."},
+        {"endpoint": "/agents/me", "method": "GET", "price_usd": 0.00, "description": "View your verified agent profile (requires JWT). Free."},
+        {"endpoint": "/agents/search", "method": "GET", "price_usd": 0.00, "input": {"q": "query", "capability": "optional"}, "description": "Search wallet-verified agents by name, capability, or address. Free."},
+        {"endpoint": "/agents/<agent_id>/portfolio", "method": "GET", "price_usd": 0.00, "description": "View a verified agent's public portfolio and reputation. Free."},
+        {"endpoint": "/marketplace", "method": "GET", "price_usd": 0.00, "input": {"category": "optional", "max_price": "optional"}, "description": "Browse the agent marketplace — services listed by other AI agents"},
+        {"endpoint": "/marketplace/list", "method": "POST", "price_usd": 0.00, "input": {"agent_id": "string", "name": "string", "endpoint": "URL", "price_usd": 0.05, "description": "string", "category": "string"}, "description": "List your service in the agent marketplace — free to list, earn x402 payments"},
+        {"endpoint": "/marketplace/call", "method": "POST", "price_usd": 0.05, "input": {"listing_id": "string", "payload": {}}, "description": "Proxy-call any agent marketplace listing — we handle routing ($0.05 + listing price)"},
+        {"endpoint": "/memory/set", "method": "POST", "price_usd": 0.01, "input": {"agent_id": "string", "key": "string", "value": "any", "tags": ["optional"]}, "description": "Store persistent memory for any agent — survives across sessions and requests"},
+        {"endpoint": "/memory/get", "method": "POST", "price_usd": 0.01, "input": {"agent_id": "string", "key": "string"}, "description": "Retrieve a stored memory by agent_id and key"},
+        {"endpoint": "/memory/search", "method": "POST", "price_usd": 0.02, "input": {"agent_id": "string", "query": "string"}, "description": "Search all memories for an agent by keyword"},
+        {"endpoint": "/memory/clear", "method": "POST", "price_usd": 0.01, "input": {"agent_id": "string"}, "description": "Delete all memories for an agent — use before context reset"},
+        {"endpoint": "/message/send", "method": "POST", "price_usd": 0.01, "input": {"from_agent": "string", "to_agent": "string", "subject": "string", "body": "string"}, "description": "Send a message from one agent to another. Persistent inbox."},
+        {"endpoint": "/message/inbox/<agent_id>", "method": "GET", "price_usd": 0.00, "description": "Read an agent's inbox. Free."},
+        {"endpoint": "/message/reply", "method": "POST", "price_usd": 0.01, "input": {"msg_id": "string", "from_agent": "string", "body": "string"}, "description": "Reply to a message in a thread."},
+        {"endpoint": "/message/broadcast", "method": "POST", "price_usd": 0.02, "input": {"from_agent": "string", "subject": "string", "body": "string"}, "description": "Broadcast a message to all registered agents."},
+        {"endpoint": "/knowledge/add", "method": "POST", "price_usd": 0.01, "input": {"topic": "string", "content": "string", "author_agent": "string", "tags": []}, "description": "Add an entry to the shared knowledge base."},
+        {"endpoint": "/knowledge/search", "method": "GET", "price_usd": 0.00, "input": {"q": "query"}, "description": "Search the shared knowledge base. Free."},
+        {"endpoint": "/knowledge/trending", "method": "GET", "price_usd": 0.00, "description": "Get trending topics in the knowledge base. Free."},
+        {"endpoint": "/knowledge/vote", "method": "POST", "price_usd": 0.00, "input": {"entry_id": "string", "up": True}, "description": "Upvote or downvote a knowledge entry. Free."},
+        {"endpoint": "/task/submit", "method": "POST", "price_usd": 0.01, "input": {"posted_by": "string", "title": "string", "description": "string", "skills_needed": [], "reward_usd": 0.10}, "description": "Post a task to the agent task board."},
+        {"endpoint": "/task/browse", "method": "GET", "price_usd": 0.00, "input": {"skill": "optional", "status": "open"}, "description": "Browse open tasks. Free."},
+        {"endpoint": "/task/claim", "method": "POST", "price_usd": 0.00, "input": {"task_id": "string", "agent_id": "string"}, "description": "Claim a task from the board. Free."},
+        {"endpoint": "/task/complete", "method": "POST", "price_usd": 0.01, "input": {"task_id": "string", "agent_id": "string", "result": "string"}, "description": "Mark a task complete with result."},
+        {"endpoint": "/task/subscribe", "method": "POST", "price_usd": 0.00, "input": {"agent_id": "string", "callback_url": "https://your-agent/webhook", "skills": ["python", "nlp"]}, "description": "Subscribe to task board notifications. We POST to your callback_url when matching tasks appear."},
+        {"endpoint": "/files/upload", "method": "POST", "price_usd": 0.00, "input": {"agent_id": "string", "file": "multipart OR base64_data+filename+content_type"}, "description": "Upload a file (max 10MB). Returns file_id and URL. Free."},
+        {"endpoint": "/files/<file_id>", "method": "GET", "price_usd": 0.00, "description": "Download a file by ID. Returns raw file bytes."},
+        {"endpoint": "/files/list/<agent_id>", "method": "GET", "price_usd": 0.00, "description": "List all files uploaded by an agent."},
+        {"endpoint": "/webhooks/create", "method": "POST", "price_usd": 0.00, "input": {"agent_id": "string", "label": "optional"}, "description": "Get a unique URL to receive webhooks from any external service. Events stored 7 days."},
+        {"endpoint": "/webhooks/<id>/receive", "method": "POST", "price_usd": 0.00, "description": "The URL external services POST to. Stores the incoming event for your agent to retrieve."},
+        {"endpoint": "/webhooks/<id>/events", "method": "GET", "price_usd": 0.00, "description": "Retrieve stored webhook events. Poll this or set up a task subscription callback."},
+        {"endpoint": "/credits/buy", "method": "POST", "price_usd": 5.00, "input": {"amount_usd": 5.0, "label": "optional"}, "description": "Buy a $5 USDC credit pack — returns prepaid API key for metered token-based billing."},
+        {"endpoint": "/auth/generate-key", "method": "POST", "price_usd": 0.00, "input": {"label": "optional"}, "description": "Generate a prepaid API key (apk_xxx). Use as Bearer token to bypass x402 per-call. Free to generate."},
+        {"endpoint": "/auth/topup", "method": "POST", "price_usd": 0.00, "input": {"key": "apk_xxx", "amount": 1.00}, "description": "Top up balance on a prepaid API key. Free to call."},
+        {"endpoint": "/auth/status", "method": "GET", "price_usd": 0.00, "input": {"key": "apk_xxx"}, "description": "Check balance, usage stats, and last used time for an API key. Free."},
+        {"endpoint": "/run-discovery", "method": "POST", "price_usd": 0.00, "description": "Trigger API discovery agents to scan the web for new APIs"},
+        {"endpoint": "/async/submit", "method": "POST", "price_usd": 0.00, "input": {"endpoint": "research", "payload": {"topic": "..."}, "callback_url": "optional"}, "description": "Submit an async job. Runs in background, POSTs result to callback_url when done."},
+        {"endpoint": "/async/status/<job_id>", "method": "GET", "price_usd": 0.00, "description": "Check status of an async job — pending, running, completed, or failed."},
+        # --- Advanced ---
+        {"endpoint": "/batch", "method": "POST", "price_usd": 0.10, "input": {"operations": [{"endpoint": "string", "input": {}}]}, "description": "Run up to 5 operations in one payment — best value for multi-step pipelines"},
+        {"endpoint": "/pipeline", "method": "POST", "price_usd": 0.15, "input": {"steps": [{"endpoint": "string", "input": {}}]}, "description": "Chain up to 5 operations where each step can use {{prev}} to reference previous output"},
+        {"endpoint": "/chain", "method": "POST", "price_usd": 0.25, "input": {"steps": [{"action": "research", "params": {"query": "string"}}, {"action": "summarize", "params": {"text": "{{prev_result}}"}}]}, "description": "Chain up to 5 AI operations in sequence — each step references previous output via {{prev_result}}"},
+        {"endpoint": "/workflow", "method": "POST", "price_usd": 0.20, "input": {"goal": "string", "data": "optional context"}, "description": "Multi-step agentic reasoning with Claude Sonnet — breaks down and executes complex goals"},
+        {"endpoint": "/stream/research", "method": "POST", "price_usd": 0.01, "input": {"topic": "string"}, "description": "Streaming research — same as /research but tokens stream as text/event-stream SSE"},
+        {"endpoint": "/stream/write", "method": "POST", "price_usd": 0.05, "input": {"spec": "string", "type": "article"}, "description": "Streaming write — same as /write but content streams as SSE"},
+        {"endpoint": "/stream/analyze", "method": "POST", "price_usd": 0.02, "input": {"content": "string", "question": "optional"}, "description": "Streaming analysis — same as /analyze but streams as SSE"},
+    ]
+
+    # Categorize services by endpoint prefix / type
+    categories = {
+        "Web Intelligence": [],
+        "AI Processing": [],
+        "Scraping": [],
+        "Data & Utilities": [],
+        "Agent Platform": [],
+        "Advanced": [],
+    }
+
+    _web_intel = {"/scrape", "/search", "/extract", "/research", "/vision", "/web/search", "/enrich"}
+    _scraping_prefix = "/scrape/"
+    _data_prefixes = ("/data/", "/free/", "/free-tier/", "/sdk/", "/sitemap", "/catalog", "/models", "/api-call")
+    _agent_prefixes = ("/agents", "/agent/", "/marketplace", "/memory/", "/message/", "/knowledge/", "/task/",
+                       "/files/", "/webhooks/", "/credits/", "/auth/", "/run-discovery", "/async/")
+    _advanced = {"/batch", "/pipeline", "/chain", "/workflow", "/stream/research", "/stream/write", "/stream/analyze"}
+
+    for svc in _all_services:
+        ep = svc["endpoint"]
+        if ep in _advanced:
+            categories["Advanced"].append(svc)
+        elif ep.startswith(_scraping_prefix):
+            categories["Scraping"].append(svc)
+        elif ep in _web_intel:
+            categories["Web Intelligence"].append(svc)
+        elif ep.startswith(_data_prefixes):
+            categories["Data & Utilities"].append(svc)
+        elif ep.startswith(_agent_prefixes):
+            categories["Agent Platform"].append(svc)
+        else:
+            categories["AI Processing"].append(svc)
+
+    return categories
+
+
+DISCOVER_HTML = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AiPayGent — Pay-per-use AI API</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0f1117;color:#e1e4e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,sans-serif;line-height:1.6}
+a{color:#00d68f;text-decoration:none}
+a:hover{text-decoration:underline}
+.container{max-width:1200px;margin:0 auto;padding:0 20px}
+header{text-align:center;padding:60px 20px 40px}
+header h1{font-size:2.5rem;font-weight:700;color:#fff}
+header h1 span{color:#00d68f}
+header p.tagline{font-size:1.2rem;color:#8b949e;margin-top:8px}
+header .stats{margin-top:20px;display:flex;justify-content:center;gap:30px;flex-wrap:wrap}
+header .stat{text-align:center}
+header .stat .num{font-size:1.8rem;font-weight:700;color:#00d68f}
+header .stat .label{font-size:0.85rem;color:#8b949e}
+.cta-bar{text-align:center;margin:10px 0 40px}
+.cta-bar a{display:inline-block;background:#00d68f;color:#0f1117;padding:12px 28px;border-radius:8px;font-weight:600;font-size:1rem;margin:5px}
+.cta-bar a:hover{background:#00b876;text-decoration:none}
+.cta-bar a.secondary{background:transparent;border:1px solid #30363d;color:#e1e4e8}
+.cta-bar a.secondary:hover{border-color:#00d68f}
+section.category{margin-bottom:50px}
+section.category h2{font-size:1.5rem;color:#fff;margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid #21262d}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
+.card{background:#1a1d27;border:1px solid #21262d;border-radius:10px;padding:20px;transition:border-color .2s}
+.card:hover{border-color:#00d68f}
+.card .card-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.card .endpoint{font-family:'SF Mono',SFMono-Regular,Consolas,monospace;font-size:0.95rem;color:#fff;font-weight:600}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:700;text-transform:uppercase}
+.badge-post{background:#1f6feb;color:#fff}
+.badge-get{background:#238636;color:#fff}
+.card .desc{font-size:0.9rem;color:#8b949e;margin-bottom:12px}
+.card .price{font-size:0.95rem;font-weight:600}
+.price-free{color:#00d68f}
+.price-paid{color:#f0883e}
+footer{text-align:center;padding:40px 20px;border-top:1px solid #21262d;color:#8b949e;font-size:0.85rem}
+footer .links{margin-bottom:12px}
+footer .links a{margin:0 12px;color:#8b949e}
+footer .links a:hover{color:#00d68f}
+</style>
+</head>
+<body>
+<header>
+  <h1>Ai<span>Pay</span>Gent</h1>
+  <p class="tagline">Pay-per-use AI API &mdash; No accounts, no API keys. Pay USDC on Base via x402.</p>
+  <div class="stats">
+    <div class="stat"><div class="num">{{ total }}</div><div class="label">Services</div></div>
+    <div class="stat"><div class="num">{{ free_count }}</div><div class="label">Free</div></div>
+    <div class="stat"><div class="num">{{ categories|length }}</div><div class="label">Categories</div></div>
+  </div>
+</header>
+<div class="cta-bar">
+  <a href="{{ base_url }}/preview">Try Free Preview</a>
+  <a href="{{ base_url }}/openapi.json" class="secondary">OpenAPI Spec</a>
+  <a href="{{ base_url }}/llms.txt" class="secondary">llms.txt</a>
+</div>
+<div class="container">
+{% for cat_name, services in categories.items() %}
+<section class="category">
+  <h2>{{ cat_name }} <span style="color:#8b949e;font-size:0.9rem;font-weight:400">({{ services|length }})</span></h2>
+  <div class="grid">
+  {% for svc in services %}
+    <div class="card">
+      <div class="card-head">
+        <span class="badge {{ 'badge-post' if svc.method == 'POST' else 'badge-get' }}">{{ svc.method }}</span>
+        <span class="endpoint">{{ svc.endpoint }}</span>
+      </div>
+      <div class="desc">{{ svc.description }}</div>
+      <div class="price {% if svc.price_usd == 0 %}price-free{% else %}price-paid{% endif %}">
+        {% if svc.price_usd == 0 %}FREE{% else %}${{ "%.2f"|format(svc.price_usd) }} USDC{% endif %}
+      </div>
+    </div>
+  {% endfor %}
+  </div>
+</section>
+{% endfor %}
+</div>
+<footer>
+  <div class="links">
+    <a href="{{ base_url }}/discover">API (JSON)</a>
+    <a href="{{ base_url }}/openapi.json">OpenAPI</a>
+    <a href="{{ base_url }}/llms.txt">llms.txt</a>
+    <a href="{{ base_url }}/preview">Free Preview</a>
+    <a href="{{ base_url }}/sdk/code?lang=python">Python SDK</a>
+    <a href="{{ base_url }}/free-tier/status">Free Tier</a>
+  </div>
+  <div>Powered by x402 &middot; Base Mainnet &middot; USDC</div>
+</footer>
+</body>
+</html>'''
+
+
 @app.route("/discover")
 def discover():
+    categories = _build_discover_services()
     base_url = "https://api.aipaygent.xyz"
+
+    all_services = [s for cat_services in categories.values() for s in cat_services]
+    free_count = sum(1 for s in all_services if s.get("price_usd", 0) == 0)
+
+    # Content negotiation: HTML for browsers, JSON for agents
+    best = request.accept_mimetypes.best_match(
+        ["text/html", "application/json"], default="application/json"
+    )
+
+    if best == "text/html":
+        return render_template_string(
+            DISCOVER_HTML,
+            categories=categories,
+            base_url=base_url,
+            total=len(all_services),
+            free_count=free_count,
+        )
+
     return jsonify({
-        "name": "AiPayGent",
-        "description": "Pay-per-use Claude AI API. No accounts, no API keys. Pay USDC on Base via x402 — get results instantly.",
-        "url": base_url,
-        "openapi": f"{base_url}/openapi.json",
-        "llms_txt": f"{base_url}/llms.txt",
-        "preview": f"{base_url}/preview",
-        "wallet": WALLET_ADDRESS,
-        "network": EVM_NETWORK,
-        "payment_scheme": "x402/exact",
-        "usdc_contract": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-        "services": [
-            # --- Web Intelligence (featured) ---
-            {"endpoint": "/scrape", "method": "POST", "price_usd": 0.01, "input": {"url": "string"}, "output": {"url": "string", "text": "string", "word_count": "int"}, "description": "Fetch any URL, return clean markdown text"},
-            {"endpoint": "/search", "method": "POST", "price_usd": 0.01, "input": {"query": "string", "n": "int (default 5, max 10)"}, "output": {"query": "string", "results": [{"title": "string", "url": "string", "snippet": "string"}]}, "description": "DuckDuckGo web search, returns top N results"},
-            {"endpoint": "/extract", "method": "POST", "price_usd": 0.02, "input": {"url": "string OR text: string", "schema": {"field": "description"}, "fields": ["field1"]}, "description": "Extract structured data from URL or text using a schema"},
-            {"endpoint": "/research", "method": "POST", "price_usd": 0.15, "input": {"question": "string"}, "output": {"question": "string", "answer": "string", "sources": [{"title": "string", "url": "string"}]}, "description": "Deep research: search + scrape + AI synthesis with citations"},
-            # --- AI Processing ---
-            {"endpoint": "/summarize", "method": "POST", "price_usd": 0.01, "input": {"text": "string", "length": "short|medium|detailed"}, "description": "Summarize long text into key points"},
-            {"endpoint": "/analyze", "method": "POST", "price_usd": 0.02, "input": {"content": "string", "question": "string"}, "description": "Analyze data or text, returns structured insights"},
-            {"endpoint": "/translate", "method": "POST", "price_usd": 0.02, "input": {"text": "string", "language": "string"}, "description": "Translate text to any language"},
-            {"endpoint": "/social", "method": "POST", "price_usd": 0.03, "input": {"topic": "string", "platforms": ["twitter", "linkedin", "instagram"], "tone": "string"}, "description": "Generate platform-optimized social media posts"},
-            {"endpoint": "/write", "method": "POST", "price_usd": 0.05, "input": {"spec": "string", "type": "article|post|copy"}, "description": "Write articles, copy, or content to spec"},
-            {"endpoint": "/code", "method": "POST", "price_usd": 0.05, "input": {"description": "string", "language": "string"}, "description": "Generate code in any language"},
-            {"endpoint": "/extract", "method": "POST", "price_usd": 0.02, "input": {"text": "string", "fields": ["field1", "field2"], "schema": "optional"}, "description": "Extract structured data from unstructured text — define fields or a schema"},
-            {"endpoint": "/qa", "method": "POST", "price_usd": 0.02, "input": {"context": "string", "question": "string"}, "description": "Q&A over a document — answer + confidence + source quote. Core RAG building block."},
-            {"endpoint": "/classify", "method": "POST", "price_usd": 0.01, "input": {"text": "string", "categories": ["cat1", "cat2"]}, "description": "Classify text into your defined categories with per-category confidence scores"},
-            {"endpoint": "/sentiment", "method": "POST", "price_usd": 0.01, "input": {"text": "string"}, "description": "Deep sentiment — polarity, score, emotions, confidence, key phrases"},
-            {"endpoint": "/keywords", "method": "POST", "price_usd": 0.01, "input": {"text": "string", "max_keywords": 10}, "description": "Extract keywords, topics, tags from any text"},
-            {"endpoint": "/compare", "method": "POST", "price_usd": 0.02, "input": {"text_a": "string", "text_b": "string", "focus": "optional"}, "description": "Compare two texts — similarities, differences, similarity score, recommendation"},
-            {"endpoint": "/transform", "method": "POST", "price_usd": 0.02, "input": {"text": "string", "instruction": "string"}, "description": "Transform text with any instruction — rewrite, reformat, expand, condense, translate style"},
-            {"endpoint": "/chat", "method": "POST", "price_usd": 0.03, "input": {"messages": [{"role": "user", "content": "string"}], "system": "optional"}, "description": "Stateless multi-turn chat — send full message history, get Claude reply"},
-            {"endpoint": "/batch", "method": "POST", "price_usd": 0.10, "input": {"operations": [{"endpoint": "string", "input": {}}]}, "description": "Run up to 5 operations in one payment — best value for multi-step pipelines"},
-            {"endpoint": "/plan", "method": "POST", "price_usd": 0.03, "input": {"goal": "string", "context": "optional", "steps": 7}, "description": "Step-by-step action plan with effort estimate and first action"},
-            {"endpoint": "/decide", "method": "POST", "price_usd": 0.03, "input": {"decision": "string", "options": ["A", "B"], "criteria": "optional"}, "description": "Decision framework — pros, cons, risks, recommendation, confidence"},
-            {"endpoint": "/proofread", "method": "POST", "price_usd": 0.02, "input": {"text": "string", "style": "professional"}, "description": "Grammar/spelling/clarity corrections with tracked issues and writing score"},
-            {"endpoint": "/explain", "method": "POST", "price_usd": 0.02, "input": {"concept": "string", "level": "beginner|intermediate|expert", "analogy": True}, "description": "Explain any concept with analogy, key points, common misconceptions"},
-            {"endpoint": "/questions", "method": "POST", "price_usd": 0.02, "input": {"content": "string", "type": "faq|interview|quiz|comprehension", "count": 5}, "description": "Generate questions + answers from any content"},
-            {"endpoint": "/outline", "method": "POST", "price_usd": 0.02, "input": {"topic": "string", "depth": 2, "sections": 6}, "description": "Hierarchical outline with headings, summaries, and subsections"},
-            {"endpoint": "/email", "method": "POST", "price_usd": 0.03, "input": {"purpose": "string", "tone": "professional", "recipient": "optional", "length": "short|medium|long"}, "description": "Compose professional emails with subject and body"},
-            {"endpoint": "/sql", "method": "POST", "price_usd": 0.05, "input": {"description": "string", "dialect": "postgresql", "schema": "optional"}, "description": "Natural language to SQL — query + explanation + notes"},
-            {"endpoint": "/regex", "method": "POST", "price_usd": 0.02, "input": {"description": "string", "language": "python", "flags": "optional"}, "description": "Regex pattern from description with examples and non-examples"},
-            {"endpoint": "/mock", "method": "POST", "price_usd": 0.03, "input": {"description": "string", "count": 5, "format": "json|csv|list"}, "description": "Generate realistic mock data records with schema"},
-            {"endpoint": "/preview", "method": "POST", "price_usd": 0.00, "input": {"topic": "string"}, "description": "Free 120-token Claude preview — no payment required"},
-            {"endpoint": "/score", "method": "POST", "price_usd": 0.02, "input": {"content": "string", "criteria": ["clarity", "accuracy"], "scale": 10}, "description": "Score content quality on any custom rubric — per-criterion scores + strengths/weaknesses"},
-            {"endpoint": "/timeline", "method": "POST", "price_usd": 0.02, "input": {"text": "string", "direction": "chronological"}, "description": "Extract or reconstruct a chronological timeline of events from any text"},
-            {"endpoint": "/action", "method": "POST", "price_usd": 0.01, "input": {"text": "string"}, "description": "Extract action items, tasks, owners, and due dates from meeting notes or any text"},
-            {"endpoint": "/pitch", "method": "POST", "price_usd": 0.03, "input": {"product": "string", "audience": "string", "length": "15s|30s|60s"}, "description": "Generate elevator pitch — hook, value prop, call to action, full script"},
-            {"endpoint": "/debate", "method": "POST", "price_usd": 0.03, "input": {"topic": "string", "perspective": "balanced|for|against"}, "description": "Arguments for and against any position with strength ratings and verdict"},
-            {"endpoint": "/headline", "method": "POST", "price_usd": 0.01, "input": {"content": "string", "count": 5, "style": "engaging|clickbait|informative"}, "description": "Generate compelling headlines and titles for any content"},
-            {"endpoint": "/fact", "method": "POST", "price_usd": 0.02, "input": {"text": "string", "count": 10}, "description": "Extract factual claims from text with verifiability scores and source hints"},
-            {"endpoint": "/rewrite", "method": "POST", "price_usd": 0.02, "input": {"text": "string", "audience": "string", "tone": "string"}, "description": "Rewrite text for a specific audience, reading level, or brand voice"},
-            {"endpoint": "/tag", "method": "POST", "price_usd": 0.01, "input": {"text": "string", "taxonomy": ["optional", "tags"], "max_tags": 10}, "description": "Auto-tag content using a provided taxonomy or free-form tagging"},
-            {"endpoint": "/pipeline", "method": "POST", "price_usd": 0.15, "input": {"steps": [{"endpoint": "string", "input": {}}]}, "description": "Chain up to 5 operations where each step can use {{prev}} to reference previous output"},
-            {"endpoint": "/vision", "method": "POST", "price_usd": 0.05, "input": {"url": "image_url", "question": "optional"}, "description": "Analyze any image URL with Claude Vision — describe, extract text, answer questions"},
-            {"endpoint": "/rag", "method": "POST", "price_usd": 0.05, "input": {"documents": "text (use --- to separate docs)", "query": "string"}, "description": "Grounded Q&A — answer questions using only your provided documents, with citations"},
-            {"endpoint": "/diagram", "method": "POST", "price_usd": 0.03, "input": {"description": "string", "type": "flowchart|sequence|erd|gantt|mindmap"}, "description": "Generate Mermaid diagrams from a plain English description"},
-            {"endpoint": "/json-schema", "method": "POST", "price_usd": 0.02, "input": {"description": "string", "example": "optional JSON example"}, "description": "Generate JSON Schema (draft-07) from a plain English description of your data"},
-            {"endpoint": "/test-cases", "method": "POST", "price_usd": 0.03, "input": {"code": "code or description", "language": "python"}, "description": "Generate comprehensive unit test cases with edge cases for any code or feature"},
-            {"endpoint": "/workflow", "method": "POST", "price_usd": 0.20, "input": {"goal": "string", "data": "optional context"}, "description": "Multi-step agentic reasoning with Claude Sonnet — breaks down and executes complex goals"},
-            {"endpoint": "/memory/set", "method": "POST", "price_usd": 0.01, "input": {"agent_id": "string", "key": "string", "value": "any", "tags": ["optional"]}, "description": "Store persistent memory for any agent — survives across sessions and requests"},
-            {"endpoint": "/memory/get", "method": "POST", "price_usd": 0.01, "input": {"agent_id": "string", "key": "string"}, "description": "Retrieve a stored memory by agent_id and key"},
-            {"endpoint": "/memory/search", "method": "POST", "price_usd": 0.02, "input": {"agent_id": "string", "query": "string"}, "description": "Search all memories for an agent by keyword"},
-            {"endpoint": "/memory/clear", "method": "POST", "price_usd": 0.01, "input": {"agent_id": "string"}, "description": "Delete all memories for an agent — use before context reset"},
-            {"endpoint": "/api-call", "method": "POST", "price_usd": 0.05, "input": {"api_id": "int from /catalog", "endpoint": "/path", "params": {}, "api_key": "optional", "enrich": False}, "description": "Proxy-call any API in the catalog — optionally enrich results with Claude analysis"},
-            {"endpoint": "/scrape/google-maps", "method": "POST", "price_usd": 0.10, "input": {"query": "string (e.g. restaurants in NYC)", "max_items": 5}, "description": "Scrape Google Maps — business names, addresses, ratings, reviews, phone numbers"},
-            {"endpoint": "/scrape/tweets", "method": "POST", "price_usd": 0.05, "input": {"query": "string or #hashtag", "max_items": 25}, "description": "Scrape Twitter/X — tweet text, author, engagement metrics"},
-            {"endpoint": "/scrape/instagram", "method": "POST", "price_usd": 0.05, "input": {"username": "string", "max_items": 5}, "description": "Scrape Instagram profile posts and metadata"},
-            {"endpoint": "/scrape/linkedin", "method": "POST", "price_usd": 0.15, "input": {"url": "LinkedIn profile URL"}, "description": "Scrape LinkedIn profile — experience, skills, education"},
-            {"endpoint": "/scrape/youtube", "method": "POST", "price_usd": 0.05, "input": {"query": "string", "max_items": 5}, "description": "Search YouTube and return video metadata — title, channel, views, URL"},
-            {"endpoint": "/scrape/web", "method": "POST", "price_usd": 0.05, "input": {"url": "string", "max_pages": 5}, "description": "Crawl any website and extract structured text content"},
-            {"endpoint": "/scrape/tiktok", "method": "POST", "price_usd": 0.05, "input": {"username": "string", "max_items": 5}, "description": "Scrape TikTok profile videos and metadata"},
-            {"endpoint": "/scrape/facebook-ads", "method": "POST", "price_usd": 0.10, "input": {"url": "Facebook Ad Library URL", "max_items": 10}, "description": "Scrape Facebook Ad Library for competitor ad research"},
-            {"endpoint": "/scrape/actor", "method": "POST", "price_usd": 0.10, "input": {"actor_id": "Apify actor ID", "run_input": {}, "max_items": 10}, "description": "Run any Apify actor with custom input — access the full Apify ecosystem"},
-            {"endpoint": "/catalog", "method": "GET", "price_usd": 0.00, "input": {"category": "optional", "min_score": 0, "free_only": False, "page": 1}, "description": "Browse 200+ discovered APIs — filtered by category, quality score, auth requirement"},
-            {"endpoint": "/run-discovery", "method": "POST", "price_usd": 0.00, "description": "Trigger API discovery agents to scan the web for new APIs"},
-            {"endpoint": "/agents/register", "method": "POST", "price_usd": 0.00, "input": {"agent_id": "string", "name": "string", "description": "string", "capabilities": [], "endpoint": "optional URL"}, "description": "Register your agent in the AiPayGent agent registry — free"},
-            {"endpoint": "/agents", "method": "GET", "price_usd": 0.00, "description": "Browse all registered agents in the registry"},
-            {"endpoint": "/preview", "method": "POST", "price_usd": 0.00, "input": {"topic": "string"}, "description": "Free 120-token Claude preview — no payment required"},
-            # ── New: Chain, Marketplace, Free, SDK ────────────────────────────
-            {"endpoint": "/chain", "method": "POST", "price_usd": 0.25, "input": {"steps": [{"action": "research", "params": {"query": "string"}}, {"action": "summarize", "params": {"text": "{{prev_result}}"}}]}, "description": "Chain up to 5 AI operations in sequence — each step references previous output via {{prev_result}}"},
-            {"endpoint": "/marketplace", "method": "GET", "price_usd": 0.00, "input": {"category": "optional", "max_price": "optional"}, "description": "Browse the agent marketplace — services listed by other AI agents"},
-            {"endpoint": "/marketplace/list", "method": "POST", "price_usd": 0.00, "input": {"agent_id": "string", "name": "string", "endpoint": "URL", "price_usd": 0.05, "description": "string", "category": "string"}, "description": "List your service in the agent marketplace — free to list, earn x402 payments"},
-            {"endpoint": "/marketplace/call", "method": "POST", "price_usd": 0.05, "input": {"listing_id": "string", "payload": {}}, "description": "Proxy-call any agent marketplace listing — we handle routing ($0.05 + listing price)"},
-            {"endpoint": "/free/time", "method": "GET", "price_usd": 0.00, "description": "Current UTC time, Unix timestamp, date, day of week — completely free"},
-            {"endpoint": "/free/uuid", "method": "GET", "price_usd": 0.00, "description": "Generate UUID4 values — completely free"},
-            {"endpoint": "/free/ip", "method": "GET", "price_usd": 0.00, "description": "Caller's IP address and user agent info — completely free"},
-            {"endpoint": "/free/hash", "method": "GET", "price_usd": 0.00, "input": {"text": "string"}, "description": "Hash text with MD5, SHA1, SHA256, SHA512 — completely free"},
-            {"endpoint": "/free/base64", "method": "GET", "price_usd": 0.00, "input": {"text": "string to encode", "decode": "string to decode"}, "description": "Encode/decode base64 — completely free"},
-            {"endpoint": "/free/random", "method": "GET", "price_usd": 0.00, "input": {"n": 5, "min": 1, "max": 100}, "description": "Random integers, floats, booleans, and strings — completely free"},
-            {"endpoint": "/sdk/code", "method": "GET", "price_usd": 0.00, "input": {"lang": "python|javascript|curl", "endpoint": "optional"}, "description": "Get copy-paste SDK code in Python, JavaScript, or cURL — completely free"},
-            {"endpoint": "/sitemap.xml", "method": "GET", "price_usd": 0.00, "description": "XML sitemap of all public endpoints for crawlers and agents"},
-            # ── Free Data Honeypots ──────────────────────────────────────────────
-            {"endpoint": "/data/weather", "method": "GET", "price_usd": 0.00, "input": {"city": "string"}, "description": "Real-time weather — temperature, wind speed, weather code. Free."},
-            {"endpoint": "/data/crypto", "method": "GET", "price_usd": 0.00, "input": {"symbol": "bitcoin,ethereum"}, "description": "Live crypto prices in USD/EUR/GBP with 24hr change. Free."},
-            {"endpoint": "/data/exchange-rates", "method": "GET", "price_usd": 0.00, "input": {"base": "USD"}, "description": "Exchange rates for any base currency vs 160+ currencies. Free."},
-            {"endpoint": "/data/country", "method": "GET", "price_usd": 0.00, "input": {"name": "France"}, "description": "Country info — capital, population, currencies, languages, flag. Free."},
-            {"endpoint": "/data/ip", "method": "GET", "price_usd": 0.00, "input": {"ip": "optional"}, "description": "IP geolocation — country, city, ISP, timezone. Free."},
-            {"endpoint": "/data/news", "method": "GET", "price_usd": 0.00, "description": "Top 10 Hacker News stories — title, URL, score, comments. Free."},
-            {"endpoint": "/data/stocks", "method": "GET", "price_usd": 0.00, "input": {"symbol": "AAPL"}, "description": "Stock price, previous close, market state via Yahoo Finance. Free."},
-            {"endpoint": "/data/joke", "method": "GET", "price_usd": 0.00, "description": "Random joke — setup + punchline. Free."},
-            {"endpoint": "/data/quote", "method": "GET", "price_usd": 0.00, "input": {"category": "optional"}, "description": "Random inspirational quote with author. Free."},
-            {"endpoint": "/data/timezone", "method": "GET", "price_usd": 0.00, "input": {"tz": "America/New_York"}, "description": "Current datetime, UTC offset, week number for any timezone. Free."},
-            {"endpoint": "/data/holidays", "method": "GET", "price_usd": 0.00, "input": {"country": "US", "year": "2026"}, "description": "Public holidays for any country and year. Free."},
-            # ── Prepaid API Keys ──────────────────────────────────────────────────
-            {"endpoint": "/auth/generate-key", "method": "POST", "price_usd": 0.00, "input": {"label": "optional"}, "description": "Generate a prepaid API key (apk_xxx). Use as Bearer token to bypass x402 per-call. Free to generate."},
-            {"endpoint": "/auth/topup", "method": "POST", "price_usd": 0.00, "input": {"key": "apk_xxx", "amount": 1.00}, "description": "Top up balance on a prepaid API key. Free to call."},
-            {"endpoint": "/auth/status", "method": "GET", "price_usd": 0.00, "input": {"key": "apk_xxx"}, "description": "Check balance, usage stats, and last used time for an API key. Free."},
-            # ── SSE Streaming ──────────────────────────────────────────────────────
-            {"endpoint": "/stream/research", "method": "POST", "price_usd": 0.01, "input": {"topic": "string"}, "description": "Streaming research — same as /research but tokens stream as text/event-stream SSE"},
-            {"endpoint": "/stream/write", "method": "POST", "price_usd": 0.05, "input": {"spec": "string", "type": "article"}, "description": "Streaming write — same as /write but content streams as SSE"},
-            {"endpoint": "/stream/analyze", "method": "POST", "price_usd": 0.02, "input": {"content": "string", "question": "optional"}, "description": "Streaming analysis — same as /analyze but streams as SSE"},
-            # ── Agent Messaging ───────────────────────────────────────────────────
-            {"endpoint": "/message/send", "method": "POST", "price_usd": 0.01, "input": {"from_agent": "string", "to_agent": "string", "subject": "string", "body": "string"}, "description": "Send a message from one agent to another. Persistent inbox."},
-            {"endpoint": "/message/inbox/<agent_id>", "method": "GET", "price_usd": 0.00, "description": "Read an agent's inbox. Free."},
-            {"endpoint": "/message/reply", "method": "POST", "price_usd": 0.01, "input": {"msg_id": "string", "from_agent": "string", "body": "string"}, "description": "Reply to a message in a thread."},
-            {"endpoint": "/message/broadcast", "method": "POST", "price_usd": 0.02, "input": {"from_agent": "string", "subject": "string", "body": "string"}, "description": "Broadcast a message to all registered agents."},
-            # ── Shared Knowledge Base ─────────────────────────────────────────────
-            {"endpoint": "/knowledge/add", "method": "POST", "price_usd": 0.01, "input": {"topic": "string", "content": "string", "author_agent": "string", "tags": []}, "description": "Add an entry to the shared knowledge base."},
-            {"endpoint": "/knowledge/search", "method": "GET", "price_usd": 0.00, "input": {"q": "query"}, "description": "Search the shared knowledge base. Free."},
-            {"endpoint": "/knowledge/trending", "method": "GET", "price_usd": 0.00, "description": "Get trending topics in the knowledge base. Free."},
-            {"endpoint": "/knowledge/vote", "method": "POST", "price_usd": 0.00, "input": {"entry_id": "string", "up": True}, "description": "Upvote or downvote a knowledge entry. Free."},
-            # ── Task Broker ───────────────────────────────────────────────────────
-            {"endpoint": "/task/submit", "method": "POST", "price_usd": 0.01, "input": {"posted_by": "string", "title": "string", "description": "string", "skills_needed": [], "reward_usd": 0.10}, "description": "Post a task to the agent task board."},
-            {"endpoint": "/task/browse", "method": "GET", "price_usd": 0.00, "input": {"skill": "optional", "status": "open"}, "description": "Browse open tasks. Free."},
-            {"endpoint": "/task/claim", "method": "POST", "price_usd": 0.00, "input": {"task_id": "string", "agent_id": "string"}, "description": "Claim a task from the board. Free."},
-            {"endpoint": "/task/complete", "method": "POST", "price_usd": 0.01, "input": {"task_id": "string", "agent_id": "string", "result": "string"}, "description": "Mark a task complete with result."},
-            # ── Code Execution + Web Search ───────────────────────────────────────
-            {"endpoint": "/code/run", "method": "POST", "price_usd": 0.05, "input": {"code": "python code string", "timeout": 10}, "description": "Execute Python code in a sandboxed subprocess. Returns stdout, stderr, exit code."},
-            {"endpoint": "/web/search", "method": "GET", "price_usd": 0.02, "input": {"q": "query", "n": 10}, "description": "Web search via DuckDuckGo instant answers — returns results with title, URL, snippet."},
-            {"endpoint": "/enrich", "method": "POST", "price_usd": 0.05, "input": {"entity": "string", "type": "ip|crypto|country|url|company"}, "description": "Aggregate multiple data sources into a unified enrichment profile for any entity."},
-            # ── Free Daily Tier ───────────────────────────────────────────────────
-            {"endpoint": "/free-tier/status", "method": "GET", "price_usd": 0.00, "description": "Check how many free AI calls remain today for your IP. 10 free calls/day, resets midnight UTC."},
-            # ── Agent Reputation ──────────────────────────────────────────────────
-            {"endpoint": "/agents/leaderboard", "method": "GET", "price_usd": 0.00, "description": "Top agents by reputation score. Score = task_completions×3 + knowledge×1.5 + upvotes×0.5"},
-            {"endpoint": "/agent/reputation/<agent_id>", "method": "GET", "price_usd": 0.00, "description": "Get reputation score and stats for any agent."},
-            # ── Task Subscriptions ────────────────────────────────────────────────
-            {"endpoint": "/task/subscribe", "method": "POST", "price_usd": 0.00, "input": {"agent_id": "string", "callback_url": "https://your-agent/webhook", "skills": ["python", "nlp"]}, "description": "Subscribe to task board notifications. We POST to your callback_url when matching tasks appear."},
-            # ── Async Jobs ────────────────────────────────────────────────────────
-            {"endpoint": "/async/submit", "method": "POST", "price_usd": 0.00, "input": {"endpoint": "research", "payload": {"topic": "..."}, "callback_url": "optional"}, "description": "Submit an async job. Runs in background, POSTs result to callback_url when done."},
-            {"endpoint": "/async/status/<job_id>", "method": "GET", "price_usd": 0.00, "description": "Check status of an async job — pending, running, completed, or failed."},
-            # ── File Storage ──────────────────────────────────────────────────────
-            {"endpoint": "/files/upload", "method": "POST", "price_usd": 0.00, "input": {"agent_id": "string", "file": "multipart OR base64_data+filename+content_type"}, "description": "Upload a file (max 10MB). Returns file_id and URL. Free."},
-            {"endpoint": "/files/<file_id>", "method": "GET", "price_usd": 0.00, "description": "Download a file by ID. Returns raw file bytes."},
-            {"endpoint": "/files/list/<agent_id>", "method": "GET", "price_usd": 0.00, "description": "List all files uploaded by an agent."},
-            # ── Webhook Relay ─────────────────────────────────────────────────────
-            {"endpoint": "/webhooks/create", "method": "POST", "price_usd": 0.00, "input": {"agent_id": "string", "label": "optional"}, "description": "Get a unique URL to receive webhooks from any external service. Events stored 7 days."},
-            {"endpoint": "/webhooks/<id>/receive", "method": "POST", "price_usd": 0.00, "description": "The URL external services POST to. Stores the incoming event for your agent to retrieve."},
-            {"endpoint": "/webhooks/<id>/events", "method": "GET", "price_usd": 0.00, "description": "Retrieve stored webhook events. Poll this or set up a task subscription callback."},
-            # ── Expanded Free Data ────────────────────────────────────────────────
-            {"endpoint": "/data/wikipedia", "method": "GET", "price_usd": 0.00, "input": {"q": "quantum computing"}, "description": "Wikipedia article summary — title, extract, URL, description. Free."},
-            {"endpoint": "/data/arxiv", "method": "GET", "price_usd": 0.00, "input": {"q": "LLM agents", "limit": 5}, "description": "Search arXiv academic papers — title, authors, summary, URL. Free."},
-            {"endpoint": "/data/github/trending", "method": "GET", "price_usd": 0.00, "input": {"lang": "python", "since": "daily"}, "description": "GitHub trending repositories — repo, stars, description, language. Free."},
-            {"endpoint": "/data/reddit", "method": "GET", "price_usd": 0.00, "input": {"q": "AI agents", "sub": "MachineLearning"}, "description": "Reddit search — posts with score, comments, URL. Free."},
-            {"endpoint": "/data/youtube/transcript", "method": "GET", "price_usd": 0.00, "input": {"video_id": "dQw4w9WgXcQ"}, "description": "YouTube video transcript/captions — full text and segments. Free."},
-            {"endpoint": "/data/qr", "method": "GET", "price_usd": 0.00, "input": {"text": "https://api.aipaygent.xyz"}, "description": "Generate QR code — returns PNG as base64 and data URL. Free."},
-            {"endpoint": "/data/dns", "method": "GET", "price_usd": 0.00, "input": {"domain": "api.aipaygent.xyz"}, "description": "DNS lookup — A, AAAA records and reverse hostname. Free."},
-            {"endpoint": "/data/validate/email", "method": "GET", "price_usd": 0.00, "input": {"email": "test@example.com"}, "description": "Email validation — format check, domain reachability, disposable detection. Free."},
-            {"endpoint": "/data/validate/url", "method": "GET", "price_usd": 0.00, "input": {"url": "https://example.com"}, "description": "URL reachability check — status code, final URL, content type. Free."},
-            {"endpoint": "/data/random/name", "method": "GET", "price_usd": 0.00, "input": {"count": 5}, "description": "Random person names, emails, phone, location. Free."},
-            {"endpoint": "/data/color", "method": "GET", "price_usd": 0.00, "input": {"hex": "ff5733"}, "description": "Color info — RGB, HSL, complementary color, brightness, CSS. Free."},
-            {"endpoint": "/data/screenshot", "method": "GET", "price_usd": 0.00, "input": {"url": "https://example.com"}, "description": "Website screenshot URL (1280px wide). Free via thum.io."},
-            # ── v2: Multi-Model, Identity, Metered Pricing, Agent Economy ──────
-            {"endpoint": "/models", "method": "GET", "price_usd": 0.00, "description": "List all supported LLM models (11 models, 5 providers) with pricing and capabilities. Free."},
-            {"endpoint": "/agents/challenge", "method": "POST", "price_usd": 0.00, "input": {"wallet_address": "0x...", "chain": "evm|solana"}, "description": "Request a wallet-verification challenge string. Free."},
-            {"endpoint": "/agents/verify", "method": "POST", "price_usd": 0.00, "input": {"wallet_address": "0x...", "signature": "0x...", "chain": "evm|solana"}, "description": "Submit signed challenge to verify wallet, get JWT session token. Free."},
-            {"endpoint": "/agents/me", "method": "GET", "price_usd": 0.00, "description": "View your verified agent profile (requires JWT). Free."},
-            {"endpoint": "/agents/search", "method": "GET", "price_usd": 0.00, "input": {"q": "query", "capability": "optional"}, "description": "Search wallet-verified agents by name, capability, or address. Free."},
-            {"endpoint": "/agents/<agent_id>/portfolio", "method": "GET", "price_usd": 0.00, "description": "View a verified agent's public portfolio and reputation. Free."},
-            {"endpoint": "/credits/buy", "method": "POST", "price_usd": 5.00, "input": {"amount_usd": 5.0, "label": "optional"}, "description": "Buy a $5 USDC credit pack — returns prepaid API key for metered token-based billing."},
-        ]
+        "meta": {
+            "name": "AiPayGent",
+            "description": "Pay-per-use Claude AI API. No accounts, no API keys. Pay USDC on Base via x402 — get results instantly.",
+            "total_services": len(all_services),
+            "free_count": free_count,
+            "categories": list(categories.keys()),
+        },
+        "payment": {
+            "wallet": WALLET_ADDRESS,
+            "network": EVM_NETWORK,
+            "payment_scheme": "x402/exact",
+            "usdc_contract": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        },
+        "categories": categories,
+        "links": {
+            "openapi": f"{base_url}/openapi.json",
+            "llms_txt": f"{base_url}/llms.txt",
+            "preview": f"{base_url}/preview",
+        },
     })
 
 

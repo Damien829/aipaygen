@@ -59,3 +59,27 @@ def test_get_client_ip_comma_separated():
         headers={"CF-Connecting-IP": "1.2.3.4, 5.6.7.8"}
     ):
         assert app_module._get_client_ip() == "1.2.3.4"
+
+
+def test_discover_returns_json_for_agents():
+    import app as app_module
+    client = app_module.app.test_client()
+    resp = client.get("/discover", headers={"Accept": "application/json"})
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert "meta" in data
+    assert "payment" in data
+    assert "categories" in data
+    assert "links" in data
+    assert data["meta"]["name"] == "AiPayGent"
+    assert data["meta"]["total_services"] > 0
+    assert isinstance(data["categories"], dict)
+
+
+def test_discover_returns_html_for_browsers():
+    import app as app_module
+    client = app_module.app.test_client()
+    resp = client.get("/discover", headers={"Accept": "text/html"})
+    assert resp.status_code == 200
+    assert b"AiPayGent" in resp.data
+    assert b"<!DOCTYPE html>" in resp.data
