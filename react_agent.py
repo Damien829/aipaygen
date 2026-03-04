@@ -326,7 +326,7 @@ def _synthesize_answer(observations: list, task: str) -> str:
 # ---------------------------------------------------------------------------
 
 def make_tool_handler(batch_handlers: dict, memory_search_fn, memory_set_fn,
-                      skills_db_path: str, agent_id: str = ""):
+                      skills_db_path: str, agent_id: str = "", skills_search_engine=None):
     def handler(tool_name: str, params: dict) -> dict:
         if tool_name == "memory_recall" and memory_search_fn:
             query = params.get("query", "")
@@ -345,6 +345,9 @@ def make_tool_handler(batch_handlers: dict, memory_search_fn, memory_set_fn,
 
         if tool_name == "search_skills":
             query = params.get("query", "")
+            if skills_search_engine:
+                results = skills_search_engine.search(query, top_n=10)
+                return {"skills": [{"name": s["name"], "description": s["description"], "category": s["category"], "score": s.get("score", 0)} for s in results], "count": len(results)}
             try:
                 conn = sqlite3.connect(skills_db_path)
                 conn.row_factory = sqlite3.Row

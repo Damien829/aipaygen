@@ -6904,6 +6904,7 @@ def agent_endpoint():
         memory_set_fn=memory_set if agent_id else None,
         skills_db_path=_skills_db_path,
         agent_id=agent_id,
+        skills_search_engine=_skills_engine,
     )
 
     memory_fns = {}
@@ -6943,6 +6944,7 @@ def agent_stream_endpoint():
         memory_set_fn=memory_set if agent_id else None,
         skills_db_path=_skills_db_path,
         agent_id=agent_id,
+        skills_search_engine=_skills_engine,
     )
     memory_fns = {"search": memory_search, "set": memory_set} if agent_id else {}
     agent = ReActAgent(call_model_fn=call_model, tool_handler_fn=tool_handler, memory_fns=memory_fns)

@@ -90,3 +90,12 @@ def test_make_tool_handler_unknown_tool():
     handler = make_tool_handler({}, memory_search_fn=None, memory_set_fn=None, skills_db_path=":memory:", agent_id="")
     result = handler("nonexistent", {})
     assert "error" in result
+
+def test_make_tool_handler_uses_tfidf_engine():
+    from react_agent import make_tool_handler
+    mock_engine = type("MockEngine", (), {"search": lambda self, q, top_n=10: [{"name": "web_scraper", "description": "Scrape websites", "category": "web", "score": 0.95}]})()
+    handler = make_tool_handler({}, memory_search_fn=None, memory_set_fn=None, skills_db_path=":memory:", agent_id="", skills_search_engine=mock_engine)
+    result = handler("search_skills", {"query": "scrape"})
+    assert result["count"] == 1
+    assert result["skills"][0]["name"] == "web_scraper"
+    assert result["skills"][0]["score"] == 0.95
