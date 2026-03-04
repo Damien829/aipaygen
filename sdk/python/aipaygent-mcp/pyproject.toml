@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aipaygent-mcp"
-version = "1.1.0"
+version = "1.2.0"
 description = "65+ AI tools for Claude, Cursor, and any MCP-compatible agent — research, write, code, scrape, translate, and more"
 readme = "README.md"
 license = {text = "MIT"}

@@ -751,6 +751,13 @@ _scheduler.add_job(lambda: run_hourly(claude), "interval", hours=1)
 _scheduler.add_job(lambda: run_daily(claude), "cron", hour=6, minute=0)
 _scheduler.add_job(lambda: run_weekly(claude), "cron", day_of_week="mon", hour=7, minute=0)
 _scheduler.add_job(lambda: _run_agent_economy(), "interval", minutes=30)
+
+# Skill Harvester — daily crawl (initialized after parse_json_from_claude is defined)
+def _start_harvester_job():
+    from skill_harvester import SkillHarvester
+    _harvester = SkillHarvester(call_model, parse_json_from_claude)
+    _scheduler.add_job(_harvester.run_all, "cron", hour=4, minute=0)
+
 _scheduler.start()
 
 # Generate blog posts on first startup if none exist
@@ -780,6 +787,9 @@ def parse_json_from_claude(text):
         except Exception:
             pass
     return None
+
+# Now that parse_json_from_claude is defined, register the skill harvester
+_start_harvester_job()
 
 
 def agent_response(data: dict, endpoint: str) -> dict:
@@ -8287,6 +8297,34 @@ Return JSON with:
     except sqlite3.IntegrityError:
         conn.close()
         return jsonify({"error": f"skill '{parsed['name']}' already exists", "skill": parsed}), 409
+
+
+@app.route("/skills/harvest", methods=["POST"])
+def trigger_harvest():
+    """Trigger skill harvesting from external sources on demand."""
+    import threading
+    source = (request.get_json(force=True) or {}).get("source", "all")
+    from skill_harvester import SkillHarvester
+    h = SkillHarvester(call_model, parse_json_from_claude)
+    if source == "all":
+        threading.Thread(target=h.run_all, daemon=True).start()
+    elif source == "mcp":
+        threading.Thread(target=h.harvest_mcp_registries, daemon=True).start()
+    elif source == "github":
+        threading.Thread(target=h.harvest_awesome_lists, daemon=True).start()
+    elif source == "api":
+        threading.Thread(target=h.harvest_api_directories, daemon=True).start()
+    else:
+        return jsonify({"error": "source must be: all, mcp, github, or api"}), 400
+    return jsonify({"status": "harvest started", "source": source})
+
+
+@app.route("/skills/harvest/stats", methods=["GET"])
+def harvest_stats():
+    """Get skill harvest statistics."""
+    from skill_harvester import SkillHarvester
+    h = SkillHarvester(call_model, parse_json_from_claude)
+    return jsonify(h.get_stats())
 
 
 @app.route("/skills/search", methods=["GET"])
