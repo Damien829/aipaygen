@@ -791,6 +791,16 @@ def parse_json_from_claude(text):
 # Now that parse_json_from_claude is defined, register the skill harvester
 _start_harvester_job()
 
+def _start_outbound_job():
+    try:
+        from outbound_agent import OutboundAgent
+        _outbound = OutboundAgent(call_model, parse_json_from_claude)
+        _scheduler.add_job(_outbound.run_all, "cron", hour="*/6", minute=30)
+    except Exception as e:
+        print(f"[outbound] failed to start: {e}")
+
+_start_outbound_job()
+
 
 def agent_response(data: dict, endpoint: str) -> dict:
     """Wrap result with standard agent-friendly metadata."""
@@ -2738,7 +2748,7 @@ LANDING_HTML = '''<!DOCTYPE html>
     "scheme": "exact",
     "network": "eip155:8453",
     "amount": "10000",
-    "payTo": "0x3E9C..."
+    "payTo": "0x366D..."
   }</span>
 
 <span class="c-muted"># 3. Retry with payment header</span>
@@ -7606,7 +7616,7 @@ _KNOWLEDGE_SEEDS = [
         "topic": "x402-payment-protocol",
         "content": (
             "x402 is a payment protocol for AI agents. HTTP 402 response includes payment details. "
-            "Agents pay USDC on Base Mainnet. AiPayGent wallet: 0x3E9C23822184c7E0D1f2b650bef6218a56B9EeeD."
+            "Agents pay USDC on Base Mainnet. AiPayGent wallet: 0x366D488a48de1B2773F3a21F1A6972715056Cb30."
             "Facilitator: https://x402.org/facilitator. Use x402-python or x402-js SDK."
         ),
         "tags": ["x402", "payment", "usdc", "base"],
@@ -8325,6 +8335,32 @@ def harvest_stats():
     from skill_harvester import SkillHarvester
     h = SkillHarvester(call_model, parse_json_from_claude)
     return jsonify(h.get_stats())
+
+
+import threading
+_outbound_lock = threading.Lock()
+
+@app.route("/outbound/run", methods=["POST"])
+def trigger_outbound():
+    """Trigger outbound recruitment agent manually."""
+    if not _outbound_lock.acquire(blocking=False):
+        return jsonify({"status": "already running"}), 409
+    def _run():
+        try:
+            from outbound_agent import OutboundAgent
+            OutboundAgent(call_model, parse_json_from_claude).run_all()
+        finally:
+            _outbound_lock.release()
+    threading.Thread(target=_run, daemon=True).start()
+    return jsonify({"status": "outbound run started"})
+
+
+@app.route("/outbound/stats", methods=["GET"])
+def outbound_stats():
+    """Get outbound recruitment agent statistics."""
+    from outbound_agent import OutboundAgent
+    agent = OutboundAgent(call_model, parse_json_from_claude)
+    return jsonify(agent.get_stats())
 
 
 @app.route("/skills/search", methods=["GET"])

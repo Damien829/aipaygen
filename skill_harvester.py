@@ -493,14 +493,18 @@ Return JSON:
     def _harvest_apis_guru(self, stats):
         """Fetch apis.guru directory and absorb top APIs."""
         log.info("Crawling apis.guru...")
-        content = _fetch_url("https://api.apis.guru/v2/list.json", max_len=500000)
-        if not content:
-            stats["errors"] += 1
-            return
-
+        # apis.guru JSON is ~9MB, fetch full and parse
         try:
-            apis = json.loads(content)
-        except json.JSONDecodeError:
+            req = urllib.request.Request(
+                "https://api.apis.guru/v2/list.json",
+                headers={"User-Agent": USER_AGENT}
+            )
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                raw = resp.read()
+            apis = json.loads(raw)
+            del raw  # free ~9MB buffer
+        except Exception as e:
+            log.warning(f"Failed to fetch apis.guru: {e}")
             stats["errors"] += 1
             return
 
