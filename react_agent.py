@@ -88,3 +88,169 @@ def format_tools_for_prompt(tools: dict) -> str:
         cost = t.get("cost", 0)
         lines.append(f"- {name}({params_str}) — {t['description']} [${cost:.2f}]")
     return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# ReAct Agent — Think → Act → Observe loop
+# ---------------------------------------------------------------------------
+
+REACT_SYSTEM_PROMPT = """You are AiPayGent, an autonomous AI agent with access to tools.
+
+AVAILABLE TOOLS:
+{tools}
+
+INSTRUCTIONS:
+- Analyze the task and break it into steps
+- For each step, respond with EXACTLY ONE JSON object (no markdown, no extra text)
+- To use a tool: {{"thought": "your reasoning", "action": "tool_name", "params": {{...}}}}
+- To give final answer: {{"thought": "your reasoning", "answer": "your complete answer"}}
+- Budget remaining: ${budget_remaining:.4f}
+
+MEMORIES:
+{memories}
+
+OBSERVATIONS SO FAR:
+{observations}
+"""
+
+
+class ReActAgent:
+    def __init__(self, call_model_fn, tool_handler_fn, memory_fns=None):
+        self.call_model = call_model_fn
+        self.handle_tool = tool_handler_fn
+        self.memory = memory_fns or {}
+        self.tools = build_tool_registry()
+
+    def run(self, task: str, max_steps: int = 10, max_cost_usd: float = 1.0,
+            model: str = "auto", agent_id: str = "") -> dict:
+        from model_router import CostTracker
+        tracker = CostTracker()
+        trace = []
+        observations = []
+        max_steps = min(max_steps, 20)
+
+        memories_text = "None"
+        memories_recalled = 0
+        if agent_id and self.memory.get("search"):
+            try:
+                mem_results = self.memory["search"](agent_id, task)
+                if mem_results:
+                    memories_text = "\n".join(
+                        f"- [{m.get('key', '')}]: {str(m.get('value', ''))[:200]}"
+                        for m in mem_results[:3]
+                    )
+                    memories_recalled = len(mem_results[:3])
+            except Exception as e:
+                _log.warning("Memory recall failed: %s", e)
+
+        stop_reason = "completed"
+
+        for step in range(1, max_steps + 1):
+            if not tracker.can_afford(0.001, max_cost_usd):
+                stop_reason = "budget_exhausted"
+                break
+
+            obs_text = "\n".join(
+                f"Step {o['step']}: [{o['action']}] -> {str(o['result'])[:500]}"
+                for o in observations
+            ) or "None yet."
+
+            system = REACT_SYSTEM_PROMPT.format(
+                tools=format_tools_for_prompt(self.tools),
+                budget_remaining=tracker.remaining(max_cost_usd),
+                memories=memories_text,
+                observations=obs_text,
+            )
+
+            user_msg = task if step == 1 else f"Continue. Step {step} of {max_steps}. What's your next action?"
+            try:
+                result = self.call_model(
+                    model, [{"role": "user", "content": user_msg}],
+                    system=system, max_tokens=1024, temperature=0.3,
+                    max_cost_usd=tracker.remaining(max_cost_usd) if max_cost_usd else None,
+                )
+            except Exception as e:
+                stop_reason = f"model_error: {e}"
+                break
+
+            tracker.add(result.get("cost_usd", 0), {"step": step, "type": "think", "model": result.get("model", "")})
+            parsed = _parse_agent_response(result["text"])
+            thought = parsed.get("thought", "")
+
+            if "answer" in parsed:
+                trace.append({"step": step, "thought": thought, "action": "final_answer", "params": {},
+                              "result": parsed["answer"], "cost": result.get("cost_usd", 0), "model": result.get("model", "")})
+                if agent_id and self.memory.get("set"):
+                    try:
+                        self.memory["set"](agent_id, f"task_result:{datetime.utcnow().isoformat()}", {
+                            "task": task[:200], "answer": str(parsed["answer"])[:500], "steps": step, "cost": tracker.total})
+                    except Exception:
+                        pass
+                return {"answer": parsed["answer"], "reasoning_trace": trace, "total_cost_usd": round(tracker.total, 6),
+                        "steps_taken": step, "stop_reason": "completed", "memories_recalled": memories_recalled,
+                        "model_selections": {t["step"]: t["model"] for t in tracker.steps}}
+
+            action = parsed.get("action", "")
+            params = parsed.get("params", {})
+
+            if not action or action not in self.tools:
+                observations.append({"step": step, "action": action or "unknown",
+                                     "result": f"Error: unknown tool '{action}'."})
+                trace.append({"step": step, "thought": thought, "action": action, "params": params,
+                              "result": "error: unknown tool", "cost": result.get("cost_usd", 0), "model": result.get("model", "")})
+                continue
+
+            try:
+                tool_result = self.handle_tool(action, params)
+            except Exception as e:
+                tool_result = {"error": str(e)}
+
+            observations.append({"step": step, "action": action, "result": tool_result})
+            trace.append({"step": step, "thought": thought, "action": action, "params": params,
+                          "result": tool_result, "cost": result.get("cost_usd", 0), "model": result.get("model", "")})
+
+        if stop_reason != "completed" or not trace:
+            stop_reason = stop_reason if stop_reason != "completed" else "max_steps_reached"
+
+        answer = _synthesize_answer(observations, task)
+        return {"answer": answer, "reasoning_trace": trace, "total_cost_usd": round(tracker.total, 6),
+                "steps_taken": len(trace), "stop_reason": stop_reason, "memories_recalled": memories_recalled,
+                "model_selections": {t["step"]: t["model"] for t in tracker.steps}}
+
+
+def _parse_agent_response(text: str) -> dict:
+    text = text.strip()
+    try:
+        return json.loads(text)
+    except (json.JSONDecodeError, ValueError):
+        pass
+    if "```" in text:
+        parts = text.split("```")
+        for part in parts:
+            part = part.strip()
+            if part.startswith("json"):
+                part = part[4:].strip()
+            try:
+                return json.loads(part)
+            except (json.JSONDecodeError, ValueError):
+                continue
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end > start:
+        try:
+            return json.loads(text[start:end + 1])
+        except (json.JSONDecodeError, ValueError):
+            pass
+    return {"thought": "Could not parse structured response", "answer": text}
+
+
+def _synthesize_answer(observations: list, task: str) -> str:
+    if not observations:
+        return "I was unable to complete this task within the given constraints."
+    parts = []
+    for obs in observations:
+        result = obs.get("result", "")
+        if isinstance(result, dict):
+            result = result.get("result") or result.get("summary") or str(result)
+        parts.append(str(result)[:300])
+    return f"Based on {len(observations)} steps:\n\n" + "\n\n".join(parts)
