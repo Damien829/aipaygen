@@ -914,7 +914,7 @@ def agent_response(data: dict, endpoint: str) -> dict:
 def track_referral():
     ref = request.args.get("ref", request.headers.get("X-Referred-By", "")).strip()
     if ref and len(ref) <= 64 and _re.match(r'^[a-zA-Z0-9_\-]+$', ref):
-        ip = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
+        ip = _get_client_ip()
         ua = request.headers.get("User-Agent", "")
         try:
             record_click(ref, ip, request.path, ua)
@@ -3142,7 +3142,7 @@ def referral_leaderboard():
 @app.route("/ref/<agent_id>", methods=["GET"])
 def referral_redirect(agent_id):
     """Short referral redirect — /ref/my-agent → home with ?ref=my-agent cookie set."""
-    ip = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
+    ip = _get_client_ip()
     try:
         record_click(agent_id, ip, "/ref/" + agent_id, request.headers.get("User-Agent", ""))
     except Exception:
@@ -3240,7 +3240,7 @@ def scouts_absorbed():
 
 @app.route("/free-tier/status", methods=["GET"])
 def free_tier_status():
-    ip = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
+    ip = _get_client_ip()
     return jsonify(get_free_tier_status(ip))
 
 
@@ -3412,7 +3412,7 @@ def webhooks_create():
 def webhooks_receive(webhook_id):
     body = request.get_data(as_text=True)
     headers = dict(request.headers)
-    ip = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
+    ip = _get_client_ip()
     result = receive_webhook_event(webhook_id, request.method, headers, body, ip)
     if result is None:
         return jsonify({"error": "webhook not found"}), 404
@@ -6099,7 +6099,7 @@ def memory_clear_route():
 @app.route("/agents/challenge", methods=["POST"])
 def agent_challenge():
     """Step 1: Request a challenge to prove wallet ownership."""
-    _ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
+    _ip = _get_client_ip()
     if not _check_identity_rate_limit(_ip):
         return jsonify({"error": "rate_limited", "message": "Too many identity requests. Max 10/min."}), 429
     data = request.get_json() or {}
@@ -6113,7 +6113,7 @@ def agent_challenge():
 @app.route("/agents/verify", methods=["POST"])
 def agent_verify():
     """Step 2: Submit signed challenge to get JWT."""
-    _ip = request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0].strip()
+    _ip = _get_client_ip()
     if not _check_identity_rate_limit(_ip):
         return jsonify({"error": "rate_limited", "message": "Too many identity requests. Max 10/min."}), 429
     data = request.get_json() or {}
@@ -6494,12 +6494,9 @@ def free_uuid():
 @app.route("/free/ip", methods=["GET"])
 def free_ip():
     """Free endpoint: caller's IP info. No payment needed."""
-    ip = request.headers.get("X-Forwarded-For", request.remote_addr)
-    if ip and "," in ip:
-        ip = ip.split(",")[0].strip()
+    ip = _get_client_ip()
     return jsonify({
         "ip": ip,
-        "forwarded_for": request.headers.get("X-Forwarded-For"),
         "user_agent": request.headers.get("User-Agent"),
         "_meta": {"free": True, "note": "Visit /discover for 80+ paid AI endpoints"}
     })
