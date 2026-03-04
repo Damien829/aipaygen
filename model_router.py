@@ -230,6 +230,8 @@ def _get_fallback_model(original_model: str) -> str | None:
 
 def resolve_model_name(name: str) -> str:
     """Resolve an alias or canonical name. Raises ModelNotFoundError if unknown."""
+    if name == "auto":
+        return "auto"
     if name in MODEL_REGISTRY:
         return name
     if name in _ALIASES:
@@ -322,11 +324,23 @@ def call_model(
     system: str = "",
     max_tokens: int | None = None,
     temperature: float = 0.7,
+    max_cost_usd: float | None = None,
 ) -> dict:
     """Call any supported model with circuit breaker + fallback.
 
-    Returns {text, model, model_id, provider, input_tokens, output_tokens, cost_usd}.
+    Returns {text, model, model_id, provider, input_tokens, output_tokens, cost_usd, selected_reason}.
     """
+    selected_reason = None
+    if model == "auto":
+        task_text = ""
+        for m in messages:
+            if m.get("role") == "user":
+                task_text = m.get("content", "")
+                break
+        selection = auto_select_model(task_text, max_cost_usd=max_cost_usd)
+        model = selection["model"]
+        selected_reason = selection["reason"]
+
     cfg = get_model_config(model)
     canonical = cfg["canonical_name"]
     provider = cfg["provider"]
@@ -370,6 +384,7 @@ def call_model(
         "input_tokens": result["input_tokens"],
         "output_tokens": result["output_tokens"],
         "cost_usd": cost,
+        "selected_reason": selected_reason,
     }
 
 # ---------------------------------------------------------------------------

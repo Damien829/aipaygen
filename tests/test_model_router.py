@@ -57,6 +57,11 @@ def test_auto_select_with_budget():
     model = auto_select_model("Complex analysis task", max_cost_usd=0.002)
     assert model["model"] in ("claude-haiku", "gpt-4o-mini", "gemini-2.5-flash", "deepseek-v3")
 
+def test_resolve_model_auto():
+    from model_router import resolve_model_name
+    result = resolve_model_name("auto")
+    assert result == "auto"
+
 def test_auto_select_vision():
     model = auto_select_model("Describe this image in detail", needs_vision=True)
     from model_router import MODEL_REGISTRY
