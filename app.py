@@ -178,6 +178,11 @@ def require_admin(f):
     return wrapper
 
 
+def _get_client_ip():
+    """Get client IP — trust CF-Connecting-IP (Cloudflare), fall back to REMOTE_ADDR."""
+    return request.headers.get("CF-Connecting-IP", request.remote_addr or "unknown").split(",")[0].strip()
+
+
 def log_payment(endpoint, amount_usd, caller_ip, request_id="", payment_type="x402", tx_hash=""):
     entry = {
         "ts": datetime.utcnow().isoformat(),
