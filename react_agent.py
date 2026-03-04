@@ -254,3 +254,69 @@ def _synthesize_answer(observations: list, task: str) -> str:
             result = result.get("result") or result.get("summary") or str(result)
         parts.append(str(result)[:300])
     return f"Based on {len(observations)} steps:\n\n" + "\n\n".join(parts)
+
+
+# ---------------------------------------------------------------------------
+# Tool Handler Factory
+# ---------------------------------------------------------------------------
+
+def make_tool_handler(batch_handlers: dict, memory_search_fn, memory_set_fn,
+                      skills_db_path: str, agent_id: str = ""):
+    def handler(tool_name: str, params: dict) -> dict:
+        if tool_name == "memory_recall" and memory_search_fn:
+            query = params.get("query", "")
+            if not query or not agent_id:
+                return {"error": "query and agent_id required"}
+            results = memory_search_fn(agent_id, query)
+            return {"results": results, "count": len(results)}
+
+        if tool_name == "memory_store" and memory_set_fn:
+            key = params.get("key", "")
+            value = params.get("value", "")
+            if not key or not value or not agent_id:
+                return {"error": "key, value, and agent_id required"}
+            tags = params.get("tags", [])
+            return memory_set_fn(agent_id, key, value, tags)
+
+        if tool_name == "search_skills":
+            query = params.get("query", "")
+            try:
+                conn = sqlite3.connect(skills_db_path)
+                conn.row_factory = sqlite3.Row
+                rows = conn.execute(
+                    "SELECT name, description, category FROM skills WHERE name LIKE ? OR description LIKE ? LIMIT 10",
+                    (f"%{query}%", f"%{query}%"),
+                ).fetchall()
+                conn.close()
+                return {"skills": [dict(r) for r in rows], "count": len(rows)}
+            except Exception as e:
+                return {"error": str(e)}
+
+        if tool_name == "execute_skill":
+            skill_name = params.get("skill", "")
+            skill_input = params.get("input", "")
+            try:
+                conn = sqlite3.connect(skills_db_path)
+                conn.row_factory = sqlite3.Row
+                row = conn.execute("SELECT * FROM skills WHERE name = ?", (skill_name,)).fetchone()
+                if not row:
+                    conn.close()
+                    return {"error": f"skill '{skill_name}' not found"}
+                skill = dict(row)
+                conn.execute("UPDATE skills SET calls = calls + 1 WHERE name = ?", (skill_name,))
+                conn.commit()
+                conn.close()
+                return {"skill": skill_name, "description": skill["description"],
+                        "template": skill["prompt_template"][:200], "status": "loaded"}
+            except Exception as e:
+                return {"error": str(e)}
+
+        if tool_name in batch_handlers:
+            try:
+                return batch_handlers[tool_name](params)
+            except Exception as e:
+                return {"error": f"Tool '{tool_name}' failed: {str(e)}"}
+
+        return {"error": f"Unknown tool: {tool_name}"}
+
+    return handler

@@ -69,3 +69,16 @@ def test_react_agent_respects_max_steps():
     agent = ReActAgent(call_model_fn=always_act, tool_handler_fn=_mock_tool_handler)
     result = agent.run("Infinite task", max_steps=3, max_cost_usd=100.0)
     assert result["steps_taken"] <= 3
+
+def test_make_tool_handler():
+    from react_agent import make_tool_handler
+    mock_handlers = {"research": lambda d: {"summary": "test result"}}
+    handler = make_tool_handler(mock_handlers, memory_search_fn=None, memory_set_fn=None, skills_db_path=":memory:", agent_id="")
+    result = handler("research", {"topic": "AI"})
+    assert result["summary"] == "test result"
+
+def test_make_tool_handler_unknown_tool():
+    from react_agent import make_tool_handler
+    handler = make_tool_handler({}, memory_search_fn=None, memory_set_fn=None, skills_db_path=":memory:", agent_id="")
+    result = handler("nonexistent", {})
+    assert "error" in result

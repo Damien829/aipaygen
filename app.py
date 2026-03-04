@@ -139,11 +139,12 @@ _env_plain = os.path.join(os.path.dirname(__file__), ".env")
 if os.path.exists(_env_enc) and os.path.exists(_key_path):
     _key = open(_key_path, "rb").read()
     _data = Fernet(_key).decrypt(open(_env_enc, "rb").read())
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".env") as _tmp:
-        _tmp.write(_data)
-        _tmp_path = _tmp.name
-    load_dotenv(_tmp_path)
-    os.unlink(_tmp_path)
+    # Parse decrypted env in memory — never write secrets to disk
+    for _line in _data.decode("utf-8", errors="replace").splitlines():
+        _line = _line.strip()
+        if _line and not _line.startswith("#") and "=" in _line:
+            _k, _v = _line.split("=", 1)
+            os.environ.setdefault(_k.strip(), _v.strip())
     # Also load plain .env for any additional keys (won't override encrypted ones)
     if os.path.exists(_env_plain):
         load_dotenv(_env_plain, override=False)
@@ -151,18 +152,76 @@ else:
     load_dotenv(_env_plain)
 
 app = Flask(__name__)
+app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10MB max request body
 
 PAYMENTS_LOG = os.path.join(os.path.dirname(__file__), "payments.jsonl")
+ADMIN_SECRET = os.getenv("ADMIN_SECRET", "")
 
-def log_payment(endpoint, amount_usd, caller_ip):
+import functools
+import re as _re
+
+def require_admin(f):
+    """Decorator to require admin auth via Bearer token or X-Admin-Key header."""
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        token = ""
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer "):
+            token = auth[7:]
+        if not token:
+            token = request.headers.get("X-Admin-Key", "")
+        if not ADMIN_SECRET:
+            return jsonify({"error": "misconfigured", "message": "ADMIN_SECRET not set"}), 503
+        if not token or token != ADMIN_SECRET:
+            return jsonify({"error": "unauthorized", "message": "Admin authentication required"}), 401
+        return f(*args, **kwargs)
+    return wrapper
+
+
+def log_payment(endpoint, amount_usd, caller_ip, request_id="", payment_type="x402", tx_hash=""):
     entry = {
         "ts": datetime.utcnow().isoformat(),
         "endpoint": endpoint,
         "amount_usd": amount_usd,
         "ip": caller_ip,
+        "request_id": request_id,
+        "payment_type": payment_type,
+        "tx_hash": tx_hash,
     }
     with open(PAYMENTS_LOG, "a") as f:
         f.write(json.dumps(entry) + "\n")
+
+
+# ── Refund credits table (for 500 errors after payment) ──────────────────────
+_refund_db_path = os.path.join(os.path.dirname(__file__), "refunds.db")
+
+def _init_refund_db():
+    import sqlite3
+    conn = sqlite3.connect(_refund_db_path)
+    conn.execute("""CREATE TABLE IF NOT EXISTS refund_credits (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        code TEXT UNIQUE NOT NULL,
+        amount_usd REAL NOT NULL,
+        endpoint TEXT,
+        request_id TEXT,
+        redeemed INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL
+    )""")
+    conn.commit()
+    conn.close()
+
+def _issue_refund_credit(amount_usd: float, endpoint: str = "", request_id: str = "") -> str:
+    """Issue a one-time credit code for a refund. Returns the code."""
+    import sqlite3
+    code = "refund_" + uuid.uuid4().hex[:12]
+    conn = sqlite3.connect(_refund_db_path)
+    conn.execute(
+        "INSERT INTO refund_credits (code, amount_usd, endpoint, request_id, created_at) VALUES (?, ?, ?, ?, ?)",
+        (code, amount_usd, endpoint, request_id, datetime.utcnow().isoformat()),
+    )
+    conn.commit()
+    conn.close()
+    return code
 
 WALLET_ADDRESS = os.getenv("WALLET_ADDRESS", "0x366D488a48de1B2773F3a21F1A6972715056Cb30")
 EVM_NETWORK: Network = "eip155:8453"  # Base Mainnet
@@ -224,24 +283,24 @@ routes: dict[str, RouteConfig] = {
         description="DuckDuckGo web search, returns top N results ($0.01)",
     ),
     "POST /research": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.15", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Deep research: search + scrape + Claude synthesis with citations ($0.15)",
+        description="Deep research: search + scrape + Claude synthesis with citations ($0.05)",
     ),
     "POST /write": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
-        mime_type="application/json",
-        description="Claude writes content (article, post, copy) to your spec ($0.05)",
-    ),
-    "POST /analyze": RouteConfig(
         accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Claude analyzes data or text and returns structured insights ($0.02)",
+        description="Claude writes content (article, post, copy) to your spec ($0.02)",
+    ),
+    "POST /analyze": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Claude analyzes data or text and returns structured insights ($0.01)",
     ),
     "POST /code": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Claude generates code from a description in any language ($0.05)",
+        description="Claude generates code from a description in any language ($0.02)",
     ),
     "POST /summarize": RouteConfig(
         accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
@@ -249,29 +308,29 @@ routes: dict[str, RouteConfig] = {
         description="Claude summarizes long text or articles into key points ($0.01)",
     ),
     "POST /translate": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Claude translates text to any language ($0.02)",
+        description="Claude translates text to any language ($0.01)",
     ),
     "POST /social": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Claude generates platform-optimized social media posts ($0.03)",
+        description="Claude generates platform-optimized social media posts ($0.02)",
     ),
     "POST /batch": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.10", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Run up to 5 AI operations in one payment — research, write, analyze, translate, social, code ($0.10)",
+        description="Run up to 5 AI operations in one payment — research, write, analyze, translate, social, code ($0.03)",
     ),
     "POST /extract": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Extract structured data from any text using a schema you define ($0.02)",
+        description="Extract structured data from any text using a schema you define ($0.01)",
     ),
     "POST /qa": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Answer a question given a context document — core RAG building block ($0.02)",
+        description="Answer a question given a context document — core RAG building block ($0.01)",
     ),
     "POST /classify": RouteConfig(
         accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
@@ -289,79 +348,79 @@ routes: dict[str, RouteConfig] = {
         description="Extract keywords, topics, tags, and entities from any text ($0.01)",
     ),
     "POST /compare": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Compare two texts — similarities, differences, recommendation ($0.02)",
+        description="Compare two texts — similarities, differences, recommendation ($0.01)",
     ),
     "POST /transform": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Transform text with any instruction — rewrite, reformat, clean, expand, condense ($0.02)",
+        description="Transform text with any instruction — rewrite, reformat, clean, expand, condense ($0.01)",
     ),
     "POST /chat": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Stateless multi-turn chat — send message history, get Claude's reply ($0.03)",
+        description="Stateless multi-turn chat — send message history, get Claude's reply ($0.02)",
     ),
     "POST /plan": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Generate a step-by-step action plan for any goal ($0.03)",
+        description="Generate a step-by-step action plan for any goal ($0.02)",
     ),
     "POST /decide": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Decision framework — pros/cons, risks, and a recommendation ($0.03)",
+        description="Decision framework — pros/cons, risks, and a recommendation ($0.02)",
     ),
     "POST /proofread": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Grammar, spelling, clarity corrections with tracked changes ($0.02)",
+        description="Grammar, spelling, clarity corrections with tracked changes ($0.01)",
     ),
     "POST /explain": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Explain any concept at beginner, intermediate, or expert level ($0.02)",
+        description="Explain any concept at beginner, intermediate, or expert level ($0.01)",
     ),
     "POST /questions": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Generate interview, FAQ, or quiz questions from any content ($0.02)",
+        description="Generate interview, FAQ, or quiz questions from any content ($0.01)",
     ),
     "POST /outline": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Generate a structured hierarchical outline from a topic or document ($0.02)",
+        description="Generate a structured hierarchical outline from a topic or document ($0.01)",
     ),
     "POST /email": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Compose professional emails — subject, body, tone, length ($0.03)",
+        description="Compose professional emails — subject, body, tone, length ($0.02)",
     ),
     "POST /sql": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Natural language to SQL — describe what you want, get a query ($0.05)",
+        description="Natural language to SQL — describe what you want, get a query ($0.02)",
     ),
     "POST /regex": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Generate regex patterns from plain English description ($0.02)",
+        description="Generate regex patterns from plain English description ($0.01)",
     ),
     "POST /mock": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Generate realistic mock data — JSON, CSV, or plain list ($0.03)",
+        description="Generate realistic mock data — JSON, CSV, or plain list ($0.02)",
     ),
     "POST /score": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Score content quality on any custom rubric — returns per-criterion scores ($0.02)",
+        description="Score content quality on any custom rubric — returns per-criterion scores ($0.01)",
     ),
     "POST /timeline": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Extract or generate a chronological timeline of events from text ($0.02)",
+        description="Extract or generate a chronological timeline of events from text ($0.01)",
     ),
     "POST /action": RouteConfig(
         accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
@@ -369,14 +428,14 @@ routes: dict[str, RouteConfig] = {
         description="Extract action items, tasks, and owners from meeting notes or text ($0.01)",
     ),
     "POST /pitch": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Generate elevator pitch — hook, value prop, call to action ($0.03)",
+        description="Generate elevator pitch — hook, value prop, call to action ($0.02)",
     ),
     "POST /debate": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Arguments for and against any position with strength ratings ($0.03)",
+        description="Arguments for and against any position with strength ratings ($0.02)",
     ),
     "POST /headline": RouteConfig(
         accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
@@ -384,14 +443,14 @@ routes: dict[str, RouteConfig] = {
         description="Generate compelling headlines and titles for any content ($0.01)",
     ),
     "POST /fact": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Extract factual claims from text with source hints and verifiability scores ($0.02)",
+        description="Extract factual claims from text with source hints and verifiability scores ($0.01)",
     ),
     "POST /rewrite": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Rewrite text for a specific audience, reading level, or brand voice ($0.02)",
+        description="Rewrite text for a specific audience, reading level, or brand voice ($0.01)",
     ),
     "POST /tag": RouteConfig(
         accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
@@ -399,89 +458,89 @@ routes: dict[str, RouteConfig] = {
         description="Auto-tag content using a provided taxonomy or free-form tagging ($0.01)",
     ),
     "POST /pipeline": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.15", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Chain up to 5 operations where each step can use the previous output ($0.15)",
+        description="Chain up to 5 operations where each step can use the previous output ($0.05)",
     ),
     "POST /api-call": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Proxy HTTP call to any cataloged API with optional Claude enrichment ($0.05)",
+        description="Proxy HTTP call to any cataloged API with optional Claude enrichment ($0.03)",
     ),
     "POST /scrape/google-maps": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.10", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Scrape Google Maps places for any query — names, addresses, ratings ($0.10)",
+        description="Scrape Google Maps places for any query — names, addresses, ratings ($0.05)",
     ),
     "POST /scrape/instagram": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Scrape Instagram profile posts and metadata ($0.05)",
+        description="Scrape Instagram profile posts and metadata ($0.03)",
     ),
     "POST /scrape/tweets": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Scrape tweets by search query or hashtag ($0.05)",
+        description="Scrape tweets by search query or hashtag ($0.03)",
     ),
     "POST /scrape/linkedin": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.15", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Scrape LinkedIn profile data ($0.15)",
+        description="Scrape LinkedIn profile data ($0.05)",
     ),
     "POST /scrape/youtube": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Scrape YouTube video metadata by search keyword ($0.05)",
+        description="Scrape YouTube video metadata by search keyword ($0.03)",
     ),
     "POST /scrape/web": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Crawl any website and extract structured content ($0.05)",
+        description="Crawl any website and extract structured content ($0.03)",
     ),
     "POST /scrape/tiktok": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Scrape TikTok profile videos and metadata ($0.05)",
+        description="Scrape TikTok profile videos and metadata ($0.03)",
     ),
     "POST /scrape/facebook-ads": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.10", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Scrape Facebook Ad Library for any brand or keyword ($0.10)",
+        description="Scrape Facebook Ad Library for any brand or keyword ($0.05)",
     ),
     "POST /scrape/actor": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.10", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Run any Apify actor by ID with custom input ($0.10)",
+        description="Run any Apify actor by ID with custom input ($0.03)",
     ),
     "POST /vision": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
-        mime_type="application/json",
-        description="Analyze any image URL with Claude Vision — describe, extract, or answer questions ($0.05)",
-    ),
-    "POST /rag": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
-        mime_type="application/json",
-        description="Mini RAG — provide documents + query, get a grounded answer with citations ($0.05)",
-    ),
-    "POST /diagram": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
-        mime_type="application/json",
-        description="Generate Mermaid diagrams (flowchart, sequence, erd, gantt, mindmap) from description ($0.03)",
-    ),
-    "POST /json-schema": RouteConfig(
         accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Generate JSON Schema (draft-07) from a plain English description ($0.02)",
+        description="Analyze any image URL with Claude Vision — describe, extract, or answer questions ($0.02)",
+    ),
+    "POST /rag": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Mini RAG — provide documents + query, get a grounded answer with citations ($0.02)",
+    ),
+    "POST /diagram": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Generate Mermaid diagrams (flowchart, sequence, erd, gantt, mindmap) from description ($0.02)",
+    ),
+    "POST /json-schema": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Generate JSON Schema (draft-07) from a plain English description ($0.01)",
     ),
     "POST /test-cases": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Generate comprehensive test cases for code or a feature description ($0.03)",
+        description="Generate comprehensive test cases for code or a feature description ($0.02)",
     ),
     "POST /workflow": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.20", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.10", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Multi-step agentic reasoning — Claude Sonnet breaks down and executes complex goals ($0.20)",
+        description="Multi-step agentic reasoning — Claude Sonnet breaks down and executes complex goals ($0.10)",
     ),
     "POST /memory/set": RouteConfig(
         accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
@@ -494,9 +553,9 @@ routes: dict[str, RouteConfig] = {
         description="Retrieve a stored memory by agent_id and key ($0.01)",
     ),
     "POST /memory/search": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Search all memories for an agent by keyword — returns ranked matches ($0.02)",
+        description="Search all memories for an agent by keyword — returns ranked matches ($0.01)",
     ),
     "POST /memory/clear": RouteConfig(
         accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
@@ -504,12 +563,12 @@ routes: dict[str, RouteConfig] = {
         description="Delete all memories for an agent_id ($0.01)",
     ),
     "POST /chain": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.25", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Chain up to 5 AI endpoints in sequence — each step can reference prior results ($0.25)",
+        description="Chain up to 5 AI endpoints in sequence — each step can reference prior results ($0.05)",
     ),
     "POST /marketplace/call": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
         mime_type="application/json",
         description="Proxy-call any agent marketplace listing — we handle routing + payment ($0.05 + listing price)",
     ),
@@ -519,9 +578,9 @@ routes: dict[str, RouteConfig] = {
         description="Send a direct message from one agent to another ($0.01)",
     ),
     "POST /message/broadcast": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Broadcast a message to all agents in the network ($0.02)",
+        description="Broadcast a message to all agents in the network ($0.01)",
     ),
     "POST /message/reply": RouteConfig(
         accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
@@ -544,9 +603,9 @@ routes: dict[str, RouteConfig] = {
         description="Mark a claimed task as complete and submit the result ($0.01)",
     ),
     "POST /code/run": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Execute Python code in a sandboxed subprocess, returns stdout/stderr ($0.05)",
+        description="Execute Python code in a sandboxed subprocess, returns stdout/stderr ($0.02)",
     ),
     "GET /web/search": RouteConfig(
         accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
@@ -554,9 +613,9 @@ routes: dict[str, RouteConfig] = {
         description="DuckDuckGo web search — instant answers + related results ($0.02)",
     ),
     "POST /enrich": RouteConfig(
-        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Entity enrichment — aggregate data about an IP, crypto, country, or company ($0.05)",
+        description="Entity enrichment — aggregate data about an IP, crypto, country, or company ($0.02)",
     ),
     "POST /credits/buy": RouteConfig(
         accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$5.00", network=EVM_NETWORK)],
@@ -581,9 +640,10 @@ def _api_key_wsgi(environ, start_response):
     # 0. Per-IP rate limit (60 req/min) — applied to AI route calls only
     if routes.get(route_key):
         try:
+            # Trust CF-Connecting-IP (set by Cloudflare), fall back to REMOTE_ADDR
             _ip = (
-                environ.get("HTTP_X_FORWARDED_FOR", environ.get("REMOTE_ADDR", "unknown"))
-                .split(",")[0].strip()
+                environ.get("HTTP_CF_CONNECTING_IP",
+                    environ.get("REMOTE_ADDR", "unknown"))
             )
             if not _check_rate_limit(_ip):
                 body = json.dumps({
@@ -595,7 +655,7 @@ def _api_key_wsgi(environ, start_response):
                     ("Content-Type", "application/json"),
                     ("Content-Length", str(len(body))),
                     ("Retry-After", "60"),
-                    ("Access-Control-Allow-Origin", "*"),
+                    ("Access-Control-Allow-Origin", "https://aipaygent.xyz"),
                 ])
                 return [body]
         except Exception:
@@ -620,33 +680,42 @@ def _api_key_wsgi(environ, start_response):
                     price_str = route_cfg.accepts[0].price  # e.g. "$0.01"
                     cost = float(price_str.lstrip("$"))
                     key_data = validate_key(key)
-                    if key_data and key_data.get("balance_usd", 0) >= cost and deduct(key, cost):
-                        environ["X_APIKEY_BYPASS"] = key
-                        environ["X_PRICING_MODE"] = "flat"
-                        return _raw_flask_wsgi(environ, start_response)
+                    if key_data and key_data.get("balance_usd", 0) >= cost:
+                        # 20% bulk discount for prepaid keys with balance >= $2.00
+                        if key_data.get("balance_usd", 0) >= 2.00:
+                            cost = round(cost * 0.8, 4)
+                        if deduct(key, cost):
+                            environ["X_APIKEY_BYPASS"] = key
+                            environ["X_PRICING_MODE"] = "flat"
+                            return _raw_flask_wsgi(environ, start_response)
             except Exception:
                 pass
 
     # 2. If request carries an X-Payment header, it's an x402-paying agent —
-    #    skip free tier entirely and let x402 middleware handle verification.
+    #    let x402 middleware handle verification with facilitator fallback.
     if environ.get("HTTP_X_PAYMENT"):
-        return _x402_wsgi(environ, start_response)
-
-    # 3. Free daily tier bypass — 10 free AI calls/day per IP (no payment needed)
-    route_cfg = routes.get(route_key)
-    if route_cfg:
         try:
-            ip = (
-                environ.get("HTTP_X_FORWARDED_FOR", environ.get("REMOTE_ADDR", "unknown"))
-                .split(",")[0].strip()
-            )
-            if check_and_use_free_tier(ip):
-                environ["X_FREE_TIER_BYPASS"] = "1"
-                return _raw_flask_wsgi(environ, start_response)
+            return _x402_wsgi(environ, start_response)
         except Exception:
-            pass
+            # Facilitator unreachable — return 503 with alternatives
+            body = json.dumps({
+                "error": "facilitator_unavailable",
+                "message": "x402 payment facilitator is temporarily unreachable. Please try again or use alternative payment.",
+                "alternatives": {
+                    "stripe": "POST /buy-credits to purchase a prepaid API key via Stripe",
+                    "api_key": "Use Bearer apk_xxx header with a prepaid API key",
+                },
+                "retry_after_seconds": 60,
+            }).encode()
+            start_response("503 Service Unavailable", [
+                ("Content-Type", "application/json"),
+                ("Content-Length", str(len(body))),
+                ("Retry-After", "60"),
+                ("Access-Control-Allow-Origin", "*"),
+            ])
+            return [body]
 
-    # 4. Free tier exhausted or no free tier — fall through to x402 middleware
+    # 3. No payment method provided — fall through to x402 middleware
     #    which returns a proper 402 with X-Payment-Info header that agents can pay.
     return _x402_wsgi(environ, start_response)
 
@@ -839,7 +908,7 @@ def agent_response(data: dict, endpoint: str) -> dict:
 @app.before_request
 def track_referral():
     ref = request.args.get("ref", request.headers.get("X-Referred-By", "")).strip()
-    if ref and len(ref) <= 64:
+    if ref and len(ref) <= 64 and _re.match(r'^[a-zA-Z0-9_\-]+$', ref):
         ip = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
         ua = request.headers.get("User-Agent", "")
         try:
@@ -855,43 +924,76 @@ def track_referral():
                 pass
 
 
+_ALLOWED_ORIGINS = {"https://aipaygent.xyz", "https://api.aipaygent.xyz", "https://mcp.aipaygent.xyz", "https://app.aipaygent.xyz"}
+
 @app.after_request
 def add_cors(response):
     import uuid
-    response.headers["Access-Control-Allow-Origin"] = "*"
+    origin = request.headers.get("Origin", "")
+    if origin in _ALLOWED_ORIGINS:
+        response.headers["Access-Control-Allow-Origin"] = origin
+    else:
+        # Allow agent-to-agent calls (no browser origin) but block random browser origins
+        response.headers["Access-Control-Allow-Origin"] = "https://aipaygent.xyz"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Payment, Authorization, Accept, X-Idempotency-Key"
-    response.headers["Access-Control-Expose-Headers"] = "X-Request-ID, X-Payment-Info"
-    response.headers["X-Request-ID"] = request.headers.get("X-Idempotency-Key", str(uuid.uuid4())[:8])
-    response.headers["X-Powered-By"] = "claude-haiku-4-5 + x402"
+    response.headers["Access-Control-Expose-Headers"] = "X-Request-ID, X-Payment-Info, X-Payment-Receipt"
+    # Full UUID correlation ID per request
+    req_id = request.headers.get("X-Idempotency-Key") or str(uuid.uuid4())
+    response.headers["X-Request-ID"] = req_id
+    # Payment receipt header on paid 2xx responses
+    if request.headers.get("X-Payment") and 200 <= response.status_code < 300:
+        response.headers["X-Payment-Receipt"] = f"paid:{req_id}"
+    # Refund credit on 500 after payment
+    if response.status_code >= 500 and request.headers.get("X-Payment"):
+        route_key = f"{request.method} {request.path}"
+        route_cfg = routes.get(route_key)
+        if route_cfg:
+            try:
+                price_str = route_cfg.accepts[0].price
+                amount = float(price_str.lstrip("$"))
+                code = _issue_refund_credit(amount, request.path, req_id)
+                response.headers["X-Refund-Credit"] = code
+            except Exception:
+                pass
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; object-src 'none'; frame-ancestors 'none'"
     if "Cache-Control" not in response.headers:
         response.headers["Cache-Control"] = "no-store"
+    response.headers.pop("X-Powered-By", None)
+    response.headers.pop("Server", None)
     return response
+
+
+def _api_error(code: int, error_type: str, message: str, **extra):
+    """Standard JSON error response."""
+    body = {"error": error_type, "message": message}
+    body.update(extra)
+    return jsonify(body), code
 
 
 @app.errorhandler(400)
 def bad_request(e):
-    return jsonify({"error": "bad_request", "message": str(e)}), 400
+    return _api_error(400, "bad_request", str(e))
 
 
 @app.errorhandler(404)
 def not_found(e):
-    return jsonify({"error": "not_found", "message": "Endpoint not found. GET /discover for available endpoints.", "discover": "https://api.aipaygent.xyz/discover"}), 404
+    return _api_error(404, "not_found", "Endpoint not found. GET /discover for available endpoints.", discover="https://api.aipaygent.xyz/discover")
 
 
 @app.errorhandler(405)
 def method_not_allowed(e):
-    return jsonify({"error": "method_not_allowed", "message": str(e)}), 405
+    return _api_error(405, "method_not_allowed", str(e))
 
 
 @app.errorhandler(500)
 def internal_error(e):
-    return jsonify({"error": "internal_server_error", "message": "An error occurred processing your request. Please retry.", "retry": True}), 500
+    return _api_error(500, "internal_server_error", "An error occurred processing your request. Please retry.", retry=True)
 
 
 @app.route("/<path:path>", methods=["OPTIONS"])
@@ -2877,6 +2979,7 @@ def landing():
 
 
 @app.route("/stats")
+@require_admin
 def stats():
     if not os.path.exists(PAYMENTS_LOG):
         return jsonify({"total_requests": 0, "total_earned_usd": 0.0, "by_endpoint": {}})
@@ -2903,9 +3006,10 @@ def stats():
 
 @app.route("/blog", methods=["GET"])
 def blog_index():
+    from security import sanitize_html
     posts = list_blog_posts()
     items = "".join(
-        f'<li style="margin:0.6rem 0"><a href="/blog/{p["slug"]}">{p["title"]}</a> <small style="color:#888">· {p.get("generated_at","")[:10]}</small></li>'
+        f'<li style="margin:0.6rem 0"><a href="/blog/{sanitize_html(p["slug"])}">{sanitize_html(p["title"])}</a> <small style="color:#888">· {sanitize_html(p.get("generated_at","")[:10])}</small></li>'
         for p in posts
     )
     html = f"""<!DOCTYPE html>
@@ -2941,15 +3045,18 @@ def blog_index():
 
 @app.route("/blog/<slug>", methods=["GET"])
 def blog_post(slug):
+    from security import sanitize_html
     post = get_blog_post(slug)
     if not post:
         return jsonify({"error": "post not found"}), 404
-    canonical = f"https://api.aipaygent.xyz/blog/{slug}"
-    desc = f"{post['title']} — Developer tutorial for AiPayGent, the pay-per-use Claude AI API with 140+ endpoints."
+    # Sanitize title for use in HTML attributes and text (content is trusted AI-generated HTML)
+    safe_title = sanitize_html(post['title'])
+    canonical = f"https://api.aipaygent.xyz/blog/{sanitize_html(slug)}"
+    desc = f"{safe_title} — Developer tutorial for AiPayGent, the pay-per-use Claude AI API with 140+ endpoints."
     jsonld = json.dumps({
         "@context": "https://schema.org",
         "@type": "TechArticle",
-        "headline": post['title'],
+        "headline": safe_title,
         "description": desc,
         "url": canonical,
         "datePublished": post.get("generated_at", "")[:10],
@@ -2965,17 +3072,17 @@ def blog_post(slug):
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{post['title']} — AiPayGent</title>
+<title>{safe_title} — AiPayGent</title>
 <meta name="description" content="{desc}">
 <link rel="canonical" href="{canonical}">
 <meta property="og:type" content="article">
-<meta property="og:title" content="{post['title']}">
+<meta property="og:title" content="{safe_title}">
 <meta property="og:description" content="{desc}">
 <meta property="og:url" content="{canonical}">
 <meta property="og:image" content="https://api.aipaygent.xyz/og-image.png">
 <meta property="og:site_name" content="AiPayGent">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{post['title']}">
+<meta name="twitter:title" content="{safe_title}">
 <meta name="twitter:description" content="{desc}">
 <meta name="twitter:image" content="https://api.aipaygent.xyz/og-image.png">
 <script type="application/ld+json">{jsonld}</script>
@@ -2988,7 +3095,7 @@ pre{{padding:16px;overflow-x:auto;display:block}}a{{color:#6366f1}}h1{{color:#1e
 </head>
 <body>
 <div class="nav"><a href="/blog">← All posts</a> · <a href="https://api.aipaygent.xyz">AiPayGent API</a> · <a href="/discover">140+ endpoints</a></div>
-<h1>{post['title']}</h1>
+<h1>{safe_title}</h1>
 {post['content']}
 <div class="cta">
   <strong>Try it free →</strong> First 10 calls/day free, no credit card. <a href="https://api.aipaygent.xyz/discover">Browse all 140+ endpoints</a> or <a href="https://api.aipaygent.xyz/buy-credits">buy credits ($5+)</a>.
@@ -3035,7 +3142,8 @@ def referral_redirect(agent_id):
         record_click(agent_id, ip, "/ref/" + agent_id, request.headers.get("User-Agent", ""))
     except Exception:
         pass
-    dest = request.args.get("to", "/buy-credits") + f"?ref={agent_id}"
+    from security import validate_redirect_url
+    dest = validate_redirect_url(request.args.get("to", "/buy-credits")) + f"?ref={agent_id}"
     from flask import redirect
     return redirect(dest, code=302)
 
@@ -3052,6 +3160,7 @@ def discovery_engine_status():
 
 
 @app.route("/discovery/trigger", methods=["POST"])
+@require_admin
 def discovery_trigger():
     data = request.get_json() or {}
     job = data.get("job", data.get("task", "hourly"))
@@ -3081,20 +3190,25 @@ def discovery_trigger():
 # ══════════════════════════════════════════════════════════════════════════════
 
 @app.route("/discovery/scouts/status", methods=["GET"])
+@require_admin
 def scouts_status():
     from discovery_scouts import get_scout_status
     return jsonify(get_scout_status())
 
 
 @app.route("/discovery/scouts/stats", methods=["GET"])
+@require_admin
 def scouts_stats():
     from discovery_scouts import get_scout_stats
     return jsonify(get_scout_stats())
 
 
 @app.route("/discovery/scouts/run/<scout_name>", methods=["POST"])
+@require_admin
 def scouts_run(scout_name):
     from discovery_scouts import run_scout_by_name
+    if not _re.match(r'^[a-z_]+$', scout_name):
+        return jsonify({"error": "Invalid scout name"}), 400
     result = run_scout_by_name(scout_name, call_model)
     if result is None:
         return jsonify({"error": f"Unknown scout: {scout_name}"}), 404
@@ -3102,9 +3216,17 @@ def scouts_run(scout_name):
 
 
 @app.route("/discovery/scouts/report", methods=["GET"])
+@require_admin
 def scouts_report():
     from discovery_scouts import get_weekly_report
     return jsonify(get_weekly_report())
+
+
+@app.route("/discovery/scouts/absorbed", methods=["GET"])
+@require_admin
+def scouts_absorbed():
+    from discovery_scouts import get_absorbed_skills_stats
+    return jsonify(get_absorbed_skills_stats())
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -3200,6 +3322,20 @@ def async_status(job_id):
 # FILE STORAGE
 # ══════════════════════════════════════════════════════════════════════════════
 
+_ALLOWED_UPLOAD_MIMES = {
+    "image/png", "image/jpeg", "image/gif", "image/webp", "image/svg+xml", "image/bmp", "image/tiff",
+    "text/plain", "text/csv", "text/markdown", "text/xml", "text/html",
+    "application/json", "application/pdf", "application/xml",
+    "application/x-yaml", "application/yaml", "text/yaml",
+    "application/zip", "application/gzip", "application/x-tar",
+    "application/x-gzip", "application/octet-stream",
+}
+_BLOCKED_UPLOAD_EXTS = {
+    "exe", "bat", "cmd", "com", "dll", "msi", "ps1", "sh", "bash",
+    "js", "vbs", "wsf", "scr", "pif", "reg", "inf", "hta", "cpl",
+    "jar", "py", "rb", "pl", "php",
+}
+
 @app.route("/files/upload", methods=["POST"])
 def files_upload():
     agent_id = request.args.get("agent_id") or (request.get_json() or {}).get("agent_id", "anonymous")
@@ -3217,6 +3353,11 @@ def files_upload():
             data = base64.b64decode(b64)
         except Exception:
             return jsonify({"error": "invalid base64_data"}), 400
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if ext in _BLOCKED_UPLOAD_EXTS:
+        return jsonify({"error": f"Blocked file extension: .{ext}"}), 400
+    if content_type not in _ALLOWED_UPLOAD_MIMES:
+        return jsonify({"error": f"Blocked content type: {content_type}"}), 400
     try:
         result = save_file(agent_id, filename, content_type, data)
         return jsonify(result)
@@ -3229,8 +3370,9 @@ def files_get(file_id):
     meta, data = get_file(file_id)
     if meta is None:
         return jsonify({"error": "file not found"}), 404
+    safe_filename = _re.sub(r'[^\w.\-]', '_', meta.get("filename", "file"))
     return Response(data, content_type=meta["content_type"],
-                    headers={"Content-Disposition": f"inline; filename=\"{meta['filename']}\""})
+                    headers={"Content-Disposition": f"attachment; filename=\"{safe_filename}\""})
 
 
 @app.route("/files/<file_id>", methods=["DELETE"])
@@ -3599,6 +3741,12 @@ def data_validate_url():
         return jsonify({"error": "url required"}), 400
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
+    # SSRF protection
+    from security import validate_url, SSRFError
+    try:
+        validate_url(url, allow_http=True)
+    except SSRFError as e:
+        return jsonify({"error": f"Blocked: {e}", "url": url, "reachable": False}), 403
     try:
         resp = _requests.head(url, timeout=8, allow_redirects=True,
                               headers={"User-Agent": "AiPayGent/2.0"})
@@ -3913,9 +4061,77 @@ def discover():
     })
 
 
+_app_start_time = _time.time()
+_health_cache = {"data": None, "ts": 0}
+
 @app.route("/health")
 def health():
-    return jsonify({"status": "ok", "wallet": WALLET_ADDRESS, "network": EVM_NETWORK})
+    now = _time.time()
+    # Cache health for 60s to avoid hammering checks on every call
+    if _health_cache["data"] and (now - _health_cache["ts"]) < 60:
+        cached = _health_cache["data"]
+        code = 200 if cached.get("status") == "healthy" else 503
+        return jsonify(cached), code
+
+    checks = {}
+    degraded = False
+
+    # 1. SQLite DBs writable
+    for db_name, db_path in [("skills", _skills_db_path), ("agent_network", os.path.join(os.path.dirname(__file__), "agent_network.db"))]:
+        try:
+            import sqlite3 as _sq
+            c = _sq.connect(db_path, timeout=2)
+            c.execute("SELECT 1")
+            c.close()
+            checks[db_name] = "ok"
+        except Exception as exc:
+            checks[db_name] = f"error: {exc}"
+            degraded = True
+
+    # 2. Facilitator reachable (cached via _health_cache TTL)
+    try:
+        r = _requests.get(FACILITATOR_URL, timeout=5)
+        checks["facilitator"] = "ok" if r.status_code < 500 else f"http {r.status_code}"
+        if r.status_code >= 500:
+            degraded = True
+    except Exception as exc:
+        checks["facilitator"] = f"unreachable: {exc}"
+        degraded = True
+
+    # 3. Disk space
+    try:
+        st = os.statvfs(os.path.dirname(__file__))
+        free_mb = (st.f_bavail * st.f_frsize) / (1024 * 1024)
+        checks["disk_free_mb"] = round(free_mb, 1)
+        if free_mb < 100:
+            degraded = True
+    except Exception:
+        checks["disk_free_mb"] = "unknown"
+
+    # 4. Daily cost
+    try:
+        checks["daily_cost_usd"] = round(get_daily_cost(), 4)
+    except Exception:
+        checks["daily_cost_usd"] = "unknown"
+
+    # 5. Uptime
+    checks["uptime_seconds"] = round(now - _app_start_time, 1)
+
+    # 6. Circuit breaker status
+    from model_router import _circuit_state
+    if _circuit_state:
+        checks["circuit_breakers"] = {k: {"failures": v["failures"], "open": v.get("opened_at") is not None} for k, v in _circuit_state.items() if v["failures"] > 0}
+
+    result = {
+        "status": "degraded" if degraded else "healthy",
+        "wallet": WALLET_ADDRESS,
+        "network": EVM_NETWORK,
+        "checks": checks,
+    }
+    _health_cache["data"] = result
+    _health_cache["ts"] = now
+    code = 200 if not degraded else 503
+    return jsonify(result), code
 
 
 @app.route("/preview", methods=["GET", "POST"])
@@ -5731,11 +5947,16 @@ def vision():
     if not image_url:
         return jsonify({"error": "url required"}), 400
     try:
+        from security import validate_url, SSRFError
+        validate_url(image_url, allow_http=True)
+    except SSRFError:
+        return jsonify({"error": "URL blocked by SSRF protection"}), 400
+    try:
         result = vision_inner(image_url, question, model=data.get("model", "claude-haiku"))
         log_payment("/vision", 0.05, request.remote_addr)
         return jsonify(agent_response(result, "/vision"))
     except Exception as e:
-        return jsonify({"error": str(e)}), 502
+        return jsonify({"error": "Vision processing failed"}), 502
 
 
 @app.route("/rag", methods=["POST"])
@@ -5800,7 +6021,7 @@ def workflow_route():
 
 # ─── Agent Memory Endpoints ────────────────────────────────────────────────
 
-def _resolve_agent_id(data):
+def _resolve_agent_id(data, require_verified=False):
     """Resolve agent_id from JWT (verified) or request body (unverified)."""
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer ey"):
@@ -5809,7 +6030,12 @@ def _resolve_agent_id(data):
             return payload["agent_id"], True
         except Exception:
             pass
-    return data.get("agent_id", ""), False
+    if require_verified:
+        return "", False
+    agent_id = data.get("agent_id", "")
+    if agent_id and not _re.match(r'^[a-zA-Z0-9_\-]{1,64}$', agent_id):
+        return "", False
+    return agent_id, False
 
 
 @app.route("/memory/set", methods=["POST"])
@@ -5918,8 +6144,8 @@ def agent_me():
     try:
         payload = verify_jwt(auth[7:])
         return jsonify(payload)
-    except Exception as e:
-        return jsonify({"error": f"Invalid token: {e}"}), 401
+    except Exception:
+        return jsonify({"error": "Invalid or expired token"}), 401
 
 
 # ─── Agent Registry (free) ────────────────────────────────────────────────
@@ -6054,6 +6280,12 @@ def api_call():
         return jsonify({"error": "api_not_found", "hint": "GET /catalog to browse available APIs"}), 404
 
     url = api["base_url"].rstrip("/") + "/" + endpoint.lstrip("/")
+    # SSRF protection — validate constructed URL
+    from security import validate_url, SSRFError
+    try:
+        validate_url(url, allow_http=False)
+    except SSRFError as e:
+        return jsonify({"error": f"Blocked URL: {e}"}), 403
     headers = {}
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
@@ -6548,6 +6780,12 @@ def marketplace_call():
 
     payload = data.get("payload", {})
     endpoint = listing["endpoint"]
+    # SSRF protection — validate marketplace endpoint
+    from security import validate_url, SSRFError
+    try:
+        validate_url(endpoint, allow_http=False)
+    except SSRFError as e:
+        return jsonify({"error": f"Blocked endpoint: {e}"}), 403
     try:
         resp = _requests.post(endpoint, json=payload, timeout=60,
                               headers={"User-Agent": "AiPayGent-Marketplace/1.0"})
@@ -6631,6 +6869,47 @@ def chain_endpoint():
         "chain": results,
         "final_result": results[-1]["result"] if results else None,
     }, "/chain"))
+
+
+# ── ReAct Agent — autonomous reasoning endpoint ──────────────────────────────
+
+@app.route("/agent", methods=["POST"])
+def agent_endpoint():
+    """Autonomous AI agent that reasons through complex tasks using tools."""
+    from react_agent import ReActAgent, make_tool_handler
+    from agent_memory import memory_search, memory_set
+
+    data = request.get_json() or {}
+    task = data.get("task", "")
+    if not task:
+        return jsonify({"error": "task required", "hint": 'POST {"task": "your task description"}'}), 400
+
+    agent_id = data.get("agent_id", "")
+    max_cost = float(data.get("max_cost_usd", 1.0))
+    max_steps = min(int(data.get("max_steps", 10)), 20)
+    model = data.get("model", "auto")
+
+    tool_handler = make_tool_handler(
+        batch_handlers=BATCH_HANDLERS,
+        memory_search_fn=memory_search if agent_id else None,
+        memory_set_fn=memory_set if agent_id else None,
+        skills_db_path=_skills_db_path,
+        agent_id=agent_id,
+    )
+
+    memory_fns = {}
+    if agent_id:
+        memory_fns = {"search": memory_search, "set": memory_set}
+
+    agent = ReActAgent(
+        call_model_fn=call_model,
+        tool_handler_fn=tool_handler,
+        memory_fns=memory_fns,
+    )
+
+    result = agent.run(task=task, max_steps=max_steps, max_cost_usd=max_cost, model=model, agent_id=agent_id)
+    log_payment("/agent", result.get("total_cost_usd", 0.05), request.remote_addr)
+    return jsonify(agent_response(result, "/agent"))
 
 
 # ── Real-Time Data (FREE) ──────────────────────────────────────────────────────
@@ -6998,6 +7277,7 @@ def task_get(task_id):
 def code_run():
     import subprocess
     import time as _time
+    from security import validate_code_safety, SandboxViolation, get_sandbox_env
     data = request.get_json() or {}
     code = data.get("code", "")
     timeout = min(int(data.get("timeout", 10)), 15)
@@ -7005,6 +7285,11 @@ def code_run():
         return jsonify({"error": "code required"}), 400
     if len(code) > 5000:
         return jsonify({"error": "code too long (max 5000 chars)"}), 400
+    # AST-based sandbox validation
+    try:
+        validate_code_safety(code)
+    except SandboxViolation as e:
+        return jsonify({"error": f"Sandbox violation: {e}"}), 403
     start = _time.time()
     try:
         result = subprocess.run(
@@ -7012,7 +7297,8 @@ def code_run():
             capture_output=True,
             text=True,
             timeout=timeout,
-            env={"PATH": os.environ.get("PATH", "/usr/bin:/bin")},
+            env=get_sandbox_env(),
+            cwd="/tmp",
         )
         elapsed = int((_time.time() - start) * 1000)
         log_payment("/code/run", 0.05, request.remote_addr)
@@ -7611,11 +7897,15 @@ def stripe_webhook():
 
 @app.route("/buy-credits/success", methods=["GET"])
 def buy_credits_success():
+    from security import sanitize_html
     key = request.args.get("key", "")
     amount = request.args.get("amount", "")
+    # Validate key format (apk_ + hex chars only)
+    if key and not __import__("re").match(r'^apk_[a-f0-9]{32}$', key):
+        key = ""
     status = get_key_status(key) if key else None
-    balance = f"{status['balance_usd']:.2f}" if status else amount
-    html = _SUCCESS_PAGE.replace("{{ key }}", key).replace("{{ balance }}", balance)
+    balance = f"{status['balance_usd']:.2f}" if status else sanitize_html(amount)
+    html = _SUCCESS_PAGE.replace("{{ key }}", sanitize_html(key)).replace("{{ balance }}", balance)
     return html, 200, {"Content-Type": "text/html"}
 
 
@@ -8160,6 +8450,8 @@ Full Python client example in the blog post above.""",
 # ---------------------------------------------------------------------------
 
 _skills_db_path = os.path.join(os.path.dirname(__file__), "skills.db")
+from skills_search import SkillsSearchEngine
+_skills_engine = SkillsSearchEngine(_skills_db_path)
 
 def _init_skills_db():
     import sqlite3
@@ -8220,6 +8512,7 @@ def _init_skills_db():
     conn.close()
 
 _init_skills_db()
+_init_refund_db()
 
 
 @app.route("/skills", methods=["GET"])
@@ -8240,6 +8533,7 @@ def list_skills():
 
 
 @app.route("/skills/execute", methods=["POST"])
+@require_admin
 def execute_skill():
     """Execute any skill by name with input. The universal agent endpoint."""
     import sqlite3
@@ -8280,8 +8574,9 @@ def execute_skill():
 
 
 @app.route("/skills/create", methods=["POST"])
+@require_verified_agent
 def create_skill():
-    """Let agents create new skills dynamically. This is how AiPayGent learns."""
+    """Let verified agents create new skills dynamically. Requires JWT auth."""
     import sqlite3
     data = request.get_json(force=True) or {}
     name = data.get("name")
@@ -8312,6 +8607,7 @@ def create_skill():
 
 
 @app.route("/skills/absorb", methods=["POST"])
+@require_admin
 def absorb_skill():
     """Absorb a skill from an external source — URL, API spec, or description.
     AiPayGent reads the source and creates a callable skill automatically."""
@@ -8324,16 +8620,16 @@ def absorb_skill():
     if not source_url and not source_text:
         return jsonify({"error": "provide url or text to absorb a skill from"}), 400
 
-    # If URL provided, fetch it
+    # If URL provided, fetch it (with SSRF protection)
     content = source_text
     if source_url:
-        try:
-            import urllib.request
-            req = urllib.request.Request(source_url, headers={"User-Agent": "AiPayGent-SkillAbsorber/1.0"})
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                content = resp.read().decode("utf-8", errors="replace")[:10000]
-        except Exception as e:
-            return jsonify({"error": f"failed to fetch URL: {str(e)}"}), 400
+        from security import safe_fetch
+        resp = safe_fetch(source_url, user_agent="AiPayGent-SkillAbsorber/1.0", timeout=30, max_size=10000)
+        if resp.get("blocked"):
+            return jsonify({"error": resp["error"]}), 403
+        if "error" in resp:
+            return jsonify({"error": f"failed to fetch URL: {resp['error']}"}), 400
+        content = resp.get("body", "")
 
     # Use AI to extract a skill definition from the content
     result = call_model("claude-haiku", [{"role": "user", "content": f"""Analyze this content and create a reusable AI skill from it.
@@ -8364,6 +8660,7 @@ Return JSON with:
         )
         conn.commit()
         conn.close()
+        _skills_engine.invalidate()
         return jsonify({"absorbed": parsed["name"], "description": parsed["description"],
                         "category": parsed.get("category", category), "source": source_url or "text"})
     except sqlite3.IntegrityError:
@@ -8372,6 +8669,7 @@ Return JSON with:
 
 
 @app.route("/skills/harvest", methods=["POST"])
+@require_admin
 def trigger_harvest():
     """Trigger skill harvesting from external sources on demand."""
     import threading
@@ -8392,6 +8690,7 @@ def trigger_harvest():
 
 
 @app.route("/skills/harvest/stats", methods=["GET"])
+@require_admin
 def harvest_stats():
     """Get skill harvest statistics."""
     from skill_harvester import SkillHarvester
@@ -8403,6 +8702,7 @@ import threading
 _outbound_lock = threading.Lock()
 
 @app.route("/outbound/run", methods=["POST"])
+@require_admin
 def trigger_outbound():
     """Trigger outbound recruitment agent manually."""
     if not _outbound_lock.acquire(blocking=False):
@@ -8418,6 +8718,7 @@ def trigger_outbound():
 
 
 @app.route("/outbound/stats", methods=["GET"])
+@require_admin
 def outbound_stats():
     """Get outbound recruitment agent statistics."""
     from outbound_agent import OutboundAgent
@@ -8427,19 +8728,13 @@ def outbound_stats():
 
 @app.route("/skills/search", methods=["GET"])
 def search_skills():
-    """Search skills by keyword — agents find the right skill for their task."""
-    import sqlite3
+    """Search skills by keyword — TF-IDF ranked relevance search."""
     q = request.args.get("q", "")
     if not q:
         return jsonify({"error": "q parameter required"}), 400
-    conn = sqlite3.connect(_skills_db_path)
-    conn.row_factory = sqlite3.Row
-    rows = conn.execute(
-        "SELECT id, name, description, category, input_schema, calls FROM skills WHERE name LIKE ? OR description LIKE ? ORDER BY calls DESC LIMIT 20",
-        (f"%{q}%", f"%{q}%"),
-    ).fetchall()
-    conn.close()
-    return jsonify({"query": q, "results": [dict(r) for r in rows]})
+    top_n = request.args.get("top_n", 20, type=int)
+    results = _skills_engine.search(q, top_n=min(top_n, 50))
+    return jsonify({"query": q, "results": results})
 
 
 @app.route("/ask", methods=["POST"])
@@ -8451,13 +8746,16 @@ def ask_universal():
     if not question:
         return jsonify({"error": "question/input/query required"}), 400
 
-    # First, find the best matching skill
-    conn = sqlite3.connect(_skills_db_path)
-    conn.row_factory = sqlite3.Row
-    all_skills = conn.execute("SELECT name, description, category FROM skills ORDER BY calls DESC LIMIT 50").fetchall()
-    conn.close()
+    # First, find candidate skills via TF-IDF
+    candidates = _skills_engine.search(question, top_n=30)
+    if not candidates:
+        import sqlite3 as _sq
+        _conn = _sq.connect(_skills_db_path)
+        _conn.row_factory = _sq.Row
+        candidates = [dict(r) for r in _conn.execute("SELECT name, description, category FROM skills ORDER BY calls DESC LIMIT 30").fetchall()]
+        _conn.close()
 
-    skill_list = "\n".join(f"- {s['name']}: {s['description']}" for s in all_skills)
+    skill_list = "\n".join(f"- {s['name']}: {s['description']}" for s in candidates)
 
     # Use AI to pick the best skill
     router_result = call_model("claude-haiku", [{"role": "user", "content": f"""Given this user request, pick the best skill to handle it. If no skill fits well, respond with "direct".
