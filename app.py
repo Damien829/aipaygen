@@ -929,6 +929,13 @@ def track_referral():
                 pass
 
 
+@app.before_request
+def check_query_param_lengths():
+    for key, value in request.args.items():
+        if len(value) > 10000:
+            return jsonify({"error": "param_too_long", "message": f"Query parameter '{key}' exceeds 10,000 character limit"}), 400
+
+
 _ALLOWED_ORIGINS = {"https://aipaygent.xyz", "https://api.aipaygent.xyz", "https://mcp.aipaygent.xyz", "https://app.aipaygent.xyz"}
 
 @app.after_request
