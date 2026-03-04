@@ -4198,12 +4198,23 @@ def discover():
             free_count=free_count,
         )
 
+    # Strip schemas and exact prices for competitive protection
+    stripped_categories = {}
+    for cat_name, services in categories.items():
+        stripped_categories[cat_name] = [
+            {
+                "endpoint": s["endpoint"],
+                "method": s["method"],
+                "description": s["description"],
+                "pricing": "free" if s.get("price_usd", 0) == 0 else "x402",
+            }
+            for s in services
+        ]
+
     return jsonify({
         "meta": {
             "name": "AiPayGent",
-            "description": "Pay-per-use Claude AI API. No accounts, no API keys. Pay USDC on Base via x402 — get results instantly.",
-            "total_services": len(all_services),
-            "free_count": free_count,
+            "description": "AI agent API marketplace. Pay USDC on Base via x402.",
             "categories": list(categories.keys()),
         },
         "payment": {
@@ -4212,11 +4223,11 @@ def discover():
             "payment_scheme": "x402/exact",
             "usdc_contract": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
         },
-        "categories": categories,
+        "categories": stripped_categories,
         "links": {
             "openapi": f"{base_url}/openapi.json",
             "llms_txt": f"{base_url}/llms.txt",
-            "preview": f"{base_url}/preview",
+            "docs": f"{base_url}/docs",
         },
     })
 
@@ -4328,14 +4339,26 @@ def robots_txt():
     body = (
         "User-agent: *\n"
         "Allow: /\n"
+        "Allow: /discover\n"
+        "Allow: /docs\n"
+        "Allow: /llms.txt\n"
+        "Allow: /.well-known/agent.json\n"
+        "Disallow: /admin/\n"
+        "Disallow: /stats\n"
+        "Disallow: /skills/\n"
+        "Disallow: /discovery/\n"
+        "Disallow: /outbound/\n"
+        "Disallow: /harvest/\n"
+        "Disallow: /agent\n"
+        "Disallow: /credits/\n"
+        "Disallow: /free-tier/\n"
         "\n"
         "Sitemap: https://api.aipaygent.xyz/sitemap.xml\n"
         "\n"
         "# AI Agent Discovery\n"
         "# LLMs.txt: https://api.aipaygent.xyz/llms.txt\n"
+        "# Agent Card: https://api.aipaygent.xyz/.well-known/agent.json\n"
         "# OpenAPI: https://api.aipaygent.xyz/openapi.json\n"
-        "# Manifest: https://api.aipaygent.xyz/.well-known/agent.json\n"
-        "# Free demo: https://api.aipaygent.xyz/preview\n"
     )
     return Response(body, mimetype="text/plain")
 
@@ -4343,190 +4366,58 @@ def robots_txt():
 LLMS_TXT = """\
 # AiPayGent
 
-> AI agent API marketplace — Claude-powered endpoints for research, writing, coding, analysis, web scraping, file storage, webhook relay, async jobs, and real-time data. Pay in USDC on Base via x402. Also available as MCP tools.
+> AI agent API marketplace. Claude-powered endpoints for research, writing, coding, analysis, web scraping, and real-time data. Pay in USDC on Base via x402.
 
 ## What This Service Does
 
-AiPayGent is an x402-native resource server and MCP tool provider. Call any endpoint, receive HTTP 402 with payment instructions, attach a signed USDC payment, and receive results. Built for autonomous AI agent pipelines.
+AiPayGent is an x402-native resource server. Call any endpoint, receive HTTP 402 with payment instructions, attach a signed USDC payment, and receive results. Built for autonomous AI agent pipelines.
 
-**Key capabilities:**
-- **AI reasoning**: research, write, code, analyze, translate, summarize, classify, sentiment, RAG, workflow
-- **Vision**: analyze images via URL using Claude Vision
-- **Diagrams**: generate Mermaid diagrams (flowchart, sequence, ERD, gantt, mindmap)
-- **Web scraping**: Google Maps, Twitter/X, Instagram, LinkedIn, YouTube, TikTok, Facebook Ads, any website
-- **Agent memory**: persistent key-value store keyed by agent_id — survives across sessions
-- **API catalog**: 200+ discovered APIs, browsable and proxy-callable
-- **Agent registry**: register and discover other agents
-- **MCP tools**: all capabilities available as MCP tools at mcp.aipaygent.xyz/mcp
+## Capabilities
 
-## Payment Protocol
+- **AI Processing** — research, write, code, analyze, translate, summarize, classify, sentiment, RAG, vision, diagrams
+- **Web Scraping** — Google Maps, Twitter/X, Instagram, LinkedIn, YouTube, TikTok, any website
+- **Agent Infrastructure** — persistent memory, messaging, task boards, webhook relay, async jobs, file storage
+- **Data & Utilities** — weather, crypto, stocks, news, Wikipedia, arXiv, GitHub trending
+- **Multi-Model** — Claude, GPT-4o, DeepSeek, Gemini. All AI endpoints accept `model` parameter.
+
+## Payment Protocol (x402)
 
 - **Standard**: [x402](https://x402.org) — HTTP 402 Payment Required
 - **Network**: Base Mainnet (eip155:8453)
-- **Token**: USDC (6 decimals — $0.01 = 10000 units)
-- **No auth, no API keys, no rate limits, no accounts**
+- **Token**: USDC (6 decimals)
+- **Flow**: POST endpoint -> 402 with payment instructions -> retry with `X-Payment` header
 
-Flow: POST endpoint → 402 with `X-Payment-Info` → retry with `X-Payment: <signed-tx>` header.
-
-## MCP Integration (Free, No Payment Needed)
+## MCP Integration
 
 ```bash
-# Claude Code
-claude mcp add aipaygent -- python /path/to/mcp_server.py
-
-# Or use the PyPI package
 pip install aipaygent-mcp
-mcp install aipaygent-mcp
+claude mcp add aipaygent -- python -m aipaygent_mcp
 ```
 
-MCP SSE endpoint: https://mcp.aipaygent.xyz/mcp
-All 79+ tools available without x402 payment via MCP.
+SSE endpoint: https://mcp.aipaygent.xyz/mcp
 
-## Core AI Endpoints
+## Discovery Endpoints
 
-| Endpoint | Price | Input | Output |
-|---|---|---|---|
-| /research | $0.01 | `{"topic": "string"}` | summary, key_points, sources_to_check |
-| /summarize | $0.01 | `{"text": "string", "length": "short\|medium\|detailed"}` | compressed text |
-| /analyze | $0.02 | `{"content": "string", "question": "string"}` | conclusion, findings, sentiment, confidence |
-| /translate | $0.02 | `{"text": "string", "language": "string"}` | translated text |
-| /social | $0.03 | `{"topic": "string", "platforms": ["twitter","linkedin"], "tone": "string"}` | per-platform posts |
-| /write | $0.05 | `{"spec": "string", "type": "article\|post\|copy"}` | written content |
-| /code | $0.05 | `{"description": "string", "language": "string"}` | code string |
-| /extract | $0.02 | `{"text": "string", "fields": ["name","date"]}` | structured JSON |
-| /qa | $0.02 | `{"context": "string", "question": "string"}` | answer, confidence, citation |
-| /rag | $0.05 | `{"documents": "text (--- separated)", "query": "string"}` | answer, citations, cannot_answer |
-| /classify | $0.01 | `{"text": "string", "categories": ["cat1","cat2"]}` | category, confidence, scores |
-| /sentiment | $0.01 | `{"text": "string"}` | polarity, score, emotions, confidence |
-| /keywords | $0.01 | `{"text": "string", "max_keywords": 10}` | keywords, topics, entities |
-| /compare | $0.02 | `{"text_a": "string", "text_b": "string"}` | similarities, differences, recommendation |
-| /transform | $0.02 | `{"text": "string", "instruction": "string"}` | transformed text |
-| /chat | $0.03 | `{"messages": [{"role": "user", "content": "hi"}], "system": "optional"}` | reply |
-| /plan | $0.03 | `{"goal": "string", "context": "optional", "steps": 7}` | steps, timeline, risks |
-| /decide | $0.03 | `{"decision": "string", "options": ["A","B"]}` | pros/cons, recommendation |
-| /proofread | $0.02 | `{"text": "string"}` | corrected, changes, score |
-| /explain | $0.02 | `{"concept": "string", "level": "beginner\|intermediate\|expert"}` | explanation, analogy |
-| /email | $0.03 | `{"purpose": "string", "tone": "professional"}` | subject, body, cta |
-| /sql | $0.05 | `{"description": "string", "dialect": "postgresql"}` | query, explanation |
-| /regex | $0.02 | `{"description": "string", "language": "python"}` | pattern, flags, examples |
-| /mock | $0.03 | `{"description": "string", "count": 5, "format": "json\|csv\|list"}` | mock records |
-| /score | $0.02 | `{"content": "string", "criteria": ["clarity","accuracy"]}` | per-criterion scores |
-| /timeline | $0.02 | `{"text": "string"}` | chronological events |
-| /action | $0.01 | `{"text": "string"}` | action items, owners, due dates |
-| /pitch | $0.03 | `{"product": "string", "audience": "string"}` | hook, value_prop, cta, script |
-| /debate | $0.03 | `{"topic": "string"}` | for/against arguments with strength ratings |
-| /headline | $0.01 | `{"content": "string", "count": 5}` | headline variations |
-| /fact | $0.02 | `{"text": "string"}` | factual claims with verifiability scores |
-| /rewrite | $0.02 | `{"text": "string", "audience": "string"}` | rewritten text |
-| /tag | $0.01 | `{"text": "string", "taxonomy": ["optional"]}` | tags, primary_tag |
-| /diagram | $0.03 | `{"description": "string", "type": "flowchart\|sequence\|erd\|gantt\|mindmap"}` | mermaid code |
-| /json-schema | $0.02 | `{"description": "string", "example": "optional"}` | JSON Schema draft-07 |
-| /test-cases | $0.03 | `{"code": "string", "language": "python"}` | test_cases array |
-| /workflow | $0.20 | `{"goal": "string", "data": "optional context"}` | multi-step Claude Sonnet reasoning |
-| /vision | $0.05 | `{"url": "image_url", "question": "optional"}` | image analysis text |
-| /batch | $0.10 | `{"operations": [{"endpoint": "research", "input": {}}]}` | up to 5 ops, one payment |
-| /pipeline | $0.15 | `{"steps": [{"endpoint": "string", "input": {}}]}` | chained ops, {{prev}} references |
-
-## Web Scraping Endpoints (via Apify)
-
-| Endpoint | Price | Input | Returns |
-|---|---|---|---|
-| /scrape/google-maps | $0.10 | `{"query": "restaurants in NYC", "max_items": 5}` | names, addresses, ratings, phones |
-| /scrape/tweets | $0.05 | `{"query": "#AI", "max_items": 25}` | tweets, authors, engagement |
-| /scrape/instagram | $0.05 | `{"username": "string", "max_items": 5}` | posts, captions, likes |
-| /scrape/linkedin | $0.15 | `{"url": "profile URL"}` | experience, skills, education |
-| /scrape/youtube | $0.05 | `{"query": "string", "max_items": 5}` | titles, channels, views, URLs |
-| /scrape/web | $0.05 | `{"url": "string", "max_pages": 5}` | crawled page text |
-| /scrape/tiktok | $0.05 | `{"username": "string", "max_items": 5}` | videos, captions, stats |
-| /scrape/facebook-ads | $0.10 | `{"url": "Ad Library URL", "max_items": 10}` | ad creative, spend, audience |
-| /scrape/actor | $0.10 | `{"actor_id": "string", "run_input": {}}` | any Apify actor results |
-
-## Agent Memory Endpoints (persistent across sessions)
-
-| Endpoint | Price | Input | Returns |
-|---|---|---|---|
-| /memory/set | $0.01 | `{"agent_id": "string", "key": "string", "value": "any", "tags": []}` | stored: true |
-| /memory/get | $0.01 | `{"agent_id": "string", "key": "string"}` | value, tags, timestamps |
-| /memory/search | $0.02 | `{"agent_id": "string", "query": "string"}` | matching key-value pairs |
-| /memory/clear | $0.01 | `{"agent_id": "string"}` | deleted count |
-
-## v2: Multi-Model Support
-
-All AI endpoints accept an optional `model` parameter. Default: `claude-haiku`.
-
-| Model | Provider | Input $/M | Output $/M |
-|---|---|---|---|
-| claude-haiku | Anthropic | $0.80 | $4.00 |
-| claude-sonnet | Anthropic | $3.00 | $15.00 |
-| gpt-4o | OpenAI | $2.50 | $10.00 |
-| gpt-4o-mini | OpenAI | $0.15 | $0.60 |
-| deepseek-v3 | DeepSeek | $0.27 | $1.10 |
-| gemini-2.5-flash | Google | $0.15 | $0.60 |
-
-`GET /models` — full list of 11 models with pricing.
-
-## v2: Wallet Identity & Agent Economy
-
-Agents can verify wallet ownership (EVM or Solana) for identity-based features.
-
-| Endpoint | Method | Price | Description |
-|---|---|---|---|
-| /agents/challenge | POST | Free | Request wallet verification challenge |
-| /agents/verify | POST | Free | Submit signed challenge, get JWT |
-| /agents/me | GET | Free | View your agent profile (JWT required) |
-| /agents/search | GET | Free | Search verified agents by capability |
-| /agents/{id}/portfolio | GET | Free | View agent portfolio and reputation |
-
-## v2: Metered Token-Based Pricing
-
-Buy a credit pack, then pay per-token instead of per-call.
-
-| Endpoint | Method | Price | Description |
-|---|---|---|---|
-| /credits/buy | POST | $5.00 | Buy credit pack, get prepaid API key |
-
-Usage: Add `X-Pricing: metered` header + `Authorization: Bearer apk_xxx` to any AI endpoint.
-Cost is deducted based on actual tokens used, not fixed per-call price.
-
-## Free Endpoints (no payment needed)
-
-- `GET /discover` — full machine-readable service manifest (JSON)
+- `GET /discover` — machine-readable service catalog (JSON)
+- `GET /.well-known/agent.json` — A2A Agent Card
 - `GET /openapi.json` — OpenAPI 3.1 spec
-- `GET /catalog` — browse 200+ discovered APIs (filterable)
-- `GET /agents` — browse registered agents
-- `POST /agents/register` — register your agent
-- `POST /run-discovery` — trigger API discovery agents
-- `GET /health` — service health check
-- `POST /preview` — free 120-token Claude demo
-- `GET /models` — list all supported AI models
-- `POST /agents/challenge` — request wallet verification challenge
-- `POST /agents/verify` — verify wallet, get JWT session
-- `GET /agents/me` — view your agent profile (JWT required)
-- `GET /agents/search` — search verified agents
-- `GET /agents/{id}/portfolio` — view agent portfolio
-- `GET /.well-known/agents.json` — Wild Card AI agents.json standard
-- `GET /.well-known/ai-plugin.json` — OpenAI plugin manifest
 - `GET /llms.txt` — this file
+- `GET /health` — service health check
+- `POST /preview` — free Claude demo (no payment needed)
 
 ## Quick Start
 
 ```python
-# MCP (no payment needed)
-import subprocess
-subprocess.run(["mcp", "install", "aipaygent-mcp"])
-
-# x402 HTTP (pay per use)
 import httpx
 BASE = "https://api.aipaygent.xyz"
 
-# Free preview
+# Free preview (no payment needed)
 print(httpx.post(f"{BASE}/preview", json={"topic": "AI agents"}).json())
 
-# Discover all services
-manifest = httpx.get(f"{BASE}/discover").json()
-print(f"{len(manifest['services'])} services available")
+# Discover available services
+catalog = httpx.get(f"{BASE}/discover", headers={"Accept": "application/json"}).json()
 
-# With x402 payment (use coinbase/x402 client)
+# With x402 payment
 # r = httpx.post(f"{BASE}/research", json={"topic": "quantum computing"},
 #                headers={"X-Payment": signed_payment_header})
 ```
@@ -4534,11 +4425,9 @@ print(f"{len(manifest['services'])} services available")
 ## Notes for AI Agents
 
 - All paid responses include `_meta` with endpoint, model, network, timestamp.
-- Fetch `/discover` to get the machine-readable manifest before calling endpoints.
-- USDC precision: $0.01 = 10000 (6 decimals). Network: Base Mainnet (eip155:8453).
-- Agent memory persists indefinitely — use a stable `agent_id` (e.g. your agent's DID or UUID).
-- `/workflow` uses Claude Sonnet (more capable) for complex multi-step reasoning.
-- The `/catalog` endpoint lists 500+ APIs discovered by our 6 autonomous discovery agents.
+- Fetch `/discover` for the service catalog before calling endpoints.
+- USDC precision: 6 decimals. Network: Base Mainnet (eip155:8453).
+- Agent memory persists indefinitely — use a stable `agent_id`.
 """
 
 
@@ -5518,11 +5407,9 @@ def agent_manifest():
     return jsonify({
         "name": "AiPayGent",
         "description": (
-            "The AI agent API marketplace. 140+ endpoints for research, writing, coding, "
-            "analysis, web scraping, real-time data, file storage, webhook relay, async jobs, "
-            "agent messaging, shared knowledge base, and a task board. "
-            "First 10 calls/day free. No API keys needed — pay in USDC on Base via x402, "
-            "or top up via Stripe for instant credits."
+            "AI agent API marketplace — research, writing, coding, analysis, web scraping, "
+            "real-time data, file storage, webhook relay, async jobs, agent messaging, "
+            "and task boards. Pay in USDC on Base via x402."
         ),
         "url": base,
         "version": "3.0.0",
@@ -5535,9 +5422,8 @@ def agent_manifest():
         "authentication": {
             "schemes": ["x402", "Bearer"],
             "description": (
-                "10 free calls/day — no auth needed. "
-                "For unlimited: use 'Authorization: Bearer apk_xxx' with a prepaid key. "
-                "Buy credits at https://api.aipaygent.xyz/buy-credits"
+                "Pay per call via x402 (USDC on Base). "
+                "Or use 'Authorization: Bearer apk_xxx' with a prepaid key."
             ),
         },
         "defaultInputModes": ["application/json"],
@@ -5578,7 +5464,7 @@ def agent_manifest():
             },
             {
                 "id": "data", "name": "Real-Time Data",
-                "description": "Free real-time weather, crypto, stocks, news, Wikipedia, arXiv, GitHub trending, Reddit, YouTube transcripts",
+                "description": "Real-time weather, crypto, stocks, news, Wikipedia, arXiv, GitHub trending, Reddit, YouTube transcripts",
                 "tags": ["data", "real-time", "free"],
                 "inputModes": ["application/json"], "outputModes": ["application/json"],
             },
@@ -5623,9 +5509,10 @@ def agent_manifest():
         "contact": {"email": "hello@aipaygent.xyz"},
         "openapi": f"{base}/openapi.json",
         "pricing": {
-            "free_tier": "10 AI calls/day",
-            "prepaid": "Buy credits at /buy-credits — from $5",
-            "x402": "Pay-per-call in USDC on Base (testnet while mainnet pending)",
+            "method": "x402",
+            "currency": "USDC",
+            "network": "Base Mainnet (eip155:8453)",
+            "discovery": "POST any endpoint — receive 402 with payment instructions",
         },
     })
 
@@ -8920,13 +8807,18 @@ def outbound_stats():
 
 
 @app.route("/skills/search", methods=["GET"])
+@require_admin
 def search_skills():
     """Search skills by keyword — TF-IDF ranked relevance search."""
     q = request.args.get("q", "")
     if not q:
         return jsonify({"error": "q parameter required"}), 400
     top_n = request.args.get("top_n", 20, type=int)
-    results = _skills_engine.search(q, top_n=min(top_n, 50))
+    _STRIP_FIELDS = {"source", "source_url", "harvested_from", "origin", "crawled_from"}
+    results = [
+        {k: v for k, v in r.items() if k not in _STRIP_FIELDS}
+        for r in _skills_engine.search(q, top_n=min(top_n, 50))
+    ]
     return jsonify({"query": q, "results": results})
 
 
