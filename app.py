@@ -6912,6 +6912,40 @@ def agent_endpoint():
     return jsonify(agent_response(result, "/agent"))
 
 
+@app.route("/agent/stream", methods=["POST"])
+def agent_stream_endpoint():
+    """Streaming autonomous agent — returns SSE events as the agent reasons."""
+    from react_agent import ReActAgent, make_tool_handler
+    from agent_memory import memory_search, memory_set
+
+    data = request.get_json() or {}
+    task = data.get("task", "")
+    if not task:
+        return jsonify({"error": "task required"}), 400
+
+    agent_id = data.get("agent_id", "")
+    max_cost = float(data.get("max_cost_usd", 1.0))
+    max_steps = min(int(data.get("max_steps", 10)), 20)
+    model = data.get("model", "auto")
+
+    tool_handler = make_tool_handler(
+        batch_handlers=BATCH_HANDLERS,
+        memory_search_fn=memory_search if agent_id else None,
+        memory_set_fn=memory_set if agent_id else None,
+        skills_db_path=_skills_db_path,
+        agent_id=agent_id,
+    )
+    memory_fns = {"search": memory_search, "set": memory_set} if agent_id else {}
+    agent = ReActAgent(call_model_fn=call_model, tool_handler_fn=tool_handler, memory_fns=memory_fns)
+
+    def generate():
+        for event in agent.run_stream(task=task, max_steps=max_steps, max_cost_usd=max_cost, model=model, agent_id=agent_id):
+            yield f"event: {event['event']}\ndata: {json.dumps(event['data'])}\n\n"
+
+    return Response(generate(), mimetype="text/event-stream",
+                    headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
 # ── Real-Time Data (FREE) ──────────────────────────────────────────────────────
 
 @app.route("/data/weather", methods=["GET"])

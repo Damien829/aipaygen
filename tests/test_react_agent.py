@@ -77,6 +77,14 @@ def test_make_tool_handler():
     result = handler("research", {"topic": "AI"})
     assert result["summary"] == "test result"
 
+def test_react_agent_stream():
+    agent = ReActAgent(call_model_fn=_mock_call_model, tool_handler_fn=_mock_tool_handler)
+    events = list(agent.run_stream("What are AI agents?", max_steps=5, max_cost_usd=1.0))
+    assert len(events) >= 1
+    event_types = [e["event"] for e in events]
+    assert "thought" in event_types or "answer" in event_types
+    assert events[-1]["event"] == "done"
+
 def test_make_tool_handler_unknown_tool():
     from react_agent import make_tool_handler
     handler = make_tool_handler({}, memory_search_fn=None, memory_set_fn=None, skills_db_path=":memory:", agent_id="")

@@ -217,6 +217,71 @@ class ReActAgent:
                 "steps_taken": len(trace), "stop_reason": stop_reason, "memories_recalled": memories_recalled,
                 "model_selections": {t["step"]: t["model"] for t in tracker.steps}}
 
+    def run_stream(self, task: str, max_steps: int = 10, max_cost_usd: float = 1.0,
+                   model: str = "auto", agent_id: str = ""):
+        """Generator that yields SSE events as the agent reasons."""
+        from model_router import CostTracker
+        tracker = CostTracker()
+        observations = []
+        max_steps = min(max_steps, 20)
+
+        memories_text = "None"
+        memories_recalled = 0
+        if agent_id and self.memory.get("search"):
+            try:
+                mem_results = self.memory["search"](agent_id, task)
+                if mem_results:
+                    memories_text = "\n".join(f"- [{m.get('key', '')}]: {str(m.get('value', ''))[:200]}" for m in mem_results[:3])
+                    memories_recalled = len(mem_results[:3])
+            except Exception:
+                pass
+
+        for step in range(1, max_steps + 1):
+            if not tracker.can_afford(0.001, max_cost_usd):
+                yield {"event": "done", "data": {"reason": "budget_exhausted", "total_cost": tracker.total, "steps": step - 1}}
+                return
+
+            obs_text = "\n".join(f"Step {o['step']}: [{o['action']}] -> {str(o['result'])[:500]}" for o in observations) or "None yet."
+            system = REACT_SYSTEM_PROMPT.format(tools=format_tools_for_prompt(self.tools), budget_remaining=tracker.remaining(max_cost_usd), memories=memories_text, observations=obs_text)
+
+            user_msg = task if step == 1 else f"Continue. Step {step}/{max_steps}."
+            try:
+                result = self.call_model(model, [{"role": "user", "content": user_msg}], system=system, max_tokens=1024, temperature=0.3, max_cost_usd=tracker.remaining(max_cost_usd))
+            except Exception as e:
+                yield {"event": "done", "data": {"reason": f"model_error: {e}", "total_cost": tracker.total, "steps": step - 1}}
+                return
+
+            tracker.add(result.get("cost_usd", 0))
+            parsed = _parse_agent_response(result["text"])
+            thought = parsed.get("thought", "")
+
+            yield {"event": "thought", "data": {"step": step, "thought": thought, "model": result.get("model", "")}}
+            yield {"event": "cost", "data": {"step": step, "step_cost": result.get("cost_usd", 0), "total_cost": tracker.total}}
+
+            if "answer" in parsed:
+                yield {"event": "answer", "data": {"answer": parsed["answer"]}}
+                yield {"event": "done", "data": {"reason": "completed", "total_cost": round(tracker.total, 6), "steps": step, "memories_recalled": memories_recalled}}
+                return
+
+            action = parsed.get("action", "")
+            params = parsed.get("params", {})
+            yield {"event": "action", "data": {"step": step, "action": action, "params": params}}
+
+            if action and action in self.tools:
+                try:
+                    tool_result = self.handle_tool(action, params)
+                except Exception as e:
+                    tool_result = {"error": str(e)}
+                observations.append({"step": step, "action": action, "result": tool_result})
+                yield {"event": "observation", "data": {"step": step, "action": action, "result": str(tool_result)[:300]}}
+            else:
+                observations.append({"step": step, "action": action, "result": f"Unknown tool: {action}"})
+                yield {"event": "observation", "data": {"step": step, "action": action, "result": f"Error: unknown tool '{action}'"}}
+
+        answer = _synthesize_answer(observations, task)
+        yield {"event": "answer", "data": {"answer": answer}}
+        yield {"event": "done", "data": {"reason": "max_steps_reached", "total_cost": round(tracker.total, 6), "steps": max_steps}}
+
 
 def _parse_agent_response(text: str) -> dict:
     text = text.strip()
