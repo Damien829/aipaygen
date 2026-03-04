@@ -801,6 +801,29 @@ def _start_outbound_job():
 
 _start_outbound_job()
 
+# Discovery Scouts — 6 autonomous outreach agents
+def _start_scout_jobs():
+    from discovery_scouts import (
+        GitHubScout, RegistryScout, SocialScout,
+        A2AScout, TwitterScout, FollowUpAgent, init_scout_db,
+    )
+    init_scout_db()
+    _gh = GitHubScout(call_model)
+    _reg = RegistryScout(call_model)
+    _social = SocialScout(call_model)
+    _a2a = A2AScout(call_model)
+    _tw = TwitterScout(call_model)
+    _follow = FollowUpAgent(call_model)
+
+    _scheduler.add_job(_gh.run, "cron", hour="8,20", minute=0, id="scout_github")
+    _scheduler.add_job(_reg.run, "cron", hour=5, minute=0, id="scout_registry")
+    _scheduler.add_job(_social.run, "cron", hour="9,15,21", minute=0, id="scout_social")
+    _scheduler.add_job(_a2a.run, "interval", hours=1, id="scout_a2a")
+    _scheduler.add_job(_tw.run, "cron", hour="6,12,18,0", minute=0, id="scout_twitter")
+    _scheduler.add_job(_follow.run, "interval", hours=6, id="scout_followup")
+
+_start_scout_jobs()
+
 
 def agent_response(data: dict, endpoint: str) -> dict:
     """Wrap result with standard agent-friendly metadata."""
@@ -815,13 +838,21 @@ def agent_response(data: dict, endpoint: str) -> dict:
 
 @app.before_request
 def track_referral():
-    ref = request.args.get("ref", "").strip()
+    ref = request.args.get("ref", request.headers.get("X-Referred-By", "")).strip()
     if ref and len(ref) <= 64:
         ip = request.headers.get("X-Forwarded-For", request.remote_addr).split(",")[0].strip()
+        ua = request.headers.get("User-Agent", "")
         try:
-            record_click(ref, ip, request.path, request.headers.get("User-Agent", ""))
+            record_click(ref, ip, request.path, ua)
         except Exception:
             pass
+        # Also track scout conversions if ref matches scout pattern
+        if "_" in ref and len(ref) <= 11:
+            try:
+                from discovery_scouts import record_scout_conversion
+                record_scout_conversion(ref_code=ref, caller_ip=ip, user_agent=ua, endpoint=request.path)
+            except Exception:
+                pass
 
 
 @app.after_request
@@ -3043,6 +3074,37 @@ def discovery_trigger():
     else:
         _t.Thread(target=lambda: run_hourly(claude), daemon=True).start()
     return jsonify({"triggered": job, "note": "Running in background"})
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# DISCOVERY SCOUTS — status, stats, manual trigger, weekly report
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/discovery/scouts/status", methods=["GET"])
+def scouts_status():
+    from discovery_scouts import get_scout_status
+    return jsonify(get_scout_status())
+
+
+@app.route("/discovery/scouts/stats", methods=["GET"])
+def scouts_stats():
+    from discovery_scouts import get_scout_stats
+    return jsonify(get_scout_stats())
+
+
+@app.route("/discovery/scouts/run/<scout_name>", methods=["POST"])
+def scouts_run(scout_name):
+    from discovery_scouts import run_scout_by_name
+    result = run_scout_by_name(scout_name, call_model)
+    if result is None:
+        return jsonify({"error": f"Unknown scout: {scout_name}"}), 404
+    return jsonify(result)
+
+
+@app.route("/discovery/scouts/report", methods=["GET"])
+def scouts_report():
+    from discovery_scouts import get_weekly_report
+    return jsonify(get_weekly_report())
 
 
 # ══════════════════════════════════════════════════════════════════════════════
