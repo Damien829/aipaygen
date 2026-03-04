@@ -479,3 +479,92 @@ class CostTracker:
         if budget is None:
             return float("inf")
         return max(0.0, budget - self.total)
+
+
+# ---------------------------------------------------------------------------
+# Smart Model Selection — classify task and pick optimal model
+# ---------------------------------------------------------------------------
+
+import re as _re
+
+_COMPLEX_KEYWORDS = {
+    5: ["prove", "theorem", "formal verification", "mathematical proof"],
+    4: ["algorithm", "dynamic programming", "recursive", "optimize", "architecture", "design system",
+        "security audit", "vulnerability", "machine learning model"],
+    3: ["analyze", "compare multiple", "step by step", "detailed", "comprehensive",
+        "debug", "refactor", "review code", "explain why"],
+}
+
+_REASONING_KEYWORDS = ["why", "prove", "reason", "logic", "deduce", "infer", "step by step",
+                        "think through", "algorithm", "mathematical"]
+
+_VISION_KEYWORDS = ["image", "photo", "picture", "screenshot", "diagram", "chart", "visual",
+                     "describe what you see", "look at"]
+
+
+def _classify_task(task_text: str) -> dict:
+    text_lower = task_text.lower()
+    word_count = len(task_text.split())
+    complexity = 1
+    if word_count > 100:
+        complexity = max(complexity, 3)
+    elif word_count > 50:
+        complexity = max(complexity, 2)
+    for level, keywords in _COMPLEX_KEYWORDS.items():
+        if any(kw in text_lower for kw in keywords):
+            complexity = max(complexity, level)
+            break
+    needs_vision = any(kw in text_lower for kw in _VISION_KEYWORDS)
+    needs_reasoning = any(kw in text_lower for kw in _REASONING_KEYWORDS)
+    if needs_reasoning and complexity < 3:
+        complexity = 3
+    domain = "general"
+    domain_map = {
+        "code": ["code", "function", "class", "bug", "python", "javascript", "api", "sql", "debug"],
+        "research": ["research", "study", "paper", "literature", "survey", "findings"],
+        "creative": ["write", "story", "poem", "creative", "blog", "article", "essay"],
+        "data": ["data", "csv", "json", "parse", "transform", "pipeline", "etl"],
+        "finance": ["stock", "financial", "investment", "portfolio", "revenue", "pricing"],
+    }
+    for d, keywords in domain_map.items():
+        if any(kw in text_lower for kw in keywords):
+            domain = d
+            break
+    return {"complexity": min(complexity, 5), "needs_vision": needs_vision, "needs_reasoning": needs_reasoning, "domain": domain}
+
+
+_MODEL_TIERS = {
+    "low": ["claude-haiku", "gpt-4o-mini", "gemini-2.5-flash", "deepseek-v3"],
+    "mid": ["claude-sonnet", "gpt-4o", "gemini-2.5-pro"],
+    "high": ["claude-opus", "deepseek-r1"],
+}
+
+
+def auto_select_model(task_text: str, max_cost_usd: float | None = None, needs_vision: bool | None = None) -> dict:
+    classification = _classify_task(task_text)
+    if needs_vision is not None:
+        classification["needs_vision"] = needs_vision
+    c = classification["complexity"]
+    if c <= 2:
+        tier = "low"
+    elif c <= 3:
+        tier = "mid"
+    else:
+        tier = "high"
+    candidates = list(_MODEL_TIERS[tier])
+    if classification["needs_vision"]:
+        candidates = [m for m in candidates if MODEL_REGISTRY[m].get("vision")]
+        if not candidates:
+            candidates = [m for m, cfg in MODEL_REGISTRY.items() if cfg.get("vision")]
+    if max_cost_usd is not None:
+        affordable = [m for m in candidates if calculate_cost(m, 500, 500) <= max_cost_usd]
+        if affordable:
+            candidates = affordable
+        else:
+            all_models = sorted(MODEL_REGISTRY.keys(), key=lambda m: calculate_cost(m, 500, 500))
+            if classification["needs_vision"]:
+                all_models = [m for m in all_models if MODEL_REGISTRY[m].get("vision")]
+            candidates = [all_models[0]] if all_models else candidates
+    selected = candidates[0]
+    reason = f"complexity={c}/5, tier={tier}, vision={classification['needs_vision']}"
+    return {"model": selected, "reason": reason, "classification": classification}
