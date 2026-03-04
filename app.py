@@ -4130,9 +4130,9 @@ footer .links a:hover{color:#00d68f}
   <h1>Ai<span>Pay</span>Gent</h1>
   <p class="tagline">Pay-per-use AI API &mdash; No accounts, no API keys. Pay USDC on Base via x402.</p>
   <div class="stats">
-    <div class="stat"><div class="num">{{ total }}</div><div class="label">Services</div></div>
-    <div class="stat"><div class="num">{{ free_count }}</div><div class="label">Free</div></div>
     <div class="stat"><div class="num">{{ categories|length }}</div><div class="label">Categories</div></div>
+    <div class="stat"><div class="num">x402</div><div class="label">Pay-per-use</div></div>
+    <div class="stat"><div class="num">USDC</div><div class="label">On Base</div></div>
   </div>
 </header>
 <div class="cta-bar">
@@ -4153,7 +4153,7 @@ footer .links a:hover{color:#00d68f}
       </div>
       <div class="desc">{{ svc.description }}</div>
       <div class="price {% if svc.price_usd == 0 %}price-free{% else %}price-paid{% endif %}">
-        {% if svc.price_usd == 0 %}FREE{% else %}${{ "%.2f"|format(svc.price_usd) }} USDC{% endif %}
+        {% if svc.price_usd == 0 %}FREE{% else %}Pay-per-use via x402{% endif %}
       </div>
     </div>
   {% endfor %}
@@ -4343,7 +4343,7 @@ def robots_txt():
 LLMS_TXT = """\
 # AiPayGent
 
-> The AI agent API marketplace. 140+ Claude-powered endpoints + web scrapers + file storage + webhook relay + async jobs + real-time data. First 10 calls/day free. No API keys needed. Pay in USDC on Base via x402 or top up via Stripe. Also available as 79+ MCP tools.
+> AI agent API marketplace — Claude-powered endpoints for research, writing, coding, analysis, web scraping, file storage, webhook relay, async jobs, and real-time data. Pay in USDC on Base via x402. Also available as MCP tools.
 
 ## What This Service Does
 
