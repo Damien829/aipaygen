@@ -15,3 +15,4 @@ node_modules/
 .mcpregistry_*
 payments.jsonl
 cloudflared
+.worktrees/
