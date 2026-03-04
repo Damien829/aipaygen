@@ -40,23 +40,22 @@ def test_search_returns_results():
 
 
 def test_get_client_ip_prefers_cf_header():
-    from flask import Flask, request
-    _app = Flask(__name__)
-
-    def _get_client_ip():
-        return request.headers.get("CF-Connecting-IP", request.remote_addr or "unknown").split(",")[0].strip()
-
-    with _app.test_request_context(headers={"CF-Connecting-IP": "1.2.3.4", "X-Forwarded-For": "5.6.7.8"}):
-        assert _get_client_ip() == "1.2.3.4"
+    import app as app_module
+    with app_module.app.test_request_context(
+        headers={"CF-Connecting-IP": "1.2.3.4", "X-Forwarded-For": "5.6.7.8"}
+    ):
+        assert app_module._get_client_ip() == "1.2.3.4"
 
 
 def test_get_client_ip_falls_back_to_remote_addr():
-    from flask import Flask, request
-    _app = Flask(__name__)
+    import app as app_module
+    with app_module.app.test_request_context():
+        assert app_module._get_client_ip() == "unknown"
 
-    def _get_client_ip():
-        return request.headers.get("CF-Connecting-IP", request.remote_addr or "unknown").split(",")[0].strip()
 
-    with _app.test_request_context():
-        ip = _get_client_ip()
-        assert isinstance(ip, str)
+def test_get_client_ip_comma_separated():
+    import app as app_module
+    with app_module.app.test_request_context(
+        headers={"CF-Connecting-IP": "1.2.3.4, 5.6.7.8"}
+    ):
+        assert app_module._get_client_ip() == "1.2.3.4"
