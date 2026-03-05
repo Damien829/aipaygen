@@ -3888,6 +3888,159 @@ def robots_txt():
     return Response(body, mimetype="text/plain")
 
 
+DOCS_HTML = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AiPayGent — Documentation</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#020408;--bg2:#070d14;--bg3:#0d1a24;--green:#00ff9d;--dim:#8b949e;--border:#1a2332}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:#e1e4e8;font-family:'IBM Plex Sans',sans-serif;line-height:1.7;padding-top:70px}
+.container{max-width:820px;margin:0 auto;padding:40px 24px 80px}
+h1{font-family:'IBM Plex Mono',monospace;font-size:2rem;color:#fff;margin-bottom:8px}
+h2{font-family:'IBM Plex Mono',monospace;font-size:1.3rem;color:var(--green);margin:48px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+h3{font-size:1rem;color:#fff;margin:24px 0 8px}
+p{color:var(--dim);margin-bottom:16px}
+code{font-family:'IBM Plex Mono',monospace;background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:0.85em;color:var(--green)}
+pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:20px;overflow-x:auto;margin:16px 0;font-size:0.85rem;line-height:1.5}
+pre code{background:none;padding:0;color:#e1e4e8}
+ol,ul{margin:0 0 16px 24px;color:var(--dim)}
+li{margin-bottom:8px}
+a{color:var(--green);text-decoration:none}
+a:hover{text-decoration:underline}
+.step{display:flex;gap:16px;margin:16px 0;padding:16px;background:var(--bg2);border:1px solid var(--border);border-radius:8px}
+.step-num{font-family:'IBM Plex Mono',monospace;font-size:1.5rem;font-weight:700;color:var(--green);min-width:40px}
+.step-content{flex:1}
+.step-content strong{color:#fff}
+.free-list{list-style:none;margin-left:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px}
+.free-list li{background:var(--bg2);padding:8px 12px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:0.85rem}
+.free-list li span{color:var(--green);font-weight:600;margin-right:4px}
+</style>
+</head>
+<body>
+{{ nav|safe }}
+<div class="container">
+
+<h1>Documentation</h1>
+<p>Everything you need to integrate with AiPayGent — the x402-native AI agent API.</p>
+
+<h2>Getting Started</h2>
+<p>AiPayGent provides AI-powered endpoints that agents pay for using the <a href="https://x402.org">x402 protocol</a>. No accounts, no API keys — just HTTP requests with USDC micropayments on Base.</p>
+
+<h2>How x402 Works</h2>
+
+<div class="step">
+  <div class="step-num">1</div>
+  <div class="step-content"><strong>Call any endpoint</strong><br>Send a normal HTTP request to any paid endpoint.</div>
+</div>
+<div class="step">
+  <div class="step-num">2</div>
+  <div class="step-content"><strong>Receive 402 response</strong><br>The server returns HTTP 402 with an <code>X-Payment-Info</code> header containing wallet address, amount, and network.</div>
+</div>
+<div class="step">
+  <div class="step-num">3</div>
+  <div class="step-content"><strong>Pay &amp; receive results</strong><br>Retry the request with an <code>X-Payment</code> header containing your signed USDC transaction. Results are returned immediately.</div>
+</div>
+
+<h2>Quick Start (Python)</h2>
+
+<pre><code>import httpx
+
+BASE = "https://api.aipaygent.xyz"
+
+# Free preview — no payment needed
+resp = httpx.post(f"{BASE}/preview", json={"topic": "AI agents"})
+print(resp.json())
+
+# Discover all available services
+catalog = httpx.get(f"{BASE}/discover",
+    headers={"Accept": "application/json"}).json()
+print(catalog["meta"]["categories"])
+
+# With x402 payment (using coinbase/x402 client)
+# from x402.client import create_payment_header
+# payment = create_payment_header(wallet, amount, network)
+# resp = httpx.post(f"{BASE}/research",
+#     json={"topic": "quantum computing"},
+#     headers={"X-Payment": payment})</code></pre>
+
+<h2>MCP Integration</h2>
+<p>All capabilities are also available as MCP tools — no x402 payment needed via MCP.</p>
+
+<pre><code># Install the PyPI package
+pip install aipaygent-mcp
+
+# Add to Claude Code
+claude mcp add aipaygent -- python -m aipaygent_mcp
+
+# Or connect via SSE
+# Endpoint: https://mcp.aipaygent.xyz/mcp</code></pre>
+
+<h2>Multi-Model Support</h2>
+<p>All AI endpoints accept an optional <code>model</code> parameter. Choose from Claude, GPT-4o, DeepSeek, Gemini, and more.</p>
+<pre><code># Use a specific model
+httpx.post(f"{BASE}/research",
+    json={"topic": "AI", "model": "gpt-4o"},
+    headers={"X-Payment": payment})
+
+# List all available models
+httpx.get(f"{BASE}/models").json()</code></pre>
+
+<h2>Service Categories</h2>
+<ul>
+  <li><strong>AI Processing</strong> — research, write, code, analyze, translate, summarize, classify, sentiment, RAG, vision, diagrams</li>
+  <li><strong>Web Scraping</strong> — Google Maps, Twitter/X, Instagram, LinkedIn, YouTube, TikTok, any website</li>
+  <li><strong>Agent Infrastructure</strong> — persistent memory, messaging, task boards, webhook relay, async jobs, file storage</li>
+  <li><strong>Data &amp; Utilities</strong> — weather, crypto, stocks, news, Wikipedia, arXiv, GitHub trending</li>
+</ul>
+<p>Browse all services at <a href="/discover">/discover</a>.</p>
+
+<h2>Free Endpoints</h2>
+<p>These endpoints require no payment:</p>
+<ul class="free-list">
+  <li><span>POST</span> /preview — free Claude demo</li>
+  <li><span>GET</span> /free/time — UTC time</li>
+  <li><span>GET</span> /free/uuid — UUID generator</li>
+  <li><span>GET</span> /free/ip — caller IP info</li>
+  <li><span>GET</span> /free/hash — text hashing</li>
+  <li><span>GET</span> /free/base64 — base64 encode/decode</li>
+  <li><span>GET</span> /free/random — random values</li>
+  <li><span>GET</span> /health — service status</li>
+  <li><span>GET</span> /discover — service catalog</li>
+</ul>
+
+<h2>Discovery Endpoints</h2>
+<ul>
+  <li><a href="/discover"><code>/discover</code></a> — machine-readable service catalog (JSON)</li>
+  <li><a href="/.well-known/agent.json"><code>/.well-known/agent.json</code></a> — A2A Agent Card</li>
+  <li><a href="/openapi.json"><code>/openapi.json</code></a> — OpenAPI 3.1 spec</li>
+  <li><a href="/llms.txt"><code>/llms.txt</code></a> — LLMs.txt format</li>
+</ul>
+
+<h2>Payment Details</h2>
+<ul>
+  <li><strong>Protocol:</strong> <a href="https://x402.org">x402</a> (HTTP 402 Payment Required)</li>
+  <li><strong>Network:</strong> Base Mainnet (eip155:8453)</li>
+  <li><strong>Token:</strong> USDC (6 decimals)</li>
+  <li><strong>Alternative:</strong> Buy a prepaid credit pack for metered per-token billing</li>
+</ul>
+
+</div>
+{{ footer|safe }}
+</body>
+</html>'''
+
+
+@app.route("/docs")
+def docs_page():
+    return render_template_string(DOCS_HTML, nav=NAV_HTML, footer=FOOTER_HTML)
+
+
 LLMS_TXT = """\
 # AiPayGent
 
@@ -6236,17 +6389,10 @@ def sitemap():
     static_pages = [
         ("/", "daily", "1.0"),
         ("/discover", "weekly", "0.9"),
-        ("/blog", "daily", "0.9"),
-        ("/buy-credits", "monthly", "0.8"),
+        ("/docs", "weekly", "0.9"),
         ("/preview", "weekly", "0.7"),
         ("/openapi.json", "weekly", "0.6"),
         ("/llms.txt", "weekly", "0.6"),
-        ("/sdk", "weekly", "0.6"),
-        ("/catalog", "weekly", "0.5"),
-        ("/marketplace", "weekly", "0.5"),
-        ("/agents", "daily", "0.5"),
-        ("/changelog", "daily", "0.7"),
-        ("/stats", "daily", "0.4"),
         ("/health", "hourly", "0.3"),
     ]
     urls_xml = "\n".join(
