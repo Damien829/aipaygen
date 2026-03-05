@@ -5078,6 +5078,27 @@ def well_known_openapi():
     return redirect("/openapi.json", code=301)
 
 
+@app.route("/.well-known/x402.json")
+def x402_discovery():
+    """x402 payment discovery — tells agents how to pay this server."""
+    return jsonify({
+        "x402": True,
+        "version": "1.0",
+        "network": "eip155:8453",
+        "currency": "USDC",
+        "contract": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+        "wallet": WALLET_ADDRESS,
+        "facilitator": os.environ.get("FACILITATOR_URL", "https://x402.org/facilitator"),
+        "discovery": {
+            "catalog": "https://api.aipaygent.xyz/discover",
+            "openapi": "https://api.aipaygent.xyz/openapi.json",
+            "llms_txt": "https://api.aipaygent.xyz/llms.txt",
+            "agent_card": "https://api.aipaygent.xyz/.well-known/agent.json",
+        },
+        "flow": "POST endpoint -> HTTP 402 with X-Payment-Info -> retry with X-Payment header",
+    })
+
+
 @app.route("/.well-known/agent.json")
 def agent_manifest():
     """Google A2A Agent Card — https://google.github.io/A2A/specification/"""
