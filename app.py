@@ -2062,27 +2062,57 @@ def batch():
     return jsonify(agent_response({"results": results, "count": len(results)}, "/batch"))
 
 
+NAV_HTML = '''
+<nav style="position:fixed;top:0;width:100%;z-index:100;background:rgba(2,4,8,0.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,255,157,0.08);padding:14px 0">
+  <div style="max-width:1200px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between">
+    <a href="/" style="font-family:'IBM Plex Mono',monospace;font-size:1.3rem;font-weight:700;color:#fff;text-decoration:none">Ai<span style="color:#00ff9d">Pay</span>Gent</a>
+    <div style="display:flex;gap:24px;align-items:center">
+      <a href="/discover" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Discover</a>
+      <a href="/docs" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Docs</a>
+      <a href="/preview" style="color:#00ff9d;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600">Try Free</a>
+    </div>
+  </div>
+</nav>
+'''
+
+FOOTER_HTML = '''
+<footer style="border-top:1px solid rgba(0,255,157,0.08);padding:40px 24px;text-align:center;background:#020408">
+  <div style="max-width:1200px;margin:0 auto">
+    <div style="margin-bottom:16px">
+      <a href="/discover" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Discover</a>
+      <a href="/docs" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Docs</a>
+      <a href="/llms.txt" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">llms.txt</a>
+      <a href="/.well-known/agent.json" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">agent.json</a>
+      <a href="/health" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Health</a>
+    </div>
+    <div style="color:#4a5568;font-size:0.8rem;font-family:'IBM Plex Mono',monospace">
+      Powered by x402 &middot; USDC on Base &middot; Built for autonomous agents
+    </div>
+  </div>
+</footer>
+'''
+
 LANDING_HTML = '''<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AiPayGent — AI Economy Infrastructure</title>
+<title>AiPayGent — AI Infrastructure for the Agent Economy</title>
 <link rel="alternate" type="text/plain" href="/llms.txt" title="LLMs.txt">
-<meta name="description" content="Pay-per-use Claude AI API for autonomous agents. Research, write, code, translate — pay in USDC on Base via x402 protocol. No API keys required.">
+<meta name="description" content="Pay-per-use AI endpoints for autonomous agents. Research, write, code, analyze, translate — pay in USDC on Base via x402 protocol. No API keys required.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
-<meta property="og:title" content="AiPayGent — AI Economy Infrastructure">
-<meta property="og:description" content="Pay-per-use Claude AI API for autonomous agents. Research, write, code, translate — pay in USDC on Base via x402 protocol.">
+<meta property="og:title" content="AiPayGent — AI Infrastructure for the Agent Economy">
+<meta property="og:description" content="Pay-per-use AI endpoints for autonomous agents. USDC on Base via x402 protocol. No API keys required.">
 <meta property="og:url" content="https://api.aipaygent.xyz">
 <meta property="og:image" content="https://api.aipaygent.xyz/og-image.png">
 <meta property="og:site_name" content="AiPayGent">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="AiPayGent — AI Economy Infrastructure">
-<meta name="twitter:description" content="Pay-per-use Claude AI API for autonomous agents. 140+ endpoints, USDC on Base, no API keys.">
+<meta name="twitter:title" content="AiPayGent — AI Infrastructure for the Agent Economy">
+<meta name="twitter:description" content="Pay-per-use AI endpoints for autonomous agents. USDC on Base via x402. No API keys.">
 <meta name="twitter:image" content="https://api.aipaygent.xyz/og-image.png">
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"AiPayGent","url":"https://api.aipaygent.xyz","description":"Pay-per-use Claude AI API for autonomous agents. 140+ endpoints via x402 micropayments on Base.","applicationCategory":"DeveloperApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0.01","priceCurrency":"USD","description":"Per API call, paid in USDC on Base"},"provider":{"@type":"Organization","name":"AiPayGent","url":"https://api.aipaygent.xyz"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"AiPayGent","url":"https://api.aipaygent.xyz","description":"Pay-per-use AI endpoints for autonomous agents via x402 micropayments on Base.","applicationCategory":"DeveloperApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0.01","priceCurrency":"USD","description":"Per API call, paid in USDC on Base"},"provider":{"@type":"Organization","name":"AiPayGent","url":"https://api.aipaygent.xyz"}}
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
@@ -2090,11 +2120,9 @@ LANDING_HTML = '''<!DOCTYPE html>
   :root {
     --bg: #020408;
     --bg2: #070d14;
-    --bg3: #0d1a24;
     --green: #00ff9d;
     --blue: #0088ff;
     --cyan: #00d4ff;
-    --red: #ff4444;
     --text: #c8d8e8;
     --muted: #4a6070;
     --border: #0d2030;
@@ -2106,7 +2134,7 @@ LANDING_HTML = '''<!DOCTYPE html>
     color: var(--text);
     font-family: 'IBM Plex Mono', monospace;
     overflow-x: hidden;
-    cursor: crosshair;
+    padding-top: 70px;
   }
 
   /* Grid texture */
@@ -2164,361 +2192,174 @@ LANDING_HTML = '''<!DOCTYPE html>
 
   .content { position: relative; z-index: 2; }
 
-  /* NAV */
-  nav {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 20px 48px;
-    border-bottom: 1px solid var(--border);
-    background: rgba(2,4,8,0.9);
-    backdrop-filter: blur(10px);
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-  .logo {
-    font-size: 1rem;
-    font-weight: 700;
-    letter-spacing: 0.15em;
-    color: var(--green);
-    text-transform: uppercase;
-  }
-  .logo span { color: var(--muted); }
-  .nav-links { display: flex; gap: 32px; }
-  .nav-links a {
-    color: var(--muted);
-    text-decoration: none;
-    font-size: 0.75rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    transition: color 0.2s;
-  }
-  .nav-links a:hover { color: var(--cyan); }
-  .status-badge {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 0.7rem;
-    color: var(--green);
-    letter-spacing: 0.1em;
-  }
-  .dot {
-    width: 6px; height: 6px;
-    background: var(--green);
-    border-radius: 50%;
-    animation: pulse 2s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%,100% { opacity: 1; box-shadow: 0 0 6px var(--green); }
-    50% { opacity: 0.4; box-shadow: none; }
-  }
-
   /* HERO */
   .hero {
-    min-height: 88vh;
+    min-height: 80vh;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 80px 48px;
-    max-width: 1200px;
+    align-items: center;
+    text-align: center;
+    padding: 80px 24px;
+    max-width: 900px;
     margin: 0 auto;
   }
-  .tag {
-    font-size: 0.7rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--blue);
-    margin-bottom: 24px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  .tag::before {
-    content: '//';
-    color: var(--muted);
-  }
-  h1 {
-    font-size: clamp(2.5rem, 6vw, 5.5rem);
+  .hero h1 {
+    font-size: clamp(2.2rem, 5.5vw, 4.2rem);
     font-weight: 700;
-    line-height: 1.05;
+    line-height: 1.1;
     letter-spacing: -0.02em;
-    margin-bottom: 32px;
+    margin-bottom: 24px;
     color: #fff;
   }
-  h1 .accent { color: var(--green); }
-  h1 .dim { color: var(--muted); }
+  .hero h1 .accent { color: var(--green); }
   .hero-sub {
     font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     color: var(--muted);
-    max-width: 560px;
+    max-width: 600px;
     line-height: 1.7;
-    margin-bottom: 48px;
+    margin-bottom: 40px;
     font-weight: 300;
   }
-  .hero-actions { display: flex; gap: 16px; flex-wrap: wrap; }
-  .btn {
-    padding: 14px 28px;
+  .hero-sub code {
     font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.8rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    text-decoration: none;
-    border: none;
-    cursor: pointer;
-    transition: all 0.2s;
+    color: var(--cyan);
+    font-size: 0.95rem;
+  }
+  .btn-cta {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-  }
-  .btn-primary {
+    padding: 16px 36px;
     background: var(--green);
     color: #000;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.9rem;
     font-weight: 700;
+    text-decoration: none;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
   }
-  .btn-primary:hover {
+  .btn-cta:hover {
     background: #fff;
     transform: translateY(-2px);
     box-shadow: 0 8px 30px rgba(0,255,157,0.3);
   }
-  .btn-ghost {
-    background: transparent;
-    color: var(--cyan);
+
+  /* VALUE PROP CARDS */
+  .value-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
     border: 1px solid var(--border);
+    max-width: 1200px;
+    margin: 0 auto 80px;
   }
-  .btn-ghost:hover {
-    border-color: var(--cyan);
-    box-shadow: 0 0 20px rgba(0,212,255,0.1);
+  .value-card {
+    background: var(--bg);
+    padding: 40px 32px;
+    transition: all 0.25s;
+    position: relative;
   }
-
-  /* TICKER */
-  .ticker {
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    padding: 12px 0;
-    overflow: hidden;
-    background: var(--bg2);
+  .value-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--green);
+    transform: scaleX(0);
+    transition: transform 0.3s;
   }
-  .ticker-inner {
-    display: flex;
-    gap: 60px;
-    animation: scroll 25s linear infinite;
-    white-space: nowrap;
+  .value-card:hover { background: var(--bg2); }
+  .value-card:hover::after { transform: scaleX(1); }
+  .value-card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 12px;
+    letter-spacing: 0.03em;
   }
-  @keyframes scroll {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
-  }
-  .ticker-item {
-    font-size: 0.7rem;
-    letter-spacing: 0.1em;
+  .value-card p {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.88rem;
     color: var(--muted);
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    line-height: 1.7;
+    font-weight: 300;
   }
-  .ticker-item .price { color: var(--green); }
-  .ticker-item .sep { color: var(--border); }
+  .value-icon {
+    font-size: 1.6rem;
+    margin-bottom: 16px;
+    display: block;
+    color: var(--green);
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700;
+  }
 
-  /* SERVICES */
-  .section {
+  /* HOW IT WORKS */
+  .how-section {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 80px 48px;
+    padding: 80px 24px;
   }
-  .section-header {
+  .how-header {
     display: flex;
     align-items: baseline;
     gap: 20px;
     margin-bottom: 48px;
   }
-  .section-title {
+  .how-header span {
     font-size: 0.7rem;
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: var(--muted);
   }
-  .section-line {
+  .how-header-line {
     flex: 1;
     height: 1px;
     background: var(--border);
   }
-  .services-grid {
+  .steps-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(3, 1fr);
     gap: 1px;
     background: var(--border);
     border: 1px solid var(--border);
   }
-  .service-card {
+  .step-card {
     background: var(--bg);
-    padding: 32px;
-    transition: background 0.2s;
-    position: relative;
-    overflow: hidden;
-  }
-  .service-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--blue), transparent);
-    transform: scaleX(0);
-    transition: transform 0.3s;
-  }
-  .service-card:hover { background: var(--bg2); }
-  .service-card:hover::before { transform: scaleX(1); }
-  .service-endpoint {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--cyan);
-    margin-bottom: 8px;
-    letter-spacing: 0.05em;
-  }
-  .service-desc {
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 0.85rem;
-    color: var(--muted);
-    margin-bottom: 20px;
-    line-height: 1.6;
-    font-weight: 300;
-  }
-  .service-price {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: var(--green);
-  }
-  .service-price span {
-    font-size: 0.7rem;
-    color: var(--muted);
-    font-weight: 400;
-    margin-left: 4px;
-  }
-
-  /* HOW IT WORKS */
-  .how-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 48px;
-    align-items: start;
-  }
-  .steps { display: flex; flex-direction: column; gap: 0; }
-  .step {
-    display: flex;
-    gap: 24px;
-    padding: 24px 0;
-    border-bottom: 1px solid var(--border);
+    padding: 36px 28px;
     position: relative;
   }
-  .step:last-child { border-bottom: none; }
+  .step-card:hover { background: var(--bg2); }
   .step-num {
-    font-size: 0.65rem;
-    font-weight: 700;
-    color: var(--blue);
-    letter-spacing: 0.1em;
-    min-width: 32px;
-    padding-top: 2px;
-  }
-  .step-content h3 {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #fff;
-    margin-bottom: 6px;
-    letter-spacing: 0.05em;
-  }
-  .step-content p {
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 0.82rem;
-    color: var(--muted);
-    line-height: 1.6;
-    font-weight: 300;
-  }
-  .code-block {
-    background: var(--bg2);
-    border: 1px solid var(--border);
-    padding: 28px;
-    font-size: 0.78rem;
-    line-height: 1.8;
-    color: var(--text);
-    overflow-x: auto;
-    position: relative;
-  }
-  .code-block::before {
-    content: 'EXAMPLE REQUEST';
-    display: block;
-    font-size: 0.65rem;
-    letter-spacing: 0.15em;
-    color: var(--muted);
-    margin-bottom: 16px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
-  }
-  .c-key { color: var(--cyan); }
-  .c-val { color: var(--green); }
-  .c-str { color: #ffb86c; }
-  .c-muted { color: var(--muted); }
-
-  /* STATS */
-  .stats-bar {
-    background: var(--bg2);
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    padding: 40px 48px;
-  }
-  .stats-inner {
-    max-width: 1200px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 1px;
-    background: var(--border);
-  }
-  .stat {
-    background: var(--bg2);
-    padding: 24px 32px;
-    text-align: center;
-  }
-  .stat-val {
     font-size: 2rem;
     font-weight: 700;
     color: var(--green);
+    opacity: 0.3;
+    margin-bottom: 16px;
     display: block;
-    margin-bottom: 4px;
   }
-  .stat-label {
-    font-size: 0.65rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
+  .step-card h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 8px;
+    letter-spacing: 0.03em;
+  }
+  .step-card p {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.85rem;
     color: var(--muted);
+    line-height: 1.6;
+    font-weight: 300;
   }
-
-  /* FOOTER */
-  footer {
-    border-top: 1px solid var(--border);
-    padding: 32px 48px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    max-width: 1200px;
-    margin: 0 auto;
-    flex-wrap: wrap;
-    gap: 16px;
+  .step-card code {
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--cyan);
+    font-size: 0.82rem;
   }
-  .footer-left { font-size: 0.7rem; color: var(--muted); letter-spacing: 0.05em; }
-  .footer-left a { color: var(--blue); text-decoration: none; }
-  .footer-right { font-size: 0.65rem; color: var(--muted); letter-spacing: 0.05em; text-align: right; }
-  .network-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 12px;
-    border: 1px solid var(--border);
-    font-size: 0.65rem;
-    letter-spacing: 0.1em;
-    color: var(--muted);
-  }
-  .network-badge .dot { width: 5px; height: 5px; background: var(--blue); }
 
   /* Animations */
   @keyframes fadeUp {
@@ -2529,455 +2370,74 @@ LANDING_HTML = '''<!DOCTYPE html>
   .delay-1 { animation-delay: 0.1s; }
   .delay-2 { animation-delay: 0.2s; }
   .delay-3 { animation-delay: 0.3s; }
-  .delay-4 { animation-delay: 0.4s; }
 
   @media (max-width: 768px) {
-    nav { padding: 16px 24px; }
-    .nav-links { display: none; }
-    .hero { padding: 60px 24px; }
-    .section { padding: 60px 24px; }
-    .how-grid { grid-template-columns: 1fr; }
-    .stats-inner { grid-template-columns: repeat(2, 1fr); }
-    footer { padding: 24px; }
+    .hero { padding: 60px 20px; min-height: 60vh; }
+    .value-grid { grid-template-columns: 1fr; margin: 0 16px 60px; }
+    .steps-grid { grid-template-columns: 1fr; }
+    .how-section { padding: 60px 16px; }
   }
 </style>
 </head>
 <body>
 <div class="noise"></div>
+{{ nav|safe }}
 <div class="content">
 
-<nav>
-  <div class="logo">AiPay<span>Gent</span></div>
-  <div class="nav-links">
-    <a href="#services">Services</a>
-    <a href="#how">Protocol</a>
-    <a href="#demo">Try Free</a>
-    <a href="https://api.aipaygent.xyz/discover">API</a>
-    <a href="https://api.aipaygent.xyz/openapi.json">OpenAPI</a>
-  </div>
-  <div class="status-badge"><div class="dot"></div>LIVE · x402 ON BASE</div>
-</nav>
-
 <section class="hero">
-  <div class="tag fade-up">x402 Native Resource Server</div>
-  <h1 class="fade-up delay-1">
-    AI Services<br>
-    <span class="accent">Pay Per Call.</span><br>
-    <span class="dim">No Keys. No Auth.</span>
+  <h1 class="fade-up">
+    AI Infrastructure for the<br><span class="accent">Agent Economy</span>
   </h1>
-  <p class="hero-sub fade-up delay-2">
-    Claude-powered API endpoints for autonomous agents. Research, write, analyze, translate, generate code — pay only for what you use in USDC on Base.
+  <p class="hero-sub fade-up delay-1">
+    Pay-per-use AI endpoints. No API keys. <code>USDC</code> on Base via <code>x402</code>.
   </p>
-  <div class="hero-actions fade-up delay-3">
-    <a href="https://api.aipaygent.xyz/discover" class="btn btn-primary">→ Discover API</a>
-    <a href="#services" class="btn btn-ghost">View Services</a>
-  </div>
+  <a href="/discover" class="btn-cta fade-up delay-2">Explore Services &rarr;</a>
 </section>
 
-<div class="ticker">
-  <div class="ticker-inner">
-    <div class="ticker-item"><span>/research</span><span class="sep">·</span><span class="price">$0.01</span></div>
-    <div class="ticker-item"><span>/summarize</span><span class="sep">·</span><span class="price">$0.01</span></div>
-    <div class="ticker-item"><span>/analyze</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/translate</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/social</span><span class="sep">·</span><span class="price">$0.03</span></div>
-    <div class="ticker-item"><span>/write</span><span class="sep">·</span><span class="price">$0.05</span></div>
-    <div class="ticker-item"><span>/code</span><span class="sep">·</span><span class="price">$0.05</span></div>
-    <div class="ticker-item"><span>/research</span><span class="sep">·</span><span class="price">$0.01</span></div>
-    <div class="ticker-item"><span>/summarize</span><span class="sep">·</span><span class="price">$0.01</span></div>
-    <div class="ticker-item"><span>/analyze</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/translate</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/social</span><span class="sep">·</span><span class="price">$0.03</span></div>
-    <div class="ticker-item"><span>/write</span><span class="sep">·</span><span class="price">$0.05</span></div>
-    <div class="ticker-item"><span>/code</span><span class="sep">·</span><span class="price">$0.05</span></div>
-    <div class="ticker-item"><span>/extract</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/qa</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/classify</span><span class="sep">·</span><span class="price">$0.01</span></div>
-    <div class="ticker-item"><span>/sentiment</span><span class="sep">·</span><span class="price">$0.01</span></div>
-    <div class="ticker-item"><span>/keywords</span><span class="sep">·</span><span class="price">$0.01</span></div>
-    <div class="ticker-item"><span>/compare</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/transform</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/chat</span><span class="sep">·</span><span class="price">$0.03</span></div>
-    <div class="ticker-item"><span>/batch</span><span class="sep">·</span><span class="price">$0.10</span></div>
-    <div class="ticker-item"><span>/plan</span><span class="sep">·</span><span class="price">$0.03</span></div>
-    <div class="ticker-item"><span>/decide</span><span class="sep">·</span><span class="price">$0.03</span></div>
-    <div class="ticker-item"><span>/email</span><span class="sep">·</span><span class="price">$0.03</span></div>
-    <div class="ticker-item"><span>/sql</span><span class="sep">·</span><span class="price">$0.05</span></div>
-    <div class="ticker-item"><span>/proofread</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/explain</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/questions</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/outline</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/mock</span><span class="sep">·</span><span class="price">$0.03</span></div>
-    <div class="ticker-item"><span>/regex</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/preview</span><span class="sep">·</span><span class="price">FREE</span></div>
-    <div class="ticker-item"><span>/research</span><span class="sep">·</span><span class="price">$0.01</span></div>
-    <div class="ticker-item"><span>/summarize</span><span class="sep">·</span><span class="price">$0.01</span></div>
-    <div class="ticker-item"><span>/analyze</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/translate</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/social</span><span class="sep">·</span><span class="price">$0.03</span></div>
-    <div class="ticker-item"><span>/write</span><span class="sep">·</span><span class="price">$0.05</span></div>
-    <div class="ticker-item"><span>/code</span><span class="sep">·</span><span class="price">$0.05</span></div>
-    <div class="ticker-item"><span>/sentiment</span><span class="sep">·</span><span class="price">$0.01</span></div>
-    <div class="ticker-item"><span>/keywords</span><span class="sep">·</span><span class="price">$0.01</span></div>
-    <div class="ticker-item"><span>/compare</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/transform</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/chat</span><span class="sep">·</span><span class="price">$0.03</span></div>
-    <div class="ticker-item"><span>/batch</span><span class="sep">·</span><span class="price">$0.10</span></div>
-    <div class="ticker-item"><span>/plan</span><span class="sep">·</span><span class="price">$0.03</span></div>
-    <div class="ticker-item"><span>/decide</span><span class="sep">·</span><span class="price">$0.03</span></div>
-    <div class="ticker-item"><span>/email</span><span class="sep">·</span><span class="price">$0.03</span></div>
-    <div class="ticker-item"><span>/sql</span><span class="sep">·</span><span class="price">$0.05</span></div>
-    <div class="ticker-item"><span>/proofread</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/explain</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/questions</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/outline</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/mock</span><span class="sep">·</span><span class="price">$0.03</span></div>
-    <div class="ticker-item"><span>/regex</span><span class="sep">·</span><span class="price">$0.02</span></div>
-    <div class="ticker-item"><span>/preview</span><span class="sep">·</span><span class="price">FREE</span></div>
+<div class="value-grid">
+  <div class="value-card fade-up">
+    <span class="value-icon">&gt;_</span>
+    <h3>AI-Powered Tools</h3>
+    <p>Research, write, code, analyze, translate &mdash; powered by Claude, GPT-4o, DeepSeek, Gemini.</p>
+  </div>
+  <div class="value-card fade-up delay-1">
+    <span class="value-icon">402</span>
+    <h3>x402 Native</h3>
+    <p>No accounts. No API keys. Send a request, get a 402, pay USDC, receive results.</p>
+  </div>
+  <div class="value-card fade-up delay-2">
+    <span class="value-icon">{&thinsp;}</span>
+    <h3>Agent Infrastructure</h3>
+    <p>Persistent memory, messaging, task boards, webhook relay, async jobs &mdash; built for autonomous agents.</p>
   </div>
 </div>
 
-<section class="section" id="services">
-  <div class="section-header">
-    <span class="section-title">// Available Endpoints</span>
-    <div class="section-line"></div>
+<section class="how-section">
+  <div class="how-header">
+    <span>// How It Works</span>
+    <div class="how-header-line"></div>
   </div>
-  <div class="services-grid">
-    <div class="service-card">
-      <div class="service-endpoint">POST /research</div>
-      <div class="service-desc">Research any topic. Returns structured summary, key points, and sources.</div>
-      <div class="service-price">$0.01 <span>per call</span></div>
+  <div class="steps-grid">
+    <div class="step-card fade-up">
+      <span class="step-num">01</span>
+      <h3>Call any endpoint</h3>
+      <p><code>POST</code> your request to any AI endpoint. No authentication required.</p>
     </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /summarize</div>
-      <div class="service-desc">Compress long text into key points. Short, medium, or detailed output.</div>
-      <div class="service-price">$0.01 <span>per call</span></div>
+    <div class="step-card fade-up delay-1">
+      <span class="step-num">02</span>
+      <h3>Receive 402 response</h3>
+      <p>Get payment instructions with <code>wallet</code>, <code>amount</code>, <code>network</code>.</p>
     </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /analyze</div>
-      <div class="service-desc">Deep analysis of any content. Returns structured insights and observations.</div>
-      <div class="service-price">$0.02 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /translate</div>
-      <div class="service-desc">Translate text to any language. Claude handles context and nuance.</div>
-      <div class="service-price">$0.02 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /social</div>
-      <div class="service-desc">Platform-optimized posts for Twitter, LinkedIn, Instagram and more.</div>
-      <div class="service-price">$0.03 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /write</div>
-      <div class="service-desc">Articles, copy, and content written to your exact specification.</div>
-      <div class="service-price">$0.05 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /code</div>
-      <div class="service-desc">Generate production-ready code in any language from a description.</div>
-      <div class="service-price">$0.05 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /extract</div>
-      <div class="service-desc">Pull structured JSON from any text. Define fields or schema — get clean data back.</div>
-      <div class="service-price">$0.02 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /qa</div>
-      <div class="service-desc">Q&A over a document. Answer + confidence + source quote. Plug into any RAG pipeline.</div>
-      <div class="service-price">$0.02 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /classify</div>
-      <div class="service-desc">Classify text into your own categories with per-category confidence scores.</div>
-      <div class="service-price">$0.01 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /sentiment</div>
-      <div class="service-desc">Polarity, score, emotions, confidence, and key sentiment-driving phrases.</div>
-      <div class="service-price">$0.01 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /keywords</div>
-      <div class="service-desc">Extract keywords, topics, tags, and detected language from any text.</div>
-      <div class="service-price">$0.01 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /compare</div>
-      <div class="service-desc">Compare two texts — similarities, differences, similarity score, recommendation.</div>
-      <div class="service-price">$0.02 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /transform</div>
-      <div class="service-desc">Transform text with any instruction — rewrite, reformat, expand, condense, change tone.</div>
-      <div class="service-price">$0.02 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /chat</div>
-      <div class="service-desc">Stateless multi-turn chat. Send full message history, receive Claude reply. Custom system prompt supported.</div>
-      <div class="service-price">$0.03 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /plan</div>
-      <div class="service-desc">Step-by-step action plan for any goal. Includes effort estimate and the single most important first action.</div>
-      <div class="service-price">$0.03 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /decide</div>
-      <div class="service-desc">Decision framework with pros, cons, risks, recommendation, and confidence score.</div>
-      <div class="service-price">$0.03 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /email</div>
-      <div class="service-desc">Compose professional emails. Specify purpose, tone, recipient, and length — get subject + body.</div>
-      <div class="service-price">$0.03 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /sql</div>
-      <div class="service-desc">Natural language to SQL. Describe what you want, get a query with explanation. Supports all major dialects.</div>
-      <div class="service-price">$0.05 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /proofread</div>
-      <div class="service-desc">Grammar and clarity corrections with tracked changes, writing quality score, and issue list.</div>
-      <div class="service-price">$0.02 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /explain</div>
-      <div class="service-desc">Explain any concept at beginner, intermediate, or expert level with analogy and key takeaways.</div>
-      <div class="service-price">$0.02 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /questions</div>
-      <div class="service-desc">Generate FAQ, interview, quiz, or comprehension questions with answers from any content.</div>
-      <div class="service-price">$0.02 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /outline</div>
-      <div class="service-desc">Hierarchical outline from any topic or document with headings, summaries, and subsections.</div>
-      <div class="service-price">$0.02 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /mock</div>
-      <div class="service-desc">Generate realistic mock data records. Define schema in plain English — get JSON, CSV, or list.</div>
-      <div class="service-price">$0.03 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /regex</div>
-      <div class="service-desc">Regex pattern from plain English. Includes explanation, match examples, and non-examples.</div>
-      <div class="service-price">$0.02 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /score</div>
-      <div class="service-desc">Score content on any custom rubric. Per-criterion scores, strengths, weaknesses, and recommendation.</div>
-      <div class="service-price">$0.02 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /timeline</div>
-      <div class="service-desc">Extract or reconstruct a chronological timeline from any text. Returns dated events with significance ratings.</div>
-      <div class="service-price">$0.02 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /action</div>
-      <div class="service-desc">Extract action items, tasks, owners, and due dates from meeting notes or any text.</div>
-      <div class="service-price">$0.01 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /pitch</div>
-      <div class="service-desc">Generate a timed elevator pitch — hook, value prop, call to action, and full script. 15s, 30s, or 60s.</div>
-      <div class="service-price">$0.03 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /debate</div>
-      <div class="service-desc">Arguments for and against any position with strength ratings, verdict, and key nuance.</div>
-      <div class="service-price">$0.03 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /headline</div>
-      <div class="service-desc">Generate headline variations for any content — clickbait, informative, question, how-to — with a best pick.</div>
-      <div class="service-price">$0.01 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /fact</div>
-      <div class="service-desc">Extract factual claims from text with verifiability scores, source hints, and confidence ratings.</div>
-      <div class="service-price">$0.02 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /rewrite</div>
-      <div class="service-desc">Rewrite text for a specific audience, reading level, or brand voice. Tone and style control included.</div>
-      <div class="service-price">$0.02 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /tag</div>
-      <div class="service-desc">Auto-tag content using your taxonomy or free-form. Returns tags, primary tag, and broad categories.</div>
-      <div class="service-price">$0.01 <span>per call</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /batch</div>
-      <div class="service-desc">Run up to 5 operations in one payment. Best value for multi-step agent pipelines.</div>
-      <div class="service-price">$0.10 <span>up to 5 ops</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /pipeline</div>
-      <div class="service-desc">Chain up to 5 operations where each step can reference the previous output using {{prev}}. Sequential agent workflows in one call.</div>
-      <div class="service-price">$0.15 <span>up to 5 steps</span></div>
-    </div>
-    <div class="service-card">
-      <div class="service-endpoint">POST /preview</div>
-      <div class="service-desc">Free 120-token Claude response. Try before you pay — no wallet needed.</div>
-      <div class="service-price" style="color: var(--cyan);">FREE</div>
+    <div class="step-card fade-up delay-2">
+      <span class="step-num">03</span>
+      <h3>Pay &amp; receive results</h3>
+      <p>Attach <code>X-Payment</code> header with signed USDC tx. Get your results instantly.</p>
     </div>
   </div>
 </section>
-
-<div class="stats-bar">
-  <div class="stats-inner">
-    <div class="stat"><span class="stat-val" id="stat-requests">—</span><span class="stat-label">Requests Served</span></div>
-    <div class="stat"><span class="stat-val">140+</span><span class="stat-label">Endpoints</span></div>
-    <div class="stat"><span class="stat-val">x402</span><span class="stat-label">Protocol</span></div>
-    <div class="stat"><span class="stat-val" id="stat-earned">—</span><span class="stat-label">USD Earned</span></div>
-  </div>
-</div>
-
-<section class="section" id="how">
-  <div class="section-header">
-    <span class="section-title">// How It Works</span>
-    <div class="section-line"></div>
-  </div>
-  <div class="how-grid">
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">01</div>
-        <div class="step-content">
-          <h3>Discover</h3>
-          <p>Hit GET /discover — get a full manifest of services, prices, and payment details. No auth required.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">02</div>
-        <div class="step-content">
-          <h3>Request</h3>
-          <p>POST to any endpoint without headers. Receive a 402 Payment Required response with exact payment instructions.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">03</div>
-        <div class="step-content">
-          <h3>Pay</h3>
-          <p>Your x402-compatible agent signs a USDC transaction on Base and attaches the payment header.</p>
-        </div>
-      </div>
-      <div class="step">
-        <div class="step-num">04</div>
-        <div class="step-content">
-          <h3>Receive</h3>
-          <p>Payment verified on-chain. Claude processes your request and returns the result. Done.</p>
-        </div>
-      </div>
-    </div>
-    <div class="code-block">
-<span class="c-muted"># 1. Discover available services</span>
-<span class="c-key">GET</span> https://api.aipaygent.xyz/discover
-
-<span class="c-muted"># 2. Make a request (returns 402)</span>
-<span class="c-key">POST</span> https://api.aipaygent.xyz/research
-<span class="c-key">Content-Type:</span> <span class="c-str">application/json</span>
-
-{
-  <span class="c-key">"topic"</span>: <span class="c-str">"quantum computing"</span>
-}
-
-<span class="c-muted">← HTTP 402 Payment Required
-← X-Payment-Info: {
-    "scheme": "exact",
-    "network": "eip155:8453",
-    "amount": "10000",
-    "payTo": "0x366D..."
-  }</span>
-
-<span class="c-muted"># 3. Retry with payment header</span>
-<span class="c-key">POST</span> https://api.aipaygent.xyz/research
-<span class="c-key">X-Payment:</span> <span class="c-str">&lt;signed-usdc-tx&gt;</span>
-
-<span class="c-muted">← HTTP 200 OK
-← { "result": "..." }</span>
-    </div>
-  </div>
-</section>
-
-<section class="section" id="demo">
-  <div class="section-header">
-    <span class="section-title">// Live Demo — Free</span>
-    <div class="section-line"></div>
-  </div>
-  <div style="max-width:720px;">
-    <p style="font-family: IBM Plex Sans, sans-serif; font-size: 0.85rem; color: var(--muted); margin-bottom: 20px; font-weight: 300;">
-      Try the API free — no wallet needed. Type any topic and get a real Claude response.
-    </p>
-    <div style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
-      <input id="demo-input" type="text" placeholder="e.g. quantum computing breakthroughs" value=""
-        style="flex:1; min-width:200px; background:var(--bg2); border:1px solid var(--border); color:var(--text); padding:12px 16px; font-family:IBM Plex Mono,monospace; font-size:0.8rem; outline:none;">
-      <button onclick="runDemo()" class="btn btn-primary" style="white-space:nowrap;">→ Try Free</button>
-    </div>
-    <div id="demo-output" style="display:none; background:var(--bg2); border:1px solid var(--border); padding:24px; font-size:0.82rem; line-height:1.8; color:var(--text);"></div>
-    <div id="demo-note" style="display:none; margin-top:10px; font-size:0.7rem; color:var(--muted); letter-spacing:0.05em;"></div>
-  </div>
-</section>
-
-<footer>
-  <div class="footer-left">
-    <strong style="color: var(--green);">AiPayGent</strong> · Built on
-    <a href="https://x402.org" target="_blank">x402 protocol</a> ·
-    Powered by Claude
-  </div>
-  <div class="footer-right">
-    <div class="network-badge"><div class="dot"></div>BASE MAINNET · x402 PROTOCOL</div>
-    <div style="margin-top: 8px;">api.aipaygent.xyz</div>
-  </div>
-</footer>
-
-<script>
-// Live stats
-fetch('/stats').then(r=>r.json()).then(d=>{
-  var req = document.getElementById('stat-requests');
-  var earn = document.getElementById('stat-earned');
-  if(req) req.textContent = d.total_requests || '0';
-  if(earn) earn.textContent = '$' + (d.total_earned_usd || 0).toFixed(4);
-}).catch(()=>{});
-
-// Free demo
-function runDemo() {
-  var input = document.getElementById('demo-input');
-  var out = document.getElementById('demo-output');
-  var note = document.getElementById('demo-note');
-  var btn = document.querySelector('[onclick="runDemo()"]');
-  var topic = input.value.trim() || 'x402 payment protocol for AI agents';
-  btn.textContent = '...';
-  btn.disabled = true;
-  out.style.display = 'none';
-  note.style.display = 'none';
-  fetch('/preview', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({topic: topic})
-  }).then(r=>r.json()).then(d=>{
-    out.textContent = d.result;
-    out.style.display = 'block';
-    note.textContent = d.note;
-    note.style.display = 'block';
-    btn.textContent = '→ Try Free';
-    btn.disabled = false;
-  }).catch(e=>{
-    out.textContent = 'Error: ' + e.message;
-    out.style.display = 'block';
-    btn.textContent = '→ Try Free';
-    btn.disabled = false;
-  });
-}
-</script>
 
 </div>
+{{ footer|safe }}
 </body>
 </html>'''
 
@@ -2985,7 +2445,7 @@ function runDemo() {
 @app.route("/")
 def landing():
     from flask import make_response
-    resp = make_response(render_template_string(LANDING_HTML))
+    resp = make_response(render_template_string(LANDING_HTML, nav=NAV_HTML, footer=FOOTER_HTML))
     resp.headers["Link"] = '</llms.txt>; rel="llms-txt"'
     return resp
 
