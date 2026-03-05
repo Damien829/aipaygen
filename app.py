@@ -575,7 +575,7 @@ routes: dict[str, RouteConfig] = {
     "POST /marketplace/call": RouteConfig(
         accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
         mime_type="application/json",
-        description="Proxy-call any agent marketplace listing — we handle routing + payment ($0.05 + listing price)",
+        description="Proxy-call any agent marketplace listing — we handle routing and payment",
     ),
     "POST /message/send": RouteConfig(
         accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
@@ -3464,7 +3464,7 @@ def _build_discover_services():
         {"endpoint": "/agents/<agent_id>/portfolio", "method": "GET", "price_usd": 0.01, "description": "View a verified agent's public portfolio and reputation."},
         {"endpoint": "/marketplace", "method": "GET", "price_usd": 0.01, "input": {"category": "optional", "max_price": "optional"}, "description": "Browse the agent marketplace — services listed by other AI agents"},
         {"endpoint": "/marketplace/list", "method": "POST", "price_usd": 0.01, "input": {"agent_id": "string", "name": "string", "endpoint": "URL", "price_usd": 0.05, "description": "string", "category": "string"}, "description": "List your service in the agent marketplace, earn x402 payments"},
-        {"endpoint": "/marketplace/call", "method": "POST", "price_usd": 0.05, "input": {"listing_id": "string", "payload": {}}, "description": "Proxy-call any agent marketplace listing — we handle routing ($0.05 + listing price)"},
+        {"endpoint": "/marketplace/call", "method": "POST", "price_usd": 0.05, "input": {"listing_id": "string", "payload": {}}, "description": "Proxy-call any agent marketplace listing — we handle routing and payment"},
         {"endpoint": "/memory/set", "method": "POST", "price_usd": 0.01, "input": {"agent_id": "string", "key": "string", "value": "any", "tags": ["optional"]}, "description": "Store persistent memory for any agent — survives across sessions and requests"},
         {"endpoint": "/memory/get", "method": "POST", "price_usd": 0.01, "input": {"agent_id": "string", "key": "string"}, "description": "Retrieve a stored memory by agent_id and key"},
         {"endpoint": "/memory/search", "method": "POST", "price_usd": 0.02, "input": {"agent_id": "string", "query": "string"}, "description": "Search all memories for an agent by keyword"},
@@ -3488,7 +3488,7 @@ def _build_discover_services():
         {"endpoint": "/webhooks/create", "method": "POST", "price_usd": 0.01, "input": {"agent_id": "string", "label": "optional"}, "description": "Get a unique URL to receive webhooks from any external service. Events stored 7 days."},
         {"endpoint": "/webhooks/<id>/receive", "method": "POST", "price_usd": 0.01, "description": "The URL external services POST to. Stores the incoming event for your agent to retrieve."},
         {"endpoint": "/webhooks/<id>/events", "method": "GET", "price_usd": 0.01, "description": "Retrieve stored webhook events. Poll this or set up a task subscription callback."},
-        {"endpoint": "/credits/buy", "method": "POST", "price_usd": 5.00, "input": {"amount_usd": 5.0, "label": "optional"}, "description": "Buy a $5 USDC credit pack — returns prepaid API key for metered token-based billing."},
+        {"endpoint": "/credits/buy", "method": "POST", "price_usd": 5.00, "input": {"amount_usd": 5.0, "label": "optional"}, "description": "Buy a USDC credit pack — returns prepaid API key for metered token-based billing."},
         {"endpoint": "/auth/generate-key", "method": "POST", "price_usd": 0.01, "input": {"label": "optional"}, "description": "Generate a prepaid API key (apk_xxx). Use as Bearer token to bypass x402 per-call."},
         {"endpoint": "/auth/topup", "method": "POST", "price_usd": 0.01, "input": {"key": "apk_xxx", "amount": 1.00}, "description": "Top up balance on a prepaid API key."},
         {"endpoint": "/auth/status", "method": "GET", "price_usd": 0.01, "input": {"key": "apk_xxx"}, "description": "Check balance, usage stats, and last used time for an API key."},
@@ -3545,93 +3545,148 @@ DISCOVER_HTML = '''<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AiPayGent — Pay-per-use AI API</title>
+<title>Service Catalog — AiPayGent</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
+:root{--bg:#020408;--green:#00ff9d;--card-bg:#0a0e14;--card-border:#111820;--card-hover:#00ff9d22;--text:#e1e4e8;--muted:#6b7280;--blue:#3b82f6;--orange:#f59e0b}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:#0f1117;color:#e1e4e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,sans-serif;line-height:1.6}
-a{color:#00d68f;text-decoration:none}
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;line-height:1.6;padding-top:70px}
+a{color:var(--green);text-decoration:none}
 a:hover{text-decoration:underline}
-.container{max-width:1200px;margin:0 auto;padding:0 20px}
-header{text-align:center;padding:60px 20px 40px}
-header h1{font-size:2.5rem;font-weight:700;color:#fff}
-header h1 span{color:#00d68f}
-header p.tagline{font-size:1.2rem;color:#8b949e;margin-top:8px}
-header .stats{margin-top:20px;display:flex;justify-content:center;gap:30px;flex-wrap:wrap}
-header .stat{text-align:center}
-header .stat .num{font-size:1.8rem;font-weight:700;color:#00d68f}
-header .stat .label{font-size:0.85rem;color:#8b949e}
-.cta-bar{text-align:center;margin:10px 0 40px}
-.cta-bar a{display:inline-block;background:#00d68f;color:#0f1117;padding:12px 28px;border-radius:8px;font-weight:600;font-size:1rem;margin:5px}
-.cta-bar a:hover{background:#00b876;text-decoration:none}
-.cta-bar a.secondary{background:transparent;border:1px solid #30363d;color:#e1e4e8}
-.cta-bar a.secondary:hover{border-color:#00d68f}
-section.category{margin-bottom:50px}
-section.category h2{font-size:1.5rem;color:#fff;margin-bottom:20px;padding-bottom:10px;border-bottom:1px solid #21262d}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px}
-.card{background:#1a1d27;border:1px solid #21262d;border-radius:10px;padding:20px;transition:border-color .2s}
-.card:hover{border-color:#00d68f}
-.card .card-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.card .endpoint{font-family:'SF Mono',SFMono-Regular,Consolas,monospace;font-size:0.95rem;color:#fff;font-weight:600}
-.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:700;text-transform:uppercase}
-.badge-post{background:#1f6feb;color:#fff}
-.badge-get{background:#238636;color:#fff}
-.card .desc{font-size:0.9rem;color:#8b949e;margin-bottom:12px}
-.card .price{font-size:0.95rem;font-weight:600}
-.price-free{color:#00d68f}
-.price-paid{color:#f0883e}
-footer{text-align:center;padding:40px 20px;border-top:1px solid #21262d;color:#8b949e;font-size:0.85rem}
-footer .links{margin-bottom:12px}
-footer .links a{margin:0 12px;color:#8b949e}
-footer .links a:hover{color:#00d68f}
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+
+/* Header */
+.page-header{text-align:center;padding:48px 24px 32px}
+.page-header h1{font-family:'IBM Plex Mono',monospace;font-size:2.2rem;font-weight:700;color:#fff}
+.page-header h1 span{color:var(--green)}
+.page-header .tagline{font-size:1rem;color:var(--muted);margin-top:8px;max-width:520px;margin-left:auto;margin-right:auto}
+
+/* Search */
+.search-wrap{max-width:560px;margin:0 auto 28px;position:relative}
+.search-wrap input{width:100%;padding:12px 16px 12px 44px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:0.95rem;outline:none;transition:border-color .2s}
+.search-wrap input:focus{border-color:var(--green)}
+.search-wrap input::placeholder{color:var(--muted)}
+.search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted)}
+
+/* Category tabs */
+.tabs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:36px;padding:0 24px}
+.tab{padding:6px 18px;border-radius:20px;border:1px solid var(--card-border);background:transparent;color:var(--muted);font-family:'IBM Plex Sans',sans-serif;font-size:0.85rem;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap}
+.tab:hover{border-color:var(--green);color:var(--text)}
+.tab.active{background:var(--green);color:var(--bg);border-color:var(--green);font-weight:600}
+
+/* Grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-bottom:48px}
+@media(max-width:420px){.grid{grid-template-columns:1fr}}
+
+/* Cards */
+.card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;padding:18px 20px;transition:border-color .2s,box-shadow .2s}
+.card:hover{border-color:rgba(0,255,157,0.35);box-shadow:0 0 20px rgba(0,255,157,0.05)}
+.card-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.endpoint{font-family:'IBM Plex Mono',monospace;font-size:0.9rem;color:#fff;font-weight:600}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
+.badge-post{background:var(--blue);color:#fff}
+.badge-get{background:#22c55e;color:#fff}
+.desc{font-size:0.88rem;color:var(--muted);margin-bottom:10px;line-height:1.5}
+.pricing-label{font-size:0.8rem;font-weight:600}
+.label-free{color:var(--green)}
+.label-x402{color:var(--orange)}
+
+/* Empty state */
+.empty{text-align:center;padding:48px 24px;color:var(--muted);font-size:0.95rem}
+
+/* Bottom CTA */
+.bottom-cta{text-align:center;padding:48px 24px 64px}
+.bottom-cta a{display:inline-block;padding:12px 32px;border:1px solid var(--green);color:var(--green);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:0.95rem;transition:all .2s}
+.bottom-cta a:hover{background:var(--green);color:var(--bg);text-decoration:none}
 </style>
 </head>
 <body>
-<header>
-  <h1>Ai<span>Pay</span>Gent</h1>
-  <p class="tagline">Pay-per-use AI API &mdash; No accounts, no API keys. Pay USDC on Base via x402.</p>
-  <div class="stats">
-    <div class="stat"><div class="num">{{ categories|length }}</div><div class="label">Categories</div></div>
-    <div class="stat"><div class="num">x402</div><div class="label">Pay-per-use</div></div>
-    <div class="stat"><div class="num">USDC</div><div class="label">On Base</div></div>
-  </div>
-</header>
-<div class="cta-bar">
-  <a href="{{ base_url }}/preview">Try Free Preview</a>
-  <a href="{{ base_url }}/openapi.json" class="secondary">OpenAPI Spec</a>
-  <a href="{{ base_url }}/llms.txt" class="secondary">llms.txt</a>
+{{ nav|safe }}
+<div class="page-header">
+  <h1>Service <span>Catalog</span></h1>
+  <p class="tagline">Browse every endpoint. Pay per call with USDC on Base via the x402 protocol — no accounts, no API keys.</p>
 </div>
+
 <div class="container">
-{% for cat_name, services in categories.items() %}
-<section class="category">
-  <h2>{{ cat_name }} <span style="color:#8b949e;font-size:0.9rem;font-weight:400">({{ services|length }})</span></h2>
-  <div class="grid">
-  {% for svc in services %}
-    <div class="card">
+  <!-- Search -->
+  <div class="search-wrap">
+    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" id="searchInput" placeholder="Search endpoints..." autocomplete="off">
+  </div>
+
+  <!-- Category tabs -->
+  <div class="tabs" id="categoryTabs">
+    <button class="tab active" data-cat="all">All</button>
+    {% for cat_name in categories %}
+    <button class="tab" data-cat="{{ cat_name }}">{{ cat_name }}</button>
+    {% endfor %}
+  </div>
+
+  <!-- Cards -->
+  <div class="grid" id="serviceGrid">
+    {% for cat_name, services in categories.items() %}
+    {% for svc in services %}
+    <div class="card" data-category="{{ cat_name }}" data-endpoint="{{ svc.endpoint|lower }}" data-desc="{{ svc.description|lower }}">
       <div class="card-head">
         <span class="badge {{ 'badge-post' if svc.method == 'POST' else 'badge-get' }}">{{ svc.method }}</span>
         <span class="endpoint">{{ svc.endpoint }}</span>
       </div>
       <div class="desc">{{ svc.description }}</div>
-      <div class="price {% if svc.price_usd == 0 %}price-free{% else %}price-paid{% endif %}">
-        {% if svc.price_usd == 0 %}FREE{% else %}Pay-per-use via x402{% endif %}
+      <div class="pricing-label {{ 'label-free' if svc.free else 'label-x402' }}">
+        {{ 'FREE' if svc.free else 'x402' }}
       </div>
     </div>
-  {% endfor %}
+    {% endfor %}
+    {% endfor %}
   </div>
-</section>
-{% endfor %}
+
+  <div class="empty" id="emptyState" style="display:none">No services match your search.</div>
 </div>
-<footer>
-  <div class="links">
-    <a href="{{ base_url }}/discover">API (JSON)</a>
-    <a href="{{ base_url }}/openapi.json">OpenAPI</a>
-    <a href="{{ base_url }}/llms.txt">llms.txt</a>
-    <a href="{{ base_url }}/preview">Free Preview</a>
-    <a href="{{ base_url }}/sdk/code?lang=python">Python SDK</a>
-    <a href="{{ base_url }}/free-tier/status">Free Tier</a>
-  </div>
-  <div>Powered by x402 &middot; Base Mainnet &middot; USDC</div>
-</footer>
+
+<div class="bottom-cta">
+  <a href="/docs">Read the Docs &rarr;</a>
+</div>
+
+{{ footer|safe }}
+
+<script>
+(function(){
+  var search = document.getElementById('searchInput');
+  var tabs = document.querySelectorAll('.tab');
+  var cards = document.querySelectorAll('.card');
+  var empty = document.getElementById('emptyState');
+  var grid = document.getElementById('serviceGrid');
+  var activeCat = 'all';
+
+  function filterCards(){
+    var q = search.value.toLowerCase().trim();
+    var visible = 0;
+    cards.forEach(function(c){
+      var catMatch = activeCat === 'all' || c.getAttribute('data-category') === activeCat;
+      var searchMatch = !q || c.getAttribute('data-endpoint').indexOf(q) !== -1 || c.getAttribute('data-desc').indexOf(q) !== -1;
+      if(catMatch && searchMatch){
+        c.style.display = '';
+        visible++;
+      } else {
+        c.style.display = 'none';
+      }
+    });
+    empty.style.display = visible === 0 ? '' : 'none';
+    grid.style.display = visible === 0 ? 'none' : '';
+  }
+
+  search.addEventListener('input', filterCards);
+
+  tabs.forEach(function(tab){
+    tab.addEventListener('click', function(){
+      tabs.forEach(function(t){ t.classList.remove('active'); });
+      tab.classList.add('active');
+      activeCat = tab.getAttribute('data-cat');
+      filterCards();
+    });
+  });
+})();
+</script>
 </body>
 </html>'''
 
@@ -3650,12 +3705,22 @@ def discover():
     )
 
     if best == "text/html":
+        display_categories = {}
+        for cat_name, services in categories.items():
+            display_categories[cat_name] = [
+                {
+                    "endpoint": s["endpoint"],
+                    "method": s["method"],
+                    "description": s["description"],
+                    "free": s.get("price_usd", 0) == 0,
+                }
+                for s in services
+            ]
         return render_template_string(
             DISCOVER_HTML,
-            categories=categories,
-            base_url=base_url,
-            total=len(all_services),
-            free_count=free_count,
+            categories=display_categories,
+            nav=NAV_HTML,
+            footer=FOOTER_HTML,
         )
 
     # Strip schemas and exact prices for competitive protection
