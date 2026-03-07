@@ -1,14 +1,14 @@
-# AiPayGent
+# AiPayGen
 
-<!-- mcp-name: io.github.djautomd-lab/aipaygent -->
+<!-- mcp-name: io.github.djautomd-lab/aipaygen -->
 
 **Pay-per-use Claude AI API for autonomous agents.** 140+ endpoints, USDC micropayments on Base via [x402](https://www.x402.org/), no API keys or signups required.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![PyPI - MCP](https://img.shields.io/pypi/v/aipaygent-mcp)](https://pypi.org/project/aipaygent-mcp/)
-[![PyPI - langchain](https://img.shields.io/pypi/v/aipaygent-langchain)](https://pypi.org/project/aipaygent-langchain/)
-[![PyPI - llamaindex](https://img.shields.io/pypi/v/aipaygent-llamaindex)](https://pypi.org/project/aipaygent-llamaindex/)
-[![npm](https://img.shields.io/npm/v/aipaygent)](https://www.npmjs.com/package/aipaygent)
+[![PyPI - MCP](https://img.shields.io/pypi/v/aipaygen-mcp)](https://pypi.org/project/aipaygen-mcp/)
+[![PyPI - langchain](https://img.shields.io/pypi/v/aipaygen-langchain)](https://pypi.org/project/aipaygen-langchain/)
+[![PyPI - llamaindex](https://img.shields.io/pypi/v/aipaygen-llamaindex)](https://pypi.org/project/aipaygen-llamaindex/)
+[![npm](https://img.shields.io/npm/v/aipaygen)](https://www.npmjs.com/package/aipaygen)
 
 ## How it works
 
@@ -19,8 +19,8 @@
 5. Server verifies payment via [CDP x402](https://docs.cdp.coinbase.com/x402/docs/overview) and returns the result
 
 ```
-Agent ──POST /research──▶ AiPayGent ──402 + payment info──▶ Agent
-Agent ──POST /research + X-Payment──▶ AiPayGent ──200 + result──▶ Agent
+Agent ──POST /research──▶ AiPayGen ──402 + payment info──▶ Agent
+Agent ──POST /research + X-Payment──▶ AiPayGen ──200 + result──▶ Agent
 ```
 
 ## Quick start
@@ -28,7 +28,7 @@ Agent ──POST /research + X-Payment──▶ AiPayGent ──200 + result─�
 ### Try free (no setup)
 
 ```bash
-curl -X POST https://api.aipaygent.xyz/preview \
+curl -X POST https://api.aipaygen.com/preview \
   -H "Content-Type: application/json" \
   -d '{"query": "What is x402?"}'
 ```
@@ -36,25 +36,25 @@ curl -X POST https://api.aipaygent.xyz/preview \
 ### Python
 
 ```bash
-pip install aipaygent-langchain
+pip install aipaygen-langchain
 ```
 
 ```python
-from aipaygent_langchain import AiPayGentToolkit
+from aipaygen_langchain import AiPayGenToolkit
 
-tools = AiPayGentToolkit(x402_token="your_token").get_tools()
+tools = AiPayGenToolkit(x402_token="your_token").get_tools()
 # Use with LangChain agents, CrewAI, etc.
 ```
 
 ### JavaScript / TypeScript
 
 ```bash
-npm install aipaygent
+npm install aipaygen
 ```
 
 ```javascript
-import { AiPayGent } from "aipaygent";
-const client = new AiPayGent({ token: "your_token" });
+import { AiPayGen } from "aipaygen";
+const client = new AiPayGen({ token: "your_token" });
 const result = await client.research("quantum computing trends");
 ```
 
@@ -63,22 +63,22 @@ const result = await client.research("quantum computing trends");
 Connect as a remote MCP server — no local install:
 
 ```
-https://mcp.aipaygent.xyz/mcp
+https://mcp.aipaygen.com/mcp
 ```
 
 Or run locally:
 
 ```bash
-pip install aipaygent-mcp
-aipaygent-mcp
+pip install aipaygen-mcp
+aipaygen-mcp
 ```
 
 Claude Desktop config:
 ```json
 {
   "mcpServers": {
-    "aipaygent": {
-      "command": "aipaygent-mcp"
+    "aipaygen": {
+      "command": "aipaygen-mcp"
     }
   }
 }
@@ -134,14 +134,14 @@ Claude Desktop config:
 | `/.well-known/agent.json` | GET | Agent discovery manifest |
 | `/preview` | POST | Free 120-token Claude demo |
 
-Full list: [api.aipaygent.xyz/discover](https://api.aipaygent.xyz/discover)
+Full list: [api.aipaygen.com/discover](https://api.aipaygen.com/discover)
 
 ## Architecture
 
 - **Runtime**: Flask + Gunicorn on Raspberry Pi 5
 - **AI**: Claude Haiku 4.5 via Anthropic API
 - **Payments**: x402 protocol, USDC on Base Mainnet, verified via CDP
-- **Tunnel**: Cloudflare Tunnel → `api.aipaygent.xyz`
+- **Tunnel**: Cloudflare Tunnel → `api.aipaygen.com`
 - **Storage**: SQLite (memory, usage tracking, API keys)
 - **Discovery**: OpenAPI, LLMs.txt, MCP, agents.json, ai-plugin.json
 
@@ -149,15 +149,15 @@ Full list: [api.aipaygent.xyz/discover](https://api.aipaygent.xyz/discover)
 
 | Resource | URL |
 |----------|-----|
-| Live API | https://api.aipaygent.xyz |
-| Discover endpoints | https://api.aipaygent.xyz/discover |
-| OpenAPI spec | https://api.aipaygent.xyz/openapi.json |
-| LLMs.txt | https://api.aipaygent.xyz/llms.txt |
-| MCP server | https://mcp.aipaygent.xyz/mcp |
-| Blog | https://api.aipaygent.xyz/blog |
-| npm SDK | https://www.npmjs.com/package/aipaygent |
-| PyPI (LangChain) | https://pypi.org/project/aipaygent-langchain/ |
-| PyPI (LlamaIndex) | https://pypi.org/project/aipaygent-llamaindex/ |
+| Live API | https://api.aipaygen.com |
+| Discover endpoints | https://api.aipaygen.com/discover |
+| OpenAPI spec | https://api.aipaygen.com/openapi.json |
+| LLMs.txt | https://api.aipaygen.com/llms.txt |
+| MCP server | https://mcp.aipaygen.com/mcp |
+| Blog | https://api.aipaygen.com/blog |
+| npm SDK | https://www.npmjs.com/package/aipaygen |
+| PyPI (LangChain) | https://pypi.org/project/aipaygen-langchain/ |
+| PyPI (LlamaIndex) | https://pypi.org/project/aipaygen-llamaindex/ |
 
 ## License
 

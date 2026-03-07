@@ -1,8 +1,12 @@
-"""6 autonomous discovery agents that find and catalog APIs."""
+"""11 autonomous discovery agents that find and catalog APIs."""
 import os
+import re
 import time
+import sqlite3
 import requests
-from api_catalog import upsert_api, log_run_start, log_run_end
+from api_catalog import upsert_api, log_run_start, log_run_end, DB_PATH as CATALOG_DB
+
+OUTBOUND_DB = os.path.join(os.path.dirname(__file__), "discovery_engine.db")
 
 APIFY_TOKEN = os.getenv("APIFY_TOKEN")
 
@@ -29,6 +33,31 @@ def score_api_with_claude(claude_client, name, desc, base_url, auth_required, do
         return 5.0
 
 
+def score_api_heuristic(name, desc, base_url, auth_required, docs_url) -> float:
+    """Fast heuristic scoring without LLM call. 0-10."""
+    score = 5.0
+    desc_lower = (desc or "").lower()
+    if docs_url and docs_url != base_url:
+        score += 1.0
+    if not auth_required:
+        score += 1.0
+    if any(k in desc_lower for k in ["free", "open", "public", "no auth"]):
+        score += 0.5
+    if any(k in desc_lower for k in ["rest", "json", "graphql", "openapi", "swagger"]):
+        score += 0.5
+    if len(desc or "") > 50:
+        score += 0.5
+    if "api" in (base_url or "").lower():
+        score += 0.5
+    return min(10.0, score)
+
+
+# Regex for parsing awesome-list markdown entries: [Name](url) - Description
+_AWESOME_RE = re.compile(
+    r'[-*|]\s*\[([^\]]{2,80})\]\(([^)]+)\)\s*[-:|]?\s*(.{10,300}?)(?:\n|$|\|)'
+)
+
+
 class BaseDiscoveryAgent:
     name = "base"
 
@@ -38,8 +67,8 @@ class BaseDiscoveryAgent:
 
     def fetch(self, url: str, timeout: int = 15):
         try:
-            time.sleep(0.75)
-            resp = requests.get(url, timeout=timeout, headers={"User-Agent": "AiPayGent-Discovery/1.0"})
+            time.sleep(3)  # throttled to avoid abuse flags
+            resp = requests.get(url, timeout=timeout, headers={"User-Agent": "AiPayGen-Discovery/1.0"})
             resp.raise_for_status()
             return resp
         except Exception:
@@ -65,7 +94,7 @@ class BaseDiscoveryAgent:
 
 class ApisGuruAgent(BaseDiscoveryAgent):
     name = "apis_guru"
-    MAX_APIS = 200
+    MAX_APIS = 2500
 
     def run(self):
         run_id = log_run_start(self.name)
@@ -284,21 +313,279 @@ class ApifyStoreAgent(BaseDiscoveryAgent):
             log_run_end(run_id, self.found, "error", str(e))
 
 
-def run_all_agents(claude_client) -> dict:
-    """Run all 6 agents sequentially, return per-agent results."""
+class PublicApisAgent(BaseDiscoveryAgent):
+    """Parses the public-apis/public-apis GitHub repo — 1400+ APIs."""
+    name = "public_apis"
+
+    REPOS = [
+        "https://raw.githubusercontent.com/public-apis/public-apis/master/README.md",
+        "https://raw.githubusercontent.com/n0shake/Public-APIs/master/README.md",
+    ]
+
+    def run(self):
+        run_id = log_run_start(self.name)
+        try:
+            for repo_url in self.REPOS:
+                resp = self.fetch(repo_url, timeout=30)
+                if not resp:
+                    continue
+                entries = _AWESOME_RE.findall(resp.text)
+                for name, url, desc in entries:
+                    if any(x in url for x in ["img.shields", "#", "badge", "github.com/topics"]):
+                        continue
+                    base = "/".join(url.split("/")[:3])
+                    if len(base) < 10:
+                        continue
+                    score = score_api_heuristic(name, desc, base, False, url)
+                    self.save(
+                        name=name.strip()[:255],
+                        description=desc.strip()[:500],
+                        base_url=base,
+                        docs_url=url,
+                        auth_required=False,
+                        category="api",
+                        quality_score=score,
+                    )
+            log_run_end(run_id, self.found, "completed")
+        except Exception as e:
+            log_run_end(run_id, self.found, "error", str(e))
+
+
+class AwesomeApiAgent(BaseDiscoveryAgent):
+    """Parses awesome-api lists from GitHub."""
+    name = "awesome_api"
+
+    LISTS = [
+        "https://raw.githubusercontent.com/TonnyL/Awesome_APIs/master/README.md",
+        "https://raw.githubusercontent.com/Kikobeats/awesome-api/master/README.md",
+        "https://raw.githubusercontent.com/yosriady/api-development-tools/master/README.md",
+    ]
+
+    def run(self):
+        run_id = log_run_start(self.name)
+        try:
+            for list_url in self.LISTS:
+                resp = self.fetch(list_url, timeout=30)
+                if not resp:
+                    continue
+                entries = _AWESOME_RE.findall(resp.text)
+                for name, url, desc in entries:
+                    if any(x in url for x in ["img.shields", "#", "badge"]):
+                        continue
+                    base = "/".join(url.split("/")[:3])
+                    if len(base) < 10:
+                        continue
+                    score = score_api_heuristic(name, desc, base, False, url)
+                    self.save(
+                        name=name.strip()[:255],
+                        description=desc.strip()[:500],
+                        base_url=base,
+                        docs_url=url,
+                        auth_required=False,
+                        category="api",
+                        quality_score=score,
+                    )
+            log_run_end(run_id, self.found, "completed")
+        except Exception as e:
+            log_run_end(run_id, self.found, "error", str(e))
+
+
+class AwesomeMCPAgent(BaseDiscoveryAgent):
+    """Discovers MCP servers from awesome-mcp-servers lists."""
+    name = "awesome_mcp"
+
+    LISTS = [
+        "https://raw.githubusercontent.com/punkpeye/awesome-mcp-servers/main/README.md",
+        "https://raw.githubusercontent.com/appcypher/awesome-mcp-servers/main/README.md",
+    ]
+
+    def run(self):
+        run_id = log_run_start(self.name)
+        try:
+            for list_url in self.LISTS:
+                resp = self.fetch(list_url, timeout=30)
+                if not resp:
+                    continue
+                entries = _AWESOME_RE.findall(resp.text)
+                for name, url, desc in entries:
+                    if any(x in url for x in ["img.shields", "#", "badge"]):
+                        continue
+                    base = "/".join(url.split("/")[:3])
+                    if len(base) < 10:
+                        continue
+                    self.save(
+                        name=name.strip()[:255],
+                        description=desc.strip()[:500],
+                        base_url=base,
+                        docs_url=url,
+                        auth_required=False,
+                        category="mcp",
+                    )
+            log_run_end(run_id, self.found, "completed")
+        except Exception as e:
+            log_run_end(run_id, self.found, "error", str(e))
+
+
+class X402RegistryAgent(BaseDiscoveryAgent):
+    name = "x402_registry"
+
+    KNOWN_X402 = [
+        {"name": "BlockRun", "base_url": "https://blockrun.io", "docs_url": "https://blockrun.io/docs", "description": "600+ AI API services with x402 payment support"},
+        {"name": "BlockRun API", "base_url": "https://api.blockrun.io", "docs_url": "https://blockrun.io/docs", "description": "BlockRun API endpoint for x402-gated services"},
+        {"name": "Pylon", "base_url": "https://pylon.bot", "docs_url": "https://pylon.bot/docs", "description": "x402 payment proxy and API gateway"},
+        {"name": "PayWithx402", "base_url": "https://paywithx402.com", "docs_url": "https://paywithx402.com", "description": "x402 payment facilitator service"},
+        {"name": "402.ai", "base_url": "https://402.ai", "docs_url": "https://402.ai", "description": "AI services monetized via x402 protocol"},
+        {"name": "x402.org", "base_url": "https://x402.org", "docs_url": "https://x402.org", "description": "x402 protocol registry and specification"},
+        {"name": "x402.xyz", "base_url": "https://x402.xyz", "docs_url": "https://x402.xyz", "description": "x402 ecosystem directory"},
+    ]
+
+    def run(self):
+        run_id = log_run_start(self.name)
+        try:
+            # 1. Catalog known x402 services
+            for svc in self.KNOWN_X402:
+                self.save(
+                    x402_compatible=True,
+                    category="x402",
+                    auth_required=False,
+                    **svc,
+                )
+
+            # 2. Try x402.org registry API
+            for registry_url in [
+                "https://x402.org/api/services",
+                "https://api.x402.org/services",
+                "https://x402.org/registry",
+            ]:
+                resp = self.fetch(registry_url)
+                if not resp:
+                    continue
+                try:
+                    data = resp.json()
+                    items = data if isinstance(data, list) else data.get("services", data.get("items", []))
+                    for item in (items or [])[:30]:
+                        if isinstance(item, dict) and item.get("url"):
+                            self.save(
+                                name=item.get("name", item["url"])[:255],
+                                description=item.get("description", "x402-compatible service")[:500],
+                                base_url=item["url"].rstrip("/"),
+                                docs_url=item.get("docs_url", item["url"]),
+                                auth_required=False,
+                                category="x402",
+                                x402_compatible=True,
+                            )
+                except Exception:
+                    continue
+
+            # 3. Search GitHub for x402-related repos
+            resp = self.fetch(
+                "https://api.github.com/search/repositories"
+                "?q=x402+in:name,description,topics&sort=updated&per_page=15"
+            )
+            if resp:
+                try:
+                    for repo in resp.json().get("items", [])[:10]:
+                        url = repo.get("homepage") or repo["html_url"]
+                        self.save(
+                            name=repo["full_name"][:255],
+                            description=repo.get("description", "")[:500],
+                            base_url=url.rstrip("/"),
+                            docs_url=repo["html_url"],
+                            auth_required=False,
+                            category="x402",
+                            x402_compatible=True,
+                        )
+                except Exception:
+                    pass
+
+            log_run_end(run_id, self.found, "completed")
+        except Exception as e:
+            log_run_end(run_id, self.found, "error", str(e))
+
+
+def run_all_hunters(claude_client, max_per_run=50) -> int:
+    """Run all 11 discovery agents with a cap, apply scoring boosts, return new API count."""
     agents = [
-        DomainAgent(claude_client),
+        X402RegistryAgent(claude_client),
+        PublicApisAgent(claude_client),
+        AwesomeApiAgent(claude_client),
+        AwesomeMCPAgent(claude_client),
         ApisGuruAgent(claude_client),
+        DomainAgent(claude_client),
         GitHubAgent(claude_client),
         RedditAgent(claude_client),
         HackerNewsAgent(claude_client),
         ApifyStoreAgent(claude_client),
     ]
-    results = {}
+    total_found = 0
     for agent in agents:
+        if total_found >= max_per_run:
+            break
         try:
             agent.run()
-            results[agent.name] = {"found": agent.found, "status": "ok"}
-        except Exception as e:
-            results[agent.name] = {"found": agent.found, "status": "error", "error": str(e)}
-    return results
+            total_found += agent.found
+        except Exception:
+            continue
+
+    # Apply scoring boosts for x402 and AI/ML APIs
+    try:
+        conn = sqlite3.connect(CATALOG_DB)
+        conn.row_factory = sqlite3.Row
+        # x402 boost: +3
+        conn.execute(
+            "UPDATE discovered_apis SET quality_score = MIN(10, quality_score + 3) "
+            "WHERE category = 'x402' AND quality_score <= 7"
+        )
+        # AI/ML boost: +2
+        conn.execute(
+            "UPDATE discovered_apis SET quality_score = MIN(10, quality_score + 2) "
+            "WHERE category IN ('ai', 'ml', 'inference', 'embeddings') AND quality_score <= 8"
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+    return total_found
+
+
+def inject_high_scorers(min_score=7) -> int:
+    """Inject high-scoring catalog APIs into outbound discovered_services table."""
+    injected = 0
+    try:
+        cat_conn = sqlite3.connect(CATALOG_DB)
+        cat_conn.row_factory = sqlite3.Row
+        rows = cat_conn.execute(
+            "SELECT name, base_url, category, quality_score FROM discovered_apis "
+            "WHERE quality_score >= ? AND is_active = 1",
+            (min_score,),
+        ).fetchall()
+        cat_conn.close()
+
+        if not rows:
+            return 0
+
+        out_conn = sqlite3.connect(OUTBOUND_DB)
+        for r in rows:
+            stype = "x402" if r["category"] == "x402" else "api"
+            try:
+                out_conn.execute(
+                    "INSERT INTO discovered_services "
+                    "(url, name, service_type, our_status, discovered_at, source, quality_score) "
+                    "VALUES (?, ?, ?, 'discovered', datetime('now'), 'api_hunter', ?) "
+                    "ON CONFLICT(url) DO NOTHING",
+                    (r["base_url"], r["name"], stype, r["quality_score"]),
+                )
+                injected += 1
+            except Exception:
+                continue
+        out_conn.commit()
+        out_conn.close()
+    except Exception:
+        pass
+    return injected
+
+
+
+# run_all_agents() removed — superseded by run_all_hunters() which runs 10 agents
+# with scoring boosts and max_per_run cap.

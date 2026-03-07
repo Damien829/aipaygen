@@ -1,9 +1,10 @@
 """Multi-model router — registry, resolution, cost calculation, unified call_model.
 
 Includes circuit breaker per provider: breaks after 3 consecutive failures for 5 min.
-Fallback chains: anthropic↔openai, deepseek↔together, google→anthropic.
+Fallback chains: anthropic↔openai, deepseek↔together, google→anthropic, xai→openai, mistral→together.
 """
 
+import collections as _collections
 import logging
 import os
 import time as _time
@@ -32,6 +33,8 @@ MODEL_REGISTRY = {
         "max_tokens": 8192,
         "vision": True,
         "streaming": True,
+        "latency_tier": "fast",
+        "strengths": ["general", "code", "creative"],
     },
     "claude-sonnet": {
         "canonical_name": "claude-sonnet",
@@ -42,6 +45,8 @@ MODEL_REGISTRY = {
         "max_tokens": 8192,
         "vision": True,
         "streaming": True,
+        "latency_tier": "medium",
+        "strengths": ["reasoning", "code", "creative", "general"],
     },
     "claude-opus": {
         "canonical_name": "claude-opus",
@@ -52,6 +57,8 @@ MODEL_REGISTRY = {
         "max_tokens": 4096,
         "vision": True,
         "streaming": True,
+        "latency_tier": "slow",
+        "strengths": ["reasoning", "creative"],
     },
     "gpt-4o": {
         "canonical_name": "gpt-4o",
@@ -62,6 +69,8 @@ MODEL_REGISTRY = {
         "max_tokens": 4096,
         "vision": True,
         "streaming": True,
+        "latency_tier": "medium",
+        "strengths": ["general", "code", "creative", "reasoning"],
     },
     "gpt-4o-mini": {
         "canonical_name": "gpt-4o-mini",
@@ -72,6 +81,8 @@ MODEL_REGISTRY = {
         "max_tokens": 4096,
         "vision": True,
         "streaming": True,
+        "latency_tier": "fast",
+        "strengths": ["general", "code"],
     },
     "gemini-2.5-pro": {
         "canonical_name": "gemini-2.5-pro",
@@ -82,6 +93,8 @@ MODEL_REGISTRY = {
         "max_tokens": 8192,
         "vision": True,
         "streaming": True,
+        "latency_tier": "medium",
+        "strengths": ["reasoning", "code", "general"],
     },
     "gemini-2.5-flash": {
         "canonical_name": "gemini-2.5-flash",
@@ -92,6 +105,8 @@ MODEL_REGISTRY = {
         "max_tokens": 8192,
         "vision": True,
         "streaming": True,
+        "latency_tier": "fast",
+        "strengths": ["general", "code"],
     },
     "deepseek-v3": {
         "canonical_name": "deepseek-v3",
@@ -102,6 +117,8 @@ MODEL_REGISTRY = {
         "max_tokens": 4096,
         "vision": False,
         "streaming": True,
+        "latency_tier": "fast",
+        "strengths": ["code", "general"],
     },
     "deepseek-r1": {
         "canonical_name": "deepseek-r1",
@@ -112,6 +129,8 @@ MODEL_REGISTRY = {
         "max_tokens": 4096,
         "vision": False,
         "streaming": True,
+        "latency_tier": "slow",
+        "strengths": ["reasoning", "code"],
     },
     "llama-3.3-70b": {
         "canonical_name": "llama-3.3-70b",
@@ -122,6 +141,8 @@ MODEL_REGISTRY = {
         "max_tokens": 4096,
         "vision": False,
         "streaming": True,
+        "latency_tier": "medium",
+        "strengths": ["general", "code"],
     },
     "mistral-large": {
         "canonical_name": "mistral-large",
@@ -132,6 +153,56 @@ MODEL_REGISTRY = {
         "max_tokens": 4096,
         "vision": False,
         "streaming": True,
+        "latency_tier": "medium",
+        "strengths": ["code", "general"],
+    },
+    "grok-3": {
+        "canonical_name": "grok-3",
+        "provider": "xai",
+        "model_id": "grok-3",
+        "input_cost_per_m": 3.00,
+        "output_cost_per_m": 15.00,
+        "max_tokens": 8192,
+        "vision": True,
+        "streaming": True,
+        "latency_tier": "medium",
+        "strengths": ["general", "reasoning", "creative"],
+    },
+    "grok-3-mini": {
+        "canonical_name": "grok-3-mini",
+        "provider": "xai",
+        "model_id": "grok-3-mini",
+        "input_cost_per_m": 0.30,
+        "output_cost_per_m": 0.50,
+        "max_tokens": 8192,
+        "vision": True,
+        "streaming": True,
+        "latency_tier": "fast",
+        "strengths": ["general", "code"],
+    },
+    "mistral-large-direct": {
+        "canonical_name": "mistral-large-direct",
+        "provider": "mistral",
+        "model_id": "mistral-large-latest",
+        "input_cost_per_m": 2.00,
+        "output_cost_per_m": 6.00,
+        "max_tokens": 8192,
+        "vision": False,
+        "streaming": True,
+        "latency_tier": "medium",
+        "strengths": ["code", "reasoning", "general"],
+    },
+    "mistral-small": {
+        "canonical_name": "mistral-small",
+        "provider": "mistral",
+        "model_id": "mistral-small-latest",
+        "input_cost_per_m": 0.10,
+        "output_cost_per_m": 0.30,
+        "max_tokens": 8192,
+        "vision": False,
+        "streaming": True,
+        "latency_tier": "fast",
+        "strengths": ["general", "code"],
     },
 }
 
@@ -146,6 +217,9 @@ _ALIASES = {
     "deepseek": "deepseek-v3",
     "llama": "llama-3.3-70b",
     "mistral": "mistral-large",
+    "grok": "grok-3",
+    "grok-mini": "grok-3-mini",
+    "mistral-direct": "mistral-large-direct",
     "default": "claude-haiku",
 }
 
@@ -172,6 +246,8 @@ _FALLBACK_CHAINS: dict[str, str] = {
     "deepseek": "together",
     "together": "deepseek",
     "google": "anthropic",
+    "xai": "openai",
+    "mistral": "together",
 }
 
 # Map provider to a cheap default model for fallback
@@ -181,6 +257,8 @@ _PROVIDER_DEFAULT: dict[str, str] = {
     "google": "gemini-2.5-flash",
     "deepseek": "deepseek-v3",
     "together": "llama-3.3-70b",
+    "xai": "grok-3-mini",
+    "mistral": "mistral-small",
 }
 
 
@@ -222,6 +300,53 @@ def _get_fallback_model(original_model: str) -> str | None:
     if fallback_provider and _check_circuit(fallback_provider):
         return _PROVIDER_DEFAULT.get(fallback_provider)
     return None
+
+
+# ---------------------------------------------------------------------------
+# Runtime performance tracking — latency + error rates per model
+# ---------------------------------------------------------------------------
+
+_PERF_WINDOW = 50  # track last N calls per model
+
+# {model_name: {"latencies": deque(maxlen=50), "errors": int, "successes": int}}
+_perf_stats: dict[str, dict] = {}
+
+
+def _record_perf(model_name: str, latency_ms: float, success: bool):
+    """Record a call's performance metrics."""
+    if model_name not in _perf_stats:
+        _perf_stats[model_name] = {
+            "latencies": _collections.deque(maxlen=_PERF_WINDOW),
+            "errors": 0,
+            "successes": 0,
+        }
+    stats = _perf_stats[model_name]
+    stats["latencies"].append(latency_ms)
+    if success:
+        stats["successes"] += 1
+    else:
+        stats["errors"] += 1
+
+
+def get_model_perf(model_name: str) -> dict:
+    """Return p50/p90 latency and error rate for a model."""
+    stats = _perf_stats.get(model_name)
+    if not stats or not stats["latencies"]:
+        return {"p50_ms": None, "p90_ms": None, "error_rate": 0.0, "calls": 0}
+    latencies = sorted(stats["latencies"])
+    n = len(latencies)
+    total_calls = stats["successes"] + stats["errors"]
+    return {
+        "p50_ms": latencies[n // 2],
+        "p90_ms": latencies[int(n * 0.9)],
+        "error_rate": stats["errors"] / total_calls if total_calls else 0.0,
+        "calls": total_calls,
+    }
+
+
+def get_all_perf() -> dict:
+    """Return perf stats for all models (for /health endpoint)."""
+    return {m: get_model_perf(m) for m in _perf_stats}
 
 
 # ---------------------------------------------------------------------------
@@ -314,6 +439,18 @@ def _dispatch(cfg: dict, messages: list[dict], system: str, tok_limit: int, temp
             os.environ["TOGETHER_API_KEY"],
             model_id, messages, system, tok_limit, temperature,
         )
+    elif provider == "xai":
+        return _call_openai_compatible(
+            "https://api.x.ai/v1/chat/completions",
+            os.environ.get("XAI_API_KEY", ""),
+            model_id, messages, system, tok_limit, temperature,
+        )
+    elif provider == "mistral":
+        return _call_openai_compatible(
+            "https://api.mistral.ai/v1/chat/completions",
+            os.environ.get("MISTRAL_API_KEY", ""),
+            model_id, messages, system, tok_limit, temperature,
+        )
     else:
         raise ModelNotFoundError(f"Unknown provider: {provider}")
 
@@ -355,10 +492,15 @@ def call_model(
             provider = cfg["provider"]
             tok_limit = max_tokens or cfg["max_tokens"]
 
+    t0 = _time.time()
     try:
         result = _dispatch(cfg, messages, system, tok_limit, temperature)
+        latency_ms = (_time.time() - t0) * 1000
+        _record_perf(canonical, latency_ms, True)
         _record_success(provider)
     except Exception as exc:
+        latency_ms = (_time.time() - t0) * 1000
+        _record_perf(canonical, latency_ms, False)
         _log.warning("Provider %s failed for %s: %s", provider, canonical, type(exc).__name__)
         _record_failure(provider)
         # Try fallback
@@ -367,7 +509,10 @@ def call_model(
             fb_cfg = get_model_config(fallback)
             fb_provider = fb_cfg["provider"]
             fb_tok_limit = max_tokens or fb_cfg["max_tokens"]
+            fb_t0 = _time.time()
             result = _dispatch(fb_cfg, messages, system, fb_tok_limit, temperature)
+            fb_latency = (_time.time() - fb_t0) * 1000
+            _record_perf(fb_cfg["canonical_name"], fb_latency, True)
             _record_success(fb_provider)
             canonical = fb_cfg["canonical_name"]
             provider = fb_provider
@@ -386,6 +531,95 @@ def call_model(
         "cost_usd": cost,
         "selected_reason": selected_reason,
     }
+
+def call_model_stream(
+    model: str,
+    messages: list[dict],
+    system: str = "",
+    max_tokens: int | None = None,
+    temperature: float = 0.7,
+):
+    """Stream tokens from any supported model. Yields dicts:
+    - {"text": "chunk"} for each text chunk
+    - {"done": True, "model": ..., "cost_usd": ..., "input_tokens": ..., "output_tokens": ...} at the end
+    Falls back to blocking call_model() for providers without streaming support.
+    """
+    if model == "auto":
+        task_text = ""
+        for m in messages:
+            if m.get("role") == "user":
+                task_text = m.get("content", "")
+                break
+        selection = auto_select_model(task_text)
+        model = selection["model"]
+
+    cfg = get_model_config(model)
+    canonical = cfg["canonical_name"]
+    provider = cfg["provider"]
+    tok_limit = max_tokens or cfg["max_tokens"]
+
+    if not _check_circuit(provider):
+        fallback = _get_fallback_model(canonical)
+        if fallback:
+            cfg = get_model_config(fallback)
+            canonical = cfg["canonical_name"]
+            provider = cfg["provider"]
+            tok_limit = max_tokens or cfg["max_tokens"]
+
+    try:
+        if provider == "anthropic":
+            yield from _stream_anthropic(cfg["model_id"], messages, system, tok_limit, temperature, canonical)
+        elif provider == "openai":
+            yield from _stream_openai(cfg["model_id"], messages, system, tok_limit, temperature, canonical)
+        else:
+            # Fallback: blocking call, yield entire text as one chunk
+            result = call_model(model, messages, system=system, max_tokens=max_tokens, temperature=temperature)
+            yield {"text": result["text"]}
+            yield {"done": True, "model": canonical, "cost_usd": result["cost_usd"],
+                   "input_tokens": result["input_tokens"], "output_tokens": result["output_tokens"]}
+        _record_success(provider)
+    except Exception as exc:
+        _log.warning("Stream failed for %s/%s: %s", provider, canonical, exc)
+        _record_failure(provider)
+        raise
+
+
+def _stream_anthropic(model_id, messages, system, max_tokens, temperature, canonical):
+    client = _get_anthropic_client()
+    kwargs = dict(model=model_id, messages=messages, max_tokens=max_tokens, temperature=temperature)
+    if system:
+        kwargs["system"] = system
+    with client.messages.stream(**kwargs) as stream:
+        for text in stream.text_stream:
+            yield {"text": text}
+        resp = stream.get_final_message()
+    cost = calculate_cost(canonical, resp.usage.input_tokens, resp.usage.output_tokens)
+    yield {"done": True, "model": canonical, "cost_usd": cost,
+           "input_tokens": resp.usage.input_tokens, "output_tokens": resp.usage.output_tokens}
+
+
+def _stream_openai(model_id, messages, system, max_tokens, temperature, canonical):
+    client = _get_openai_client()
+    msgs = []
+    if system:
+        msgs.append({"role": "system", "content": system})
+    msgs.extend(messages)
+    stream = client.chat.completions.create(
+        model=model_id, messages=msgs, max_tokens=max_tokens, temperature=temperature, stream=True,
+    )
+    full_text = ""
+    for chunk in stream:
+        if chunk.choices and chunk.choices[0].delta.content:
+            text = chunk.choices[0].delta.content
+            full_text += text
+            yield {"text": text}
+    # Estimate tokens (OpenAI streaming doesn't give exact counts in every chunk)
+    est_input = sum(len(m.get("content", "").split()) * 1.3 for m in msgs)
+    est_output = len(full_text.split()) * 1.3
+    cost = calculate_cost(canonical, int(est_input), int(est_output))
+    yield {"done": True, "model": canonical, "cost_usd": cost,
+           "input_tokens": int(est_input), "output_tokens": int(est_output)}
+
 
 # ---------------------------------------------------------------------------
 # Provider implementations
@@ -549,37 +783,136 @@ def _classify_task(task_text: str) -> dict:
 
 
 _MODEL_TIERS = {
-    "low": ["claude-haiku", "gpt-4o-mini", "gemini-2.5-flash", "deepseek-v3"],
-    "mid": ["claude-sonnet", "gpt-4o", "gemini-2.5-pro"],
+    "low": ["claude-haiku", "gpt-4o-mini", "gemini-2.5-flash", "deepseek-v3", "grok-3-mini", "mistral-small"],
+    "mid": ["claude-sonnet", "gpt-4o", "gemini-2.5-pro", "grok-3", "mistral-large-direct"],
     "high": ["claude-opus", "deepseek-r1"],
 }
 
+# Domain-specific model preferences (model -> bonus score for that domain)
+_DOMAIN_PREFERENCES: dict[str, dict[str, float]] = {
+    "code": {"deepseek-v3": 0.3, "deepseek-r1": 0.2, "claude-sonnet": 0.15, "gpt-4o": 0.1},
+    "reasoning": {"claude-opus": 0.3, "deepseek-r1": 0.25, "claude-sonnet": 0.15, "gemini-2.5-pro": 0.1},
+    "creative": {"claude-sonnet": 0.2, "claude-opus": 0.15, "gpt-4o": 0.15, "grok-3": 0.1},
+    "research": {"gemini-2.5-pro": 0.2, "claude-sonnet": 0.15, "gpt-4o": 0.1},
+    "data": {"deepseek-v3": 0.2, "gpt-4o-mini": 0.1},
+    "finance": {"claude-sonnet": 0.15, "gpt-4o": 0.15},
+    "general": {},
+}
 
-def auto_select_model(task_text: str, max_cost_usd: float | None = None, needs_vision: bool | None = None) -> dict:
+# ---------------------------------------------------------------------------
+# Outcome-based feedback loop — adjusts domain preferences dynamically
+# ---------------------------------------------------------------------------
+
+from collections import deque as _deque
+
+_OUTCOME_WINDOW = 20  # rolling window size per model+domain
+_outcome_stats: dict[str, dict[str, _deque]] = {}  # {model: {domain: deque([scores])}}
+
+
+def record_outcome(model: str, domain: str, quality_score: float) -> None:
+    """Record a quality outcome (0.0–1.0) for a model+domain pair.
+    0.0 = failure, 0.5 = neutral, 1.0 = excellent."""
+    quality_score = max(0.0, min(1.0, quality_score))
+    if model not in _outcome_stats:
+        _outcome_stats[model] = {}
+    if domain not in _outcome_stats[model]:
+        _outcome_stats[model][domain] = _deque(maxlen=_OUTCOME_WINDOW)
+    _outcome_stats[model][domain].append(quality_score)
+
+
+def get_outcome_adjustment(model: str, domain: str) -> float:
+    """Get dynamic score adjustment based on recorded outcomes.
+    Returns a value in [-0.1, +0.1] to add to the auto_select score."""
+    stats = _outcome_stats.get(model, {}).get(domain)
+    if not stats or len(stats) < 3:
+        return 0.0
+    avg = sum(stats) / len(stats)
+    return (avg - 0.5) * 0.2  # maps [0,1] -> [-0.1, +0.1]
+
+
+def get_all_outcomes() -> dict:
+    """Return all outcome stats for debugging/display."""
+    result = {}
+    for model, domains in _outcome_stats.items():
+        result[model] = {}
+        for domain, scores in domains.items():
+            s = list(scores)
+            result[model][domain] = {
+                "count": len(s),
+                "avg": round(sum(s) / len(s), 3) if s else 0,
+                "recent": [round(x, 3) for x in s[-5:]],
+            }
+    return result
+
+
+def auto_select_model(task_text: str, max_cost_usd: float | None = None,
+                      needs_vision: bool | None = None, prefer_fast: bool = False) -> dict:
+    """Score all eligible models and pick the best one."""
     classification = _classify_task(task_text)
     if needs_vision is not None:
         classification["needs_vision"] = needs_vision
+
     c = classification["complexity"]
-    if c <= 2:
-        tier = "low"
-    elif c <= 3:
-        tier = "mid"
-    else:
-        tier = "high"
-    candidates = list(_MODEL_TIERS[tier])
-    if classification["needs_vision"]:
-        candidates = [m for m in candidates if MODEL_REGISTRY[m].get("vision")]
-        if not candidates:
-            candidates = [m for m, cfg in MODEL_REGISTRY.items() if cfg.get("vision")]
-    if max_cost_usd is not None:
-        affordable = [m for m in candidates if calculate_cost(m, 500, 500) <= max_cost_usd]
-        if affordable:
-            candidates = affordable
+    domain = classification["domain"]
+    candidates = []
+
+    for name, cfg in MODEL_REGISTRY.items():
+        if classification["needs_vision"] and not cfg.get("vision"):
+            continue
+        if max_cost_usd is not None:
+            est = calculate_cost(name, 500, 500)
+            if est > max_cost_usd:
+                continue
+
+        score = 0.0
+        tier = cfg.get("latency_tier", "medium")
+
+        # 1. Complexity-tier match (0 to 1.0)
+        if c <= 2:
+            score += {"fast": 1.0, "medium": 0.4, "slow": 0.1}[tier]
+        elif c <= 3:
+            score += {"fast": 0.4, "medium": 1.0, "slow": 0.6}[tier]
         else:
-            all_models = sorted(MODEL_REGISTRY.keys(), key=lambda m: calculate_cost(m, 500, 500))
-            if classification["needs_vision"]:
-                all_models = [m for m in all_models if MODEL_REGISTRY[m].get("vision")]
-            candidates = [all_models[0]] if all_models else candidates
-    selected = candidates[0]
-    reason = f"complexity={c}/5, tier={tier}, vision={classification['needs_vision']}"
+            score += {"fast": 0.1, "medium": 0.5, "slow": 1.0}[tier]
+
+        # 2. Domain preference bonus (0 to 0.3) + dynamic feedback adjustment
+        domain_prefs = _DOMAIN_PREFERENCES.get(domain, {})
+        score += domain_prefs.get(name, 0.0)
+        score += get_outcome_adjustment(name, domain)
+
+        # 3. Strength match bonus (0 to 0.2)
+        strengths = cfg.get("strengths", [])
+        if domain in strengths:
+            score += 0.2
+        if classification["needs_reasoning"] and "reasoning" in strengths:
+            score += 0.15
+
+        # 4. Cost efficiency (0 to 0.3) — cheaper is better for equal capability
+        cost_per_1k = (cfg["input_cost_per_m"] + cfg["output_cost_per_m"]) / 2000
+        max_cost_per_1k = 45.0
+        cost_score = 0.3 * (1 - min(cost_per_1k / max_cost_per_1k, 1.0))
+        score += cost_score
+
+        # 5. Latency preference (for prefer_fast or simple tasks)
+        if prefer_fast or c <= 1:
+            latency_scores = {"fast": 1.0, "medium": 0.6, "slow": 0.3}
+            score += latency_scores.get(tier, 0.5) * 0.3
+
+        # 6. Runtime performance bonus (if we have data)
+        perf = get_model_perf(name)
+        if perf["calls"] >= 5:
+            score -= perf["error_rate"] * 0.5
+            if perf["p50_ms"] and perf["p50_ms"] < 2000:
+                score += 0.1
+
+        candidates.append((name, score))
+
+    if not candidates:
+        candidates = [("claude-haiku", 0.0)]
+
+    candidates.sort(key=lambda x: -x[1])
+    selected = candidates[0][0]
+    top3 = [(n, round(s, 3)) for n, s in candidates[:3]]
+
+    reason = f"complexity={c}/5, domain={domain}, top3={top3}"
     return {"model": selected, "reason": reason, "classification": classification}

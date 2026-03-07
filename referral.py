@@ -67,8 +67,8 @@ def register_referral_agent(agent_id: str, label: str = None, api_key: str = Non
         )
     return {
         "agent_id": agent_id,
-        "referral_url": f"https://api.aipaygent.xyz/?ref={agent_id}",
-        "buy_referral_url": f"https://api.aipaygent.xyz/buy-credits?ref={agent_id}",
+        "referral_url": f"https://api.aipaygen.com/?ref={agent_id}",
+        "buy_referral_url": f"https://api.aipaygen.com/buy-credits?ref={agent_id}",
         "commission_rate": f"{int(COMMISSION_RATE * 100)}%",
         "label": label or agent_id,
         "created_at": now,
@@ -134,7 +134,7 @@ def get_referral_stats(agent_id: str) -> dict:
         ).fetchall()
     d = dict(agent)
     d["recent_conversions"] = [dict(r) for r in recent]
-    d["referral_url"] = f"https://api.aipaygent.xyz/?ref={agent_id}"
+    d["referral_url"] = f"https://api.aipaygen.com/?ref={agent_id}"
     d["commission_rate"] = f"{int(COMMISSION_RATE * 100)}%"
     return d
 
@@ -149,6 +149,6 @@ def get_referral_leaderboard(limit: int = 20) -> list:
     result = []
     for r in rows:
         d = dict(r)
-        d["referral_url"] = f"https://api.aipaygent.xyz/?ref={d['agent_id']}"
+        d["referral_url"] = f"https://api.aipaygen.com/?ref={d['agent_id']}"
         result.append(d)
     return result

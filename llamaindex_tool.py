@@ -1,5 +1,5 @@
 """
-AiPayGent LlamaIndex Tool
+AiPayGen LlamaIndex Tool
 =========================
 Drop this file into any LlamaIndex project to give your agent access to
 80+ paid AI endpoints via x402 micropayments.
@@ -8,9 +8,9 @@ Install:
     pip install llama-index-core requests
 
 Usage:
-    from llamaindex_tool import AiPayGentToolSpec
+    from llamaindex_tool import AiPayGenToolSpec
 
-    tool_spec = AiPayGentToolSpec(x402_token="your_token")
+    tool_spec = AiPayGenToolSpec(x402_token="your_token")
     tools = tool_spec.to_tool_list()
 
     from llama_index.core.agent import ReActAgent
@@ -27,8 +27,8 @@ import json
 import requests
 from typing import Optional
 
-BASE_URL = os.getenv("AIPAYGENT_BASE_URL", "https://api.aipaygent.xyz")
-DEFAULT_TOKEN = os.getenv("AIPAYGENT_TOKEN", "")
+BASE_URL = os.getenv("AIPAYGEN_BASE_URL", "https://api.aipaygen.com")
+DEFAULT_TOKEN = os.getenv("AIPAYGEN_TOKEN", "")
 
 
 def _call(endpoint: str, payload: dict, token: str = "") -> dict:
@@ -57,8 +57,8 @@ except ImportError:
     BaseToolSpec = object
 
 
-class AiPayGentToolSpec(BaseToolSpec):
-    """LlamaIndex ToolSpec for AiPayGent — 80+ AI endpoints via x402."""
+class AiPayGenToolSpec(BaseToolSpec):
+    """LlamaIndex ToolSpec for AiPayGen — 80+ AI endpoints via x402."""
 
     spec_functions = [
         "research", "summarize", "analyze", "sentiment",
@@ -175,7 +175,7 @@ class AiPayGentToolSpec(BaseToolSpec):
 
     def get_catalog(self, category: str = None, min_score: float = 6.0) -> str:
         """
-        Browse 200+ discovered APIs in the AiPayGent catalog.
+        Browse 200+ discovered APIs in the AiPayGen catalog.
         Args:
             category: Filter by category (weather, finance, geo, health, etc.) or None for all
             min_score: Minimum quality score 0-10 (default 6.0)
@@ -264,8 +264,8 @@ class AiPayGentToolSpec(BaseToolSpec):
 
 def demo():
     """Quick test without LlamaIndex installed."""
-    print("Testing AiPayGentToolSpec free methods...")
-    spec = AiPayGentToolSpec()
+    print("Testing AiPayGenToolSpec free methods...")
+    spec = AiPayGenToolSpec()
     print(spec.get_time())
     print(spec.get_catalog("weather", min_score=7.0))
     print("OK")

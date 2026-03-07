@@ -1,5 +1,5 @@
 """
-Discovery Engine — autonomous outreach to grow AiPayGent's presence.
+Discovery Engine — autonomous outreach to grow AiPayGen's presence.
 
 Runs via APScheduler:
   - Hourly: ping agent directories
@@ -16,7 +16,7 @@ import requests
 from datetime import datetime, timedelta
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
-BASE_URL = os.getenv("BASE_URL", "https://api.aipaygent.xyz")
+BASE_URL = os.getenv("BASE_URL", "https://api.aipaygen.com")
 DB_PATH = os.path.join(os.path.dirname(__file__), "discovery_engine.db")
 
 MAX_PRS_PER_DAY = 3      # don't spam GitHub
@@ -108,7 +108,7 @@ def _gh_headers():
     return {
         "Authorization": f"token {GITHUB_TOKEN}",
         "Accept": "application/vnd.github.v3+json",
-        "User-Agent": "AiPayGent-DiscoveryBot/1.0",
+        "User-Agent": "AiPayGen-DiscoveryBot/1.0",
     }
 
 
@@ -120,27 +120,27 @@ AWESOME_LIST_TARGETS = [
     (
         "public-apis/public-apis",
         "Machine Learning",
-        "| AiPayGent | Claude-powered AI API — research, write, code, analyze, 140+ endpoints. First 10 calls/day free. | No | Yes | Yes |",
+        "| AiPayGen | Claude-powered AI API — research, write, code, analyze, 140+ endpoints. First 10 calls/day free. | No | Yes | Yes |",
     ),
     (
         "humanloop/awesome-ai-agents",
         "APIs",
-        "- [AiPayGent](https://api.aipaygent.xyz) - Pay-per-use Claude AI API with 140+ endpoints. Agent messaging, task board, file storage, webhook relay. 10 free calls/day.",
+        "- [AiPayGen](https://api.aipaygen.com) - Pay-per-use Claude AI API with 140+ endpoints. Agent messaging, task board, file storage, webhook relay. 10 free calls/day.",
     ),
     (
         "e2b-dev/awesome-ai-agents",
         "Tools",
-        "- [AiPayGent](https://api.aipaygent.xyz) — Claude-powered pay-per-use API. 140+ endpoints: AI, scraping, real-time data, file storage, webhook relay. Free tier included.",
+        "- [AiPayGen](https://api.aipaygen.com) — Claude-powered pay-per-use API. 140+ endpoints: AI, scraping, real-time data, file storage, webhook relay. Free tier included.",
     ),
     (
         "punkpeye/awesome-mcp-servers",
         "Tools",
-        "- [aipaygent-mcp](https://api.aipaygent.xyz/sdk) - 79 MCP tools: research, write, code, analyze, scrape, memory, and more. All Claude-powered.",
+        "- [aipaygen-mcp](https://api.aipaygen.com/sdk) - 79 MCP tools: research, write, code, analyze, scrape, memory, and more. All Claude-powered.",
     ),
     (
         "sindresorhus/awesome",
         "Programming",
-        "- [AiPayGent](https://api.aipaygent.xyz) - Pay-per-use AI API with 140+ Claude-powered endpoints.",
+        "- [AiPayGen](https://api.aipaygen.com) - Pay-per-use AI API with 140+ Claude-powered endpoints.",
     ),
 ]
 
@@ -170,7 +170,7 @@ def _try_pr_awesome_list(repo: str, section: str, entry: str) -> dict:
     try:
         resp = requests.get(
             f"https://api.github.com/search/code",
-            params={"q": f"aipaygent repo:{repo}"},
+            params={"q": f"aipaygen repo:{repo}"},
             headers=_gh_headers(),
             timeout=10,
         )
@@ -218,7 +218,7 @@ def _try_pr_awesome_list(repo: str, section: str, entry: str) -> dict:
         return {"status": "error", "detail": str(e)}
 
     # 4. Add our entry near the relevant section
-    if "aipaygent" in readme_content.lower():
+    if "aipaygen" in readme_content.lower():
         _log("github_check", f"github_pr:{repo}", "already_listed_in_readme")
         return {"status": "already_listed"}
 
@@ -239,7 +239,7 @@ def _try_pr_awesome_list(repo: str, section: str, entry: str) -> dict:
 
     # 5. Create a new branch and commit
     import base64 as _b64
-    branch_name = f"add-aipaygent-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+    branch_name = f"add-aipaygen-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
 
     # Get the fork's default branch SHA
     try:
@@ -268,7 +268,7 @@ def _try_pr_awesome_list(repo: str, section: str, entry: str) -> dict:
         update_resp = requests.put(
             f"https://api.github.com/repos/{fork_name}/contents/{readme_path}",
             json={
-                "message": f"Add AiPayGent — Claude-powered pay-per-use AI API",
+                "message": f"Add AiPayGen — Claude-powered pay-per-use AI API",
                 "content": _b64.b64encode(new_content.encode()).decode(),
                 "sha": fork_sha,
                 "branch": branch_name,
@@ -283,18 +283,18 @@ def _try_pr_awesome_list(repo: str, section: str, entry: str) -> dict:
         pr_resp = requests.post(
             f"https://api.github.com/repos/{repo}/pulls",
             json={
-                "title": "Add AiPayGent — Claude-powered pay-per-use AI API",
+                "title": "Add AiPayGen — Claude-powered pay-per-use AI API",
                 "body": (
-                    "## Add AiPayGent\n\n"
-                    "AiPayGent is a pay-per-use Claude AI API with 140+ endpoints:\n\n"
+                    "## Add AiPayGen\n\n"
+                    "AiPayGen is a pay-per-use Claude AI API with 140+ endpoints:\n\n"
                     "- **AI**: research, write, code, analyze, translate, classify, RAG, vision, diagrams\n"
                     "- **Data**: weather, crypto, stocks, Wikipedia, arXiv, GitHub trending, YouTube transcripts\n"
                     "- **Agent infra**: messaging, task board, file storage, webhook relay, async jobs\n"
                     "- **Scraping**: Google Maps, Twitter, LinkedIn, YouTube, TikTok\n\n"
                     "**First 10 calls/day free** — no API key needed.\n\n"
-                    "API: https://api.aipaygent.xyz\n"
-                    "OpenAPI spec: https://api.aipaygent.xyz/openapi.json\n"
-                    "MCP tools: https://api.aipaygent.xyz/sdk"
+                    "API: https://api.aipaygen.com\n"
+                    "OpenAPI spec: https://api.aipaygen.com/openapi.json\n"
+                    "MCP tools: https://api.aipaygen.com/sdk"
                 ),
                 "head": f"djautomd-lab:{branch_name}",
                 "base": default_branch,
@@ -320,7 +320,7 @@ AGENT_DIRECTORIES = [
     # Directories that accept programmatic agent registration
     {
         "name": "AgentsFYI",
-        "url": "https://api.aipaygent.xyz/agents/register",  # our own, but pinging keeps it fresh
+        "url": "https://api.aipaygen.com/agents/register",  # our own, but pinging keeps it fresh
         "method": "internal",
     },
 ]
@@ -382,16 +382,16 @@ def generate_blog_post(slug: str, title: str, endpoint: str, claude_client) -> s
     """Generate a blog post tutorial for an endpoint using Claude."""
     prompt = f"""Write a comprehensive developer tutorial blog post titled "{title}".
 
-This is for AiPayGent (https://api.aipaygent.xyz) — a pay-per-use Claude AI API with 140+ endpoints.
+This is for AiPayGen (https://api.aipaygen.com) — a pay-per-use Claude AI API with 140+ endpoints.
 The first 10 calls/day are free. After that, users pay with a prepaid API key or USDC on Base.
 
 The post should:
 1. Explain the problem being solved
-2. Show how to use the relevant AiPayGent endpoint(s) with real curl + Python examples
+2. Show how to use the relevant AiPayGen endpoint(s) with real curl + Python examples
 3. Include example responses
 4. Mention the 10 free calls/day and /buy-credits for more
 5. Be 600-900 words, written for developers
-6. End with links to https://api.aipaygent.xyz/discover and https://api.aipaygent.xyz/openapi.json
+6. End with links to https://api.aipaygen.com/discover and https://api.aipaygen.com/openapi.json
 
 Focus on the "{endpoint}" endpoint category. Make examples concrete and copy-pasteable.
 Return only the blog post content in clean HTML (no doctype, just article body tags)."""
@@ -423,7 +423,7 @@ def generate_all_blog_posts(claude_client, force: bool = False):
                     (slug, title, content, endpoint, now),
                 )
             results.append({"slug": slug, "status": "generated"})
-            new_urls.append(f"https://api.aipaygent.xyz/blog/{slug}")
+            new_urls.append(f"https://api.aipaygen.com/blog/{slug}")
             _log("blog_generated", slug, "ok", title)
             time.sleep(1)  # avoid rate limits
         except Exception as e:
@@ -591,14 +591,14 @@ def _fetch_hn_stories(limit: int = 30) -> list:
 
 def _ping_indexnow(urls: list):
     """Ping IndexNow API so Bing/Yandex index new pages immediately."""
-    INDEXNOW_KEY = os.getenv("INDEXNOW_KEY", "aipaygent2026indexnow")
+    INDEXNOW_KEY = os.getenv("INDEXNOW_KEY", "aipaygen2026indexnow")
     try:
         requests.post(
             "https://api.indexnow.org/indexnow",
             json={
-                "host": "api.aipaygent.xyz",
+                "host": "api.aipaygen.com",
                 "key": INDEXNOW_KEY,
-                "keyLocation": f"https://api.aipaygent.xyz/{INDEXNOW_KEY}.txt",
+                "keyLocation": f"https://api.aipaygen.com/{INDEXNOW_KEY}.txt",
                 "urlList": urls,
             },
             timeout=8,
@@ -634,10 +634,10 @@ def generate_trending_blog_posts(claude_client) -> dict:
             prompt = f"""Write a concise developer blog post (400-600 words) about this trending topic:
 "{title}"
 
-This is for AiPayGent (https://api.aipaygent.xyz) — a pay-per-use Claude AI API.
-Connect the topic to how AiPayGent can help developers working in this space.
-Show a concrete curl or Python code example using the most relevant AiPayGent endpoint.
-End with: "Try it free at https://api.aipaygent.xyz — 10 calls/day, no credit card."
+This is for AiPayGen (https://api.aipaygen.com) — a pay-per-use Claude AI API.
+Connect the topic to how AiPayGen can help developers working in this space.
+Show a concrete curl or Python code example using the most relevant AiPayGen endpoint.
+End with: "Try it free at https://api.aipaygen.com — 10 calls/day, no credit card."
 Return only clean HTML article body (no doctype/head tags)."""
 
             msg = claude_client.messages.create(
@@ -655,7 +655,7 @@ Return only clean HTML article body (no doctype/head tags)."""
                     (slug, blog_title, content, "trending", now),
                 )
             results.append({"slug": slug, "title": blog_title, "status": "generated"})
-            new_urls.append(f"https://api.aipaygent.xyz/blog/{slug}")
+            new_urls.append(f"https://api.aipaygen.com/blog/{slug}")
             _log("trending_blog", slug, "ok", blog_title)
             time.sleep(2)
         except Exception as e:

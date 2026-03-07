@@ -1,8 +1,8 @@
 """
-AiPayGent MCP Server — 50+ tools
+AiPayGen MCP Server — 65+ metered tools
 
-Exposes all AiPayGent capabilities as MCP tools.
-No x402 payment needed via MCP — all tools call Claude/Apify directly.
+Exposes all AiPayGen capabilities as MCP tools with usage metering.
+10 free calls/day without an API key. Unlimited with a prepaid key.
 
 Usage:
   stdio (Claude Code / Cursor / Cline):
@@ -11,17 +11,22 @@ Usage:
   SSE (deployed):
     python mcp_server.py --http
 
+  With API key (unlimited):
+    AIPAYGEN_API_KEY=apk_xxx python mcp_server.py
+
 Add to Claude Code:
-  claude mcp add aipaygent -- python /path/to/mcp_server.py
+  claude mcp add aipaygen -- python /path/to/mcp_server.py
 """
 
 import sys
 import os
+import functools
+import hashlib
 
 sys.path.insert(0, os.path.dirname(__file__))
 
 from mcp.server.fastmcp import FastMCP
-from app import (
+from routes.ai_tools import (
     research_inner, summarize_inner, analyze_inner, translate_inner,
     social_inner, write_inner, code_inner, extract_inner, qa_inner,
     classify_inner, sentiment_inner, keywords_inner, compare_inner,
@@ -44,237 +49,348 @@ from apify_client import run_actor_sync
 from agent_network import (
     send_message, get_inbox, add_knowledge, search_knowledge,
     get_trending_topics, submit_task, browse_tasks, get_task,
+    check_and_use_free_tier, get_free_tier_remaining,
 )
+from api_keys import validate_key, deduct
+from skills_search import SkillsSearchEngine
 from mcp.server.transport_security import TransportSecuritySettings
 import requests as _mcp_requests
 
+# ── Skills search engine (direct, no HTTP round-trip) ─────────────────────────
+_skills_db_path = os.path.join(os.path.dirname(__file__), "skills.db")
+_skills_engine = SkillsSearchEngine(_skills_db_path)
+
 mcp = FastMCP(
-    "AiPayGent",
+    "AiPayGen",
     instructions=(
-        "AiPayGent is an AI agent API marketplace with 65+ tools. "
+        "AiPayGen is an AI agent API marketplace with 65+ tools. "
         "Capabilities: research, write, code, translate, analyze, summarize, vision (image analysis), "
         "RAG (document Q&A), diagram generation, workflow orchestration, chain (pipeline multiple AI steps), "
         "web scraping (Google Maps, Twitter, Instagram, LinkedIn, YouTube, TikTok), "
         "persistent agent memory (survives sessions), agent marketplace (list & discover agent services), "
-        "and a catalog of 500+ discovered APIs. "
-        "All tools run directly — no x402 payment needed via MCP. "
-        "For HTTP access: https://api.aipaygent.xyz"
+        "a catalog of 500+ discovered APIs, and 646+ searchable skills. "
+        "\n\n"
+        "PRICING: Set AIPAYGEN_API_KEY env var for unlimited metered access. "
+        "Without a key, you get 10 free calls/day. "
+        "Get a key: POST https://api.aipaygen.com/credits/buy or visit https://api.aipaygen.com/docs. "
+        "AI tools cost ~$0.006/call (3x model cost markup). Utility tools cost $0.002/call. "
+        "All results include _billing metadata with cost and remaining balance."
     ),
     host="0.0.0.0",
     port=5002,
     transport_security=TransportSecuritySettings(
-        enable_dns_rebinding_protection=True,
-        allowed_hosts=["mcp.aipaygent.xyz", "localhost", "127.0.0.1"],
-        allowed_origins=["https://mcp.aipaygent.xyz"],
+        enable_dns_rebinding_protection=False,
     ),
 )
 
+# ── Metered Tool Decorator ────────────────────────────────────────────────────
 
-@mcp.tool()
+# Flat costs per tier (USD)
+_TIER_COSTS = {
+    "ai": 0.006,        # AI tools (LLM calls) — ~3x typical model cost
+    "ai_heavy": 0.02,   # Heavy AI (workflow, pipeline, batch, chain)
+    "scraping": 0.01,   # Web scraping (Apify costs)
+    "standard": 0.002,  # Non-AI tools (data lookups, memory, etc.)
+    "free": 0.0,        # Always free (time, uuid, jokes)
+}
+
+_PURCHASE_ERROR = {
+    "error": "free_tier_exhausted",
+    "message": "You've used all 10 free calls for today. Get unlimited access with an API key.",
+    "how_to_get_key": {
+        "stripe": "POST https://api.aipaygen.com/credits/buy with {\"amount_usd\": 5.0}",
+        "mcp_tool": "Call the generate_api_key tool right here",
+        "docs": "https://api.aipaygen.com/docs",
+    },
+    "note": "Free tier resets at midnight UTC. API keys get 20% bulk discount at $2+ balance.",
+}
+
+
+def metered_tool(tier: str = "standard"):
+    """Decorator that wraps @mcp.tool() with API key validation and free-tier metering."""
+    cost = _TIER_COSTS.get(tier, 0.002)
+
+    def decorator(fn):
+        @mcp.tool()
+        @functools.wraps(fn)
+        def wrapper(*args, **kwargs):
+            api_key = os.environ.get("AIPAYGEN_API_KEY", "")
+            client_id = os.environ.get("AIPAYGEN_CLIENT_ID", "mcp_anonymous")
+
+            # Free tier tools — always pass through
+            if tier == "free":
+                result = fn(*args, **kwargs)
+                if isinstance(result, dict):
+                    result["_billing"] = {"cost_usd": 0.0, "tier": "free"}
+                return result
+
+            # With API key — validate and deduct
+            if api_key.startswith("apk_"):
+                key_data = validate_key(api_key)
+                if not key_data:
+                    return {"error": "invalid_api_key", "message": "API key is invalid or inactive."}
+                if key_data.get("balance_usd", 0) < cost:
+                    return {
+                        "error": "insufficient_balance",
+                        "balance_usd": key_data.get("balance_usd", 0),
+                        "cost_usd": cost,
+                        "topup": "POST https://api.aipaygen.com/credits/buy",
+                    }
+
+                # Execute the tool
+                result = fn(*args, **kwargs)
+
+                # Calculate actual cost: use cost_usd from result if AI tool, else flat
+                actual_cost = cost
+                if tier in ("ai", "ai_heavy") and isinstance(result, dict):
+                    model_cost = result.get("cost_usd", 0)
+                    if model_cost and model_cost > 0:
+                        actual_cost = round(model_cost * 3, 6)  # 3x markup on actual model cost
+                        actual_cost = max(actual_cost, 0.001)    # floor
+
+                # Deduct
+                deducted = deduct(api_key, actual_cost)
+                remaining = (key_data.get("balance_usd", 0) - actual_cost) if deducted else key_data.get("balance_usd", 0)
+
+                if isinstance(result, dict):
+                    result["_billing"] = {
+                        "cost_usd": actual_cost,
+                        "balance_remaining": round(remaining, 6),
+                        "tier": tier,
+                        "payment": "api_key",
+                    }
+                return result
+
+            # Without API key — free tier (10/day)
+            identifier = hashlib.sha256(client_id.encode()).hexdigest()[:16]
+            if not check_and_use_free_tier(identifier):
+                return _PURCHASE_ERROR
+
+            result = fn(*args, **kwargs)
+            remaining_calls = get_free_tier_remaining(identifier)
+            if isinstance(result, dict):
+                result["_billing"] = {
+                    "cost_usd": 0.0,
+                    "tier": "free_tier",
+                    "free_calls_remaining": remaining_calls,
+                    "daily_limit": 10,
+                    "upgrade": "Set AIPAYGEN_API_KEY env var for unlimited access",
+                }
+            return result
+
+        return wrapper
+    return decorator
+
+
+# ── AI Processing Tools (34 core + 6 advanced) ───────────────────────────────
+
+@metered_tool("ai")
 def research(topic: str) -> dict:
     """Research a topic. Returns structured summary, key points, and sources to check."""
     return research_inner(topic)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def summarize(text: str, length: str = "short") -> dict:
     """Summarize long text. length: short | medium | detailed"""
     return summarize_inner(text, length)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def analyze(content: str, question: str = "Provide a structured analysis") -> dict:
     """Deep structured analysis of content. Returns conclusion, findings, sentiment, confidence."""
     return analyze_inner(content, question)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def translate(text: str, language: str = "Spanish") -> dict:
     """Translate text to any language."""
     return translate_inner(text, language)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def social(topic: str, platforms: list[str] = None, tone: str = "engaging") -> dict:
     """Generate platform-optimized social media posts for Twitter, LinkedIn, Instagram, etc."""
     return social_inner(topic, platforms or ["twitter", "linkedin", "instagram"], tone)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def write(spec: str, type: str = "article") -> dict:
     """Write articles, copy, or content to your specification. type: article | post | copy"""
     return write_inner(spec, type)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def code(description: str, language: str = "Python") -> dict:
     """Generate production-ready code in any language from a plain-English description."""
     return code_inner(description, language)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def extract(text: str, fields: list[str] = None, schema: str = "") -> dict:
     """Extract structured data from unstructured text. Define fields or a schema."""
     return extract_inner(text, schema, fields or [])
 
 
-@mcp.tool()
+@metered_tool("ai")
 def qa(context: str, question: str) -> dict:
     """Q&A over a document. Returns answer, confidence score, and source quote."""
     return qa_inner(context, question)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def classify(text: str, categories: list[str]) -> dict:
     """Classify text into your defined categories with per-category confidence scores."""
     return classify_inner(text, categories)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def sentiment(text: str) -> dict:
     """Deep sentiment analysis: polarity, score, emotions, confidence, key phrases."""
     return sentiment_inner(text)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def keywords(text: str, max_keywords: int = 10) -> dict:
     """Extract keywords, topics, and tags from any text."""
     return keywords_inner(text, max_keywords)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def compare(text_a: str, text_b: str, focus: str = "") -> dict:
     """Compare two texts: similarities, differences, similarity score, recommendation."""
     return compare_inner(text_a, text_b, focus)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def transform(text: str, instruction: str) -> dict:
     """Transform text with any instruction: rewrite, reformat, expand, condense, change tone."""
     return transform_inner(text, instruction)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def chat(messages: list[dict], system: str = "") -> dict:
     """Stateless multi-turn chat. Send full message history, get Claude reply."""
     return chat_inner(messages, system)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def plan(goal: str, context: str = "", steps: int = 7) -> dict:
     """Step-by-step action plan for any goal with effort estimate and first action."""
     return plan_inner(goal, context, steps)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def decide(decision: str, options: list[str] = None, criteria: str = "") -> dict:
     """Decision framework: pros, cons, risks, recommendation, and confidence score."""
     return decide_inner(decision, options, criteria)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def proofread(text: str, style: str = "professional") -> dict:
     """Grammar and clarity corrections with tracked changes and writing quality score."""
     return proofread_inner(text, style)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def explain(concept: str, level: str = "beginner", analogy: bool = True) -> dict:
     """Explain any concept at beginner, intermediate, or expert level with analogy."""
     return explain_inner(concept, level, analogy)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def questions(content: str, type: str = "faq", count: int = 5) -> dict:
     """Generate questions + answers from any content. type: faq | interview | quiz | comprehension"""
     return questions_inner(content, type, count)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def outline(topic: str, depth: int = 2, sections: int = 6) -> dict:
     """Generate a hierarchical outline with headings, summaries, and subsections."""
     return outline_inner(topic, depth, sections)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def email(purpose: str, tone: str = "professional", context: str = "", recipient: str = "", length: str = "medium") -> dict:
     """Compose a professional email. Returns subject line and body."""
     return email_inner(purpose, tone, context, recipient, length)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def sql(description: str, dialect: str = "postgresql", schema: str = "") -> dict:
     """Natural language to SQL. Returns query, explanation, and notes."""
     return sql_inner(description, dialect, schema)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def regex(description: str, language: str = "python", flags: str = "") -> dict:
     """Generate a regex pattern from a plain-English description with examples."""
     return regex_inner(description, language, flags)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def mock(description: str, count: int = 5, format: str = "json") -> dict:
     """Generate realistic mock data records. format: json | csv | list"""
     return mock_inner(description, min(count, 50), format)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def score(content: str, criteria: list[str] = None, scale: int = 10) -> dict:
     """Score content on a custom rubric. Returns per-criterion scores, strengths, and weaknesses."""
     return score_inner(content, criteria or ["clarity", "accuracy", "engagement"], scale)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def timeline(text: str, direction: str = "chronological") -> dict:
     """Extract or reconstruct a timeline from text. Returns dated events with significance."""
     return timeline_inner(text, direction)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def action(text: str) -> dict:
     """Extract action items, tasks, owners, and due dates from meeting notes or any text."""
     return action_inner(text)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def pitch(product: str, audience: str = "general", length: str = "30s") -> dict:
     """Generate an elevator pitch: hook, value prop, call to action, full script. length: 15s | 30s | 60s"""
     return pitch_inner(product, audience, length)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def debate(topic: str, perspective: str = "balanced") -> dict:
     """Arguments for and against any position with strength ratings and verdict."""
     return debate_inner(topic, perspective)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def headline(content: str, count: int = 5, style: str = "engaging") -> dict:
     """Generate headline variations with type labels and a best pick."""
     return headline_inner(content, count, style)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def fact(text: str, count: int = 10) -> dict:
     """Extract factual claims with verifiability scores and source hints."""
     return fact_inner(text, count)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def rewrite(text: str, audience: str = "general audience", tone: str = "neutral") -> dict:
     """Rewrite text for a specific audience, reading level, or brand voice."""
     return rewrite_inner(text, audience, tone)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def tag(text: str, taxonomy: list[str] = None, max_tags: int = 10) -> dict:
     """Auto-tag content using a taxonomy or free-form. Returns tags, primary tag, categories."""
     return tag_inner(text, taxonomy, max_tags)
 
 
-@mcp.tool()
+# ── Heavy AI Tools (multi-step) ──────────────────────────────────────────────
+
+@metered_tool("ai_heavy")
 def pipeline(steps: list[dict]) -> dict:
     """
     Chain up to 5 operations sequentially. Each step can reference the previous
@@ -290,7 +406,7 @@ def pipeline(steps: list[dict]) -> dict:
     return pipeline_inner(steps)
 
 
-@mcp.tool()
+@metered_tool("ai_heavy")
 def batch(operations: list[dict]) -> dict:
     """
     Run up to 5 independent operations in one call.
@@ -320,17 +436,15 @@ def batch(operations: list[dict]) -> dict:
     return {"results": results, "count": len(results)}
 
 
-import json
+# ── Vision & Advanced AI Tools ───────────────────────────────────────────────
 
-# ─── Vision & Advanced AI Tools ──────────────────────────────────────────────
-
-@mcp.tool()
+@metered_tool("ai")
 def vision(image_url: str, question: str = "Describe this image in detail") -> dict:
     """Analyze any image URL using Claude Vision. Ask specific questions or get a full description."""
     return vision_inner(image_url, question)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def rag(documents: str, query: str) -> dict:
     """
     Grounded Q&A using only your documents. Separate multiple documents with '---'.
@@ -339,7 +453,7 @@ def rag(documents: str, query: str) -> dict:
     return rag_inner(documents, query)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def diagram(description: str, diagram_type: str = "flowchart") -> dict:
     """
     Generate a Mermaid diagram from a plain English description.
@@ -348,19 +462,19 @@ def diagram(description: str, diagram_type: str = "flowchart") -> dict:
     return diagram_inner(description, diagram_type)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def json_schema(description: str, example: str = "") -> dict:
     """Generate a JSON Schema (draft-07) from a plain English description of your data structure."""
     return json_schema_inner(description, example)
 
 
-@mcp.tool()
+@metered_tool("ai")
 def test_cases(code_or_description: str, language: str = "python") -> dict:
     """Generate comprehensive test cases with edge cases for code or a feature description."""
     return test_cases_inner(code_or_description, language)
 
 
-@mcp.tool()
+@metered_tool("ai_heavy")
 def workflow(goal: str, context: str = "") -> dict:
     """
     Multi-step agentic reasoning using Claude Sonnet. Breaks down complex goals,
@@ -370,9 +484,9 @@ def workflow(goal: str, context: str = "") -> dict:
     return workflow_inner(goal, context)
 
 
-# ─── Agent Memory Tools ───────────────────────────────────────────────────────
+# ── Agent Memory Tools ───────────────────────────────────────────────────────
 
-@mcp.tool()
+@metered_tool("standard")
 def memory_store(agent_id: str, key: str, value: str, tags: str = "") -> dict:
     """
     Store a persistent memory for an agent. Survives across sessions.
@@ -383,32 +497,32 @@ def memory_store(agent_id: str, key: str, value: str, tags: str = "") -> dict:
     return memory_set(agent_id, key, value, tag_list)
 
 
-@mcp.tool()
+@metered_tool("standard")
 def memory_recall(agent_id: str, key: str) -> dict:
     """Retrieve a stored memory by agent_id and key. Returns value, tags, and timestamps."""
     result = memory_get(agent_id, key)
     return result or {"error": "not_found", "agent_id": agent_id, "key": key}
 
 
-@mcp.tool()
+@metered_tool("standard")
 def memory_find(agent_id: str, query: str) -> dict:
     """Search all memories for an agent by keyword. Returns ranked matching key-value pairs."""
     results = memory_search(agent_id, query)
     return {"agent_id": agent_id, "query": query, "results": results, "count": len(results)}
 
 
-@mcp.tool()
+@metered_tool("standard")
 def memory_keys(agent_id: str) -> dict:
     """List all memory keys stored for an agent, with tags and last-updated timestamps."""
     return {"agent_id": agent_id, "keys": memory_list(agent_id)}
 
 
-# ─── API Catalog Tools ────────────────────────────────────────────────────────
+# ── API Catalog Tools ────────────────────────────────────────────────────────
 
-@mcp.tool()
+@metered_tool("standard")
 def browse_catalog(category: str = "", min_score: float = 0.0, free_only: bool = False, page: int = 1) -> dict:
     """
-    Browse the AiPayGent catalog of 500+ discovered APIs.
+    Browse the AiPayGen catalog of 500+ discovered APIs.
     Filter by category (geo, finance, weather, social_media, developer, news, health, science, scraping),
     minimum quality score (0-10), or free_only to show only APIs that don't require auth.
     """
@@ -421,20 +535,53 @@ def browse_catalog(category: str = "", min_score: float = 0.0, free_only: bool =
     return {"total": total, "page": page, "showing": len(apis), "apis": apis}
 
 
-@mcp.tool()
+@metered_tool("standard")
 def get_catalog_api(api_id: int) -> dict:
     """Get full details for a specific API in the catalog by its numeric ID."""
     result = get_api(api_id)
     return result or {"error": "not_found", "api_id": api_id}
 
 
-# ─── Agent Registry Tools ─────────────────────────────────────────────────────
+@metered_tool("ai")
+def invoke_catalog_api(api_id: int, endpoint: str = "/", params: str = "{}") -> dict:
+    """
+    Actually call a catalog API and return its response.
+    Get api_id from browse_catalog first. endpoint is the path to hit.
+    params is a JSON string of query parameters (e.g. '{"q":"test"}').
+    """
+    from security import validate_url, SSRFError, safe_fetch
+    from api_catalog import record_api_economics
+    import json as _json
+    api = get_api(api_id)
+    if not api:
+        return {"error": "not_found", "api_id": api_id}
+    url = api["base_url"].rstrip("/") + "/" + endpoint.lstrip("/")
+    try:
+        validate_url(url, allow_http=False)
+    except SSRFError as e:
+        return {"error": f"Blocked: {e}"}
+    try:
+        qp = _json.loads(params) if params and params != "{}" else {}
+    except Exception:
+        qp = {}
+    if qp:
+        qs = "&".join(f"{k}={v}" for k, v in qp.items())
+        url += ("&" if "?" in url else "?") + qs
+    result = safe_fetch(url, timeout=15, max_size=50000)
+    if "error" in result:
+        return {"api": api["name"], "error": result["error"]}
+    record_api_economics(api_id, 0.006, 0)
+    return {"api": api["name"], "url": url, "status": result.get("status"),
+            "response": result.get("body", "")[:3000]}
 
-@mcp.tool()
+
+# ── Agent Registry Tools ─────────────────────────────────────────────────────
+
+@metered_tool("standard")
 def register_my_agent(agent_id: str, name: str, description: str,
                       capabilities: str, endpoint: str = "") -> dict:
     """
-    Register your agent in the AiPayGent agent registry.
+    Register your agent in the AiPayGen agent registry.
     capabilities: comma-separated list of what your agent can do.
     endpoint: optional URL where other agents can reach you.
     """
@@ -442,14 +589,14 @@ def register_my_agent(agent_id: str, name: str, description: str,
     return register_agent(agent_id, name, description, cap_list, endpoint or None)
 
 
-@mcp.tool()
+@metered_tool("standard")
 def list_registered_agents() -> dict:
-    """Browse all agents registered in the AiPayGent registry."""
+    """Browse all agents registered in the AiPayGen registry."""
     agents = list_agents()
     return {"agents": agents, "count": len(agents)}
 
 
-# ─── Web Scraping Tools ───────────────────────────────────────────────────────
+# ── Web Scraping Tools ───────────────────────────────────────────────────────
 
 def _apify_run(actor_id: str, run_input: dict, max_items: int = 10) -> list:
     try:
@@ -458,7 +605,7 @@ def _apify_run(actor_id: str, run_input: dict, max_items: int = 10) -> list:
         return [{"error": str(e)}]
 
 
-@mcp.tool()
+@metered_tool("scraping")
 def scrape_google_maps(query: str, max_results: int = 5) -> dict:
     """Scrape Google Maps for businesses matching a query. Returns name, address, rating, phone, website."""
     results = _apify_run("nwua9Gu5YrADL7ZDj",
@@ -467,7 +614,7 @@ def scrape_google_maps(query: str, max_results: int = 5) -> dict:
     return {"query": query, "count": len(results), "results": results}
 
 
-@mcp.tool()
+@metered_tool("scraping")
 def scrape_tweets(query: str, max_results: int = 20) -> dict:
     """Scrape Twitter/X tweets by search query or hashtag. Returns text, author, likes, retweets, date."""
     results = _apify_run("61RPP7dywgiy0JPD0",
@@ -476,7 +623,7 @@ def scrape_tweets(query: str, max_results: int = 20) -> dict:
     return {"query": query, "count": len(results), "results": results}
 
 
-@mcp.tool()
+@metered_tool("scraping")
 def scrape_website(url: str, max_pages: int = 3) -> dict:
     """Crawl any website and extract text content. Returns page URL, title, and text per page."""
     results = _apify_run("aYG0l9s7dbB7j3gbS",
@@ -485,7 +632,7 @@ def scrape_website(url: str, max_pages: int = 3) -> dict:
     return {"url": url, "count": len(results), "results": results}
 
 
-@mcp.tool()
+@metered_tool("scraping")
 def scrape_youtube(query: str, max_results: int = 5) -> dict:
     """Search YouTube and return video metadata — title, channel, views, duration, description, URL."""
     results = _apify_run("h7sDV53CddomktSi5",
@@ -494,7 +641,7 @@ def scrape_youtube(query: str, max_results: int = 5) -> dict:
     return {"query": query, "count": len(results), "results": results}
 
 
-@mcp.tool()
+@metered_tool("scraping")
 def scrape_instagram(username: str, max_posts: int = 5) -> dict:
     """Scrape Instagram profile posts. Returns caption, likes, comments, date, media URL."""
     results = _apify_run("shu8hvrXbJbY3Eb9W",
@@ -503,7 +650,7 @@ def scrape_instagram(username: str, max_posts: int = 5) -> dict:
     return {"username": username, "count": len(results), "results": results}
 
 
-@mcp.tool()
+@metered_tool("scraping")
 def scrape_tiktok(username: str, max_videos: int = 5) -> dict:
     """Scrape TikTok profile videos. Returns caption, views, likes, shares, date."""
     results = _apify_run("GdWCkxBtKWOsKjdch",
@@ -512,7 +659,7 @@ def scrape_tiktok(username: str, max_videos: int = 5) -> dict:
     return {"username": username, "count": len(results), "results": results}
 
 
-@mcp.tool()
+@metered_tool("ai_heavy")
 def chain_operations(steps: list) -> dict:
     """
     Chain multiple AI operations in sequence. Output of each step is available to the next.
@@ -560,7 +707,9 @@ def chain_operations(steps: list) -> dict:
     return {"steps_completed": len(results), "chain": results, "final_result": results[-1]["result"] if results else None}
 
 
-@mcp.tool()
+# ── Marketplace ──────────────────────────────────────────────────────────────
+
+@metered_tool("standard")
 def list_marketplace(category: str = None, max_price: float = None) -> dict:
     """
     Browse the agent marketplace — services offered by other AI agents.
@@ -573,7 +722,7 @@ def list_marketplace(category: str = None, max_price: float = None) -> dict:
     return {"total": total, "listings": listings}
 
 
-@mcp.tool()
+@metered_tool("standard")
 def post_to_marketplace(agent_id: str, name: str, description: str,
                          endpoint: str, price_usd: float,
                          category: str = "general",
@@ -596,7 +745,9 @@ def post_to_marketplace(agent_id: str, name: str, description: str,
     )
 
 
-@mcp.tool()
+# ── Free Utility Tools ──────────────────────────────────────────────────────
+
+@metered_tool("free")
 def get_current_time() -> dict:
     """Get current UTC time, Unix timestamp, date, and week number. Free, no payment needed."""
     from datetime import datetime, timezone
@@ -611,7 +762,7 @@ def get_current_time() -> dict:
     }
 
 
-@mcp.tool()
+@metered_tool("free")
 def generate_uuid(count: int = 1) -> dict:
     """Generate one or more UUID4 values. Free, no payment needed."""
     import uuid
@@ -620,47 +771,85 @@ def generate_uuid(count: int = 1) -> dict:
     return {"uuids": [str(uuid.uuid4()) for _ in range(min(count, 50))]}
 
 
-# ── Agent Messaging ────────────────────────────────────────────────────────────
+@metered_tool("free")
+def get_joke() -> dict:
+    """Get a random joke. Completely free."""
+    try:
+        resp = _mcp_requests.get("https://official-joke-api.appspot.com/random_joke", timeout=5)
+        d = resp.json()
+        return {"setup": d.get("setup"), "punchline": d.get("punchline"), "type": d.get("type")}
+    except Exception:
+        return {"setup": "Why don't scientists trust atoms?", "punchline": "Because they make up everything.", "type": "general"}
 
-@mcp.tool()
+
+@metered_tool("free")
+def get_quote() -> dict:
+    """Get a random inspirational quote. Completely free."""
+    try:
+        resp = _mcp_requests.get("https://zenquotes.io/api/random", timeout=5)
+        d = resp.json()[0] if resp.ok else {}
+        return {"quote": d.get("q"), "author": d.get("a")}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("free")
+def get_holidays(country: str = "US", year: str = "") -> dict:
+    """Get public holidays for a country. country: ISO 2-letter code (US, GB, DE). Free."""
+    from datetime import datetime
+    yr = year or str(datetime.utcnow().year)
+    try:
+        resp = _mcp_requests.get(
+            f"https://date.nager.at/api/v3/PublicHolidays/{yr}/{country.upper()}",
+            timeout=6,
+        )
+        holidays = resp.json()
+        return {"country": country.upper(), "year": yr, "holidays": holidays[:20], "count": len(holidays)}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Agent Messaging ──────────────────────────────────────────────────────────
+
+@metered_tool("standard")
 def send_agent_message(from_agent: str, to_agent: str, subject: str, body: str) -> dict:
     """Send a direct message from one agent to another via the agent network."""
     return send_message(from_agent, to_agent, subject, body)
 
 
-@mcp.tool()
+@metered_tool("standard")
 def read_agent_inbox(agent_id: str, unread_only: bool = False) -> dict:
     """Read messages from an agent's inbox. Set unread_only=True to filter."""
     messages = get_inbox(agent_id, unread_only=unread_only)
     return {"agent_id": agent_id, "messages": messages, "count": len(messages)}
 
 
-# ── Knowledge Base ─────────────────────────────────────────────────────────────
+# ── Knowledge Base ───────────────────────────────────────────────────────────
 
-@mcp.tool()
+@metered_tool("standard")
 def add_to_knowledge_base(topic: str, content: str, author_agent: str,
                           tags: list = None) -> dict:
     """Add an entry to the shared agent knowledge base."""
     return add_knowledge(topic, content, author_agent, tags or [])
 
 
-@mcp.tool()
+@metered_tool("standard")
 def search_knowledge_base(query: str, limit: int = 10) -> dict:
     """Search the shared agent knowledge base by keyword."""
     results = search_knowledge(query, limit=limit)
     return {"query": query, "results": results, "count": len(results)}
 
 
-@mcp.tool()
+@metered_tool("standard")
 def get_trending_knowledge() -> dict:
     """Get the most popular topics in the shared agent knowledge base."""
     topics = get_trending_topics(limit=10)
     return {"trending": topics}
 
 
-# ── Task Board ─────────────────────────────────────────────────────────────────
+# ── Task Board ───────────────────────────────────────────────────────────────
 
-@mcp.tool()
+@metered_tool("standard")
 def submit_agent_task(posted_by: str, title: str, description: str,
                       skills_needed: list = None, reward_usd: float = 0.0) -> dict:
     """Post a task to the agent task board for other agents to claim and complete."""
@@ -668,22 +857,28 @@ def submit_agent_task(posted_by: str, title: str, description: str,
     return _submit_task(posted_by, title, description, skills_needed or [], reward_usd)
 
 
-@mcp.tool()
+@metered_tool("standard")
 def browse_agent_tasks(status: str = "open", skill: str = None) -> dict:
     """Browse tasks on the agent task board, optionally filtered by skill or status."""
     tasks = browse_tasks(status=status, skill=skill)
     return {"tasks": tasks, "count": len(tasks)}
 
 
-# ── Code Execution ─────────────────────────────────────────────────────────────
+# ── Code Execution ───────────────────────────────────────────────────────────
 
-@mcp.tool()
+@metered_tool("standard")
 def run_python_code(code: str, timeout: int = 10) -> dict:
-    """Execute Python code in a sandboxed subprocess. Returns stdout, stderr, returncode."""
+    """Execute Python code in a sandboxed subprocess. Returns stdout, stderr, returncode.
+    Imports, file I/O, network access, and OS commands are blocked."""
     import subprocess
     import time as _time
+    from security import validate_code_safety, SandboxViolation, get_sandbox_env
     if len(code) > 5000:
         return {"error": "code too long (max 5000 chars)"}
+    try:
+        validate_code_safety(code)
+    except SandboxViolation as e:
+        return {"error": f"Sandbox violation: {e}"}
     timeout = min(timeout, 15)
     start = _time.time()
     try:
@@ -692,7 +887,8 @@ def run_python_code(code: str, timeout: int = 10) -> dict:
             capture_output=True,
             text=True,
             timeout=timeout,
-            env={"PATH": os.environ.get("PATH", "/usr/bin:/bin")},
+            env=get_sandbox_env(),
+            cwd="/tmp",
         )
         return {
             "stdout": result.stdout[:3000],
@@ -704,9 +900,9 @@ def run_python_code(code: str, timeout: int = 10) -> dict:
         return {"error": "timeout", "message": f"Code exceeded {timeout}s limit"}
 
 
-# ── Web Search ─────────────────────────────────────────────────────────────────
+# ── Web Search ───────────────────────────────────────────────────────────────
 
-@mcp.tool()
+@metered_tool("standard")
 def web_search(query: str, n_results: int = 10) -> dict:
     """Search the web via DuckDuckGo. Returns instant answer and related results."""
     n = min(n_results, 25)
@@ -732,9 +928,9 @@ def web_search(query: str, n_results: int = 10) -> dict:
         return {"error": str(e)}
 
 
-# ── Real-Time Data ─────────────────────────────────────────────────────────────
+# ── Real-Time Data ───────────────────────────────────────────────────────────
 
-@mcp.tool()
+@metered_tool("standard")
 def get_weather(city: str) -> dict:
     """Get current weather for any city using Open-Meteo (free, no key needed)."""
     try:
@@ -765,7 +961,7 @@ def get_weather(city: str) -> dict:
         return {"error": str(e)}
 
 
-@mcp.tool()
+@metered_tool("standard")
 def get_crypto_prices(symbols: str = "bitcoin,ethereum") -> dict:
     """Get real-time crypto prices from CoinGecko. symbols: comma-separated CoinGecko IDs."""
     try:
@@ -779,7 +975,7 @@ def get_crypto_prices(symbols: str = "bitcoin,ethereum") -> dict:
         return {"error": str(e)}
 
 
-@mcp.tool()
+@metered_tool("standard")
 def get_exchange_rates(base_currency: str = "USD") -> dict:
     """Get live exchange rates for 160+ currencies. base_currency: e.g. USD, EUR, GBP."""
     try:
@@ -792,7 +988,7 @@ def get_exchange_rates(base_currency: str = "USD") -> dict:
         return {"error": str(e)}
 
 
-@mcp.tool()
+@metered_tool("standard")
 def enrich_entity(entity: str, entity_type: str) -> dict:
     """Aggregate data about an entity. entity_type: ip | crypto | country | company."""
     try:
@@ -806,47 +1002,11 @@ def enrich_entity(entity: str, entity_type: str) -> dict:
         return {"error": str(e)}
 
 
-@mcp.tool()
-def get_joke() -> dict:
-    """Get a random joke. Completely free."""
-    try:
-        resp = _mcp_requests.get("https://official-joke-api.appspot.com/random_joke", timeout=5)
-        d = resp.json()
-        return {"setup": d.get("setup"), "punchline": d.get("punchline"), "type": d.get("type")}
-    except Exception:
-        return {"setup": "Why don't scientists trust atoms?", "punchline": "Because they make up everything.", "type": "general"}
+# ── API Key Management ───────────────────────────────────────────────────────
 
-
-@mcp.tool()
-def get_quote() -> dict:
-    """Get a random inspirational quote. Completely free."""
-    try:
-        resp = _mcp_requests.get("https://zenquotes.io/api/random", timeout=5)
-        d = resp.json()[0] if resp.ok else {}
-        return {"quote": d.get("q"), "author": d.get("a")}
-    except Exception as e:
-        return {"error": str(e)}
-
-
-@mcp.tool()
-def get_holidays(country: str = "US", year: str = "") -> dict:
-    """Get public holidays for a country. country: ISO 2-letter code (US, GB, DE). Free."""
-    from datetime import datetime
-    yr = year or str(datetime.utcnow().year)
-    try:
-        resp = _mcp_requests.get(
-            f"https://date.nager.at/api/v3/PublicHolidays/{yr}/{country.upper()}",
-            timeout=6,
-        )
-        holidays = resp.json()
-        return {"country": country.upper(), "year": yr, "holidays": holidays[:20], "count": len(holidays)}
-    except Exception as e:
-        return {"error": str(e)}
-
-
-@mcp.tool()
+@metered_tool("free")
 def generate_api_key(label: str = "") -> dict:
-    """Generate a prepaid AiPayGent API key. Use with Bearer auth to bypass x402 per-call payment."""
+    """Generate a prepaid AiPayGen API key. Use with Bearer auth to bypass x402 per-call payment."""
     try:
         resp = _mcp_requests.post(
             "http://localhost:5001/auth/generate-key",
@@ -858,9 +1018,9 @@ def generate_api_key(label: str = "") -> dict:
         return {"error": str(e)}
 
 
-@mcp.tool()
+@metered_tool("free")
 def check_api_key_balance(key: str) -> dict:
-    """Check balance and usage stats for a prepaid AiPayGent API key."""
+    """Check balance and usage stats for a prepaid AiPayGen API key."""
     try:
         resp = _mcp_requests.get(f"http://localhost:5001/auth/status?key={key}", timeout=5)
         return resp.json()
@@ -868,33 +1028,62 @@ def check_api_key_balance(key: str) -> dict:
         return {"error": str(e)}
 
 
-# ── Skills System ─────────────────────────────────────────────────────────
+# ── Skills System (Skill Harvester MCP Tools) ────────────────────────────────
 
-@mcp.tool()
-def ask(question: str) -> dict:
-    """Universal endpoint — ask anything. AiPayGent picks the best skill and model automatically."""
-    try:
-        resp = _mcp_requests.post("http://localhost:5001/ask",
-            json={"question": question}, timeout=120)
-        return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+@metered_tool("standard")
+def search_skills(query: str, top_n: int = 10) -> dict:
+    """Search 646+ skills using TF-IDF semantic search. Returns ranked skills with scores.
+    Use this to discover capabilities before calling execute_skill."""
+    _skills_engine.build_index()
+    results = _skills_engine.search(query, top_n=min(top_n, 50))
+    return {
+        "query": query,
+        "results": [
+            {
+                "name": s.get("name", ""),
+                "description": s.get("description", ""),
+                "category": s.get("category", ""),
+                "score": s.get("score", 0),
+                "calls": s.get("calls", 0),
+            }
+            for s in results
+        ],
+        "count": len(results),
+        "total_skills": len(_skills_engine.skills) if _skills_engine._built else 0,
+    }
 
 
-@mcp.tool()
+@metered_tool("standard")
 def list_skills(category: str = "") -> dict:
-    """List all available skills. AiPayGent has built-in + dynamically absorbed skills."""
-    try:
-        params = {"category": category} if category else {}
-        resp = _mcp_requests.get("http://localhost:5001/skills", params=params, timeout=10)
-        return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    """List available skills, optionally filtered by category. Shows name, description, and usage count."""
+    _skills_engine.build_index()
+    skills = list(_skills_engine.skills.values())
+    if category:
+        cat_lower = category.lower()
+        skills = [s for s in skills if (s.get("category") or "").lower() == cat_lower]
+    # Sort by call count descending
+    skills.sort(key=lambda s: s.get("calls", 0), reverse=True)
+    skills = skills[:20]
+    categories = list({s.get("category", "general") for s in _skills_engine.skills.values()})
+    return {
+        "skills": [
+            {
+                "name": s.get("name", ""),
+                "description": s.get("description", "")[:200],
+                "category": s.get("category", ""),
+                "calls": s.get("calls", 0),
+            }
+            for s in skills
+        ],
+        "count": len(skills),
+        "categories": sorted(categories),
+        "total_skills": len(_skills_engine.skills) if _skills_engine._built else 0,
+    }
 
 
-@mcp.tool()
+@metered_tool("ai")
 def execute_skill(skill_name: str, input_text: str) -> dict:
-    """Execute a specific skill by name. Use list_skills to see what's available."""
+    """Execute a specific skill by name. Use search_skills or list_skills to discover available skills."""
     try:
         resp = _mcp_requests.post("http://localhost:5001/skills/execute",
             json={"skill": skill_name, "input": input_text}, timeout=120)
@@ -903,7 +1092,18 @@ def execute_skill(skill_name: str, input_text: str) -> dict:
         return {"error": str(e)}
 
 
-@mcp.tool()
+@metered_tool("ai")
+def ask(question: str) -> dict:
+    """Universal endpoint — ask anything. AiPayGen picks the best skill and model automatically."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/ask",
+            json={"question": question}, timeout=120)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
 def create_skill(name: str, description: str, prompt_template: str, category: str = "general") -> dict:
     """Create a new reusable skill. prompt_template must contain {{input}} placeholder."""
     try:
@@ -915,9 +1115,9 @@ def create_skill(name: str, description: str, prompt_template: str, category: st
         return {"error": str(e)}
 
 
-@mcp.tool()
+@metered_tool("standard")
 def absorb_skill(url: str = "", text: str = "") -> dict:
-    """Absorb a new skill from a URL or text. AiPayGent reads and creates a callable skill."""
+    """Absorb a new skill from a URL or text. AiPayGen reads and creates a callable skill."""
     try:
         resp = _mcp_requests.post("http://localhost:5001/skills/absorb",
             json={"url": url, "text": text}, timeout=60)
@@ -929,7 +1129,17 @@ def absorb_skill(url: str = "", text: str = "") -> dict:
 def main():
     import sys
     if "--http" in sys.argv:
-        mcp.run(transport="streamable-http")
+        from starlette.responses import JSONResponse
+        from starlette.routing import Route
+        import uvicorn
+
+        starlette_app = mcp.streamable_http_app()
+
+        async def health(request):
+            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 88, "version": "1.4.4"})
+
+        starlette_app.routes.insert(0, Route("/health", health))
+        uvicorn.run(starlette_app, host="0.0.0.0", port=5002)
     else:
         mcp.run(transport="stdio")
 

@@ -4,7 +4,7 @@ sys.path.insert(0, os.path.dirname(__file__) + "/..")
 
 def test_free_tier_only_honeypots():
     """Only specific honeypot endpoints should be free ($0.00)."""
-    from app import _build_discover_services
+    from routes.meta import _build_discover_services
     categories = _build_discover_services()
     all_services = [s for cat in categories.values() for s in cat]
 
@@ -22,7 +22,7 @@ def test_free_tier_only_honeypots():
 
 def test_data_endpoints_are_paid():
     """Data endpoints (weather, crypto, stocks, etc.) must cost >= $0.01."""
-    from app import _build_discover_services
+    from routes.meta import _build_discover_services
     categories = _build_discover_services()
     data_services = categories.get("Data & Utilities", [])
 

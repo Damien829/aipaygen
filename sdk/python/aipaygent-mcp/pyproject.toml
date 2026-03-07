@@ -3,13 +3,13 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "aipaygent-mcp"
-version = "1.2.0"
-description = "65+ AI tools for Claude, Cursor, and any MCP-compatible agent — research, write, code, scrape, translate, and more"
+name = "aipaygen-mcp"
+version = "1.4.4"
+description = "88 AI tools for Claude, Cursor, and any MCP-compatible agent — research, write, code, scrape, translate, agent network, API catalog, and more"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"
-authors = [{name = "AiPayGent", email = "hello@aipaygent.xyz"}]
+authors = [{name = "AiPayGen", email = "hello@aipaygen.com"}]
 keywords = [
     "mcp", "claude", "ai", "tools", "agent", "llm",
     "research", "scraping", "translation", "code-generation",
@@ -32,10 +32,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://aipaygent.xyz"
-Documentation = "https://api.aipaygent.xyz/discover"
-Repository = "https://github.com/djautomd-lab/aipaygent"
-Issues = "https://github.com/djautomd-lab/aipaygent/issues"
+Homepage = "https://aipaygen.com"
+Documentation = "https://api.aipaygen.com/discover"
+Repository = "https://github.com/Damien829/aipaygen"
+Issues = "https://github.com/Damien829/aipaygen/issues"
 
 [project.scripts]
-aipaygent-mcp = "aipaygent_mcp.server:main"
+aipaygen-mcp = "aipaygen_mcp.server:main"

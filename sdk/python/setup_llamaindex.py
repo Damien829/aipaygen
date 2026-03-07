@@ -1,13 +1,13 @@
-"""PyPI package setup for aipaygent-llamaindex."""
+"""PyPI package setup for aipaygen-llamaindex."""
 from setuptools import setup
 
 setup(
-    name="aipaygent-llamaindex",
+    name="aipaygen-llamaindex",
     version="1.0.0",
-    description="LlamaIndex tool spec for AiPayGent — AI agent marketplace with 123 endpoints via x402",
-    author="AiPayGent",
-    url="https://api.aipaygent.xyz",
-    py_modules=["aipaygent_llamaindex"],
+    description="LlamaIndex tool spec for AiPayGen — AI agent marketplace with 123 endpoints via x402",
+    author="AiPayGen",
+    url="https://api.aipaygen.com",
+    py_modules=["aipaygen_llamaindex"],
     install_requires=[
         "llama-index-core>=0.10.0",
         "requests>=2.28.0",
@@ -25,7 +25,7 @@ setup(
     python_requires=">=3.9",
     keywords="llamaindex llama-index ai agent x402 claude anthropic marketplace",
     project_urls={
-        "Homepage": "https://api.aipaygent.xyz",
-        "OpenAPI": "https://api.aipaygent.xyz/openapi.json",
+        "Homepage": "https://api.aipaygen.com",
+        "OpenAPI": "https://api.aipaygen.com/openapi.json",
     },
 )

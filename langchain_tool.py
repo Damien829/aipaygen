@@ -1,5 +1,5 @@
 """
-AiPayGent LangChain Tool
+AiPayGen LangChain Tool
 ========================
 Drop this file into any LangChain project to give your agent access to
 80+ paid AI endpoints via x402 micropayments.
@@ -8,10 +8,10 @@ Install:
     pip install langchain-core requests
 
 Usage:
-    from langchain_tool import AiPayGentTool, AiPayGentToolkit
+    from langchain_tool import AiPayGenTool, AiPayGenToolkit
     from langchain.agents import AgentExecutor, create_openai_tools_agent
 
-    tools = AiPayGentToolkit(x402_token="your_token").get_tools()
+    tools = AiPayGenToolkit(x402_token="your_token").get_tools()
     agent = create_openai_tools_agent(llm, tools, prompt)
     executor = AgentExecutor(agent=agent, tools=tools)
 
@@ -31,12 +31,12 @@ try:
 except ImportError:
     LANGCHAIN_AVAILABLE = False
 
-BASE_URL = os.getenv("AIPAYGENT_BASE_URL", "https://api.aipaygent.xyz")
-DEFAULT_TOKEN = os.getenv("AIPAYGENT_TOKEN", "")
+BASE_URL = os.getenv("AIPAYGEN_BASE_URL", "https://api.aipaygen.com")
+DEFAULT_TOKEN = os.getenv("AIPAYGEN_TOKEN", "")
 
 
 def _call(endpoint: str, payload: dict, token: str = "") -> dict:
-    """Make an x402-authenticated request to AiPayGent."""
+    """Make an x402-authenticated request to AiPayGen."""
     headers = {"Content-Type": "application/json"}
     if token:
         headers["X-Payment"] = token
@@ -54,18 +54,18 @@ def _call_get(endpoint: str, params: dict = None) -> dict:
 
 
 if LANGCHAIN_AVAILABLE:
-    class AiPayGentInput(BaseModel):
+    class AiPayGenInput(BaseModel):
         query: str = Field(description="The main input query or text")
         extra: Optional[str] = Field(default=None, description="Optional extra parameter")
 
     class ResearchTool(BaseTool):
         """Research any topic using Claude AI — returns a detailed report."""
-        name: str = "aipaygent_research"
+        name: str = "aipaygen_research"
         description: str = (
             "Research any topic and get a detailed, structured report. "
             "Use for: factual queries, market research, technology overviews, competitor analysis."
         )
-        args_schema: Type[BaseModel] = AiPayGentInput
+        args_schema: Type[BaseModel] = AiPayGenInput
         token: str = DEFAULT_TOKEN
 
         def _run(self, query: str, extra: str = None,
@@ -75,12 +75,12 @@ if LANGCHAIN_AVAILABLE:
 
     class SummarizeTool(BaseTool):
         """Summarize long text into concise bullets or paragraphs."""
-        name: str = "aipaygent_summarize"
+        name: str = "aipaygen_summarize"
         description: str = (
             "Summarize long text. Input: the text to summarize. "
             "Returns a concise summary in bullet points."
         )
-        args_schema: Type[BaseModel] = AiPayGentInput
+        args_schema: Type[BaseModel] = AiPayGenInput
         token: str = DEFAULT_TOKEN
 
         def _run(self, query: str, extra: str = None,
@@ -90,13 +90,13 @@ if LANGCHAIN_AVAILABLE:
 
     class AnalyzeTool(BaseTool):
         """Analyze text or content and answer a specific question about it."""
-        name: str = "aipaygent_analyze"
+        name: str = "aipaygen_analyze"
         description: str = (
             "Analyze content and answer a question about it. "
             "Input query format: 'CONTENT ||| QUESTION'. "
             "Example: 'This quarter revenue grew 20% ||| What is the growth driver?'"
         )
-        args_schema: Type[BaseModel] = AiPayGentInput
+        args_schema: Type[BaseModel] = AiPayGenInput
         token: str = DEFAULT_TOKEN
 
         def _run(self, query: str, extra: str = None,
@@ -110,9 +110,9 @@ if LANGCHAIN_AVAILABLE:
 
     class SentimentTool(BaseTool):
         """Detect sentiment (positive/negative/neutral) and emotion in text."""
-        name: str = "aipaygent_sentiment"
+        name: str = "aipaygen_sentiment"
         description: str = "Analyze sentiment of text. Returns positive/negative/neutral score and emotions."
-        args_schema: Type[BaseModel] = AiPayGentInput
+        args_schema: Type[BaseModel] = AiPayGenInput
         token: str = DEFAULT_TOKEN
 
         def _run(self, query: str, extra: str = None,
@@ -122,12 +122,12 @@ if LANGCHAIN_AVAILABLE:
 
     class WebScrapeTool(BaseTool):
         """Scrape and extract content from any webpage URL."""
-        name: str = "aipaygent_scrape_web"
+        name: str = "aipaygen_scrape_web"
         description: str = (
             "Scrape any webpage URL and extract clean text content. "
             "Input: a URL like https://example.com"
         )
-        args_schema: Type[BaseModel] = AiPayGentInput
+        args_schema: Type[BaseModel] = AiPayGenInput
         token: str = DEFAULT_TOKEN
 
         def _run(self, query: str, extra: str = None,
@@ -136,13 +136,13 @@ if LANGCHAIN_AVAILABLE:
             return json.dumps(result.get("result") or result)
 
     class CatalogTool(BaseTool):
-        """Browse the AiPayGent API catalog — find APIs for any use case."""
-        name: str = "aipaygent_catalog"
+        """Browse the AiPayGen API catalog — find APIs for any use case."""
+        name: str = "aipaygen_catalog"
         description: str = (
-            "Browse 200+ discovered APIs in the AiPayGent catalog. "
+            "Browse 200+ discovered APIs in the AiPayGen catalog. "
             "Input: category name like 'weather', 'finance', 'geo', 'health', or leave blank for all."
         )
-        args_schema: Type[BaseModel] = AiPayGentInput
+        args_schema: Type[BaseModel] = AiPayGenInput
 
         def _run(self, query: str, extra: str = None,
                  run_manager: Optional[CallbackManagerForToolRun] = None) -> str:
@@ -155,13 +155,13 @@ if LANGCHAIN_AVAILABLE:
 
     class ChainTool(BaseTool):
         """Chain multiple AI operations in sequence for complex multi-step tasks."""
-        name: str = "aipaygent_chain"
+        name: str = "aipaygen_chain"
         description: str = (
             "Run a sequence of AI operations. Input: JSON array of steps. "
             "Each step: {action: 'research'|'summarize'|'analyze'|..., params: {...}}. "
             "Output of each step feeds into the next via {{prev_result}}."
         )
-        args_schema: Type[BaseModel] = AiPayGentInput
+        args_schema: Type[BaseModel] = AiPayGenInput
         token: str = DEFAULT_TOKEN
 
         def _run(self, query: str, extra: str = None,
@@ -176,14 +176,14 @@ if LANGCHAIN_AVAILABLE:
 
     class MemoryTool(BaseTool):
         """Store and retrieve persistent memories across agent sessions."""
-        name: str = "aipaygent_memory"
+        name: str = "aipaygen_memory"
         description: str = (
             "Persistent memory storage across sessions. "
             "To store: 'SET agent_id|key|value'. "
             "To retrieve: 'GET agent_id|key'. "
             "To search: 'SEARCH agent_id|query'."
         )
-        args_schema: Type[BaseModel] = AiPayGentInput
+        args_schema: Type[BaseModel] = AiPayGenInput
         token: str = DEFAULT_TOKEN
 
         def _run(self, query: str, extra: str = None,
@@ -200,8 +200,8 @@ if LANGCHAIN_AVAILABLE:
                 return '{"error": "Format: SET agent_id|key|value OR GET agent_id|key OR SEARCH agent_id|query"}'
             return json.dumps(result)
 
-    class AiPayGentToolkit:
-        """Full toolkit of AiPayGent tools for LangChain agents."""
+    class AiPayGenToolkit:
+        """Full toolkit of AiPayGen tools for LangChain agents."""
 
         def __init__(self, x402_token: str = DEFAULT_TOKEN):
             self.token = x402_token

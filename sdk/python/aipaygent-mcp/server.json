@@ -1,0 +1,44 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Damien829/aipaygen",
+  "title": "AiPayGen",
+  "description": "88 AI tools — research, write, code, translate, analyze, scrape, agent memory, and more",
+  "repository": {
+    "url": "https://github.com/Damien829/aipaygen",
+    "source": "github"
+  },
+  "version": "1.4.4",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.aipaygen.com/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "API key for unlimited access (Bearer apk_xxx). Optional — 10 free calls/day without key.",
+          "isRequired": false,
+          "isSecret": true
+        }
+      ]
+    }
+  ],
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "aipaygen-mcp",
+      "version": "1.4.4",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "AIPAYGEN_API_KEY",
+          "description": "API key for unlimited access (optional — 10 free calls/day without key)",
+          "isRequired": false,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}

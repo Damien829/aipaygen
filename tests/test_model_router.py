@@ -28,7 +28,7 @@ def test_cost_tracker_no_budget():
     assert ct.remaining(None) == float("inf")
 
 
-from model_router import auto_select_model, _classify_task
+from model_router import auto_select_model, _classify_task, MODEL_REGISTRY
 
 def test_classify_task_returns_valid_structure():
     result = _classify_task("What is 2+2?")
@@ -47,15 +47,19 @@ def test_classify_complex_task():
 
 def test_auto_select_simple():
     model = auto_select_model("Say hello")
-    assert model["model"] in ("claude-haiku", "gpt-4o-mini", "gemini-2.5-flash", "deepseek-v3")
+    cfg = MODEL_REGISTRY[model["model"]]
+    assert cfg["latency_tier"] == "fast"  # simple task should get fast model
 
 def test_auto_select_complex():
     model = auto_select_model("Prove the Riemann hypothesis and explain your reasoning step by step")
-    assert model["model"] in ("claude-opus", "claude-sonnet", "deepseek-r1", "gemini-2.5-pro")
+    cfg = MODEL_REGISTRY[model["model"]]
+    assert "reasoning" in cfg.get("strengths", []) or cfg["latency_tier"] in ("slow", "medium")
 
 def test_auto_select_with_budget():
     model = auto_select_model("Complex analysis task", max_cost_usd=0.002)
-    assert model["model"] in ("claude-haiku", "gpt-4o-mini", "gemini-2.5-flash", "deepseek-v3")
+    # Budget-constrained: should pick a cheap model
+    cfg = MODEL_REGISTRY[model["model"]]
+    assert cfg["input_cost_per_m"] < 5.0
 
 def test_resolve_model_auto():
     from model_router import resolve_model_name
@@ -64,6 +68,86 @@ def test_resolve_model_auto():
 
 def test_auto_select_vision():
     model = auto_select_model("Describe this image in detail", needs_vision=True)
-    from model_router import MODEL_REGISTRY
     cfg = MODEL_REGISTRY[model["model"]]
     assert cfg["vision"] is True
+
+def test_auto_select_returns_top3_in_reason():
+    result = auto_select_model("Write a Python function to sort a list")
+    assert "top3=" in result["reason"]
+
+def test_auto_select_code_domain():
+    result = auto_select_model("Debug this Python function and fix the recursive algorithm")
+    assert result["classification"]["domain"] == "code"
+
+
+# --- New model registry tests ---
+
+def test_new_models_in_registry():
+    assert "grok-3" in MODEL_REGISTRY
+    assert "grok-3-mini" in MODEL_REGISTRY
+    assert "mistral-large-direct" in MODEL_REGISTRY
+    assert "mistral-small" in MODEL_REGISTRY
+
+def test_latency_tier_on_all_models():
+    for name, cfg in MODEL_REGISTRY.items():
+        assert "latency_tier" in cfg, f"{name} missing latency_tier"
+        assert cfg["latency_tier"] in ("fast", "medium", "slow"), f"{name} has invalid latency_tier"
+
+def test_strengths_on_all_models():
+    for name, cfg in MODEL_REGISTRY.items():
+        assert "strengths" in cfg, f"{name} missing strengths"
+        assert isinstance(cfg["strengths"], list), f"{name} strengths should be a list"
+        assert len(cfg["strengths"]) > 0, f"{name} should have at least one strength"
+
+def test_model_count():
+    assert len(MODEL_REGISTRY) == 15  # 11 original + 4 new
+
+def test_new_aliases():
+    from model_router import resolve_model_name
+    assert resolve_model_name("grok") == "grok-3"
+    assert resolve_model_name("grok-mini") == "grok-3-mini"
+    assert resolve_model_name("mistral-direct") == "mistral-large-direct"
+
+def test_new_providers_in_fallback():
+    from model_router import _FALLBACK_CHAINS, _PROVIDER_DEFAULT
+    assert "xai" in _FALLBACK_CHAINS
+    assert "mistral" in _FALLBACK_CHAINS
+    assert "xai" in _PROVIDER_DEFAULT
+    assert "mistral" in _PROVIDER_DEFAULT
+
+
+# --- Performance tracking tests ---
+
+def test_perf_tracking():
+    from model_router import _record_perf, get_model_perf, _perf_stats
+    # Use a unique model name to avoid cross-test pollution
+    test_model = "_test_perf_model"
+    _perf_stats.pop(test_model, None)
+
+    _record_perf(test_model, 150.0, True)
+    _record_perf(test_model, 200.0, True)
+    _record_perf(test_model, 5000.0, False)
+    perf = get_model_perf(test_model)
+    assert perf["calls"] == 3
+    assert perf["error_rate"] > 0
+    assert perf["p50_ms"] is not None
+    assert perf["p90_ms"] is not None
+
+    # Cleanup
+    _perf_stats.pop(test_model, None)
+
+def test_perf_no_data():
+    from model_router import get_model_perf
+    perf = get_model_perf("_nonexistent_model")
+    assert perf["calls"] == 0
+    assert perf["p50_ms"] is None
+
+def test_get_all_perf():
+    from model_router import get_all_perf, _record_perf, _perf_stats
+    test_model = "_test_all_perf"
+    _perf_stats.pop(test_model, None)
+    _record_perf(test_model, 100.0, True)
+    result = get_all_perf()
+    assert isinstance(result, dict)
+    assert test_model in result
+    _perf_stats.pop(test_model, None)

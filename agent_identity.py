@@ -6,7 +6,13 @@ import jwt
 from eth_account import Account
 from eth_account.messages import encode_defunct
 
-JWT_SECRET = os.environ.get("JWT_SECRET", "aipaygent-jwt-secret-change-me")
+JWT_SECRET = os.environ.get("JWT_SECRET", "")
+if not JWT_SECRET:
+    # Generate a random secret if none set — better than a hardcoded default
+    import secrets
+    JWT_SECRET = secrets.token_hex(32)
+    import logging
+    logging.getLogger(__name__).warning("JWT_SECRET not set in environment — using random secret (tokens won't persist across restarts)")
 JWT_ALGORITHM = "HS256"
 CHALLENGE_TTL = 300  # 5 minutes
 
@@ -27,7 +33,7 @@ def generate_challenge(wallet_address: str) -> dict:
     """Generate a challenge message for wallet ownership proof."""
     nonce = uuid.uuid4().hex
     expires_at = time.time() + CHALLENGE_TTL
-    message = f"AiPayGent identity verification\nWallet: {wallet_address}\nNonce: {nonce}"
+    message = f"AiPayGen identity verification\nWallet: {wallet_address}\nNonce: {nonce}"
     _pending_challenges[nonce] = {
         "message": message,
         "wallet": wallet_address,

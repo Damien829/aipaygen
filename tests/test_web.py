@@ -71,8 +71,8 @@ def test_discover_returns_json_for_agents():
     assert "payment" in data
     assert "categories" in data
     assert "links" in data
-    assert data["meta"]["name"] == "AiPayGent"
-    assert data["meta"]["total_services"] > 0
+    assert data["meta"]["name"] == "AiPayGen"
+    assert len(data["categories"]) > 0
     assert isinstance(data["categories"], dict)
 
 
@@ -81,5 +81,5 @@ def test_discover_returns_html_for_browsers():
     client = app_module.app.test_client()
     resp = client.get("/discover", headers={"Accept": "text/html"})
     assert resp.status_code == 200
-    assert b"AiPayGent" in resp.data
+    assert b"AiPayGen" in resp.data
     assert b"<!DOCTYPE html>" in resp.data

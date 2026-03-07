@@ -1,11 +1,11 @@
 """
-8 specialist agents that self-register in the agent registry and list
+13 specialist agents that self-register in the agent registry and list
 their services in the marketplace at startup. Idempotent — safe to call
 multiple times.
 """
 from agent_memory import register_agent, marketplace_list_service
 
-BASE = "https://api.aipaygent.xyz"
+BASE = "https://api.aipaygen.com"
 
 _AGENTS = [
     {
@@ -112,11 +112,85 @@ _AGENTS = [
             {"name": "Entity Enrichment", "description": "One call to enrich an IP, crypto, country, or company.", "endpoint": f"{BASE}/enrich", "price_usd": 0.05, "category": "knowledge"},
         ],
     },
+    # --- Domain specialist stubs below ---
+    # These register in the marketplace but their /agent/<domain>/* routes
+    # are NOT yet implemented in app.py. They will 404 if called directly.
+    # TODO: Wire routes in app.py or serve via the ReAct agent.
+    {
+        "agent_id": "agent-finance-v1",
+        "name": "FinanceAgent",
+        "description": "Financial analysis, market intelligence, risk assessment, and crypto analytics agent",
+        "capabilities": ["financial_analysis", "market_intel", "risk_assessment", "crypto_analytics", "portfolio_review"],
+        "endpoint": f"{BASE}/agent/finance",
+        "services": [
+            {"name": "Financial Analysis", "description": "Deep financial analysis with market context and trend identification", "endpoint": f"{BASE}/agent/finance/analyze", "price_usd": 0.03, "category": "finance"},
+            {"name": "Market Intelligence", "description": "Real-time market intelligence reports with competitor analysis", "endpoint": f"{BASE}/agent/finance/market-intel", "price_usd": 0.04, "category": "finance"},
+            {"name": "Risk Assessment", "description": "Comprehensive risk assessment for investments and business decisions", "endpoint": f"{BASE}/agent/finance/risk", "price_usd": 0.05, "category": "finance"},
+            {"name": "Crypto Analytics", "description": "Cryptocurrency market analysis with on-chain metrics", "endpoint": f"{BASE}/agent/finance/crypto", "price_usd": 0.03, "category": "finance"},
+            {"name": "Portfolio Review", "description": "Portfolio diversification analysis and rebalancing recommendations", "endpoint": f"{BASE}/agent/finance/portfolio", "price_usd": 0.04, "category": "finance"},
+        ],
+    },
+    {
+        "agent_id": "agent-legal-v1",
+        "name": "LegalAgent",
+        "description": "Contract review, compliance checking, IP research, and legal document generation agent",
+        "capabilities": ["contract_review", "compliance_check", "ip_research", "legal_drafting", "terms_generation"],
+        "endpoint": f"{BASE}/agent/legal",
+        "services": [
+            {"name": "Contract Review", "description": "AI-powered contract review with clause analysis and risk flagging", "endpoint": f"{BASE}/agent/legal/contract-review", "price_usd": 0.05, "category": "legal"},
+            {"name": "Compliance Check", "description": "Regulatory compliance checking against GDPR, SOC2, HIPAA frameworks", "endpoint": f"{BASE}/agent/legal/compliance", "price_usd": 0.04, "category": "legal"},
+            {"name": "IP Research", "description": "Intellectual property landscape research and prior art analysis", "endpoint": f"{BASE}/agent/legal/ip-research", "price_usd": 0.03, "category": "legal"},
+            {"name": "Terms & Conditions Generator", "description": "Generate customized terms of service and privacy policies", "endpoint": f"{BASE}/agent/legal/terms", "price_usd": 0.03, "category": "legal"},
+            {"name": "Legal Document Summarizer", "description": "Summarize complex legal documents into plain language", "endpoint": f"{BASE}/agent/legal/summarize", "price_usd": 0.02, "category": "legal"},
+        ],
+    },
+    {
+        "agent_id": "agent-marketing-v1",
+        "name": "MarketingAgent",
+        "description": "Campaign planning, SEO optimization, social media strategy, and brand voice development agent",
+        "capabilities": ["campaign_planning", "seo_optimization", "social_strategy", "ad_copy", "brand_voice"],
+        "endpoint": f"{BASE}/agent/marketing",
+        "services": [
+            {"name": "Campaign Planner", "description": "Full marketing campaign planning with timeline, channels, and budget allocation", "endpoint": f"{BASE}/agent/marketing/campaign", "price_usd": 0.04, "category": "marketing"},
+            {"name": "SEO Optimizer", "description": "SEO analysis with keyword research, content optimization, and technical recommendations", "endpoint": f"{BASE}/agent/marketing/seo", "price_usd": 0.03, "category": "marketing"},
+            {"name": "Social Media Strategist", "description": "Social media strategy development with content calendars and engagement tactics", "endpoint": f"{BASE}/agent/marketing/social", "price_usd": 0.03, "category": "marketing"},
+            {"name": "Ad Copy Generator", "description": "Generate high-converting ad copy for Google, Meta, and LinkedIn platforms", "endpoint": f"{BASE}/agent/marketing/ads", "price_usd": 0.02, "category": "marketing"},
+            {"name": "Brand Voice Developer", "description": "Develop consistent brand voice guidelines with tone, style, and messaging framework", "endpoint": f"{BASE}/agent/marketing/brand", "price_usd": 0.03, "category": "marketing"},
+        ],
+    },
+    {
+        "agent_id": "agent-healthcare-v1",
+        "name": "HealthcareAgent",
+        "description": "Health information, symptom analysis, nutrition planning, and wellness advisory agent (not medical advice)",
+        "capabilities": ["symptom_analysis", "medication_info", "nutrition_planning", "fitness_advisory", "wellness_tips"],
+        "endpoint": f"{BASE}/agent/healthcare",
+        "services": [
+            {"name": "Symptom Analyzer", "description": "AI symptom analysis with possible conditions and recommended next steps (not medical advice)", "endpoint": f"{BASE}/agent/healthcare/symptoms", "price_usd": 0.03, "category": "healthcare"},
+            {"name": "Medication Info", "description": "Medication information lookup with interactions, side effects, and usage guidance", "endpoint": f"{BASE}/agent/healthcare/medication", "price_usd": 0.02, "category": "healthcare"},
+            {"name": "Nutrition Planner", "description": "Personalized nutrition plans based on dietary needs, goals, and restrictions", "endpoint": f"{BASE}/agent/healthcare/nutrition", "price_usd": 0.03, "category": "healthcare"},
+            {"name": "Fitness Advisor", "description": "Custom fitness routines with exercise recommendations and progress tracking", "endpoint": f"{BASE}/agent/healthcare/fitness", "price_usd": 0.02, "category": "healthcare"},
+            {"name": "Wellness Coach", "description": "Holistic wellness advisory covering sleep, stress management, and lifestyle optimization", "endpoint": f"{BASE}/agent/healthcare/wellness", "price_usd": 0.03, "category": "healthcare"},
+        ],
+    },
+    {
+        "agent_id": "agent-hr-v1",
+        "name": "HRAgent",
+        "description": "Resume screening, job description writing, interview preparation, and performance management agent",
+        "capabilities": ["resume_screening", "job_descriptions", "interview_prep", "performance_reviews", "hr_policy"],
+        "endpoint": f"{BASE}/agent/hr",
+        "services": [
+            {"name": "Resume Screener", "description": "AI-powered resume screening with skill matching and candidate ranking", "endpoint": f"{BASE}/agent/hr/screen", "price_usd": 0.03, "category": "hr"},
+            {"name": "Job Description Writer", "description": "Generate inclusive, compelling job descriptions with role requirements", "endpoint": f"{BASE}/agent/hr/job-description", "price_usd": 0.02, "category": "hr"},
+            {"name": "Interview Prep", "description": "Interview question generation with evaluation rubrics and scoring guides", "endpoint": f"{BASE}/agent/hr/interview", "price_usd": 0.02, "category": "hr"},
+            {"name": "Performance Review Writer", "description": "Structured performance review drafts with feedback frameworks", "endpoint": f"{BASE}/agent/hr/performance", "price_usd": 0.03, "category": "hr"},
+            {"name": "HR Policy Generator", "description": "Generate HR policies covering remote work, benefits, conduct, and compliance", "endpoint": f"{BASE}/agent/hr/policy", "price_usd": 0.04, "category": "hr"},
+        ],
+    },
 ]
 
 
 def bootstrap_all_agents():
-    """Register all 8 specialist agents and their marketplace listings. Idempotent."""
+    """Register all 13 specialist agents and their marketplace listings. Idempotent."""
     for agent in _AGENTS:
         register_agent(
             agent_id=agent["agent_id"],

@@ -1,8 +1,8 @@
-# AiPayGent v2 — Full Stack Agent Platform Implementation Plan
+# AiPayGen v2 — Full Stack Agent Platform Implementation Plan
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Transform AiPayGent from a Claude-only API service into a multi-model, identity-verified, metered-pricing agent platform with an on-chain reputation economy.
+**Goal:** Transform AiPayGen from a Claude-only API service into a multi-model, identity-verified, metered-pricing agent platform with an on-chain reputation economy.
 
 **Architecture:** Four pillars shipped incrementally: (1) model_router.py abstracting all LLM calls behind a unified interface, (2) agent_identity.py for wallet-based challenge-sign-verify auth with JWT sessions, (3) dual pricing layer in the WSGI middleware, (4) agent economy v2 with EAS reputation and agent-to-agent payments. Each pillar is independently deployable.
 
@@ -81,7 +81,7 @@ Expected: FAIL with ImportError (model_router doesn't exist yet)
 
 ```python
 # model_router.py
-"""Unified multi-model routing for AiPayGent.
+"""Unified multi-model routing for AiPayGen.
 
 Abstracts LLM calls behind a single call_model() interface.
 Supports Anthropic, OpenAI, Google, DeepSeek, Together/Groq.
@@ -711,7 +711,7 @@ import jwt
 from eth_account import Account
 from eth_account.messages import encode_defunct
 
-JWT_SECRET = os.environ.get("JWT_SECRET", "aipaygent-jwt-secret-change-me")
+JWT_SECRET = os.environ.get("JWT_SECRET", "aipaygen-jwt-secret-change-me")
 JWT_ALGORITHM = "HS256"
 CHALLENGE_TTL = 300  # 5 minutes
 
@@ -732,7 +732,7 @@ def generate_challenge(wallet_address: str) -> dict:
     """Generate a challenge message for wallet ownership proof."""
     nonce = uuid.uuid4().hex
     expires_at = time.time() + CHALLENGE_TTL
-    message = f"AiPayGent identity verification\nWallet: {wallet_address}\nNonce: {nonce}"
+    message = f"AiPayGen identity verification\nWallet: {wallet_address}\nNonce: {nonce}"
     _pending_challenges[nonce] = {
         "message": message,
         "wallet": wallet_address,
@@ -1385,7 +1385,7 @@ def marketplace_list_service(agent_id, name, description, endpoint, price_usd,
 
 In `app.py`, modify the marketplace call handler:
 - 95% of payment goes to seller's wallet (if verified)
-- 5% platform fee stays with AiPayGent
+- 5% platform fee stays with AiPayGen
 - For MVP: track the split in SQLite, settle via periodic batch transfer
 
 ```python
@@ -1552,7 +1552,7 @@ curl -s http://localhost:5001/.well-known/agents.json | python -m json.tool | he
 
 ```bash
 git add -A
-git commit -m "feat: AiPayGent v2 complete — multi-model, wallet identity, metered pricing, agent economy"
+git commit -m "feat: AiPayGen v2 complete — multi-model, wallet identity, metered pricing, agent economy"
 ```
 
 ---

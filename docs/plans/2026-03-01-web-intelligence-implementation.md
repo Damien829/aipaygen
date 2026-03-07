@@ -100,7 +100,7 @@ from markdownify import markdownify as md
 from duckduckgo_search import DDGS
 
 SCRAPE_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; AiPayGent/1.0; +https://aipaygent.xyz)"
+    "User-Agent": "Mozilla/5.0 (compatible; AiPayGen/1.0; +https://aipaygen.com)"
 }
 
 STRIP_TAGS = ["script", "style", "nav", "footer", "header", "aside", "iframe", "noscript"]

@@ -1,7 +1,7 @@
 # Discovery Scouts Design
 
 **Date**: 2026-03-03
-**Goal**: Deploy autonomous discovery agents that find AI agents on the internet and get them to call AiPayGent APIs as their tool provider.
+**Goal**: Deploy autonomous discovery agents that find AI agents on the internet and get them to call AiPayGen APIs as their tool provider.
 
 ## Architecture: Scout Fleet
 
@@ -12,19 +12,19 @@
 ### 1. GitHubScout (2x/day — 8 AM, 8 PM UTC)
 - Search GitHub for agent repos (AutoGPT, CrewAI, LangChain, BabyAGI, MetaGPT, etc.)
 - Find repos with `tools/`, `plugins/`, or MCP config files
-- Open issues: "Add AiPayGent as tool provider — 646 skills via MCP/REST"
+- Open issues: "Add AiPayGen as tool provider — 646 skills via MCP/REST"
 - 30-day cooldown per repo, ~100 repos/run
 - Budget: ~$0.50/day (Haiku)
 
 ### 2. RegistryScout (daily — 5 AM UTC)
 - Monitor agent registries: AgentProtocol, Composio, Relevance AI, agent marketplaces
-- Auto-submit AiPayGent listings where registration APIs exist
+- Auto-submit AiPayGen listings where registration APIs exist
 - Weekly search for new registries/directories
 - Budget: ~$0.30/day
 
 ### 3. SocialScout (3x/day — 9 AM, 3 PM, 9 PM UTC)
 - Reddit: r/AutoGPT, r/LangChain, r/LocalLLaMA, r/artificial
-- Craft helpful replies mentioning AiPayGent when relevant (not spam)
+- Craft helpful replies mentioning AiPayGen when relevant (not spam)
 - Track comments, avoid double-posting
 - Budget: ~$1.00/day (Sonnet for quality)
 

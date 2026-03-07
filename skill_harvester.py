@@ -37,7 +37,7 @@ FETCH_TIMEOUT = 30
 MAX_CONTENT_LEN = 10000
 COOLDOWN_DAYS = 30  # skip failed URLs for this long
 
-USER_AGENT = "AiPayGent-SkillHarvester/1.0 (+https://api.aipaygent.xyz)"
+USER_AGENT = "AiPayGen-SkillHarvester/1.0 (+https://api.aipaygen.com)"
 
 
 def _init_harvest_db():
@@ -64,14 +64,13 @@ def _init_harvest_db():
 
 
 def _fetch_url(url, max_len=MAX_CONTENT_LEN):
-    """Fetch URL content with rate limiting and error handling."""
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    try:
-        with urllib.request.urlopen(req, timeout=FETCH_TIMEOUT) as resp:
-            return resp.read().decode("utf-8", errors="replace")[:max_len]
-    except Exception as e:
-        log.warning(f"Failed to fetch {url}: {e}")
+    """Fetch URL content with SSRF protection and error handling."""
+    from security import safe_fetch
+    resp = safe_fetch(url, user_agent=USER_AGENT, timeout=FETCH_TIMEOUT, max_size=max_len)
+    if "error" in resp:
+        log.warning(f"Failed to fetch {url}: {resp['error']}")
         return None
+    return resp.get("body")
 
 
 def _fetch_github_raw(owner, repo, path="README.md"):
@@ -607,7 +606,7 @@ def _setup_from_app():
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Skill Harvester for AiPayGent")
+    parser = argparse.ArgumentParser(description="Skill Harvester for AiPayGen")
     parser.add_argument("--batch", action="store_true", help="Run batch harvest")
     parser.add_argument("--source", choices=["mcp", "github", "api", "all"], default="all",
                         help="Which source to harvest")

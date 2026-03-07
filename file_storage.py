@@ -1,4 +1,5 @@
 """Agent file storage — upload, retrieve, and manage files with SQLite metadata."""
+import re
 import sqlite3
 import uuid
 import os
@@ -39,9 +40,15 @@ def save_file(agent_id: str, filename: str, content_type: str,
     if len(data) > MAX_FILE_SIZE:
         raise ValueError(f"File too large (max {MAX_FILE_SIZE // 1024 // 1024}MB)")
     file_id = str(uuid.uuid4())
+    # Sanitize filename to prevent path traversal
+    filename = re.sub(r'[/\\:\r\n\x00-\x1f]', '_', os.path.basename(filename))
     ext = os.path.splitext(filename)[1] or ""
+    ext = re.sub(r'[^a-zA-Z0-9.]', '', ext)[:10]
     disk_name = f"{file_id}{ext}"
     path = os.path.join(FILES_DIR, disk_name)
+    # Verify path stays within uploads dir
+    if not os.path.realpath(path).startswith(os.path.realpath(FILES_DIR)):
+        raise ValueError("Invalid filename")
     with open(path, "wb") as f:
         f.write(data)
     now = datetime.utcnow().isoformat()
@@ -55,7 +62,7 @@ def save_file(agent_id: str, filename: str, content_type: str,
         "file_id": file_id,
         "filename": filename,
         "size_bytes": len(data),
-        "url": f"https://api.aipaygent.xyz/files/{file_id}",
+        "url": f"https://api.aipaygen.com/files/{file_id}",
         "created_at": now,
     }
 
@@ -98,7 +105,7 @@ def list_files(agent_id: str) -> list:
     result = []
     for r in rows:
         d = dict(r)
-        d["url"] = f"https://api.aipaygent.xyz/files/{d['file_id']}"
+        d["url"] = f"https://api.aipaygen.com/files/{d['file_id']}"
         result.append(d)
     return result
 

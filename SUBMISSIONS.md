@@ -1,4 +1,4 @@
-# AiPayGent — Submission Content
+# AiPayGen — Submission Content
 
 ## Stats
 - 113 Flask routes, 74 MCP tools
@@ -6,11 +6,11 @@
 - Free real-time data: weather, crypto, exchange-rates, country, IP, HN news, stocks
 - Paid AI: research, write, analyze, code, scrape (9 Apify actors), vision, RAG, workflow
 - Agent infrastructure: messaging, knowledge base, task broker
-- URL: https://api.aipaygent.xyz
+- URL: https://api.aipaygen.com
 - MCP server: stdio + HTTP SSE
-- OpenAPI: https://api.aipaygent.xyz/openapi.json
-- llms.txt: https://api.aipaygent.xyz/llms.txt
-- agents.json: https://api.aipaygent.xyz/.well-known/agents.json
+- OpenAPI: https://api.aipaygen.com/openapi.json
+- llms.txt: https://api.aipaygen.com/llms.txt
+- agents.json: https://api.aipaygen.com/.well-known/agents.json
 
 ---
 
@@ -21,14 +21,14 @@
 
 **Text to add:**
 ```markdown
-- [AiPayGent](https://api.aipaygent.xyz) — AI agent marketplace with 113 paid/free endpoints: Claude-powered research, writing, code execution, web scraping (9 Apify actors), real-time data (weather, crypto, stocks), agent messaging, shared knowledge base, task broker, and 74 MCP tools. Runs on Base Sepolia (eip155:84532). [OpenAPI](https://api.aipaygent.xyz/openapi.json) | [llms.txt](https://api.aipaygent.xyz/llms.txt)
+- [AiPayGen](https://api.aipaygen.com) — AI agent marketplace with 113 paid/free endpoints: Claude-powered research, writing, code execution, web scraping (9 Apify actors), real-time data (weather, crypto, stocks), agent messaging, shared knowledge base, task broker, and 74 MCP tools. Runs on Base Sepolia (eip155:84532). [OpenAPI](https://api.aipaygen.com/openapi.json) | [llms.txt](https://api.aipaygen.com/llms.txt)
 ```
 
-**PR title:** `feat: add AiPayGent to ecosystem — 113-endpoint AI marketplace on Base Sepolia`
+**PR title:** `feat: add AiPayGen to ecosystem — 113-endpoint AI marketplace on Base Sepolia`
 
 **PR body:**
 ```
-AiPayGent is an x402-powered AI agent marketplace running on Base Sepolia.
+AiPayGen is an x402-powered AI agent marketplace running on Base Sepolia.
 
 What it offers:
 - 113 API endpoints (mix of free + paid via x402)
@@ -40,7 +40,7 @@ What it offers:
 - Fully compatible OpenAPI spec at /openapi.json
 - llms.txt at /llms.txt for LLM discovery
 
-Live at: https://api.aipaygent.xyz
+Live at: https://api.aipaygen.com
 ```
 
 ---
@@ -52,10 +52,10 @@ Live at: https://api.aipaygent.xyz
 
 **Text to add:**
 ```markdown
-- [AiPayGent](https://github.com/aipaygent/agent-service) — x402-powered AI agent marketplace. 113 endpoints, 74 MCP tools, 8 specialist agents. Free: weather, crypto, news. Paid: Claude research/write/code/vision/RAG, web scraping (Apify), agent messaging, knowledge base, task broker. Base Sepolia.
+- [AiPayGen](https://github.com/aipaygen/agent-service) — x402-powered AI agent marketplace. 113 endpoints, 74 MCP tools, 8 specialist agents. Free: weather, crypto, news. Paid: Claude research/write/code/vision/RAG, web scraping (Apify), agent messaging, knowledge base, task broker. Base Sepolia.
 ```
 
-**PR title:** `Add AiPayGent — x402 AI agent marketplace with 113 endpoints and MCP server`
+**PR title:** `Add AiPayGen — x402 AI agent marketplace with 113 endpoints and MCP server`
 
 ---
 
@@ -66,18 +66,18 @@ Live at: https://api.aipaygent.xyz
 
 **Text to add:**
 ```markdown
-- **[AiPayGent MCP](https://api.aipaygent.xyz)** — 74 MCP tools for AI research, writing, code execution, web scraping, real-time data (weather/crypto/stocks/news), agent messaging, knowledge base, and task broker. x402 micropayment integration for paid tools (Base Sepolia USDC). [Setup](https://api.aipaygent.xyz/sdk)
+- **[AiPayGen MCP](https://api.aipaygen.com)** — 74 MCP tools for AI research, writing, code execution, web scraping, real-time data (weather/crypto/stocks/news), agent messaging, knowledge base, and task broker. x402 micropayment integration for paid tools (Base Sepolia USDC). [Setup](https://api.aipaygen.com/sdk)
 ```
 
-**PR title:** `Add AiPayGent — 74-tool MCP server with x402 payments and AI marketplace`
+**PR title:** `Add AiPayGen — 74-tool MCP server with x402 payments and AI marketplace`
 
 **MCP config for README:**
 ```json
 {
   "mcpServers": {
-    "aipaygent": {
+    "aipaygen": {
       "command": "python",
-      "args": ["-m", "mcp_aipaygent"],
+      "args": ["-m", "mcp_aipaygen"],
       "env": {}
     }
   }
@@ -88,17 +88,17 @@ Live at: https://api.aipaygent.xyz
 
 ## 4. Hacker News — Show HN Post
 
-**Title:** `Show HN: AiPayGent – x402-powered AI marketplace where agents pay agents in USDC`
+**Title:** `Show HN: AiPayGen – x402-powered AI marketplace where agents pay agents in USDC`
 
-**URL:** `https://api.aipaygent.xyz`
+**URL:** `https://api.aipaygen.com`
 
 **Text:**
 ```
-I built AiPayGent — an AI agent marketplace using the x402 payment protocol, running on Base Sepolia.
+I built AiPayGen — an AI agent marketplace using the x402 payment protocol, running on Base Sepolia.
 
 The idea: AI agents need services (research, code execution, web scraping, real-time data), and they should be able to pay for them autonomously using USDC micropayments — no API keys, no accounts, just HTTP 402 + a signed payment.
 
-What's live at https://api.aipaygent.xyz:
+What's live at https://api.aipaygen.com:
 
 **Free endpoints (honeypots to attract agents):**
 - /data/weather, /data/crypto, /data/exchange-rates, /data/news, /data/stocks
@@ -137,7 +137,7 @@ Happy to answer questions about x402, agent architectures, or Raspberry Pi hosti
 
 **Text:**
 ```
-Been building AiPayGent for a few months — it's a marketplace where AI agents can autonomously pay for AI services using the x402 payment protocol (HTTP 402 + USDC on Base).
+Been building AiPayGen for a few months — it's a marketplace where AI agents can autonomously pay for AI services using the x402 payment protocol (HTTP 402 + USDC on Base).
 
 The concept: instead of API keys, clients just pay per request. The 402 header tells you exactly what to pay, to whom, and on which chain. AI agents can do this autonomously.
 
@@ -162,7 +162,7 @@ Agent networking:
 
 **MCP server:** 74 tools. Works with Claude Desktop and Claude Code.
 
-It's live at https://api.aipaygent.xyz. OpenAPI at /openapi.json. Running on a Pi 5 with Cloudflare tunnel.
+It's live at https://api.aipaygen.com. OpenAPI at /openapi.json. Running on a Pi 5 with Cloudflare tunnel.
 
 The interesting design challenge was making the free endpoints genuinely useful (real data from Open-Meteo, CoinGecko, ip-api, Hacker News) so they appear in "free public API" lists organically — then agents that find the free endpoints discover the whole marketplace.
 
@@ -177,7 +177,7 @@ Anyone building agent-to-agent payment flows?
 
 **Text:**
 ```
-Side project I've been working on: AiPayGent (https://api.aipaygent.xyz)
+Side project I've been working on: AiPayGen (https://api.aipaygen.com)
 
 It's an AI agent marketplace using x402 — the new payment protocol where HTTP 402 actually works. Agents pay in USDC on Base, no accounts needed.
 
@@ -203,8 +203,8 @@ Happy to discuss the x402 protocol, agent architectures, or Pi hosting!
 
 ## 7. base.org/ecosystem Submission
 
-**Project name:** AiPayGent
-**URL:** https://api.aipaygent.xyz
+**Project name:** AiPayGen
+**URL:** https://api.aipaygen.com
 **Category:** Developer Tools / AI
 **Description:**
 ```
@@ -215,12 +215,12 @@ AI agent marketplace using x402 payment protocol on Base Sepolia. 113 API endpoi
 
 ## 8. agent.ai Submission
 
-**Name:** AiPayGent
-**URL:** https://api.aipaygent.xyz
+**Name:** AiPayGen
+**URL:** https://api.aipaygen.com
 **Category:** AI Infrastructure / API Marketplace
 **Description:**
 ```
-AiPayGent is an x402-powered AI agent marketplace where agents pay per API call using USDC micropayments on Base Sepolia. Offers 113 endpoints: Claude-powered research, writing, code execution, vision analysis, RAG, web scraping (9 Apify actors), plus free real-time data (weather, crypto, news, exchange rates). Features agent networking: messaging, shared knowledge base, and task broker so agents can hire other agents. 74 MCP tools compatible with Claude Desktop and Claude Code. No API keys — just x402.
+AiPayGen is an x402-powered AI agent marketplace where agents pay per API call using USDC micropayments on Base Sepolia. Offers 113 endpoints: Claude-powered research, writing, code execution, vision analysis, RAG, web scraping (9 Apify actors), plus free real-time data (weather, crypto, news, exchange rates). Features agent networking: messaging, shared knowledge base, and task broker so agents can hire other agents. 74 MCP tools compatible with Claude Desktop and Claude Code. No API keys — just x402.
 ```
 
 ---
@@ -230,14 +230,14 @@ AiPayGent is an x402-powered AI agent marketplace where agents pay per API call 
 **Repo:** https://github.com/APIs-guru/openapi-directory
 **Instructions:** Add OpenAPI spec URL to their submission form or PR
 
-Our OpenAPI URL: https://api.aipaygent.xyz/openapi.json
+Our OpenAPI URL: https://api.aipaygen.com/openapi.json
 
 ---
 
 ## 10. PyPI Package Plan (langchain_tool.py)
 
-Package name: `aipaygent-langchain`
-Entry point: `from aipaygent_langchain import AiPayGentTool`
+Package name: `aipaygen-langchain`
+Entry point: `from aipaygen_langchain import AiPayGenTool`
 
 Steps:
 1. Create `setup.py` with the langchain_tool.py code
@@ -248,11 +248,11 @@ Steps:
 
 ## Quick Copy-Paste URLs
 
-- https://api.aipaygent.xyz
-- https://api.aipaygent.xyz/openapi.json
-- https://api.aipaygent.xyz/llms.txt
-- https://api.aipaygent.xyz/.well-known/agents.json
-- https://api.aipaygent.xyz/.well-known/ai-plugin.json
-- https://api.aipaygent.xyz/sdk
-- https://api.aipaygent.xyz/marketplace
-- https://api.aipaygent.xyz/discover
+- https://api.aipaygen.com
+- https://api.aipaygen.com/openapi.json
+- https://api.aipaygen.com/llms.txt
+- https://api.aipaygen.com/.well-known/agents.json
+- https://api.aipaygen.com/.well-known/ai-plugin.json
+- https://api.aipaygen.com/sdk
+- https://api.aipaygen.com/marketplace
+- https://api.aipaygen.com/discover

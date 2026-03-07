@@ -304,6 +304,17 @@ def check_and_use_free_tier(ip: str) -> bool:
     return True
 
 
+def get_free_tier_remaining(identifier: str) -> int:
+    """Return number of free calls remaining today for an identifier (IP or API key hash)."""
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    with _conn() as c:
+        row = c.execute(
+            "SELECT calls_used FROM free_tier_usage WHERE ip=? AND date=?", (identifier, today)
+        ).fetchone()
+    used = row["calls_used"] if row else 0
+    return max(0, FREE_DAILY_LIMIT - used)
+
+
 def get_free_tier_status(ip: str) -> dict:
     today = datetime.utcnow().strftime("%Y-%m-%d")
     with _conn() as c:
@@ -414,7 +425,7 @@ def _notify_task_subscribers(task_id: str, title: str, description: str,
                     "description": description,
                     "skills_needed": skills_needed,
                     "reward_usd": reward_usd,
-                    "claim_url": f"https://api.aipaygent.xyz/task/claim",
+                    "claim_url": f"https://api.aipaygen.com/task/claim",
                 }, timeout=5)
             except Exception:
                 pass

@@ -15,10 +15,11 @@ import urllib.error
 import urllib.parse
 from datetime import datetime, timedelta
 
-BASE_URL = os.getenv("BASE_URL", "https://api.aipaygent.xyz")
+BASE_URL = os.getenv("BASE_URL", "https://api.aipaygen.com")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 DB_PATH = os.path.join(os.path.dirname(__file__), "discovery_engine.db")
-USER_AGENT = "AiPayGent-DiscoveryScout/1.0 (+https://api.aipaygent.xyz)"
+SKILLS_DB_PATH = os.path.join(os.path.dirname(__file__), "skills.db")
+USER_AGENT = "AiPayGen-DiscoveryScout/1.0 (+https://api.aipaygen.com)"
 FETCH_TIMEOUT = 15
 
 # ── Shared Helpers ────────────────────────────────────────────────────────────
@@ -89,8 +90,17 @@ def _already_scouted(scout, target_id, within_days=30):
 
 
 def _fetch(url, headers=None, timeout=FETCH_TIMEOUT, method="GET", data=None):
+    # SSRF validation — block internal/private IPs
+    try:
+        from security import validate_url, SSRFError
+        validate_url(url, allow_http=True)
+    except SSRFError:
+        return {"error": f"SSRF blocked: {url}", "blocked": True}
+    except Exception:
+        pass  # security module unavailable, proceed with caution
     hdrs = {"User-Agent": USER_AGENT}
     if headers:
+        # Mask any auth tokens in logged headers
         hdrs.update(headers)
     try:
         req = urllib.request.Request(url, headers=hdrs, method=method, data=data)
@@ -111,11 +121,186 @@ def _ref_code(scout, target_id):
     return f"{scout[:2]}_{h}"
 
 
+# ── Skill Absorber Mixin ──────────────────────────────────────────────────────
+
+
+def _init_absorbed_skills_table():
+    """Track skills absorbed by scouts — dedup + attribution."""
+    with _scout_conn() as c:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS scout_absorbed_skills (
+                id INTEGER PRIMARY KEY,
+                scout TEXT NOT NULL,
+                source_id TEXT NOT NULL,
+                skill_name TEXT NOT NULL,
+                source_url TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
+                UNIQUE(scout, skill_name)
+            )
+        """)
+        c.execute("CREATE INDEX IF NOT EXISTS idx_sas_scout ON scout_absorbed_skills(scout)")
+
+
+class SkillAbsorberMixin:
+    """Mixin that gives any scout the ability to absorb skills from discovered content.
+
+    Requires self.call_model and a scout_name attribute.
+    """
+
+    ABSORB_MAX_PER_RUN = 5  # Don't flood the DB
+
+    def _absorb_skills_from_content(self, content, source_id, source_url="", category="general"):
+        """Extract and store skills from arbitrary text content (README, API spec, manifest).
+
+        Returns list of absorbed skill names.
+        """
+        _init_absorbed_skills_table()
+
+        if not content or len(content.strip()) < 50:
+            return []
+
+        scout_name = getattr(self, "SCOUT_NAME", "unknown")
+
+        # Check how many we already absorbed this run
+        with _scout_conn() as c:
+            today = datetime.utcnow().strftime("%Y-%m-%d")
+            today_count = c.execute(
+                "SELECT COUNT(*) FROM scout_absorbed_skills WHERE scout=? AND created_at LIKE ?",
+                (scout_name, f"{today}%"),
+            ).fetchone()[0]
+        if today_count >= self.ABSORB_MAX_PER_RUN * 3:
+            return []
+
+        # Use AI to extract multiple skills from the content
+        try:
+            result = self.call_model(
+                "claude-haiku",
+                [{"role": "user", "content": f"""Analyze this content and extract reusable AI skills/tools from it.
+
+Content (from {source_url or source_id}):
+{content[:6000]}
+
+Extract up to 3 distinct skills. For each skill return:
+- "name": snake_case (unique, descriptive, prefix with source domain if possible)
+- "description": one-line description
+- "category": one of: research, engineering, business, finance, marketing, legal, education, data, creative, general
+- "prompt_template": a prompt template using {{{{input}}}} placeholder that produces structured JSON output
+- "input_schema": {{"input": "description of expected input"}}
+
+Return a JSON array of skill objects. If no clear skills can be extracted, return [].
+Only extract skills that represent genuinely useful, reusable capabilities — not trivial helpers."""}],
+                system="You are a skill extraction expert. Always respond with a valid JSON array only.",
+                max_tokens=1500,
+                temperature=0.3,
+            )
+        except Exception:
+            return []
+
+        # Parse the extracted skills
+        text = result.get("text", "").strip()
+        try:
+            # Handle both raw JSON and markdown-wrapped JSON
+            if text.startswith("```"):
+                text = text.split("```")[1]
+                if text.startswith("json"):
+                    text = text[4:]
+            skills = json.loads(text)
+        except (json.JSONDecodeError, ValueError, IndexError):
+            return []
+
+        if not isinstance(skills, list):
+            return []
+
+        absorbed = []
+        for skill in skills[:self.ABSORB_MAX_PER_RUN]:
+            name = skill.get("name", "")
+            desc = skill.get("description", "")
+            template = skill.get("prompt_template", "")
+            if not name or not desc or not template:
+                continue
+
+            # Sanitize skill name
+            name = name.lower().replace("-", "_").replace(" ", "_")[:80]
+
+            # Check dedup in scout DB
+            with _scout_conn() as c:
+                exists = c.execute(
+                    "SELECT id FROM scout_absorbed_skills WHERE skill_name=?", (name,)
+                ).fetchone()
+            if exists:
+                continue
+
+            # Insert into skills.db
+            try:
+                skills_conn = sqlite3.connect(SKILLS_DB_PATH)
+                skills_conn.execute(
+                    "INSERT INTO skills (name, description, category, source, prompt_template, model, input_schema) "
+                    "VALUES (?, ?, ?, ?, ?, 'claude-haiku', ?)",
+                    (name, desc, skill.get("category", category),
+                     f"scout:{scout_name}:{source_url or source_id}",
+                     template,
+                     json.dumps(skill.get("input_schema", {"input": "string"}))),
+                )
+                skills_conn.commit()
+                skills_conn.close()
+            except sqlite3.IntegrityError:
+                # Skill name already exists in skills.db
+                try:
+                    skills_conn.close()
+                except Exception:
+                    pass
+                continue
+            except Exception:
+                try:
+                    skills_conn.close()
+                except Exception:
+                    pass
+                continue
+
+            # Log in scout DB
+            with _scout_conn() as c:
+                c.execute(
+                    "INSERT OR IGNORE INTO scout_absorbed_skills (scout, source_id, skill_name, source_url) "
+                    "VALUES (?, ?, ?, ?)",
+                    (scout_name, source_id, name, source_url or ""),
+                )
+
+            absorbed.append(name)
+            _log_outreach(
+                scout_name, source_id, "skill_absorbed",
+                message=f"Absorbed skill: {name} — {desc}", status="absorbed",
+            )
+
+        return absorbed
+
+
+def get_absorbed_skills_stats():
+    """Get stats on skills absorbed by scouts."""
+    _init_absorbed_skills_table()
+    with _scout_conn() as c:
+        total = c.execute("SELECT COUNT(*) FROM scout_absorbed_skills").fetchone()[0]
+        by_scout = c.execute(
+            "SELECT scout, COUNT(*) as cnt FROM scout_absorbed_skills GROUP BY scout"
+        ).fetchall()
+        recent = c.execute(
+            "SELECT scout, skill_name, source_url, created_at FROM scout_absorbed_skills "
+            "ORDER BY created_at DESC LIMIT 20"
+        ).fetchall()
+    return {
+        "total_absorbed": total,
+        "by_scout": [dict(r) for r in by_scout],
+        "recent": [dict(r) for r in recent],
+    }
+
+
 # ── GitHubScout ───────────────────────────────────────────────────────────────
 
 
-class GitHubScout:
-    """Searches GitHub for agent repos, opens issues suggesting AiPayGent as tool provider."""
+class GitHubScout(SkillAbsorberMixin):
+    """Searches GitHub for agent repos, opens issues suggesting AiPayGen as tool provider.
+    Also absorbs skills from discovered repo READMEs."""
+
+    SCOUT_NAME = "github"
 
     SEARCH_QUERIES = [
         "AI agent framework tools plugin",
@@ -133,9 +318,10 @@ class GitHubScout:
     def __init__(self, call_model_fn):
         self.call_model = call_model_fn
         init_scout_db()
+        _init_absorbed_skills_table()
 
     def run(self, max_actions=5):
-        stats = {"repos_scanned": 0, "issues_opened": 0, "errors": 0, "actions": 0}
+        stats = {"repos_scanned": 0, "issues_opened": 0, "skills_absorbed": 0, "errors": 0, "actions": 0}
         today_opened = self._issues_opened_today()
         if today_opened >= self.MAX_ISSUES_PER_DAY:
             return stats
@@ -154,6 +340,19 @@ class GitHubScout:
                     continue
                 if repo.get("stargazers_count", 0) < 10:
                     continue
+
+                # Absorb skills from repo README
+                readme_content = self._fetch_readme(full_name)
+                if readme_content:
+                    desc = repo.get("description", "") or ""
+                    topics = ", ".join(repo.get("topics", []))
+                    absorb_content = f"Repository: {full_name}\nDescription: {desc}\nTopics: {topics}\n\n{readme_content}"
+                    absorbed = self._absorb_skills_from_content(
+                        absorb_content, full_name,
+                        source_url=f"https://github.com/{full_name}",
+                        category="engineering",
+                    )
+                    stats["skills_absorbed"] += len(absorbed)
 
                 title, body = self._craft_issue(repo)
                 if not title:
@@ -174,6 +373,19 @@ class GitHubScout:
                 time.sleep(2)
 
         return stats
+
+    def _fetch_readme(self, full_name):
+        """Fetch README content from a GitHub repo."""
+        resp = _fetch(
+            f"https://api.github.com/repos/{full_name}/readme",
+            headers={
+                "Authorization": f"token {GITHUB_TOKEN}",
+                "Accept": "application/vnd.github.v3.raw",
+            },
+        )
+        if resp.get("status") == 200:
+            return resp.get("body", "")[:8000]
+        return ""
 
     def _search_repos(self, query):
         resp = _fetch(
@@ -200,12 +412,12 @@ class GitHubScout:
                 [{"role": "user", "content": (
                     f'Write a GitHub issue title and body for repo "{repo["full_name"]}" ({desc}).\n'
                     f"Topics: {topics}\n\n"
-                    "Suggest AiPayGent as a tool/skill provider. We offer:\n"
+                    "Suggest AiPayGen as a tool/skill provider. We offer:\n"
                     "- 646+ skills via MCP protocol and REST API\n"
                     "- Free tier (10 calls/day), then x402 USDC micropayments\n"
                     "- Multi-model AI (Claude, GPT-4, Gemini, DeepSeek)\n"
                     f"- Endpoint: {BASE_URL}\n"
-                    "- MCP: mcp.aipaygent.xyz\n\n"
+                    "- MCP: mcp.aipaygen.com\n\n"
                     "Make it genuinely helpful, not spammy. Show how their project benefits.\n"
                     f"Format: first line = title, rest = body. Include link: {BASE_URL}?ref={ref}"
                 )}],
@@ -249,8 +461,11 @@ class GitHubScout:
 # ── RegistryScout ─────────────────────────────────────────────────────────────
 
 
-class RegistryScout:
-    """Auto-submits AiPayGent to agent registries and marketplaces."""
+class RegistryScout(SkillAbsorberMixin):
+    """Auto-submits AiPayGen to agent registries and marketplaces.
+    Also absorbs skills from tools/agents discovered in registries."""
+
+    SCOUT_NAME = "registry"
 
     REGISTRIES = [
         {
@@ -286,10 +501,10 @@ class RegistryScout:
     ]
 
     OUR_MANIFEST = {
-        "name": "AiPayGent",
+        "name": "AiPayGen",
         "description": "646+ AI skills via MCP protocol and REST API. Multi-model (Claude, GPT-4, Gemini). x402 USDC micropayments.",
         "url": BASE_URL,
-        "mcp_endpoint": "https://mcp.aipaygent.xyz/mcp",
+        "mcp_endpoint": "https://mcp.aipaygen.com/mcp",
         "docs": f"{BASE_URL}/discover",
         "pricing": "Free tier (10 calls/day), then x402 USDC micropayments",
         "categories": ["ai", "tools", "mcp", "agent", "skills"],
@@ -300,9 +515,10 @@ class RegistryScout:
     def __init__(self, call_model_fn):
         self.call_model = call_model_fn
         init_scout_db()
+        _init_absorbed_skills_table()
 
     def run(self, max_actions=5):
-        stats = {"registered": 0, "already_listed": 0, "errors": 0, "actions": 0}
+        stats = {"registered": 0, "already_listed": 0, "skills_absorbed": 0, "errors": 0, "actions": 0}
 
         for reg in self.REGISTRIES:
             if stats["actions"] >= max_actions:
@@ -311,6 +527,16 @@ class RegistryScout:
             if _already_scouted("registry", name, self.COOLDOWN_DAYS):
                 stats["already_listed"] += 1
                 continue
+
+            # Absorb skills from registry listings
+            listing_content = self._scan_registry_listings(reg)
+            if listing_content:
+                absorbed = self._absorb_skills_from_content(
+                    listing_content, f"registry:{name}",
+                    source_url=reg["url"],
+                    category="general",
+                )
+                stats["skills_absorbed"] += len(absorbed)
 
             if reg["submit_url"]:
                 success = self._submit(reg)
@@ -330,6 +556,34 @@ class RegistryScout:
             time.sleep(1)
 
         return stats
+
+    def _scan_registry_listings(self, reg):
+        """Fetch tools/agents listed in a registry and extract their descriptions."""
+        resp = _fetch(reg["url"], timeout=15)
+        if "error" in resp or resp.get("status") != 200:
+            return ""
+        body = resp.get("body", "")
+        try:
+            data = json.loads(body)
+            items = []
+            if isinstance(data, list):
+                items = data[:15]
+            elif isinstance(data, dict):
+                items = (data.get("items") or data.get("tools") or
+                         data.get("agents") or data.get("servers") or [])[:15]
+            if not items:
+                return ""
+            # Build a summary of discovered tools
+            summaries = []
+            for item in items:
+                name = item.get("name") or item.get("title", "")
+                desc = item.get("description") or item.get("summary", "")
+                url = item.get("url") or item.get("homepage", "")
+                if name and desc:
+                    summaries.append(f"- {name}: {desc} ({url})")
+            return f"Tools found in {reg['name']} registry:\n" + "\n".join(summaries)
+        except (json.JSONDecodeError, TypeError):
+            return ""
 
     def _submit(self, reg):
         payload = json.dumps(self.OUR_MANIFEST).encode("utf-8")
@@ -431,12 +685,12 @@ class SocialScout:
                 "claude-sonnet",
                 [{"role": "user", "content": (
                     f'Write a helpful Reddit reply to: "{title}"\n\n{text}\n\n'
-                    "Suggest AiPayGent where relevant. We offer:\n"
+                    "Suggest AiPayGen where relevant. We offer:\n"
                     "- 646+ skills via MCP + REST\n"
                     "- Free tier, then x402 micropayments\n"
                     "- Multi-model AI\n"
                     f"- {BASE_URL}?ref={ref}\n\n"
-                    "Be genuinely helpful first, mention AiPayGent naturally. Max 150 words."
+                    "Be genuinely helpful first, mention AiPayGen naturally. Max 150 words."
                 )}],
                 system="You write helpful, non-promotional Reddit replies. Lead with value.",
                 max_tokens=300,
@@ -510,8 +764,10 @@ class SocialScout:
 # ── A2AScout ──────────────────────────────────────────────────────────────────
 
 
-class A2AScout:
-    """Crawls MCP registries for live agent endpoints and contacts them."""
+class A2AScout(SkillAbsorberMixin):
+    """Crawls MCP registries for live agent endpoints, contacts them, and absorbs their capabilities as skills."""
+
+    SCOUT_NAME = "a2a"
 
     REGISTRY_URLS = [
         "https://mcp.so/api/tools?limit=50",
@@ -526,9 +782,10 @@ class A2AScout:
     def __init__(self, call_model_fn):
         self.call_model = call_model_fn
         init_scout_db()
+        _init_absorbed_skills_table()
 
     def run(self, max_actions=3):
-        stats = {"agents_found": 0, "agents_contacted": 0, "errors": 0, "actions": 0}
+        stats = {"agents_found": 0, "agents_contacted": 0, "skills_absorbed": 0, "errors": 0, "actions": 0}
 
         endpoints = self._discover_endpoints()
         for ep in endpoints:
@@ -545,6 +802,15 @@ class A2AScout:
                 continue
 
             stats["agents_found"] += 1
+
+            # Absorb skills from agent capabilities
+            absorb_content = f"Agent: {name}\nEndpoint: {url}\nCapabilities: {json.dumps(agent_info)[:4000]}"
+            absorbed = self._absorb_skills_from_content(
+                absorb_content, url,
+                source_url=url,
+                category="engineering",
+            )
+            stats["skills_absorbed"] += len(absorbed)
 
             # Send intro message
             intro = self._generate_intro(name, agent_info)
@@ -607,7 +873,7 @@ class A2AScout:
                 [{"role": "user", "content": (
                     f"Write a short agent-to-agent intro message to {name}.\n"
                     f"Their capabilities: {json.dumps(agent_info)[:500]}\n\n"
-                    "We are AiPayGent — 646+ skills via MCP + REST.\n"
+                    "We are AiPayGen — 646+ skills via MCP + REST.\n"
                     "Propose skill-sharing or integration.\n"
                     f"Include link: {BASE_URL}?ref={ref}\n"
                     "Max 100 words, professional tone."
@@ -622,7 +888,7 @@ class A2AScout:
 
     def _send_intro(self, base_url, message):
         payload = json.dumps({
-            "from": "AiPayGent",
+            "from": "AiPayGen",
             "type": "introduction",
             "message": message,
             "reply_to": f"{BASE_URL}/api/messages",
@@ -753,7 +1019,7 @@ class TwitterScout:
                 "claude-sonnet",
                 [{"role": "user", "content": (
                     f'Draft a tweet reply to: "{text}"\n\n'
-                    "Mention AiPayGent naturally — 646+ AI skills via MCP.\n"
+                    "Mention AiPayGen naturally — 646+ AI skills via MCP.\n"
                     f"Include: {BASE_URL}?ref={ref}\n"
                     "Max 280 chars. Be helpful, not promotional."
                 )}],
@@ -770,7 +1036,7 @@ class TwitterScout:
             result = self.call_model(
                 "claude-haiku",
                 [{"role": "user", "content": (
-                    "Draft an engaging tweet about AiPayGent:\n"
+                    "Draft an engaging tweet about AiPayGen:\n"
                     "- 646+ AI skills via MCP protocol\n"
                     "- Multi-model (Claude, GPT-4, Gemini, DeepSeek)\n"
                     "- x402 USDC micropayments\n"

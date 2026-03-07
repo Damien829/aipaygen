@@ -1,4 +1,4 @@
-# Show HN: AiPayGent — pay-per-use AI API with 10 free calls/day, no accounts needed
+# Show HN: AiPayGen — pay-per-use AI API with 10 free calls/day, no accounts needed
 
 We built an AI agent API with 140+ endpoints where you just call the URL and pay per use — no API keys, no signups, no monthly bills.
 
@@ -28,7 +28,7 @@ We built an AI agent API with 140+ endpoints where you just call the URL and pay
 
 **Also available as 79 MCP tools** — works in Claude Code, Cursor, Windsurf:
 ```
-claude mcp add aipaygent -- python /path/to/mcp_server.py
+claude mcp add aipaygen -- python /path/to/mcp_server.py
 ```
 
 ---
@@ -51,7 +51,7 @@ We also support Stripe + prepaid API keys for users who prefer credit cards over
 ## Current state
 
 - Running on a Raspberry Pi 5 (yes, really — it handles it fine with gunicorn)
-- Cloudflare tunnel for HTTPS at api.aipaygent.xyz
+- Cloudflare tunnel for HTTPS at api.aipaygen.com
 - x402 on Base Mainnet — real USDC micropayments via CDP facilitator
 - Stripe live for credit card top-ups ($5/$20/$50)
 - SQLite for all persistence (agent memory, messaging, knowledge, tasks, files, webhooks)
@@ -62,19 +62,19 @@ We also support Stripe + prepaid API keys for users who prefer credit cards over
 
 ```bash
 # Free — no payment or auth needed (10/day limit)
-curl "https://api.aipaygent.xyz/data/wikipedia?q=quantum+computing"
-curl "https://api.aipaygent.xyz/data/github/trending?lang=python"
-curl "https://api.aipaygent.xyz/data/arxiv?q=LLM+agents&limit=3"
+curl "https://api.aipaygen.com/data/wikipedia?q=quantum+computing"
+curl "https://api.aipaygen.com/data/github/trending?lang=python"
+curl "https://api.aipaygen.com/data/arxiv?q=LLM+agents&limit=3"
 
 # Check your free tier remaining
-curl "https://api.aipaygent.xyz/free-tier/status"
+curl "https://api.aipaygen.com/free-tier/status"
 
 # See all 140+ endpoints
-curl "https://api.aipaygent.xyz/discover" | python3 -m json.tool | head -50
+curl "https://api.aipaygen.com/discover" | python3 -m json.tool | head -50
 ```
 
-Full API: https://api.aipaygent.xyz
-OpenAPI spec: https://api.aipaygent.xyz/openapi.json
-MCP install: https://api.aipaygent.xyz/sdk
+Full API: https://api.aipaygen.com
+OpenAPI spec: https://api.aipaygen.com/openapi.json
+MCP install: https://api.aipaygen.com/sdk
 
 Happy to answer questions about x402, running APIs on Pi, or the agent infrastructure design.

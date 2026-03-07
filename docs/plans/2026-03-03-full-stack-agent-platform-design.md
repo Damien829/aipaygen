@@ -1,4 +1,4 @@
-# AiPayGent v2 — Full Stack Agent Platform Design
+# AiPayGen v2 — Full Stack Agent Platform Design
 
 **Date:** 2026-03-03
 **Status:** Approved
@@ -14,7 +14,7 @@ The x402 agent payments ecosystem has grown significantly:
 - Google AP2: 60+ partners (Mastercard, PayPal, Visa) for consumer purchases
 - Key ecosystem gap: only 22% of teams treat agents as independent identities
 
-AiPayGent's current advantages: 140+ endpoints, agent memory, agent-to-agent collaboration (task board, marketplace, messaging), social scraping suite. Current weakness: Claude-only, flat pricing, no identity verification.
+AiPayGen's current advantages: 140+ endpoints, agent memory, agent-to-agent collaboration (task board, marketplace, messaging), social scraping suite. Current weakness: Claude-only, flat pricing, no identity verification.
 
 ## Design
 
@@ -91,7 +91,7 @@ New `agent_identity.py` module.
 
 **4c. Agent-to-Agent Direct Payments**
 - Marketplace calls route payment directly to seller agent's verified wallet
-- 5% platform fee retained by AiPayGent
+- 5% platform fee retained by AiPayGen
 - Requires verified identity (wallet-based)
 
 **4d. Enhanced Discovery**
@@ -108,7 +108,7 @@ New `agent_identity.py` module.
 
 ## Competitive Positioning
 
-After implementation, AiPayGent becomes the only x402 service combining:
+After implementation, AiPayGen becomes the only x402 service combining:
 - Multi-model access (matching BlockRun)
 - Agent collaboration (unique: messaging, tasks, marketplace)
 - Verified agent identity (ecosystem first)

@@ -15,8 +15,11 @@ def test_init_scout_db():
 
 
 def test_log_and_dedup():
-    from discovery_scouts import init_scout_db, _log_outreach, _already_scouted
+    from discovery_scouts import init_scout_db, _log_outreach, _already_scouted, _scout_conn
     init_scout_db()
+    # Clean up stale test data so INSERT OR IGNORE doesn't skip
+    with _scout_conn() as c:
+        c.execute("DELETE FROM scout_outreach WHERE scout='test' AND target_id='target1' AND action='test_action'")
     _log_outreach("test", "target1", "test_action", message="hi")
     assert _already_scouted("test", "target1", within_days=1)
     assert not _already_scouted("test", "target_other", within_days=1)
@@ -34,7 +37,7 @@ def test_github_scout_search(monkeypatch):
     init_scout_db()
 
     def fake_call_model(model, messages, **kw):
-        return {"text": "Integration suggestion\n\nCheck out AiPayGent for 646+ skills.",
+        return {"text": "Integration suggestion\n\nCheck out AiPayGen for 646+ skills.",
                 "cost_usd": 0.001, "input_tokens": 50, "output_tokens": 30}
 
     import discovery_scouts as ds
@@ -108,7 +111,7 @@ def test_a2a_scout_run(monkeypatch):
     init_scout_db()
 
     def fake_call_model(model, messages, **kw):
-        return {"text": "Hello agent! AiPayGent offers 646+ skills.",
+        return {"text": "Hello agent! AiPayGen offers 646+ skills.",
                 "cost_usd": 0.001, "input_tokens": 50, "output_tokens": 30}
 
     import discovery_scouts as ds
@@ -137,7 +140,7 @@ def test_twitter_scout_run(monkeypatch):
     init_scout_db()
 
     def fake_call_model(model, messages, **kw):
-        return {"text": "Check out AiPayGent! 646+ AI skills via MCP.",
+        return {"text": "Check out AiPayGen! 646+ AI skills via MCP.",
                 "cost_usd": 0.001, "input_tokens": 50, "output_tokens": 30}
 
     import discovery_scouts as ds

@@ -1,10 +1,10 @@
 {
-  "name": "aipaygent",
+  "name": "aipaygen",
   "version": "1.0.1",
-  "description": "JavaScript SDK for AiPayGent — AI agent marketplace with 123 endpoints. Pay per call via x402 (USDC on Base) or prepaid API key.",
+  "description": "JavaScript SDK for AiPayGen — AI agent marketplace with 123 endpoints. Pay per call via x402 (USDC on Base) or prepaid API key.",
   "main": "index.js",
   "scripts": {
-    "test": "node -e \"const {AiPayGent} = require('./index'); const c = new AiPayGent(); c.joke().then(r => console.log('OK:', r.setup)).catch(e => console.error(e))\""
+    "test": "node -e \"const {AiPayGen} = require('./index'); const c = new AiPayGen(); c.joke().then(r => console.log('OK:', r.setup)).catch(e => console.error(e))\""
   },
   "keywords": [
     "ai",
@@ -24,15 +24,15 @@
     "weather",
     "crypto"
   ],
-  "author": "AiPayGent",
+  "author": "AiPayGen",
   "license": "MIT",
-  "homepage": "https://api.aipaygent.xyz",
+  "homepage": "https://api.aipaygen.com",
   "repository": {
     "type": "git",
-    "url": "https://github.com/djautomd-lab/aipaygent"
+    "url": "https://github.com/djautomd-lab/aipaygen"
   },
   "bugs": {
-    "url": "https://api.aipaygent.xyz"
+    "url": "https://api.aipaygen.com"
   },
   "engines": {
     "node": ">=14"

@@ -1,4 +1,4 @@
-# AiPayGent Platform Redesign — Design Doc
+# AiPayGen Platform Redesign — Design Doc
 
 **Date:** 2026-03-04
 **Status:** Approved, pending implementation plan
@@ -6,7 +6,7 @@
 ---
 
 ## Vision
-Transform AiPayGent from a raw API into a **commercial AI agent platform** — marketed like a SaaS product. Agents discover it naturally, humans see a polished brand. Competitive intelligence is protected.
+Transform AiPayGen from a raw API into a **commercial AI agent platform** — marketed like a SaaS product. Agents discover it naturally, humans see a polished brand. Competitive intelligence is protected.
 
 ## Architecture — 5 Workstreams
 

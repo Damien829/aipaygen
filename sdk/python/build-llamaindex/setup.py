@@ -1,19 +1,19 @@
 from setuptools import setup
 
-with open("aipaygent_llamaindex.py") as f:
+with open("aipaygen_llamaindex.py") as f:
     content = f.read()
 long_desc = content.split('"""')[1].strip()
 
 setup(
-    name="aipaygent-llamaindex",
+    name="aipaygen-llamaindex",
     version="1.0.1",
-    description="LlamaIndex ToolSpec for AiPayGent — 123 AI endpoints via x402 micropayments (USDC on Base)",
+    description="LlamaIndex ToolSpec for AiPayGen — 123 AI endpoints via x402 micropayments (USDC on Base)",
     long_description=long_desc,
     long_description_content_type="text/x-rst",
-    author="AiPayGent",
-    author_email="hello@aipaygent.xyz",
-    url="https://api.aipaygent.xyz",
-    py_modules=["aipaygent_llamaindex"],
+    author="AiPayGen",
+    author_email="hello@aipaygen.com",
+    url="https://api.aipaygen.com",
+    py_modules=["aipaygen_llamaindex"],
     install_requires=[
         "llama-index-core>=0.10.0",
         "requests>=2.28.0",
@@ -32,7 +32,7 @@ setup(
     python_requires=">=3.9",
     keywords="llamaindex llama-index ai agent x402 claude anthropic marketplace micropayments",
     project_urls={
-        "Homepage": "https://api.aipaygent.xyz",
-        "OpenAPI": "https://api.aipaygent.xyz/openapi.json",
+        "Homepage": "https://api.aipaygen.com",
+        "OpenAPI": "https://api.aipaygen.com/openapi.json",
     },
 )

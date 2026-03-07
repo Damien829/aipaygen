@@ -53,8 +53,8 @@ def create_webhook(agent_id: str, label: str = None) -> dict:
         )
     return {
         "webhook_id": webhook_id,
-        "receive_url": f"https://api.aipaygent.xyz/webhooks/{webhook_id}/receive",
-        "events_url": f"https://api.aipaygent.xyz/webhooks/{webhook_id}/events",
+        "receive_url": f"https://api.aipaygen.com/webhooks/{webhook_id}/receive",
+        "events_url": f"https://api.aipaygen.com/webhooks/{webhook_id}/events",
         "label": label or f"webhook-{webhook_id[:6]}",
         "created_at": now,
         "note": "POST any payload to receive_url. Events are stored for 7 days.",
@@ -123,8 +123,8 @@ def list_webhooks(agent_id: str) -> list:
     result = []
     for r in rows:
         d = dict(r)
-        d["receive_url"] = f"https://api.aipaygent.xyz/webhooks/{d['webhook_id']}/receive"
-        d["events_url"] = f"https://api.aipaygent.xyz/webhooks/{d['webhook_id']}/events"
+        d["receive_url"] = f"https://api.aipaygen.com/webhooks/{d['webhook_id']}/receive"
+        d["events_url"] = f"https://api.aipaygen.com/webhooks/{d['webhook_id']}/events"
         result.append(d)
     return result
 

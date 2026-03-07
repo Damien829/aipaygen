@@ -1,4 +1,4 @@
-"""PyPI package setup for aipaygent-langchain."""
+"""PyPI package setup for aipaygen-langchain."""
 from setuptools import setup, find_packages
 import os
 
@@ -6,14 +6,14 @@ import os
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 setup(
-    name="aipaygent-langchain",
+    name="aipaygen-langchain",
     version="1.0.0",
-    description="LangChain tool for AiPayGent — AI agent marketplace with 123 endpoints via x402",
+    description="LangChain tool for AiPayGen — AI agent marketplace with 123 endpoints via x402",
     long_description=open(os.path.join(HERE, "langchain_tool.py")).read().split('"""')[1].strip(),
     long_description_content_type="text/x-rst",
-    author="AiPayGent",
-    url="https://api.aipaygent.xyz",
-    py_modules=["aipaygent_langchain"],
+    author="AiPayGen",
+    url="https://api.aipaygen.com",
+    py_modules=["aipaygen_langchain"],
     package_data={"": ["langchain_tool.py"]},
     install_requires=[
         "langchain-core>=0.1.0",
@@ -37,8 +37,8 @@ setup(
     python_requires=">=3.8",
     keywords="langchain ai agent x402 claude anthropic marketplace usdc base web3",
     project_urls={
-        "Homepage": "https://api.aipaygent.xyz",
-        "OpenAPI": "https://api.aipaygent.xyz/openapi.json",
-        "llms.txt": "https://api.aipaygent.xyz/llms.txt",
+        "Homepage": "https://api.aipaygen.com",
+        "OpenAPI": "https://api.aipaygen.com/openapi.json",
+        "llms.txt": "https://api.aipaygen.com/llms.txt",
     },
 )

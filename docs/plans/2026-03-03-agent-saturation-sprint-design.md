@@ -12,13 +12,13 @@
 - 140+ endpoints already built and live
 - MCP server with 65+ tools already built
 - 20 free endpoints (no API cost to serve)
-- Service live at api.aipaygent.xyz via Cloudflare tunnel
+- Service live at api.aipaygen.com via Cloudflare tunnel
 
 ## Phase 1: MCP Distribution (Day 1)
 
 Publish the MCP server everywhere developers install tools.
 
-1. Publish `aipaygent-mcp` to PyPI
+1. Publish `aipaygen-mcp` to PyPI
 2. List on mcp.so
 3. List on mcpindex.net
 4. List on smithery.ai
