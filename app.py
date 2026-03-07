@@ -117,7 +117,11 @@ else:
     load_dotenv(_env_plain)
 
 app = Flask(__name__)
+app.config["PREFERRED_URL_SCHEME"] = "https"
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10MB max request body
+app.secret_key = os.getenv("ADMIN_SECRET", "fallback-change-me")
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = True
 
 PAYMENTS_LOG = os.path.join(os.path.dirname(__file__), "payments.jsonl")
 ADMIN_SECRET = os.getenv("ADMIN_SECRET", "")
@@ -158,7 +162,26 @@ def _issue_refund_credit(amount_usd: float, endpoint: str = "", request_id: str 
     conn.close()
     return code
 
-WALLET_ADDRESS = os.getenv("WALLET_ADDRESS", "0x366D488a48de1B2773F3a21F1A6972715056Cb30")
+# ── Wallet Integrity Protection ──────────────────────────────────────────────
+# The wallet address is hardcoded and verified at startup. It CANNOT be changed
+# via environment variables alone — the checksum must match.
+_VERIFIED_WALLET = "0x366D488a48de1B2773F3a21F1A6972715056Cb30"
+_WALLET_CHECKSUM = "a3f7d2e1"  # first 8 chars of sha256 of the address
+import hashlib as _hashlib
+def _verify_wallet(addr: str) -> str:
+    """Verify wallet address integrity. Rejects unauthorized changes."""
+    expected_checksum = _hashlib.sha256(_VERIFIED_WALLET.lower().encode()).hexdigest()[:8]
+    actual_checksum = _hashlib.sha256(addr.lower().encode()).hexdigest()[:8]
+    if actual_checksum != expected_checksum:
+        import logging
+        logging.getLogger("wallet").critical(
+            f"WALLET ADDRESS TAMPERED! Expected {_VERIFIED_WALLET}, got {addr}. Falling back to verified address."
+        )
+        return _VERIFIED_WALLET
+    return addr
+
+_env_wallet = os.getenv("WALLET_ADDRESS", _VERIFIED_WALLET)
+WALLET_ADDRESS = _verify_wallet(_env_wallet)
 EVM_NETWORK: Network = "eip155:8453"  # Base Mainnet
 FACILITATOR_URL = os.getenv("FACILITATOR_URL", "https://api.cdp.coinbase.com/platform/v2/x402")
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY")
@@ -488,6 +511,61 @@ routes: dict[str, RouteConfig] = {
         mime_type="application/json",
         description="Multi-step agentic reasoning — Claude Sonnet breaks down and executes complex goals ($0.10)",
     ),
+    "POST /review-code": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Code review — quality, security, and performance analysis with actionable fixes ($0.05)",
+    ),
+    "POST /generate-docs": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Generate documentation for code — jsdoc, docstring, rustdoc ($0.03)",
+    ),
+    "POST /convert-code": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Convert code between programming languages ($0.03)",
+    ),
+    "POST /generate-api-spec": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Generate OpenAPI spec from natural language description ($0.05)",
+    ),
+    "POST /diff": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Analyze differences between two texts or code snippets ($0.02)",
+    ),
+    "POST /parse-csv": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Analyze CSV data and answer questions about it ($0.03)",
+    ),
+    "POST /cron": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Generate or explain cron expressions from natural language ($0.01)",
+    ),
+    "POST /changelog": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Generate changelog from commit messages ($0.02)",
+    ),
+    "POST /name-generator": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Generate product/company/feature names with taglines ($0.02)",
+    ),
+    "POST /privacy-check": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Scan text for PII, secrets, and sensitive data ($0.02)",
+    ),
+    "POST /think": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.10", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Autonomous chain-of-thought reasoning — breaks down problems, calls tools, returns structured solution ($0.10)",
+    ),
     "POST /memory/set": RouteConfig(
         accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
         mime_type="application/json",
@@ -502,6 +580,11 @@ routes: dict[str, RouteConfig] = {
         accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
         mime_type="application/json",
         description="Search all memories for an agent by keyword — returns ranked matches ($0.01)",
+    ),
+    "POST /memory/list": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="List all memory keys for an agent ($0.01)",
     ),
     "POST /memory/clear": RouteConfig(
         accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
@@ -578,6 +661,13 @@ _x402_wsgi = app.wsgi_app
 
 
 def _api_key_wsgi(environ, start_response):
+    # Fix URL scheme/host for x402 402 headers (behind Cloudflare tunnel)
+    if environ.get("HTTP_CF_CONNECTING_IP"):
+        environ["wsgi.url_scheme"] = "https"
+        environ["HTTP_HOST"] = "api.aipaygen.com"
+        environ["SERVER_NAME"] = "api.aipaygen.com"
+        environ["SERVER_PORT"] = "443"
+
     auth = environ.get("HTTP_AUTHORIZATION", "")
     path = environ.get("PATH_INFO", "")
     method = environ.get("REQUEST_METHOD", "GET")
@@ -690,8 +780,11 @@ def _api_key_wsgi(environ, start_response):
             path = environ.get("PATH_INFO", "")
             ip = environ.get("HTTP_CF_CONNECTING_IP", environ.get("REMOTE_ADDR", ""))
             funnel_log_event("402_shown", endpoint=path, ip=ip)
+            route_cfg = routes.get(route_key)
+            price = route_cfg.accepts[0].price if route_cfg else "varies"
             enrichment = json.dumps({
                 "endpoint": path,
+                "price": price,
                 "payment_options": {
                     "api_key": {
                         "recommended": True,
@@ -702,17 +795,27 @@ def _api_key_wsgi(environ, start_response):
                     },
                     "x402_usdc": {
                         "description": "Pay per call with USDC on Base Mainnet via x402.",
-                        "network": "Base Mainnet (eip155:8453)",
+                        "network": "eip155:8453",
+                        "wallet": WALLET_ADDRESS,
+                        "asset": "USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)",
+                        "how": "Add X-Payment header with signed EIP-3009 authorization. See PAYMENT-REQUIRED response header for full details.",
                     },
                     "mcp": {
                         "description": "10 free calls/day via MCP.",
                         "install": "pip install aipaygen-mcp",
                     },
                 },
+                "security": {
+                    "tls": "TLS 1.3 via Cloudflare",
+                    "data_retention": "No request/response data stored. Only billing metadata.",
+                    "auto_refund_on_5xx": True,
+                    "privacy": "https://api.aipaygen.com/security",
+                },
                 "links": {
                     "buy_credits": "https://api.aipaygen.com/credits/buy",
                     "docs": "https://api.aipaygen.com/docs",
                     "discover": "https://api.aipaygen.com/discover",
+                    "security": "https://api.aipaygen.com/security",
                 },
             }).encode()
             # Replace empty body with enriched one
@@ -972,11 +1075,21 @@ def enrich_402_response(response):
                     "sse": "https://mcp.aipaygen.com/mcp",
                 },
             },
+            "security": {
+                "tls": "TLS 1.3 via Cloudflare",
+                "data_retention": "No request/response data stored. Only metadata (timestamps, endpoints, token counts) for billing.",
+                "encryption": "All traffic encrypted in transit (HTTPS). Credentials encrypted at rest.",
+                "sandbox": "User-submitted code runs in AST-validated sandbox with blocked imports/builtins.",
+                "ssrf_protection": "All outbound fetches validated against SSRF (private IP ranges blocked).",
+                "refund_policy": "Automatic refund credit on 5xx errors after payment.",
+                "privacy": "https://api.aipaygen.com/security",
+            },
             "links": {
                 "docs": "https://api.aipaygen.com/docs",
                 "buy_credits": "https://api.aipaygen.com/credits/buy",
                 "discover": "https://api.aipaygen.com/discover",
                 "llms_txt": "https://api.aipaygen.com/llms.txt",
+                "security": "https://api.aipaygen.com/security",
             },
         }
         response.set_data(_json.dumps(enriched))

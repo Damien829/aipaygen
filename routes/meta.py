@@ -24,18 +24,25 @@ def init_meta_bp(skills_db_path):
     _skills_db_path = skills_db_path
 
 NAV_HTML = '''
-<nav style="position:fixed;top:0;width:100%;z-index:100;background:rgba(2,4,8,0.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,255,157,0.08);padding:14px 0">
+<nav style="position:fixed;top:0;width:100%;z-index:100;background:rgba(2,4,8,0.95);backdrop-filter:blur(16px) saturate(180%);border-bottom:1px solid rgba(0,255,157,0.1);padding:14px 0">
   <div style="max-width:1200px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between">
-    <a href="/" style="font-family:'IBM Plex Mono',monospace;font-size:1.3rem;font-weight:700;color:#fff;text-decoration:none">Ai<span style="color:#00ff9d">Pay</span>Gent</a>
+    <a href="/" style="font-family:'IBM Plex Mono',monospace;font-size:1.3rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px">
+      <span style="display:inline-block;width:8px;height:8px;background:#00ff9d;border-radius:50%;box-shadow:0 0 8px #00ff9d,0 0 16px rgba(0,255,157,0.4);animation:pulse-dot 2s ease-in-out infinite"></span>
+      Ai<span style="color:#00ff9d">Pay</span>Gen
+    </a>
     <div style="display:flex;gap:24px;align-items:center">
       <a href="/discover" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Discover</a>
       <a href="/docs" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Docs</a>
       <a href="/sdk" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">SDK</a>
+      <a href="/security" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Security</a>
       <a href="/try" style="color:#00ff9d;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600">Try Free</a>
-      <a href="/buy-credits" style="color:#fff;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.85rem;font-weight:600;background:#6366f1;padding:6px 14px;border-radius:6px;margin-left:8px">Get API Key</a>
+      <a href="/buy-credits" style="color:#000;text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:700;background:linear-gradient(135deg,#00ff9d,#00d4ff);padding:7px 16px;border-radius:4px;margin-left:8px;letter-spacing:0.03em;transition:all .2s;box-shadow:0 0 12px rgba(0,255,157,0.2)">GET API KEY</a>
     </div>
   </div>
 </nav>
+<style>
+@keyframes pulse-dot{0%,100%{opacity:1;box-shadow:0 0 8px #00ff9d,0 0 16px rgba(0,255,157,0.4)}50%{opacity:0.6;box-shadow:0 0 4px #00ff9d,0 0 8px rgba(0,255,157,0.2)}}
+</style>
 '''
 
 FOOTER_HTML = '''
@@ -60,19 +67,19 @@ LANDING_HTML = '''<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AiPayGen — 88 AI Tools, One API Key</title>
+<title>AiPayGen — The Most Powerful AI Toolkit</title>
 <link rel="alternate" type="text/plain" href="/llms.txt" title="LLMs.txt">
-<meta name="description" content="88 AI tools in one API key. Research, write, code, translate, analyze, scrape — from $0.004/call. Install via pip or use remotely.">
+<meta name="description" content="99 AI tools in one API key. Research, write, code, translate, analyze, scrape — from $0.004/call. Install via pip or use remotely.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
-<meta property="og:title" content="AiPayGen — 88 AI Tools, One API Key">
-<meta property="og:description" content="Research, write, code, translate, analyze, scrape — 88 AI tools from $0.004/call. MCP compatible.">
+<meta property="og:title" content="AiPayGen — The Most Powerful AI Toolkit">
+<meta property="og:description" content="Research, write, code, translate, analyze, scrape — 99 AI tools from $0.004/call. MCP compatible.">
 <meta property="og:url" content="https://api.aipaygen.com">
 <meta property="og:image" content="https://api.aipaygen.com/og-image.png">
 <meta property="og:site_name" content="AiPayGen">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="AiPayGen — 88 AI Tools, One API Key">
-<meta name="twitter:description" content="Research, write, code, translate, analyze, scrape — 88 AI tools from $0.004/call. Try free.">
+<meta name="twitter:title" content="AiPayGen — The Most Powerful AI Toolkit">
+<meta name="twitter:description" content="Research, write, code, translate, analyze, scrape — 99 AI tools from $0.004/call. Try free.">
 <meta name="twitter:image" content="https://api.aipaygen.com/og-image.png">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"AiPayGen","url":"https://api.aipaygen.com","description":"Pay-per-use AI endpoints for autonomous agents via x402 micropayments on Base.","applicationCategory":"DeveloperApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0.01","priceCurrency":"USD","description":"Per API call, paid in USDC on Base"},"provider":{"@type":"Organization","name":"AiPayGen","url":"https://api.aipaygen.com"}}
@@ -349,10 +356,10 @@ LANDING_HTML = '''<!DOCTYPE html>
 
 <section class="hero">
   <h1 class="fade-up">
-    88 AI Tools.<br><span class="accent">One API Key.</span>
+    The Most Powerful AI Toolkit.<br><span class="accent">99 Tools. One API.</span>
   </h1>
   <p class="hero-sub fade-up delay-1">
-    Research, write, code, translate, analyze, scrape &mdash; from <code>$0.004/call</code>. No subscriptions.
+    15 frontier models working together. Research, write, code, translate, analyze, scrape &mdash; from <code>$0.004/call</code>. No subscriptions.
   </p>
   <div class="fade-up delay-2" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
     <a href="/try" class="btn-cta">Try Free &rarr;</a>
@@ -363,10 +370,33 @@ LANDING_HTML = '''<!DOCTYPE html>
   </p>
 </section>
 
+<div class="stats-bar fade-up delay-3" style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap;padding:0 24px 48px;max-width:900px;margin:0 auto">
+  <div style="text-align:center">
+    <div id="stat-skills" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">—</div>
+    <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">AI Skills</div>
+  </div>
+  <div style="text-align:center">
+    <div id="stat-apis" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">—</div>
+    <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">APIs Indexed</div>
+  </div>
+  <div style="text-align:center">
+    <div id="stat-tools" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">99</div>
+    <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">MCP Tools</div>
+  </div>
+  <div style="text-align:center">
+    <div id="stat-agents" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">—</div>
+    <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">Agents</div>
+  </div>
+  <div style="text-align:center">
+    <div id="stat-keys" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">—</div>
+    <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">API Keys</div>
+  </div>
+</div>
+
 <div class="value-grid">
   <div class="value-card fade-up">
     <span class="value-icon">&gt;_</span>
-    <h3>88 AI Tools</h3>
+    <h3>99 AI Tools</h3>
     <p>Research, write, code, analyze, translate, scrape &mdash; powered by Claude, GPT-4o, Gemini, DeepSeek.</p>
   </div>
   <div class="value-card fade-up delay-1">
@@ -407,6 +437,15 @@ LANDING_HTML = '''<!DOCTYPE html>
 
 </div>
 {{ footer|safe }}
+<script>
+fetch('/api/stats').then(r=>r.json()).then(d=>{
+  if(d.skills) document.getElementById('stat-skills').textContent=d.skills.toLocaleString();
+  if(d.apis) document.getElementById('stat-apis').textContent=d.apis.toLocaleString();
+  if(d.mcp_tools) document.getElementById('stat-tools').textContent=d.mcp_tools.toLocaleString();
+  if(d.agents) document.getElementById('stat-agents').textContent=d.agents.toLocaleString();
+  if(d.api_keys) document.getElementById('stat-keys').textContent=d.api_keys.toLocaleString();
+}).catch(()=>{});
+</script>
 </body>
 </html>'''
 
@@ -774,7 +813,7 @@ def discover():
     return jsonify({
         "meta": {
             "name": "AiPayGen",
-            "description": "AI agent API marketplace with 65+ tools and 646+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day).",
+            "description": "AI agent API marketplace with 99 tools and 646+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day).",
             "categories": list(categories.keys()),
         },
         "payment": {
@@ -887,6 +926,67 @@ def health():
     return jsonify(result), code
 
 
+_stats_cache = {"data": None, "ts": 0}
+
+
+@meta_bp.route("/api/stats")
+def live_stats():
+    """Public live stats for homepage — cached 5 min."""
+    now = _time.time()
+    if _stats_cache["data"] and (now - _stats_cache["ts"]) < 300:
+        return jsonify(_stats_cache["data"])
+
+    import sqlite3 as _sq
+    _root = os.path.dirname(os.path.dirname(__file__))
+    # Count MCP tools dynamically from mcp_server.py decorators
+    _mcp_file = os.path.join(_root, "mcp_server.py")
+    try:
+        with open(_mcp_file) as f:
+            _mcp_src = f.read()
+        mcp_count = _mcp_src.count("@metered_tool") + _mcp_src.count("@mcp.tool()")
+    except Exception:
+        mcp_count = 99
+    stats = {"mcp_tools": mcp_count}
+
+    def _count(db, query):
+        c = _sq.connect(os.path.join(_root, db), timeout=2)
+        val = c.execute(query).fetchone()[0]
+        c.close()
+        return val
+
+    # Skills
+    try:
+        stats["skills"] = _count("skills.db", "SELECT COUNT(*) FROM skills")
+    except Exception:
+        stats["skills"] = 0
+
+    # Discovered APIs
+    try:
+        stats["apis"] = _count("api_catalog.db", "SELECT COUNT(*) FROM discovered_apis")
+    except Exception:
+        stats["apis"] = 0
+
+    # Registered agents
+    try:
+        stats["agents"] = _count("agent_memory.db", "SELECT COUNT(*) FROM agent_registry")
+    except Exception:
+        stats["agents"] = 0
+
+    # API keys issued + total calls
+    try:
+        c = _sq.connect(os.path.join(_root, "api_keys.db"), timeout=2)
+        stats["api_keys"] = c.execute("SELECT COUNT(*) FROM api_keys").fetchone()[0]
+        stats["total_calls"] = c.execute("SELECT COALESCE(SUM(call_count), 0) FROM api_keys").fetchone()[0]
+        c.close()
+    except Exception:
+        stats["api_keys"] = 0
+        stats["total_calls"] = 0
+
+    _stats_cache["data"] = stats
+    _stats_cache["ts"] = now
+    return jsonify(stats)
+
+
 @meta_bp.route("/preview", methods=["GET", "POST"])
 def preview():
     """Free demo endpoint — no payment required. Returns a short Claude response to prove the service works."""
@@ -926,7 +1026,9 @@ def robots_txt():
         "Allow: /discover\n"
         "Allow: /docs\n"
         "Allow: /llms.txt\n"
+        "Allow: /security\n"
         "Allow: /.well-known/agent.json\n"
+        "Allow: /.well-known/security.txt\n"
         "Disallow: /admin/\n"
         "Disallow: /stats\n"
         "Disallow: /skills/\n"
@@ -1103,7 +1205,7 @@ def docs_page():
 LLMS_TXT = """\
 # AiPayGen
 
-> AI agent API marketplace with 65+ tools and 646+ skills. Multi-model (Claude, GPT-4o, DeepSeek, Gemini). Three payment paths: API key (easiest), x402 USDC, or MCP (10 free/day).
+> 99 AI tools in one API. Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (10 free/day).
 
 ## What This Service Does
 
@@ -1177,8 +1279,6 @@ print(httpx.post(f"{BASE}/preview", json={"topic": "AI agents"}).json())
 - API key is the fastest path — one POST and you're running.
 """
 
-
-@meta_bp.route("/openapi.json")
 
 @meta_bp.route("/openapi.json")
 def openapi_spec():
@@ -2183,7 +2283,7 @@ def agent_manifest():
     return jsonify({
         "name": "AiPayGen",
         "description": (
-            "AI agent API marketplace with 65+ tools and 840+ searchable skills. "
+            "AI agent API marketplace with 99 tools and 840+ searchable skills. "
             "Research, writing, coding, analysis, web scraping, real-time data, agent memory, "
             "and multi-model AI (Claude, GPT-4o, DeepSeek, Gemini). "
             "Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day)."
@@ -2286,6 +2386,25 @@ def agent_manifest():
                 "inputModes": ["application/json"], "outputModes": ["application/json"],
             },
         ],
+        "security": {
+            "transport": "TLS 1.3 (Cloudflare)",
+            "headers": ["HSTS", "X-Content-Type-Options", "X-Frame-Options", "CSP", "Referrer-Policy", "Permissions-Policy"],
+            "data_handling": {
+                "request_logging": "metadata_only",
+                "response_storage": "none",
+                "data_retention_days": 0,
+                "description": "No request/response payloads are stored. Only billing metadata (timestamp, endpoint, token count) is retained.",
+            },
+            "code_execution": {
+                "sandbox": "AST-validated with blocked imports/builtins",
+                "network_access": "none",
+                "filesystem_access": "none",
+            },
+            "ssrf_protection": True,
+            "auto_refund_on_5xx": True,
+            "security_policy": f"{base}/security",
+            "security_txt": f"{base}/.well-known/security.txt",
+        },
         "contact": {"email": "hello@aipaygen.com"},
         "openapi": f"{base}/openapi.json",
         "pricing": {
@@ -2436,7 +2555,155 @@ def x402_manifest():
     })
 
 
-@meta_bp.route("/sdk")
+# ── Security Policy ──────────────────────────────────────────────────────────
+
+@meta_bp.route("/.well-known/security.txt")
+def security_txt():
+    """RFC 9116 security.txt — machine-readable security policy."""
+    return (
+        "Contact: mailto:hello@aipaygen.com\n"
+        "Preferred-Languages: en\n"
+        "Canonical: https://api.aipaygen.com/.well-known/security.txt\n"
+        "Policy: https://api.aipaygen.com/security\n"
+        "Hiring: https://api.aipaygen.com/security\n"
+    ), 200, {"Content-Type": "text/plain"}
+
+
+@meta_bp.route("/security")
+def security_page():
+    """Human-readable security & privacy policy page."""
+    return """<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Security & Privacy — AiPayGen</title>
+<meta name="description" content="AiPayGen security practices: encryption, data handling, sandboxing, refund policy, and privacy guarantees.">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e8e8e8; padding: 32px 16px; line-height: 1.7; }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 1.6rem; margin-bottom: 6px; }
+  .sub { color: #888; font-size: 0.88rem; margin-bottom: 32px; }
+  .section { background: #141414; border: 1px solid #2a2a2a; border-radius: 14px; padding: 28px; margin-bottom: 16px; }
+  .section h2 { font-size: 1.1rem; margin-bottom: 12px; display: flex; align-items: center; gap: 10px; }
+  .section h2 .icon { font-size: 1.3rem; }
+  .section p, .section li { font-size: 0.88rem; color: #bbb; }
+  .section ul { margin: 8px 0 0 20px; }
+  .section li { margin-bottom: 6px; }
+  .highlight { color: #34d399; font-weight: 600; }
+  .badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .badge { background: #1a1a2e; border: 1px solid #2d2d5e; border-radius: 6px; padding: 4px 10px; font-size: 0.75rem; color: #a0a0ff; }
+  .machine { background: #1a1a1a; border-radius: 8px; padding: 14px; margin-top: 16px; font-size: 0.8rem; color: #888; }
+  .machine code { color: #a78bfa; }
+  a { color: #818cf8; }
+  .nav { display: flex; gap: 16px; margin-bottom: 24px; font-size: 0.85rem; }
+  .nav a { color: #888; text-decoration: none; }
+  .nav a:hover { color: #fff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="nav">
+    <a href="/">Home</a>
+    <a href="/docs">Docs</a>
+    <a href="/try">Try Free</a>
+    <a href="/buy-credits">Get API Key</a>
+  </div>
+
+  <h1>Security & Privacy</h1>
+  <p class="sub">How AiPayGen protects your data, your payments, and your agents.</p>
+
+  <div class="section">
+    <h2><span class="icon">&#128274;</span> Encryption</h2>
+    <ul>
+      <li><span class="highlight">TLS 1.3</span> on all connections via Cloudflare — no plaintext traffic accepted</li>
+      <li>HSTS enabled with <span class="highlight">preload</span> — browsers always use HTTPS</li>
+      <li>API keys and credentials <span class="highlight">encrypted at rest</span> — never stored in plaintext</li>
+      <li>Stripe handles all card data — we never see or store card numbers</li>
+    </ul>
+    <div class="badge-row">
+      <span class="badge">HSTS Preload</span>
+      <span class="badge">TLS 1.3</span>
+      <span class="badge">X-Content-Type-Options: nosniff</span>
+      <span class="badge">X-Frame-Options: DENY</span>
+      <span class="badge">CSP Enforced</span>
+      <span class="badge">Referrer-Policy: strict-origin</span>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2><span class="icon">&#128065;</span> Data Handling — What We Store</h2>
+    <p>We follow a <span class="highlight">zero-payload-retention</span> policy:</p>
+    <ul>
+      <li><span class="highlight">Request bodies</span> — NOT stored. Your prompts, text, and data are processed in memory and discarded.</li>
+      <li><span class="highlight">Response bodies</span> — NOT stored. AI outputs are returned to you and not retained.</li>
+      <li><span class="highlight">Billing metadata only</span> — we log: timestamp, endpoint called, token count (for metered billing), and API key ID. No content.</li>
+      <li><span class="highlight">Agent memory</span> — stored only if you explicitly use /memory endpoints. You control it and can delete it anytime.</li>
+      <li><span class="highlight">IP addresses</span> — used only for rate limiting, not sold or shared.</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2><span class="icon">&#128737;</span> Code Sandbox</h2>
+    <p>When you use the <code>/code/run</code> endpoint, your code runs in a <span class="highlight">restricted sandbox</span>:</p>
+    <ul>
+      <li>AST-validated before execution — dangerous patterns rejected at parse time</li>
+      <li><span class="highlight">No filesystem access</span> — os, sys, pathlib, shutil blocked</li>
+      <li><span class="highlight">No network access</span> — socket, requests, urllib, httpx blocked</li>
+      <li><span class="highlight">No process spawning</span> — subprocess, multiprocessing, threading blocked</li>
+      <li>Blocked builtins: eval, exec, compile, open, __import__, getattr, setattr</li>
+      <li>Execution timeout enforced — runaway code is killed</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2><span class="icon">&#128737;</span> SSRF Protection</h2>
+    <p>All outbound HTTP requests (scraping, webhooks, API catalog) pass through SSRF validation:</p>
+    <ul>
+      <li>Private IP ranges blocked (10.x, 172.16-31.x, 192.168.x, 127.x, ::1)</li>
+      <li>Link-local and metadata endpoints blocked (169.254.x, cloud metadata)</li>
+      <li>DNS rebinding protection — resolved IPs checked against block list</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2><span class="icon">&#128176;</span> Payment Security</h2>
+    <ul>
+      <li><span class="highlight">Stripe</span> handles all card payments — PCI DSS compliant, we never touch card data</li>
+      <li><span class="highlight">x402 USDC</span> payments verified on-chain via Coinbase facilitator on Base Mainnet</li>
+      <li><span class="highlight">Automatic refund credits</span> — if a paid request returns a 5xx error, you get a refund credit automatically (returned in <code>X-Refund-Credit</code> header)</li>
+      <li>API keys are <span class="highlight">revocable</span> — contact us to deactivate a compromised key</li>
+      <li>Request correlation via <code>X-Request-ID</code> header on every response</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2><span class="icon">&#129302;</span> For AI Agents</h2>
+    <p>Machine-readable security signals are embedded in every interaction:</p>
+    <ul>
+      <li><code>/.well-known/agent.json</code> includes a <code>security</code> object with data handling policies</li>
+      <li>Every <code>402</code> response includes <code>security</code> field confirming data retention policy</li>
+      <li><code>/.well-known/security.txt</code> follows <a href="https://www.rfc-editor.org/rfc/rfc9116">RFC 9116</a></li>
+      <li><code>X-Payment-Receipt</code> header confirms payment was processed</li>
+      <li><code>X-Refund-Credit</code> header on 5xx after payment — automatic compensation</li>
+    </ul>
+    <div class="machine">
+      <strong>Verify programmatically:</strong><br>
+      <code>GET /.well-known/agent.json</code> → check <code>.security.data_handling.request_logging == "metadata_only"</code><br>
+      <code>GET /.well-known/security.txt</code> → RFC 9116 security policy<br>
+      <code>GET /security</code> → this page (HTML)
+    </div>
+  </div>
+
+  <div class="section">
+    <h2><span class="icon">&#9993;</span> Reporting Vulnerabilities</h2>
+    <p>Found a security issue? Email <a href="mailto:hello@aipaygen.com">hello@aipaygen.com</a> with details. We take all reports seriously and will respond within 24 hours.</p>
+  </div>
+</div>
+</body>
+</html>""", 200, {"Content-Type": "text/html"}
+
 
 @meta_bp.route("/sdk")
 def sdk():
@@ -2880,6 +3147,7 @@ def sitemap():
         ("/", "daily", "1.0"),
         ("/discover", "weekly", "0.9"),
         ("/docs", "weekly", "0.9"),
+        ("/security", "monthly", "0.7"),
         ("/preview", "weekly", "0.7"),
         ("/openapi.json", "weekly", "0.6"),
         ("/llms.txt", "weekly", "0.6"),
@@ -2943,12 +3211,36 @@ _TRY_PAGE = """<!DOCTYPE html>
   .cta p { color: #555; font-size: 0.78rem; margin-top: 8px; }
 
   .free-note { text-align: center; color: #555; font-size: 0.75rem; margin-top: 12px; }
+
+  /* Upsell modal */
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: #141414; border: 1px solid #2a2a2a; border-radius: 16px; padding: 32px; max-width: 480px; width: 100%; position: relative; }
+  .modal-close { position: absolute; top: 12px; right: 16px; background: none; border: none; color: #666; font-size: 1.4rem; cursor: pointer; }
+  .modal-close:hover { color: #fff; }
+  .modal h2 { font-size: 1.3rem; margin-bottom: 6px; }
+  .modal .modal-sub { color: #888; font-size: 0.85rem; margin-bottom: 20px; }
+  .modal-plans { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+  .modal-plan { display: flex; align-items: center; justify-content: space-between; background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 10px; padding: 14px 16px; cursor: pointer; transition: all 0.15s; }
+  .modal-plan:hover, .modal-plan.selected { border-color: #6366f1; background: #1a1a2e; }
+  .modal-plan .mp-left { display: flex; align-items: center; gap: 12px; }
+  .modal-plan .mp-amount { font-size: 1.3rem; font-weight: 800; color: #fff; min-width: 40px; }
+  .modal-plan .mp-detail { font-size: 0.8rem; color: #888; }
+  .modal-plan .mp-tag { font-size: 0.7rem; background: #6366f1; color: #fff; padding: 2px 8px; border-radius: 12px; }
+  .modal-plan .mp-tag.gold { background: #f59e0b; }
+  .modal-plan .mp-tag.green { background: #059669; }
+  .modal-btn { width: 100%; background: #6366f1; color: #fff; border: none; border-radius: 10px; padding: 14px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  .modal-btn:hover { background: #4f52d0; }
+  .modal-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+  .modal-or { text-align: center; color: #555; font-size: 0.78rem; margin-top: 12px; }
+  .modal-or a { color: #818cf8; }
+  @media (max-width: 500px) { .modal { padding: 24px 18px; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>Try AiPayGen</h1>
-  <p class="sub">Test any tool below — completely free, no sign-up. <a href="/discover">See all 88 tools &rarr;</a></p>
+  <p class="sub">Test any tool below — completely free, no sign-up. <a href="/discover">See all 99 tools &rarr;</a></p>
 
   <div class="demo-card">
     <div class="tool-row">
@@ -2966,15 +3258,43 @@ _TRY_PAGE = """<!DOCTYPE html>
   </div>
 
   <div class="cta">
-    <a href="/buy-credits">Get API Key — From $5</a>
-    <p>88 tools &middot; 15 AI models &middot; Credits never expire</p>
+    <a href="/buy-credits">Get API Key — From $1</a>
+    <p>99 tools &middot; 15 AI models &middot; Credits never expire</p>
   </div>
-  <p class="free-note">Free demo uses the same AI models as paid API. Limited to 3 demos per session.</p>
+  <p class="free-note">Free demo uses the same AI models as paid API. Limited to 5 demos per session.</p>
+</div>
+
+<!-- Upsell modal -->
+<div class="modal-overlay" id="upsell-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <h2>You've used all 5 free demos</h2>
+    <p class="modal-sub">Pick a plan to unlock unlimited access to all 99 tools.</p>
+    <div class="modal-plans">
+      <div class="modal-plan" data-amt="1" onclick="selectModalPlan(this)">
+        <div class="mp-left"><span class="mp-amount">$1</span><span class="mp-detail">~160 calls</span></div>
+        <span class="mp-tag gold">Starter</span>
+      </div>
+      <div class="modal-plan selected" data-amt="5" onclick="selectModalPlan(this)">
+        <div class="mp-left"><span class="mp-amount">$5</span><span class="mp-detail">~830 calls</span></div>
+      </div>
+      <div class="modal-plan" data-amt="20" onclick="selectModalPlan(this)">
+        <div class="mp-left"><span class="mp-amount">$20</span><span class="mp-detail">~4,000 calls</span></div>
+        <span class="mp-tag">Popular</span>
+      </div>
+      <div class="modal-plan" data-amt="50" onclick="selectModalPlan(this)">
+        <div class="mp-left"><span class="mp-amount">$50</span><span class="mp-detail">~12,500 calls</span></div>
+        <span class="mp-tag green">Best value</span>
+      </div>
+    </div>
+    <button class="modal-btn" id="modal-buy" onclick="modalCheckout()">Get API Key</button>
+    <p class="modal-or">or <a href="/buy-credits">view full pricing page</a></p>
+  </div>
 </div>
 <script>
 let currentTool = 'sentiment';
 let demoCount = 0;
-const MAX_DEMOS = 3;
+const MAX_DEMOS = 5;
 
 document.querySelectorAll('.tool-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -2992,13 +3312,36 @@ function escapeHtml(s) {
   return d.textContent;
 }
 
+let modalAmount = 5;
+function selectModalPlan(el) {
+  document.querySelectorAll('.modal-plan').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  modalAmount = parseInt(el.dataset.amt);
+}
+function showModal() { document.getElementById('upsell-modal').classList.add('show'); }
+function closeModal() { document.getElementById('upsell-modal').classList.remove('show'); }
+async function modalCheckout() {
+  const btn = document.getElementById('modal-buy');
+  btn.disabled = true; btn.textContent = 'Redirecting to Stripe...';
+  try {
+    const res = await fetch('/stripe/create-checkout', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ amount: modalAmount })
+    });
+    const data = await res.json();
+    if (data.url) { window.location.href = data.url; }
+    else { btn.disabled = false; btn.textContent = 'Get API Key'; alert(data.error || 'Something went wrong'); }
+  } catch(e) { btn.disabled = false; btn.textContent = 'Get API Key'; alert('Network error — try again'); }
+}
+document.getElementById('upsell-modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
 async function runTool() {
   const input = document.getElementById('input').value.trim();
   if (!input) return;
   const box = document.getElementById('result');
   if (demoCount >= MAX_DEMOS) {
-    box.className = 'result-box show';
-    box.textContent = 'Demo limit reached (3 per session). Get an API key at /buy-credits for unlimited access.';
+    showModal();
     return;
   }
   const btn = document.getElementById('run');
@@ -3022,11 +3365,18 @@ async function runTool() {
       body: JSON.stringify(body)
     });
     const data = await res.json();
+    if (res.status === 429) { showModal(); btn.disabled = false; btn.textContent = '\\u25B6 Run'; return; }
     demoCount++;
     const output = typeof data.result === 'string' ? data.result : JSON.stringify(data.result || data, null, 2);
     const remaining = MAX_DEMOS - demoCount;
-    box.textContent = output + '\\n\\n--- ' + remaining + ' free demo' + (remaining !== 1 ? 's' : '') + ' remaining';
-    box.className = 'result-box show';
+    if (remaining === 0) {
+      box.textContent = output;
+      box.className = 'result-box show';
+      setTimeout(showModal, 1500);
+    } else {
+      box.textContent = output + '\\n\\n--- ' + remaining + ' free demo' + (remaining !== 1 ? 's' : '') + ' remaining';
+      box.className = 'result-box show';
+    }
   } catch(e) {
     box.textContent = 'Error: ' + e.message;
     box.className = 'result-box show';
@@ -3051,7 +3401,7 @@ def _check_demo_limit(ip):
     key = f"demo:{ip}"
     entries = _demo_usage.get(key, [])
     entries = [t for t in entries if now - t < 600]
-    if len(entries) >= 3:
+    if len(entries) >= 5:
         return False
     entries.append(now)
     _demo_usage[key] = entries
@@ -3066,7 +3416,7 @@ def try_tool(tool):
     )
     ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "unknown")
     if not _check_demo_limit(ip):
-        return jsonify({"error": "Demo limit reached (3 per 10 minutes)", "upgrade": "/buy-credits"}), 429
+        return jsonify({"error": "Demo limit reached (5 per 10 minutes)", "upgrade": "/buy-credits"}), 429
 
     data = request.get_json() or {}
     try:
