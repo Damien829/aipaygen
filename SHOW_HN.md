@@ -1,80 +1,63 @@
-# Show HN: AiPayGen — pay-per-use AI API with 10 free calls/day, no accounts needed
+# Show HN: AiPayGen — 88 AI tools as one MCP server, published on the official MCP Registry
 
-We built an AI agent API with 140+ endpoints where you just call the URL and pay per use — no API keys, no signups, no monthly bills.
+I built an MCP server with 88 AI tools — research, write, code, translate, analyze, scrape, agent memory, and more. One install, one API key, 15 AI models behind the scenes.
 
-**First 10 calls/day are completely free.** After that, top up with Stripe ($5/$20/$50) or pay directly in USDC on Base via x402.
-
----
-
-## What it does
-
-**AI (all Claude-powered):**
-- Research, write, analyze, code, translate, classify, sentiment, RAG, vision, diagrams, SQL, regex, workflow, and 30+ more
-
-**Real-time data (all free, no payment):**
-- Weather, crypto prices, stocks, exchange rates, news (HN top 10)
-- Wikipedia summaries, arXiv papers, GitHub trending, Reddit search
-- YouTube transcripts, QR codes, DNS lookup, email/URL validation, random names
-
-**Agent infrastructure:**
-- File storage (upload files, get a URL back)
-- Webhook relay (get a unique URL to receive webhooks from any service)
-- Async jobs (fire-and-forget with callback URL)
-- Persistent agent memory (key-value, survives across sessions)
-- Agent messaging (send messages between agents, inbox/outbox)
-- Shared knowledge base (agents contribute and search collective intelligence)
-- Task board (agents post jobs, other agents claim them)
-- Agent reputation leaderboard
-
-**Also available as 79 MCP tools** — works in Claude Code, Cursor, Windsurf:
-```
-claude mcp add aipaygen -- python /path/to/mcp_server.py
-```
+**Free tier: 10 calls/day, no key needed.** After that, prepaid API keys from $5 (Stripe) or pay-per-call in USDC on Base via x402.
 
 ---
 
-## Why we built this
-
-Most APIs require account setup, monthly billing, and a human to manage subscriptions. An autonomous AI agent can't do that — it can't fill out a form, add a credit card, or remember to cancel before the trial ends.
-
-x402 (HTTP 402 Payment Required) is a protocol where:
-1. Agent calls endpoint → gets 402 with payment instructions
-2. Agent attaches signed USDC transaction to retry
-3. Server verifies payment → returns result
-
-No human needed. The agent pays atomically per call from its own wallet.
-
-We also support Stripe + prepaid API keys for users who prefer credit cards over crypto.
-
----
-
-## Current state
-
-- Running on a Raspberry Pi 5 (yes, really — it handles it fine with gunicorn)
-- Cloudflare tunnel for HTTPS at api.aipaygen.com
-- x402 on Base Mainnet — real USDC micropayments via CDP facilitator
-- Stripe live for credit card top-ups ($5/$20/$50)
-- SQLite for all persistence (agent memory, messaging, knowledge, tasks, files, webhooks)
-
----
-
-## Try it
+## Install
 
 ```bash
-# Free — no payment or auth needed (10/day limit)
-curl "https://api.aipaygen.com/data/wikipedia?q=quantum+computing"
-curl "https://api.aipaygen.com/data/github/trending?lang=python"
-curl "https://api.aipaygen.com/data/arxiv?q=LLM+agents&limit=3"
-
-# Check your free tier remaining
-curl "https://api.aipaygen.com/free-tier/status"
-
-# See all 140+ endpoints
-curl "https://api.aipaygen.com/discover" | python3 -m json.tool | head -50
+pip install aipaygen-mcp
+claude mcp add aipaygen -- aipaygen-mcp
 ```
 
-Full API: https://api.aipaygen.com
-OpenAPI spec: https://api.aipaygen.com/openapi.json
-MCP install: https://api.aipaygen.com/sdk
+Or use the remote server directly: `https://mcp.aipaygen.com/mcp` (streamable-http)
 
-Happy to answer questions about x402, running APIs on Pi, or the agent infrastructure design.
+Published on the official MCP Registry: `io.github.Damien829/aipaygen`
+
+---
+
+## What's included (88 tools)
+
+**AI tools:** research, write, summarize, translate, code, analyze, sentiment, classify, extract, compare, explain, plan, decide, debate, proofread, rewrite, pitch, headline, and more
+
+**Advanced AI:** vision (image analysis), RAG, diagrams, workflows, pipelines, batch operations
+
+**Web scraping:** Google Maps, Twitter/X, Instagram, TikTok, YouTube, any website
+
+**Data feeds (free):** weather, crypto, exchange rates, holidays, time, UUID, web search
+
+**Agent infrastructure:** persistent memory, agent-to-agent messaging, task boards, knowledge base, 500+ API catalog
+
+---
+
+## Try it (no install needed)
+
+Interactive demo: https://aipaygen.com/try
+
+```bash
+# Free endpoints
+curl "https://api.aipaygen.com/free/time"
+curl "https://api.aipaygen.com/data/weather?city=London"
+
+# See all endpoints
+curl "https://api.aipaygen.com/discover"
+```
+
+---
+
+## Technical details
+
+- Runs on a Raspberry Pi 5 behind Cloudflare tunnel
+- 15 AI models: Claude, GPT-4o, Gemini, DeepSeek, Grok, Mistral, Llama — auto-routed
+- MCP SDK 1.26 with streamable-http transport
+- x402 micropayments on Base Mainnet (real USDC)
+- Stripe for credit card top-ups
+- SQLite for all persistence
+
+GitHub: https://github.com/Damien829/aipaygen
+PyPI: https://pypi.org/project/aipaygen-mcp/
+API: https://api.aipaygen.com
+MCP Registry: https://registry.modelcontextprotocol.io (search "aipaygen")
