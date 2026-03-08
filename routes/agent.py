@@ -7,7 +7,7 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify, Response
 from model_router import call_model
 from helpers import log_payment, agent_response, get_client_ip as _get_client_ip, check_identity_rate_limit as _check_identity_rate_limit
-from agent_memory import memory_set, memory_get, memory_search, memory_clear, register_agent, list_agents, marketplace_get_services
+from agent_memory import memory_set, memory_get, memory_search, memory_clear, memory_list, register_agent, list_agents, marketplace_get_services
 from agent_identity import generate_challenge, verify_challenge, verify_jwt, InvalidSignatureError, ChallengeExpiredError
 from agent_network import get_reputation
 
@@ -85,6 +85,17 @@ def memory_search_route():
     results = memory_search(agent_id, query)
     log_payment("/memory/search", 0.02, request.remote_addr)
     return jsonify(agent_response({"agent_id": agent_id, "query": query, "results": results, "count": len(results), "verified": verified}, "/memory/search"))
+
+
+@agent_bp.route("/memory/list", methods=["POST"])
+def memory_list_route():
+    data = request.get_json() or {}
+    agent_id, verified = _resolve_agent_id(data)
+    if not agent_id:
+        return jsonify({"error": "agent_id required (or use JWT auth)"}), 400
+    keys = memory_list(agent_id)
+    log_payment("/memory/list", 0.01, request.remote_addr)
+    return jsonify(agent_response({"agent_id": agent_id, "keys": keys, "count": len(keys), "verified": verified}, "/memory/list"))
 
 
 @agent_bp.route("/memory/clear", methods=["POST"])

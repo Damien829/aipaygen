@@ -167,7 +167,7 @@ _BUY_PAGE = """<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AiPayGen — The Most Powerful AI Toolkit You Can Buy Per Call</title>
-<meta name="description" content="88 AI tools, 15 frontier models, one API key. Research, write, code, scrape, analyze — from $0.004/call. No subscriptions.">
+<meta name="description" content="106 AI tools, 15 frontier models, one API key. Research, write, code, scrape, analyze — from $0.004/call. No subscriptions.">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e8e8e8; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 32px 16px; }
@@ -246,6 +246,7 @@ _BUY_PAGE = """<!DOCTYPE html>
 </head>
 <body>
 <div class="wrapper">
+  <div style="display:flex;gap:16px;margin-bottom:20px;font-size:0.85rem"><a href="/" style="color:#888;text-decoration:none">Home</a><a href="/docs" style="color:#888;text-decoration:none">Docs</a><a href="/try" style="color:#888;text-decoration:none">Try Free</a><a href="/security" style="color:#888;text-decoration:none">Security</a></div>
   <div class="try-banner">
     <div class="icon">&#9889;</div>
     <div class="text"><strong>Try before you buy</strong> — test any tool free, no key needed</div>
@@ -260,7 +261,7 @@ _BUY_PAGE = """<!DOCTYPE html>
   <!-- Credits Tab -->
   <div class="card pkg-section active" id="tab-credits">
     <h1>Get Your API Key</h1>
-    <p class="sub">88 tools. 15 frontier models. Pay per call, not per month.</p>
+    <p class="sub">106 tools. 15 frontier models. Pay per call, not per month.</p>
 
     <div class="plans">
       <div class="plan" data-amount="1" onclick="selectPlan(this)">
@@ -363,7 +364,7 @@ _BUY_PAGE = """<!DOCTYPE html>
         <div class="pkg-name">Full Access</div>
         <div class="pkg-price">$25</div>
         <div class="pkg-desc">Every tool, every model, every endpoint. The complete AI toolkit — nothing held back.</div>
-        <div class="pkg-tools">All 88 tools &middot; 15 models &middot; scraping &middot; memory &middot; workflows &middot; agent network</div>
+        <div class="pkg-tools">All 106 tools &middot; 15 models &middot; scraping &middot; memory &middot; workflows &middot; agent network</div>
         <div class="pkg-tag">~5,000 calls</div>
       </div>
     </div>
@@ -380,14 +381,14 @@ _BUY_PAGE = """<!DOCTYPE html>
   <!-- Shared bottom section -->
   <div class="trust">
     <strong>The most powerful AI toolkit you can buy per call</strong><br>
-    88 tools &middot; 15 frontier models &middot; 500+ APIs &middot; Published on <strong>PyPI</strong> &amp; <strong>MCP Registry</strong><br>
+    106 tools &middot; 15 frontier models &middot; 500+ APIs &middot; Published on <strong>PyPI</strong> &amp; <strong>MCP Registry</strong><br>
     Credits never expire &middot; 20% bulk discount at $20+ &middot; Secure checkout via Stripe &middot; <a href="/security">Security</a>
   </div>
 
   <div class="how">
     <span class="step">1.</span> Pick a plan or package &rarr; get your <code>apk_xxx</code> key instantly<br>
     <span class="step">2.</span> Add <code>Authorization: Bearer apk_xxx</code> to any request<br>
-    <span class="step">3.</span> Call any of 88 endpoints &mdash; credits deducted per call
+    <span class="step">3.</span> Call any of 106 endpoints &mdash; credits deducted per call
   </div>
 </div>
 <script>

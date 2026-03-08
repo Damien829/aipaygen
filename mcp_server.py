@@ -1,5 +1,5 @@
 """
-AiPayGen MCP Server — 65+ metered tools
+AiPayGen MCP Server — 106 metered tools
 
 Exposes all AiPayGen capabilities as MCP tools with usage metering.
 10 free calls/day without an API key. Unlimited with a prepaid key.
@@ -34,7 +34,10 @@ from routes.ai_tools import (
     explain_inner, questions_inner, outline_inner, email_inner, sql_inner,
     regex_inner, mock_inner, score_inner, timeline_inner, action_inner,
     pitch_inner, debate_inner, headline_inner, fact_inner, rewrite_inner,
-    tag_inner, pipeline_inner, BATCH_HANDLERS,
+    tag_inner, think_inner, review_code_inner, generate_docs_inner,
+    convert_code_inner, generate_api_spec_inner, diff_inner, parse_csv_inner,
+    cron_expr_inner, changelog_inner, name_generator_inner, privacy_check_inner,
+    pipeline_inner, BATCH_HANDLERS,
     vision_inner, rag_inner, diagram_inner, json_schema_inner,
     test_cases_inner, workflow_inner,
 )
@@ -63,7 +66,7 @@ _skills_engine = SkillsSearchEngine(_skills_db_path)
 mcp = FastMCP(
     "AiPayGen",
     instructions=(
-        "AiPayGen is an AI agent API marketplace with 65+ tools. "
+        "AiPayGen is an AI agent API marketplace with 106 tools. "
         "Capabilities: research, write, code, translate, analyze, summarize, vision (image analysis), "
         "RAG (document Q&A), diagram generation, workflow orchestration, chain (pipeline multiple AI steps), "
         "web scraping (Google Maps, Twitter, Instagram, LinkedIn, YouTube, TikTok), "
@@ -389,6 +392,80 @@ def tag(text: str, taxonomy: list[str] = None, max_tags: int = 10) -> dict:
 
 
 # ── Heavy AI Tools (multi-step) ──────────────────────────────────────────────
+
+@metered_tool("standard")
+def review_code(code: str, language: str = "auto", focus: str = "quality") -> dict:
+    """Review code for quality, security, and performance issues. Returns issues, score, and summary."""
+    return review_code_inner(code, language, focus)
+
+
+@metered_tool("standard")
+def generate_docs(code: str, style: str = "jsdoc") -> dict:
+    """Generate documentation for code. Supports jsdoc, docstring, rustdoc, etc."""
+    return generate_docs_inner(code, style)
+
+
+@metered_tool("standard")
+def convert_code(code: str, from_lang: str = "auto", to_lang: str = "python") -> dict:
+    """Convert code from one programming language to another."""
+    return convert_code_inner(code, from_lang, to_lang)
+
+
+@metered_tool("standard")
+def generate_api_spec(description: str, format: str = "openapi") -> dict:
+    """Generate an OpenAPI/AsyncAPI specification from a natural language description."""
+    return generate_api_spec_inner(description, format)
+
+
+@metered_tool("standard")
+def diff(text_a: str, text_b: str) -> dict:
+    """Analyze differences between two texts or code snippets. Returns changes, summary, and similarity."""
+    return diff_inner(text_a, text_b)
+
+
+@metered_tool("standard")
+def parse_csv(csv_text: str, question: str = "") -> dict:
+    """Analyze CSV data and optionally answer questions about it. Returns columns, row count, and insights."""
+    return parse_csv_inner(csv_text, question)
+
+
+@metered_tool("standard")
+def cron_expression(description: str) -> dict:
+    """Generate or explain cron expressions from natural language. Returns cron string and next 5 runs."""
+    return cron_expr_inner(description)
+
+
+@metered_tool("standard")
+def changelog(commits: str, version: str = "") -> dict:
+    """Generate a professional changelog from commit messages. Groups by Added/Changed/Fixed/Removed."""
+    return changelog_inner(commits, version)
+
+
+@metered_tool("standard")
+def name_generator(description: str, count: int = 10, style: str = "startup") -> dict:
+    """Generate names for products, companies, or features with taglines and domain suggestions."""
+    return name_generator_inner(description, count, style)
+
+
+@metered_tool("standard")
+def privacy_check(text: str) -> dict:
+    """Scan text for PII, secrets, and sensitive data. Returns found items, risk level, and recommendations."""
+    return privacy_check_inner(text)
+
+
+@metered_tool("ai_heavy")
+def think(problem: str, context: str = "", max_steps: int = 5) -> dict:
+    """
+    Autonomous chain-of-thought reasoning. Breaks down a problem, reasons
+    step-by-step, optionally calls internal tools, and returns a structured
+    solution with confidence score.
+
+    problem: The problem or question to solve.
+    context: Optional background information.
+    max_steps: Maximum reasoning steps (1-10, default 5).
+    """
+    return think_inner(problem, context, max_steps=min(max_steps, 10))
+
 
 @metered_tool("ai_heavy")
 def pipeline(steps: list[dict]) -> dict:
@@ -1136,7 +1213,8 @@ def main():
         starlette_app = mcp.streamable_http_app()
 
         async def health(request):
-            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 88, "version": "1.4.4"})
+            tool_count = len([m for m in dir() if callable(getattr(__import__(__name__), m, None)) and hasattr(getattr(__import__(__name__), m, None), '__wrapped__')])
+            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 106, "version": "1.5.0"})
 
         starlette_app.routes.insert(0, Route("/health", health))
         uvicorn.run(starlette_app, host="0.0.0.0", port=5002)

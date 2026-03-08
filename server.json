@@ -1,11 +1,11 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.djautomd-lab/aipaygen",
-  "title": "AiPayGen — 65+ AI Tools for Agents",
-  "description": "65+ AI tools: research, write, code, translate, scrape, agent memory. Free tier included.",
-  "version": "1.1.0",
+  "name": "io.github.Damien829/aipaygen",
+  "title": "AiPayGen — 106 AI Tools for Agents",
+  "description": "106 AI tools: research, write, code, translate, scrape, agent memory. Free tier included.",
+  "version": "1.5.0",
   "repository": {
-    "url": "https://github.com/djautomd-lab/aipaygen",
+    "url": "https://github.com/Damien829/aipaygen",
     "source": "github"
   },
   "websiteUrl": "https://api.aipaygen.com/discover",
@@ -20,7 +20,7 @@
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "aipaygen-mcp",
-      "version": "1.1.0",
+      "version": "1.5.0",
       "runtimeHint": "uvx",
       "transport": { "type": "stdio" },
       "environmentVariables": [

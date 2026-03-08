@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Build Your AI Agent - AiPayGen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #020408;
+  --bg2: #070d14;
+  --bg3: #0c1520;
+  --bg4: #111d2b;
+  --green: #00ff9d;
+  --green-dim: #00cc7d;
+  --green-glow: rgba(0,255,157,0.15);
+  --blue: #0088ff;
+  --blue-dim: #0066cc;
+  --cyan: #00d4ff;
+  --cyan-dim: #00a8cc;
+  --red: #ff3366;
+  --yellow: #ffcc00;
+  --text: #e0e8f0;
+  --text-dim: #7a8a9e;
+  --text-muted: #4a5568;
+  --border: #1a2535;
+  --border-hover: #2a3a50;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 48px rgba(0,0,0,0.6);
+  --transition: 0.25s cubic-bezier(0.4,0,0.2,1);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: 'IBM Plex Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  padding-top: 70px;
+  min-height: 100vh;
+  line-height: 1.6;
+}
+h1, h2, h3, h4, h5, h6, code, .mono {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+/* ── Hero ─────────────────────────────────────────── */
+.hero {
+  text-align: center;
+  padding: 80px 24px 60px;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -120px; left: 50%; transform: translateX(-50%);
+  width: 800px; height: 800px;
+  background: radial-gradient(circle, var(--green-glow) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.hero h1 {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--green), var(--cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  position: relative; z-index: 1;
+  margin-bottom: 16px;
+}
+.hero p {
+  font-size: 1.15rem;
+  color: var(--text-dim);
+  max-width: 560px;
+  margin: 0 auto;
+  position: relative; z-index: 1;
+}
+
+/* ── Container ────────────────────────────────────── */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ── Section Titles ───────────────────────────────── */
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+.section-subtitle {
+  color: var(--text-dim);
+  font-size: 0.95rem;
+  margin-bottom: 32px;
+}
+
+/* ── Template Gallery ─────────────────────────────── */
+.templates-section {
+  padding: 0 0 60px;
+}
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+.template-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px 20px;
+  cursor: pointer;
+  transition: all var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.template-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--green), var(--cyan));
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.template-card:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow), 0 0 30px var(--green-glow);
+}
+.template-card:hover::before { opacity: 1; }
+.template-icon {
+  font-size: 2rem;
+  margin-bottom: 12px;
+  display: block;
+}
+.template-name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.template-desc {
+  font-size: 0.85rem;
+  color: var(--text-dim);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.template-btn {
+  display: inline-block;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--green);
+  border: 1px solid rgba(0,255,157,0.3);
+  border-radius: 6px;
+  padding: 6px 14px;
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.template-btn:hover {
+  background: rgba(0,255,157,0.1);
+  border-color: var(--green);
+}
+
+/* ── Builder Form ─────────────────────────────────── */
+.builder-section {
+  padding: 0 0 80px;
+}
+.builder-form {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 40px;
+  box-shadow: var(--shadow);
+}
+.form-group {
+  margin-bottom: 32px;
+}
+.form-group-title {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--cyan);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.form-group-title .icon {
+  font-size: 1.2rem;
+}
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+@media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+
+label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+input[type="text"],
+input[type="number"],
+input[type="url"],
+textarea,
+select {
+  width: 100%;
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 0.95rem;
+  color: var(--text);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  transition: border-color var(--transition), box-shadow var(--transition);
+  outline: none;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(0,212,255,0.1);
+}
+textarea { resize: vertical; }
+select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%237a8a9e'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+select option { background: var(--bg3); color: var(--text); }
+
+/* ── Toggle Switch ────────────────────────────────── */
+.toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.toggle {
+  position: relative;
+  width: 48px; height: 26px;
+  flex-shrink: 0;
+}
+.toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.toggle-slider {
+  position: absolute; inset: 0;
+  background: var(--bg4);
+  border-radius: 26px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 18px; height: 18px;
+  background: var(--text-dim);
+  border-radius: 50%;
+  transition: all var(--transition);
+}
+.toggle input:checked + .toggle-slider {
+  background: rgba(0,255,157,0.15);
+  border-color: var(--green);
+}
+.toggle input:checked + .toggle-slider::before {
+  transform: translateX(22px);
+  background: var(--green);
+}
+.toggle-label {
+  font-size: 0.9rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+/* ── Tool Grid ────────────────────────────────────── */
+.tool-category {
+  margin-bottom: 24px;
+}
+.tool-category-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+.tool-category-name {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--blue);
+}
+.tool-category-actions {
+  display: flex; gap: 8px;
+}
+.cat-toggle-btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.cat-toggle-btn:hover {
+  color: var(--green);
+  border-color: var(--green);
+}
+.tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px;
+}
+.tool-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg3);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--transition);
+  user-select: none;
+}
+.tool-item:hover {
+  border-color: var(--border-hover);
+  background: var(--bg4);
+}
+.tool-item input[type="checkbox"] {
+  width: 16px; height: 16px;
+  accent-color: var(--green);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.tool-item label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.78rem;
+  color: var(--text);
+  margin: 0;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Collapsible ──────────────────────────────────── */
+.collapsible-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+  user-select: none;
+}
+.collapsible-header .arrow {
+  color: var(--text-dim);
+  transition: transform var(--transition);
+  font-size: 0.9rem;
+}
+.collapsible-header.open .arrow { transform: rotate(180deg); }
+.collapsible-body {
+  display: none;
+  padding-bottom: 8px;
+}
+.collapsible-body.open { display: block; }
+.schedule-fields { display: none; margin-top: 16px; }
+.schedule-fields.active { display: block; }
+
+/* ── Launch Button ────────────────────────────────── */
+.launch-wrap {
+  text-align: center;
+  padding-top: 16px;
+}
+.launch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--bg);
+  background: linear-gradient(135deg, var(--green), var(--cyan));
+  border: none;
+  border-radius: var(--radius);
+  padding: 18px 56px;
+  cursor: pointer;
+  transition: all var(--transition);
+  box-shadow: 0 0 30px var(--green-glow);
+  position: relative;
+  overflow: hidden;
+}
+.launch-btn::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, var(--cyan), var(--green));
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.launch-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 50px var(--green-glow), 0 8px 32px rgba(0,0,0,0.4);
+}
+.launch-btn:hover::before { opacity: 1; }
+.launch-btn span { position: relative; z-index: 1; }
+.launch-btn:active { transform: translateY(0); }
+
+/* ── Modal ────────────────────────────────────────── */
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(2,4,8,0.85);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 40px;
+  max-width: 560px;
+  width: 90%;
+  box-shadow: var(--shadow-lg);
+  position: relative;
+}
+.modal-close {
+  position: absolute;
+  top: 16px; right: 16px;
+  background: none; border: none;
+  color: var(--text-dim);
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: color var(--transition);
+}
+.modal-close:hover { color: var(--text); }
+.modal h2 {
+  font-size: 1.4rem;
+  color: var(--green);
+  margin-bottom: 20px;
+}
+.modal .detail {
+  margin-bottom: 14px;
+}
+.modal .detail-label {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+.modal .detail-value {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.9rem;
+  color: var(--text);
+  background: var(--bg3);
+  padding: 10px 14px;
+  border-radius: 6px;
+  word-break: break-all;
+}
+.modal .detail-value.code {
+  font-size: 0.8rem;
+  white-space: pre-wrap;
+}
+.modal-actions {
+  margin-top: 24px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+.modal-btn {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.85rem;
+  padding: 10px 24px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.modal-btn-primary {
+  background: var(--green);
+  color: var(--bg);
+  border: none;
+  font-weight: 600;
+}
+.modal-btn-primary:hover { background: var(--green-dim); }
+.modal-btn-secondary {
+  background: transparent;
+  color: var(--text-dim);
+  border: 1px solid var(--border);
+}
+.modal-btn-secondary:hover { border-color: var(--text-dim); color: var(--text); }
+
+/* ── Spinner ──────────────────────────────────────── */
+.spinner {
+  display: inline-block;
+  width: 20px; height: 20px;
+  border: 2px solid rgba(0,0,0,0.2);
+  border-top-color: var(--bg);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Responsive ───────────────────────────────────── */
+@media (max-width: 768px) {
+  .builder-form { padding: 24px 16px; }
+  .hero { padding: 50px 16px 40px; }
+  .tool-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+  .launch-btn { width: 100%; justify-content: center; }
+}
+</style>
+</head>
+<body>
+{{ nav|safe }}
+
+<!-- ── Hero ──────────────────────────────────────── -->
+<section class="hero">
+  <h1>Build Your AI Agent</h1>
+  <p>Create a custom AI agent in minutes. Choose a template or start from scratch.</p>
+</section>
+
+<!-- ── Template Gallery ──────────────────────────── -->
+<section class="templates-section container">
+  <h2 class="section-title">Templates</h2>
+  <p class="section-subtitle">Pick a starting point and customize it to your needs.</p>
+  <div class="template-grid" id="templateGrid"></div>
+</section>
+
+<!-- ── Builder Form ──────────────────────────────── -->
+<section class="builder-section container">
+  <h2 class="section-title">Configure Your Agent</h2>
+  <p class="section-subtitle">Fine-tune every detail or just launch with the defaults.</p>
+
+  <div class="builder-form" id="builderForm">
+
+    <!-- Basics -->
+    <div class="form-group">
+      <div class="form-group-title"><span class="icon">&#9881;</span> Basics</div>
+      <div class="form-row">
+        <div>
+          <label for="agentName">Agent Name</label>
+          <input type="text" id="agentName" placeholder="my-research-bot">
+        </div>
+        <div>
+          <label for="avatarUrl">Avatar URL <span style="color:var(--text-muted)">(optional)</span></label>
+          <input type="url" id="avatarUrl" placeholder="https://example.com/avatar.png">
+        </div>
+      </div>
+    </div>
+
+    <!-- Personality -->
+    <div class="form-group">
+      <div class="form-group-title"><span class="icon">&#9733;</span> Personality</div>
+      <label for="systemPrompt">System Prompt</label>
+      <textarea id="systemPrompt" rows="4" placeholder="You are a helpful AI agent that..."></textarea>
+    </div>
+
+    <!-- Tools -->
+    <div class="form-group">
+      <div class="form-group-title"><span class="icon">&#9889;</span> Tools</div>
+      <div id="toolCategories"></div>
+    </div>
+
+    <!-- Model -->
+    <div class="form-group">
+      <div class="form-group-title"><span class="icon">&#9670;</span> Model</div>
+      <label for="modelSelect">Select Model</label>
+      <select id="modelSelect">
+        <option value="auto">auto (recommended)</option>
+        <option value="claude-sonnet">claude-sonnet</option>
+        <option value="claude-haiku">claude-haiku</option>
+        <option value="gpt-4o">gpt-4o</option>
+        <option value="gpt-4o-mini">gpt-4o-mini</option>
+        <option value="deepseek-chat">deepseek-chat</option>
+        <option value="deepseek-reasoner">deepseek-reasoner</option>
+        <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+        <option value="grok-3-mini">grok-3-mini</option>
+        <option value="mistral-small">mistral-small</option>
+        <option value="llama-4-scout">llama-4-scout</option>
+      </select>
+    </div>
+
+    <!-- Memory -->
+    <div class="form-group">
+      <div class="form-group-title"><span class="icon">&#128200;</span> Memory</div>
+      <div class="toggle-wrap">
+        <label class="toggle">
+          <input type="checkbox" id="memoryToggle" checked>
+          <span class="toggle-slider"></span>
+        </label>
+        <span class="toggle-label" onclick="document.getElementById('memoryToggle').click()">Enable persistent memory</span>
+      </div>
+    </div>
+
+    <!-- Knowledge Base -->
+    <div class="form-group">
+      <div class="form-group-title"><span class="icon">&#128218;</span> Knowledge Base</div>
+      <label for="knowledgeBase">URLs / Documents <span style="color:var(--text-muted)">(optional, comma-separated)</span></label>
+      <textarea id="knowledgeBase" rows="3" placeholder="https://docs.example.com, https://api-reference.com/spec.json"></textarea>
+    </div>
+
+    <!-- Schedule (collapsible) -->
+    <div class="form-group">
+      <div class="collapsible-header" onclick="toggleCollapsible(this)">
+        <div class="form-group-title" style="margin:0"><span class="icon">&#9200;</span> Schedule</div>
+        <span class="arrow">&#9660;</span>
+      </div>
+      <div class="collapsible-body">
+        <label>Schedule Type</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+          <button type="button" class="sched-type-btn cat-toggle-btn active" data-type="none" onclick="setScheduleType('none',this)">None</button>
+          <button type="button" class="sched-type-btn cat-toggle-btn" data-type="loop" onclick="setScheduleType('loop',this)">Loop</button>
+          <button type="button" class="sched-type-btn cat-toggle-btn" data-type="cron" onclick="setScheduleType('cron',this)">Cron</button>
+          <button type="button" class="sched-type-btn cat-toggle-btn" data-type="event" onclick="setScheduleType('event',this)">Event</button>
+        </div>
+        <div id="schedLoop" class="schedule-fields">
+          <label>Run every</label>
+          <div style="display:flex;gap:12px;align-items:center">
+            <input type="number" id="loopInterval" min="1" value="30" style="max-width:120px">
+            <select id="loopUnit" style="max-width:140px">
+              <option value="minutes">minutes</option>
+              <option value="hours">hours</option>
+            </select>
+          </div>
+        </div>
+        <div id="schedCron" class="schedule-fields">
+          <label for="cronExpr">Cron Expression</label>
+          <input type="text" id="cronExpr" placeholder="*/15 * * * *">
+          <p style="font-size:0.8rem;color:var(--text-muted);margin-top:6px">Examples: <code style="color:var(--cyan)">0 * * * *</code> (hourly) &middot; <code style="color:var(--cyan)">0 9 * * 1-5</code> (weekdays 9am) &middot; <code style="color:var(--cyan)">*/5 * * * *</code> (every 5 min)</p>
+        </div>
+        <div id="schedEvent" class="schedule-fields">
+          <label>Trigger On</label>
+          <select id="eventType">
+            <option value="message">Incoming Message</option>
+            <option value="webhook">Webhook</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Marketplace (collapsible) -->
+    <div class="form-group">
+      <div class="collapsible-header" onclick="toggleCollapsible(this)">
+        <div class="form-group-title" style="margin:0"><span class="icon">&#128722;</span> Marketplace</div>
+        <span class="arrow">&#9660;</span>
+      </div>
+      <div class="collapsible-body">
+        <div class="toggle-wrap" style="margin-bottom:16px">
+          <label class="toggle">
+            <input type="checkbox" id="marketplaceToggle">
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="toggle-label" onclick="document.getElementById('marketplaceToggle').click()">List on marketplace</span>
+        </div>
+        <div class="form-row">
+          <div>
+            <label for="pricePerUse">Price per use (USD) <span style="color:var(--text-muted)">- blank = free</span></label>
+            <input type="number" id="pricePerUse" min="0" step="0.01" placeholder="0.00">
+          </div>
+          <div style="display:flex;align-items:flex-end;padding-bottom:4px">
+            <div class="toggle-wrap">
+              <label class="toggle">
+                <input type="checkbox" id="publicToggle">
+                <span class="toggle-slider"></span>
+              </label>
+              <span class="toggle-label" onclick="document.getElementById('publicToggle').click()">Make public</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Launch -->
+    <div class="launch-wrap">
+      <button class="launch-btn" id="launchBtn" onclick="launchAgent()">
+        <span>&#9650; Launch Agent</span>
+      </button>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── Success Modal ─────────────────────────────── -->
+<div class="modal-overlay" id="successModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <h2>&#10003; Agent Launched</h2>
+    <div class="detail">
+      <div class="detail-label">Agent ID</div>
+      <div class="detail-value" id="modalAgentId">-</div>
+    </div>
+    <div class="detail">
+      <div class="detail-label">Endpoint URL</div>
+      <div class="detail-value" id="modalEndpoint">-</div>
+    </div>
+    <div class="detail">
+      <div class="detail-label">Usage Example</div>
+      <div class="detail-value code" id="modalUsage">-</div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-btn-secondary" onclick="closeModal()">Close</button>
+      <button class="modal-btn modal-btn-primary" onclick="copyEndpoint()">Copy Endpoint</button>
+    </div>
+  </div>
+</div>
+
+{{ footer|safe }}
+
+<script>
+/* ── Tool Categories Data ─────────────────────────── */
+var TOOL_CATEGORIES = {
+  "AI / NLP": ["research","summarize","analyze","translate","sentiment","keywords","classify","rewrite","extract","qa","compare","outline","explain","proofread","write","code","ask","fact","questions","score","decide","plan","pitch","headline","social","tag","mock","debate","regex","diagram","json_schema","workflow","test_cases","sql"],
+  "Advanced AI": ["vision","rag","pipeline","batch","chain_operations","review_code","run_python_code"],
+  "Data": ["get_weather","get_crypto_prices","get_exchange_rates","get_holidays","get_current_time","get_joke","get_quote","generate_uuid"],
+  "Web Scraping": ["scrape_website","scrape_google_maps","scrape_tweets","scrape_youtube","scrape_instagram","scrape_tiktok","web_search"],
+  "Agent": ["memory_store","memory_recall","memory_find","memory_keys","send_agent_message","read_agent_inbox","submit_agent_task","browse_agent_tasks","register_my_agent","list_registered_agents","post_to_marketplace","list_marketplace"],
+  "Skills": ["create_skill","execute_skill","search_skills","list_skills","absorb_skill"],
+  "Knowledge": ["add_to_knowledge_base","search_knowledge_base","get_trending_knowledge"],
+  "Catalog": ["browse_catalog","get_catalog_api","invoke_catalog_api"],
+  "Utility": ["check_balance","check_api_key_balance","list_models","generate_api_key","email","enrich_entity"]
+};
+
+/* ── Templates Data ───────────────────────────────── */
+var TEMPLATES = [
+  {
+    icon: "\uD83D\uDD0D", name: "Research Assistant",
+    desc: "Deep research with web scraping, summarization, and knowledge storage.",
+    defaults: {
+      agentName: "research-assistant",
+      systemPrompt: "You are a thorough research assistant. When given a topic, search multiple sources, cross-reference facts, and deliver well-structured reports with citations.",
+      tools: ["research","summarize","analyze","web_search","scrape_website","extract","qa","compare","outline","add_to_knowledge_base","search_knowledge_base","memory_store","memory_recall"],
+      model: "auto", memory: true
+    }
+  },
+  {
+    icon: "\uD83D\uDCBB", name: "Code Reviewer",
+    desc: "Analyze code, find bugs, suggest improvements, and write tests.",
+    defaults: {
+      agentName: "code-reviewer",
+      systemPrompt: "You are an expert code reviewer. Analyze code for bugs, security issues, and style problems. Suggest concrete improvements and generate tests.",
+      tools: ["code","analyze","explain","review_code","run_python_code","test_cases","regex","json_schema","sql"],
+      model: "claude-sonnet", memory: true
+    }
+  },
+  {
+    icon: "\uD83D\uDCDD", name: "Content Writer",
+    desc: "Write, edit, and optimize content for any platform.",
+    defaults: {
+      agentName: "content-writer",
+      systemPrompt: "You are a versatile content writer. Create engaging, well-structured content tailored to the target audience and platform. Always proofread your work.",
+      tools: ["write","rewrite","proofread","headline","outline","social","keywords","sentiment","tag","summarize","translate"],
+      model: "auto", memory: true
+    }
+  },
+  {
+    icon: "\uD83D\uDCCA", name: "Data Analyst",
+    desc: "Fetch data, run analysis, generate charts and reports.",
+    defaults: {
+      agentName: "data-analyst",
+      systemPrompt: "You are a data analyst. Collect, clean, and analyze data. Present findings with clear visualizations and actionable insights.",
+      tools: ["analyze","get_crypto_prices","get_exchange_rates","get_weather","run_python_code","extract","compare","diagram","score","sql","pipeline","batch"],
+      model: "auto", memory: true
+    }
+  },
+  {
+    icon: "\uD83E\uDD16", name: "Customer Support",
+    desc: "Answer questions, search knowledge bases, and escalate issues.",
+    defaults: {
+      agentName: "support-agent",
+      systemPrompt: "You are a friendly customer support agent. Answer questions accurately using the knowledge base. If unsure, escalate politely. Always be helpful and empathetic.",
+      tools: ["qa","search_knowledge_base","classify","sentiment","summarize","email","memory_store","memory_recall","memory_find"],
+      model: "auto", memory: true
+    }
+  },
+  {
+    icon: "\uD83C\uDF10", name: "Web Scraper",
+    desc: "Extract structured data from websites and social media.",
+    defaults: {
+      agentName: "web-scraper",
+      systemPrompt: "You are a web scraping specialist. Extract structured data from websites and social platforms. Clean and format the data for downstream use.",
+      tools: ["scrape_website","scrape_google_maps","scrape_tweets","scrape_youtube","scrape_instagram","scrape_tiktok","web_search","extract","json_schema","batch"],
+      model: "auto", memory: false
+    }
+  },
+  {
+    icon: "\uD83D\uDCB0", name: "Crypto Tracker",
+    desc: "Monitor prices, analyze trends, and send alerts.",
+    defaults: {
+      agentName: "crypto-tracker",
+      systemPrompt: "You are a cryptocurrency analyst. Monitor prices, identify trends, and provide clear market analysis. Alert on significant movements.",
+      tools: ["get_crypto_prices","get_exchange_rates","analyze","compare","score","diagram","memory_store","memory_recall","email","web_search"],
+      model: "auto", memory: true
+    }
+  },
+  {
+    icon: "\uD83C\uDF93", name: "Tutor",
+    desc: "Teach concepts, quiz students, and track progress.",
+    defaults: {
+      agentName: "ai-tutor",
+      systemPrompt: "You are a patient and encouraging tutor. Explain concepts clearly with examples. Ask questions to check understanding. Adapt to the student's level.",
+      tools: ["explain","qa","questions","fact","outline","write","score","memory_store","memory_recall","memory_keys","plan"],
+      model: "claude-sonnet", memory: true
+    }
+  },
+  {
+    icon: "\uD83D\uDCE2", name: "Social Media Manager",
+    desc: "Create posts, track engagement, schedule content.",
+    defaults: {
+      agentName: "social-manager",
+      systemPrompt: "You are a social media manager. Create platform-optimized posts, analyze engagement, and plan content calendars. Stay on-brand and on-trend.",
+      tools: ["social","write","rewrite","headline","keywords","sentiment","tag","scrape_tweets","scrape_instagram","scrape_tiktok","web_search","plan"],
+      model: "auto", memory: true
+    }
+  },
+  {
+    icon: "\u2699\uFE0F", name: "Workflow Automator",
+    desc: "Chain tools together to automate complex multi-step tasks.",
+    defaults: {
+      agentName: "automator",
+      systemPrompt: "You are a workflow automation specialist. Break down complex tasks into steps, chain tools together, and execute reliably. Report status at each step.",
+      tools: ["workflow","pipeline","chain_operations","batch","plan","decide","create_skill","execute_skill","send_agent_message","submit_agent_task","email","run_python_code"],
+      model: "auto", memory: true
+    }
+  }
+];
+
+/* ── Render Templates (DOM API, no innerHTML) ─────── */
+(function renderTemplates() {
+  var grid = document.getElementById('templateGrid');
+  TEMPLATES.forEach(function(t, i) {
+    var card = document.createElement('div');
+    card.className = 'template-card';
+
+    var iconSpan = document.createElement('span');
+    iconSpan.className = 'template-icon';
+    iconSpan.textContent = t.icon;
+    card.appendChild(iconSpan);
+
+    var nameDiv = document.createElement('div');
+    nameDiv.className = 'template-name';
+    nameDiv.textContent = t.name;
+    card.appendChild(nameDiv);
+
+    var descDiv = document.createElement('div');
+    descDiv.className = 'template-desc';
+    descDiv.textContent = t.desc;
+    card.appendChild(descDiv);
+
+    var btn = document.createElement('button');
+    btn.className = 'template-btn';
+    btn.textContent = 'Use Template';
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      applyTemplate(i);
+    });
+    card.appendChild(btn);
+
+    card.addEventListener('click', function() { applyTemplate(i); });
+    grid.appendChild(card);
+  });
+})();
+
+/* ── Render Tool Categories (DOM API, no innerHTML) ── */
+(function renderTools() {
+  var container = document.getElementById('toolCategories');
+  Object.keys(TOOL_CATEGORIES).forEach(function(cat) {
+    var tools = TOOL_CATEGORIES[cat];
+    var catId = cat.replace(/[^a-zA-Z]/g, '');
+
+    var wrapper = document.createElement('div');
+    wrapper.className = 'tool-category';
+    wrapper.setAttribute('data-cat', catId);
+
+    // Header
+    var header = document.createElement('div');
+    header.className = 'tool-category-header';
+
+    var catName = document.createElement('span');
+    catName.className = 'tool-category-name';
+    catName.textContent = cat;
+    header.appendChild(catName);
+
+    var actions = document.createElement('div');
+    actions.className = 'tool-category-actions';
+
+    var selectAllBtn = document.createElement('button');
+    selectAllBtn.className = 'cat-toggle-btn';
+    selectAllBtn.textContent = 'Select All';
+    selectAllBtn.addEventListener('click', function() { toggleCat(catId, true); });
+    actions.appendChild(selectAllBtn);
+
+    var deselectAllBtn = document.createElement('button');
+    deselectAllBtn.className = 'cat-toggle-btn';
+    deselectAllBtn.textContent = 'Deselect All';
+    deselectAllBtn.addEventListener('click', function() { toggleCat(catId, false); });
+    actions.appendChild(deselectAllBtn);
+
+    header.appendChild(actions);
+    wrapper.appendChild(header);
+
+    // Tool grid
+    var toolGrid = document.createElement('div');
+    toolGrid.className = 'tool-grid';
+
+    tools.forEach(function(tool) {
+      var item = document.createElement('div');
+      item.className = 'tool-item';
+      item.addEventListener('click', function() { toggleToolItem(this); });
+
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.id = 'tool_' + tool;
+      cb.setAttribute('data-cat', catId);
+      cb.value = tool;
+      cb.addEventListener('click', function(e) { e.stopPropagation(); });
+      item.appendChild(cb);
+
+      var lbl = document.createElement('label');
+      lbl.setAttribute('for', 'tool_' + tool);
+      lbl.textContent = tool;
+      lbl.addEventListener('click', function(e) { e.preventDefault(); });
+      item.appendChild(lbl);
+
+      toolGrid.appendChild(item);
+    });
+
+    wrapper.appendChild(toolGrid);
+    container.appendChild(wrapper);
+  });
+})();
+
+/* ── Apply Template ───────────────────────────────── */
+function applyTemplate(index) {
+  var t = TEMPLATES[index].defaults;
+  document.getElementById('agentName').value = t.agentName || '';
+  document.getElementById('systemPrompt').value = t.systemPrompt || '';
+  document.getElementById('modelSelect').value = t.model || 'auto';
+  document.getElementById('memoryToggle').checked = t.memory !== false;
+  // Reset all tools then enable template tools
+  document.querySelectorAll('#toolCategories input[type="checkbox"]').forEach(function(cb) { cb.checked = false; });
+  (t.tools || []).forEach(function(name) {
+    var cb = document.getElementById('tool_' + name);
+    if (cb) cb.checked = true;
+  });
+  // Scroll to form
+  document.getElementById('builderForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/* ── Tool Helpers ─────────────────────────────────── */
+function toggleCat(catId, state) {
+  document.querySelectorAll('input[data-cat="' + catId + '"]').forEach(function(cb) { cb.checked = state; });
+}
+function toggleToolItem(el) {
+  var cb = el.querySelector('input[type="checkbox"]');
+  cb.checked = !cb.checked;
+}
+
+/* ── Collapsible ──────────────────────────────────── */
+function toggleCollapsible(header) {
+  header.classList.toggle('open');
+  var body = header.nextElementSibling;
+  body.classList.toggle('open');
+}
+
+/* ── Schedule Type ────────────────────────────────── */
+var currentScheduleType = 'none';
+function setScheduleType(type, btn) {
+  currentScheduleType = type;
+  document.querySelectorAll('.sched-type-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.schedule-fields').forEach(function(f) { f.classList.remove('active'); });
+  var target = document.getElementById('sched' + type.charAt(0).toUpperCase() + type.slice(1));
+  if (target) target.classList.add('active');
+}
+// Style active sched button
+var schedStyle = document.createElement('style');
+schedStyle.textContent = '.sched-type-btn.active { color: var(--green); border-color: var(--green); background: rgba(0,255,157,0.08); }';
+document.head.appendChild(schedStyle);
+
+/* ── Get API Key ──────────────────────────────────── */
+function getApiKey() {
+  var key = localStorage.getItem('aipaygen_api_key');
+  if (!key) {
+    key = prompt('Enter your AiPayGen API key:');
+    if (key) localStorage.setItem('aipaygen_api_key', key.trim());
+  }
+  return key ? key.trim() : null;
+}
+
+/* ── Launch Agent ─────────────────────────────────── */
+async function launchAgent() {
+  var apiKey = getApiKey();
+  if (!apiKey) return;
+
+  var btn = document.getElementById('launchBtn');
+  var origHTML = btn.textContent;
+  btn.textContent = 'Launching...';
+  btn.disabled = true;
+
+  var selectedTools = [];
+  document.querySelectorAll('#toolCategories input[type="checkbox"]:checked').forEach(function(cb) {
+    selectedTools.push(cb.value);
+  });
+
+  var schedule = {};
+  if (currentScheduleType === 'loop') {
+    var intervalVal = parseInt(document.getElementById('loopInterval').value) || 30;
+    var unitVal = document.getElementById('loopUnit').value;
+    schedule = {type: 'loop', config: {}};
+    if (unitVal === 'hours') { schedule.config.hours = intervalVal; }
+    else { schedule.config.minutes = intervalVal; }
+  } else if (currentScheduleType === 'cron') {
+    var cronExpr = document.getElementById('cronExpr').value.trim();
+    var parts = cronExpr.split(/\s+/);
+    schedule = {type: 'cron', config: {}};
+    if (parts.length >= 1) schedule.config.minute = parts[0];
+    if (parts.length >= 2) schedule.config.hour = parts[1];
+    if (parts.length >= 5) schedule.config.day_of_week = parts[4];
+  } else if (currentScheduleType === 'event') {
+    schedule = {type: 'event', config: {trigger: document.getElementById('eventType').value}};
+  }
+
+  var payload = {
+    name: document.getElementById('agentName').value.trim() || 'untitled-agent',
+    avatar_url: document.getElementById('avatarUrl').value.trim() || null,
+    system_prompt: document.getElementById('systemPrompt').value.trim(),
+    tools: selectedTools,
+    model: document.getElementById('modelSelect').value,
+    memory_enabled: document.getElementById('memoryToggle').checked,
+    knowledge_base: document.getElementById('knowledgeBase').value.split(',').map(function(s) { return s.trim(); }).filter(Boolean),
+    schedule: currentScheduleType !== 'none' ? schedule : null,
+    marketplace: document.getElementById('marketplaceToggle').checked,
+    price_per_use: document.getElementById('marketplaceToggle').checked ? (parseFloat(document.getElementById('pricePerUse').value) || 0) : 0,
+    is_public: document.getElementById('publicToggle').checked
+  };
+
+  try {
+    var resp = await fetch('/agents/build', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + apiKey
+      },
+      body: JSON.stringify(payload)
+    });
+    var data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || data.message || 'Launch failed');
+
+    var agentId = data.agent_id || (data.data && data.data.agent_id) || 'unknown';
+    var endpoint = 'https://api.aipaygen.com/agents/custom/' + agentId + '/run';
+
+    document.getElementById('modalAgentId').textContent = agentId;
+    document.getElementById('modalEndpoint').textContent = endpoint;
+    document.getElementById('modalUsage').textContent =
+      'curl -X POST ' + endpoint + ' \\\n' +
+      '  -H "Authorization: Bearer YOUR_KEY" \\\n' +
+      '  -H "Content-Type: application/json" \\\n' +
+      '  -d \'{"task": "your task"}\'';
+
+    document.getElementById('successModal').classList.add('show');
+  } catch (err) {
+    alert('Error: ' + err.message);
+  } finally {
+    btn.textContent = origHTML;
+    btn.disabled = false;
+  }
+}
+
+/* ── Modal Helpers ────────────────────────────────── */
+function closeModal() {
+  document.getElementById('successModal').classList.remove('show');
+}
+function copyEndpoint() {
+  var text = document.getElementById('modalEndpoint').textContent;
+  navigator.clipboard.writeText(text).then(function() {
+    var btn = document.querySelector('.modal-btn-primary');
+    btn.textContent = 'Copied!';
+    setTimeout(function() { btn.textContent = 'Copy Endpoint'; }, 1500);
+  });
+}
+// Close modal on overlay click
+document.getElementById('successModal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+</body>
+</html>

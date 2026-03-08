@@ -104,6 +104,233 @@ def stats():
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# FUNNEL DASHBOARD — Visual conversion funnel analytics
+# ══════════════════════════════════════════════════════════════════════════════
+
+@admin_bp.route("/admin/manifest.json")
+def admin_manifest():
+    return jsonify({
+        "name": "AiPayGen Dashboard",
+        "short_name": "AiPayGen",
+        "description": "Conversion funnel & checkout alerts",
+        "start_url": "/admin/funnel",
+        "display": "standalone",
+        "background_color": "#0a0a0a",
+        "theme_color": "#6366f1",
+        "icons": [
+            {"src": "/admin/icon-192.png", "sizes": "192x192", "type": "image/png"},
+            {"src": "/admin/icon-512.png", "sizes": "512x512", "type": "image/png"},
+        ],
+    })
+
+
+@admin_bp.route("/admin/icon-192.png")
+@admin_bp.route("/admin/icon-512.png")
+def admin_icon():
+    """Generate a simple SVG-based PNG icon."""
+    size = 512 if "512" in request.path else 192
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}">
+      <rect width="{size}" height="{size}" rx="{size//8}" fill="#6366f1"/>
+      <text x="50%" y="54%" font-family="Arial,sans-serif" font-size="{size//3}" font-weight="800"
+            fill="white" text-anchor="middle" dominant-baseline="middle">AP</text>
+    </svg>'''
+    return svg, 200, {"Content-Type": "image/svg+xml"}
+
+
+@admin_bp.route("/admin/sw.js")
+def admin_sw():
+    return "self.addEventListener('fetch', e => e.respondWith(fetch(e.request)));", 200, {"Content-Type": "application/javascript"}
+
+
+@admin_bp.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    """Simple admin login page — sets session cookie."""
+    from flask import session, redirect
+    if request.method == "POST":
+        key = request.form.get("key", "")
+        admin_secret = os.getenv("ADMIN_SECRET", "")
+        if key == admin_secret:
+            session["admin"] = True
+            return redirect("/admin/funnel")
+        return """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Admin Login</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,sans-serif;background:#0a0a0a;color:#e8e8e8;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}.card{background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:32px;max-width:380px;width:100%}h1{font-size:1.3rem;margin-bottom:16px}input{width:100%;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:10px 14px;color:#e8e8e8;font-size:0.9rem;margin-bottom:12px}button{width:100%;background:#6366f1;color:#fff;border:none;border-radius:8px;padding:12px;font-size:0.95rem;font-weight:600;cursor:pointer}.err{color:#f87171;font-size:0.85rem;margin-bottom:12px}</style></head><body>
+<div class="card"><h1>Admin Login</h1><p class="err">Invalid key</p><form method="POST"><input type="password" name="key" placeholder="Admin key" autofocus><button type="submit">Login</button></form></div></body></html>""", 401, {"Content-Type": "text/html"}
+    return """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Admin Login</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,sans-serif;background:#0a0a0a;color:#e8e8e8;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}.card{background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:32px;max-width:380px;width:100%}h1{font-size:1.3rem;margin-bottom:16px}input{width:100%;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:10px 14px;color:#e8e8e8;font-size:0.9rem;margin-bottom:12px}button{width:100%;background:#6366f1;color:#fff;border:none;border-radius:8px;padding:12px;font-size:0.95rem;font-weight:600;cursor:pointer}</style></head><body>
+<div class="card"><h1>Admin Login</h1><form method="POST"><input type="password" name="key" placeholder="Admin key" autofocus><button type="submit">Login</button></form></div></body></html>""", 200, {"Content-Type": "text/html"}
+
+
+@admin_bp.route("/admin/funnel")
+def funnel_dashboard():
+    """Funnel dashboard — requires admin session, query key, or header key."""
+    from flask import session, redirect
+    admin_secret = os.getenv("ADMIN_SECRET", "")
+    # Check session cookie
+    if session.get("admin"):
+        pass  # authenticated
+    # Check query param or header
+    elif request.form.get("key") == admin_secret:
+        session["admin"] = True  # set cookie for future visits
+    elif request.headers.get("X-Admin-Key") == admin_secret:
+        pass
+    elif request.headers.get("Authorization", "").replace("Bearer ", "") == admin_secret:
+        pass
+    else:
+        return redirect("/admin/login")
+    days = int(request.args.get("days", 7))
+    stats = get_funnel_stats(days)
+    by_type = stats.get("by_type", {})
+
+    # Read checkout alerts
+    alert_log = os.path.join(os.path.dirname(os.path.dirname(__file__)), "checkout_alerts.log")
+    alerts_html = ""
+    try:
+        with open(alert_log) as f:
+            lines = f.readlines()[-20:]  # last 20
+        for line in reversed(lines):
+            line = line.strip()
+            if not line:
+                continue
+            is_paid = "PAID" in line
+            color = "#059669" if is_paid else "#f59e0b"
+            icon = "&#10003;" if is_paid else "&#9888;"
+            alerts_html += f'<div class="alert-row" style="border-left:3px solid {color}"><span style="color:{color}">{icon}</span> {line}</div>'
+    except FileNotFoundError:
+        alerts_html = '<div class="alert-row" style="color:#555">No checkout attempts yet</div>'
+
+    # Funnel stages in order
+    stages = [
+        ("discover_hit", "Discover Page", "#6366f1"),
+        ("llms_txt_hit", "LLMs.txt", "#818cf8"),
+        ("demo_used", "Demo Used", "#34d399"),
+        ("402_shown", "Payment Wall (402)", "#f59e0b"),
+        ("checkout_started", "Checkout Started", "#f97316"),
+        ("credits_bought", "Credits Bought", "#059669"),
+        ("key_generated", "Key Generated", "#10b981"),
+    ]
+
+    max_val = max((by_type.get(s[0], 0) for s in stages), default=1) or 1
+
+    bars_html = ""
+    for event_type, label, color in stages:
+        count = by_type.get(event_type, 0)
+        pct = round((count / max_val) * 100)
+        bars_html += f'''
+        <div class="funnel-row">
+          <div class="funnel-label">{label}</div>
+          <div class="funnel-bar-wrap">
+            <div class="funnel-bar" style="width:{pct}%;background:{color}">{count}</div>
+          </div>
+        </div>'''
+
+    # Daily breakdown table
+    daily = stats.get("daily", [])
+    daily_rows = ""
+    for d in daily:
+        daily_rows += f'<tr><td>{d["day"]}</td><td>{d["event_type"]}</td><td>{d["count"]}</td></tr>'
+
+    # Other events not in the funnel
+    other_events = {k: v for k, v in by_type.items() if k not in [s[0] for s in stages]}
+    other_html = ""
+    if other_events:
+        other_html = '<h2>Other Events</h2><div class="other-grid">'
+        for evt, cnt in sorted(other_events.items(), key=lambda x: -x[1]):
+            other_html += f'<div class="other-card"><div class="other-count">{cnt}</div><div class="other-label">{evt}</div></div>'
+        other_html += '</div>'
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funnel Dashboard — AiPayGen</title>
+<link rel="manifest" href="/admin/manifest.json">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AiPayGen">
+<link rel="apple-touch-icon" href="/admin/icon-192.png">
+<style>
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e8e8e8; padding: 32px 16px; }}
+  .wrap {{ max-width: 800px; margin: 0 auto; }}
+  h1 {{ font-size: 1.5rem; margin-bottom: 4px; }}
+  .sub {{ color: #888; font-size: 0.85rem; margin-bottom: 24px; }}
+  .period {{ display: flex; gap: 8px; margin-bottom: 24px; }}
+  .period a {{ padding: 6px 14px; border-radius: 6px; background: #1e1e1e; color: #888; text-decoration: none; font-size: 0.82rem; border: 1px solid #2a2a2a; }}
+  .period a.active {{ background: #6366f1; color: #fff; border-color: #6366f1; }}
+  .card {{ background: #141414; border: 1px solid #2a2a2a; border-radius: 14px; padding: 28px; margin-bottom: 20px; }}
+  .funnel-row {{ display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }}
+  .funnel-label {{ min-width: 160px; font-size: 0.82rem; color: #aaa; text-align: right; }}
+  .funnel-bar-wrap {{ flex: 1; background: #1a1a1a; border-radius: 6px; height: 32px; overflow: hidden; }}
+  .funnel-bar {{ height: 100%; border-radius: 6px; display: flex; align-items: center; padding: 0 10px; font-size: 0.8rem; font-weight: 700; color: #fff; min-width: 30px; transition: width 0.4s; }}
+  .stat-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }}
+  .stat {{ background: #1a1a1a; border-radius: 10px; padding: 16px; text-align: center; }}
+  .stat .num {{ font-size: 1.6rem; font-weight: 800; color: #6366f1; }}
+  .stat .lbl {{ font-size: 0.75rem; color: #666; margin-top: 4px; }}
+  h2 {{ font-size: 1.1rem; margin: 24px 0 12px; }}
+  table {{ width: 100%; border-collapse: collapse; font-size: 0.82rem; }}
+  th, td {{ padding: 8px 12px; text-align: left; border-bottom: 1px solid #222; }}
+  th {{ color: #888; font-weight: 600; }}
+  .other-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }}
+  .other-card {{ background: #1a1a1a; border-radius: 8px; padding: 12px; text-align: center; }}
+  .other-count {{ font-size: 1.2rem; font-weight: 700; color: #818cf8; }}
+  .other-label {{ font-size: 0.72rem; color: #666; margin-top: 4px; word-break: break-all; }}
+  .alert-row {{ background: #1a1a1a; border-radius: 6px; padding: 10px 14px; margin-bottom: 6px; font-size: 0.8rem; font-family: monospace; color: #ccc; display: flex; align-items: center; gap: 8px; }}
+  .alerts-wrap {{ max-height: 300px; overflow-y: auto; }}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Conversion Funnel</h1>
+  <p class="sub">Last {days} days &middot; {stats['total_events']} total events</p>
+
+  <div class="period">
+    <a href="?days=1" class="{'active' if days==1 else ''}">24h</a>
+    <a href="?days=7" class="{'active' if days==7 else ''}">7d</a>
+    <a href="?days=30" class="{'active' if days==30 else ''}">30d</a>
+    <a href="?days=90" class="{'active' if days==90 else ''}">90d</a>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat"><div class="num">{by_type.get('discover_hit', 0)}</div><div class="lbl">Discover Hits</div></div>
+    <div class="stat"><div class="num">{by_type.get('demo_used', 0)}</div><div class="lbl">Demos Used</div></div>
+    <div class="stat"><div class="num">{by_type.get('402_shown', 0)}</div><div class="lbl">402s Shown</div></div>
+    <div class="stat"><div class="num">{by_type.get('checkout_started', 0)}</div><div class="lbl">Checkouts</div></div>
+    <div class="stat"><div class="num">{by_type.get('credits_bought', 0)}</div><div class="lbl">Purchases</div></div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Checkout Alerts</h2>
+    <div class="alerts-wrap">{alerts_html}</div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Funnel</h2>
+    {bars_html}
+  </div>
+
+  {other_html}
+
+  <div class="card">
+    <h2 style="margin-top:0">Daily Breakdown</h2>
+    <table>
+      <thead><tr><th>Date</th><th>Event</th><th>Count</th></tr></thead>
+      <tbody>{daily_rows if daily_rows else '<tr><td colspan="3" style="color:#555">No events yet</td></tr>'}</tbody>
+    </table>
+  </div>
+
+  <p style="text-align:center;margin-top:20px;font-size:0.75rem;color:#444"><a href="/stats" style="color:#555">Payment stats</a> &middot; Auto-refreshes every 30s</p>
+</div>
+<script>
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/admin/sw.js');
+setTimeout(() => location.reload(), 30000);
+</script>
+</body>
+</html>""", 200, {"Content-Type": "text/html"}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # BLOG — Auto-generated SEO tutorials, indexed by search engines + LLMs
 # ══════════════════════════════════════════════════════════════════════════════
 

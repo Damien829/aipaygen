@@ -459,7 +459,7 @@ def free_time():
         "time": now_utc.strftime("%H:%M:%S"),
         "day_of_week": now_utc.strftime("%A"),
         "week_number": int(now_utc.strftime("%W")),
-        "_meta": {"free": True, "note": "Visit /discover for 80+ paid AI endpoints"}
+        "_meta": {"free": True, "note": "Visit /discover for 106 AI tools"}
     })
 
 
@@ -473,7 +473,7 @@ def free_uuid():
         "uuid4": str(uuid.uuid4()),
         "uuid4_list": [str(uuid.uuid4()) for _ in range(5)],
         "uuid1": str(uuid.uuid1()),
-        "_meta": {"free": True, "note": "Visit /discover for 80+ paid AI endpoints"}
+        "_meta": {"free": True, "note": "Visit /discover for 106 AI tools"}
     })
 
 
@@ -486,7 +486,7 @@ def free_ip():
     return jsonify({
         "ip": ip,
         "user_agent": request.headers.get("User-Agent"),
-        "_meta": {"free": True, "note": "Visit /discover for 80+ paid AI endpoints"}
+        "_meta": {"free": True, "note": "Visit /discover for 106 AI tools"}
     })
 
 
@@ -509,7 +509,7 @@ def free_hash():
         "sha1": hashlib.sha1(text_bytes).hexdigest(),
         "sha256": hashlib.sha256(text_bytes).hexdigest(),
         "sha512": hashlib.sha512(text_bytes).hexdigest(),
-        "_meta": {"free": True, "note": "Visit /discover for 80+ paid AI endpoints"}
+        "_meta": {"free": True, "note": "Visit /discover for 106 AI tools"}
     })
 
 
@@ -530,7 +530,7 @@ def free_base64():
             result["decoded"] = _b64.b64decode(decode_text).decode()
         except Exception:
             result["decode_error"] = "invalid base64"
-    result["_meta"] = {"free": True, "note": "Visit /discover for 80+ paid AI endpoints"}
+    result["_meta"] = {"free": True, "note": "Visit /discover for 106 AI tools"}
     return jsonify(result)
 
 
@@ -550,7 +550,7 @@ def free_random():
         "bool": random.choice([True, False]),
         "shuffle_example": random.sample(list(range(1, 11)), 10),
         "random_string": "".join(random.choices(string.ascii_letters + string.digits, k=16)),
-        "_meta": {"free": True, "note": "Visit /discover for 80+ paid AI endpoints"}
+        "_meta": {"free": True, "note": "Visit /discover for 106 AI tools"}
     })
 
 

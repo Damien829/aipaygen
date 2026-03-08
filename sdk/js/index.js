@@ -1,22 +1,22 @@
 /**
- * AiPayGent JavaScript SDK
+ * AiPayGen JavaScript SDK
  *
- * AI agent marketplace with 123 endpoints. Pay per call via x402 or prepaid API key.
+ * AI agent marketplace with 99 tools. Pay per call via x402 or prepaid API key.
  *
- * npm install aipaygent
+ * npm install aipaygen
  *
  * Usage:
- *   const { AiPayGent } = require('aipaygent');
- *   const client = new AiPayGent({ apiKey: 'apk_your_key' });
+ *   const { AiPayGen } = require('aipaygen');
+ *   const client = new AiPayGen({ apiKey: 'apk_your_key' });
  *   const result = await client.research('quantum computing');
  */
 
 const https = require('https');
 const http = require('http');
 
-const DEFAULT_BASE_URL = 'https://api.aipaygent.xyz';
+const DEFAULT_BASE_URL = 'https://api.aipaygen.com';
 
-class AiPayGent {
+class AiPayGen {
   /**
    * @param {Object} options
    * @param {string} [options.apiKey] - Prepaid API key (apk_xxx)
@@ -289,4 +289,4 @@ class AiPayGent {
   }
 }
 
-module.exports = { AiPayGent };
+module.exports = { AiPayGen };

@@ -119,7 +119,7 @@ else:
 app = Flask(__name__)
 app.config["PREFERRED_URL_SCHEME"] = "https"
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10MB max request body
-app.secret_key = os.getenv("ADMIN_SECRET", "fallback-change-me")
+app.secret_key = os.getenv("ADMIN_SECRET") or os.urandom(32).hex()
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = True
 
@@ -1201,6 +1201,12 @@ app.register_blueprint(marketplace_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(skills_bp)
 app.register_blueprint(meta_bp)
+
+# Agent Builder
+from routes.builder import builder_bp, init_builder_bp, init_builder_db
+init_builder_db()
+init_builder_bp(_skills_db_path, _skills_engine, BATCH_HANDLERS)
+app.register_blueprint(builder_bp)
 
 
 if __name__ == "__main__":

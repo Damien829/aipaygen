@@ -1,6 +1,6 @@
-# Show HN: AiPayGen — 88 AI tools as one MCP server, published on the official MCP Registry
+# Show HN: AiPayGen — 106 AI tools as one MCP server, published on the official MCP Registry
 
-I built an MCP server with 88 AI tools — research, write, code, translate, analyze, scrape, agent memory, and more. One install, one API key, 15 AI models behind the scenes.
+I built an MCP server with 106 AI tools — research, write, code, translate, analyze, scrape, agent memory, and more. One install, one API key, 15 AI models behind the scenes.
 
 **Free tier: 10 calls/day, no key needed.** After that, prepaid API keys from $5 (Stripe) or pay-per-call in USDC on Base via x402.
 
@@ -19,7 +19,7 @@ Published on the official MCP Registry: `io.github.Damien829/aipaygen`
 
 ---
 
-## What's included (88 tools)
+## What's included (106 tools)
 
 **AI tools:** research, write, summarize, translate, code, analyze, sentiment, classify, extract, compare, explain, plan, decide, debate, proofread, rewrite, pitch, headline, and more
 

@@ -1,6 +1,6 @@
 # AiPayGen
 
-<!-- mcp-name: io.github.djautomd-lab/aipaygen -->
+<!-- mcp-name: io.github.Damien829/aipaygen -->
 
 **Pay-per-use Claude AI API for autonomous agents.** 140+ endpoints, USDC micropayments on Base via [x402](https://www.x402.org/), no API keys or signups required.
 

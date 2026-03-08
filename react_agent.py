@@ -46,6 +46,7 @@ _TOOL_DESCRIPTIONS = {
     "fact": {"description": "Fact-check claims in text", "params": {"text": "text to fact-check"}, "cost": 0.02},
     "rewrite": {"description": "Rewrite text for a different audience/tone", "params": {"text": "text to rewrite", "audience": "target audience", "tone": "neutral"}, "cost": 0.02},
     "tag": {"description": "Auto-tag content with categories", "params": {"text": "content to tag", "max_tags": 10}, "cost": 0.01},
+    "think": {"description": "Autonomous chain-of-thought reasoning — breaks down problems, calls tools, returns structured solution", "params": {"problem": "problem to solve", "context": "optional background", "max_steps": 5}, "cost": 0.10},
 }
 
 _SPECIAL_TOOLS = {

@@ -1029,6 +1029,294 @@ def tag():
     return jsonify(agent_response(result, "/tag"))
 
 
+def think_inner(problem, context="", tools=None, max_steps=5, model="claude-haiku"):
+    """Autonomous chain-of-thought reasoning. Breaks a problem down, optionally calls internal tools, returns structured solution."""
+    if not problem:
+        return {"error": "problem required"}
+
+    available_tools = list(BATCH_HANDLERS.keys())
+    tool_list = tools if tools else available_tools
+
+    system = (
+        "You are an autonomous reasoning agent. Think step-by-step to solve the problem.\n"
+        "For each step, output JSON with keys:\n"
+        '  "thought": your reasoning for this step,\n'
+        '  "action": tool to call (or "none" if pure reasoning),\n'
+        '  "action_input": input for the tool (object),\n'
+        '  "observation": what you learned (fill after tool call),\n'
+        '  "is_final": true if this is your final answer.\n'
+        "When is_final is true, also include:\n"
+        '  "answer": your final answer,\n'
+        '  "confidence": 0.0-1.0 confidence score.\n'
+        f"Available tools: {tool_list}\n"
+        "Respond with a JSON array of step objects. Do NOT use markdown."
+    )
+    prompt = f"Problem: {problem}"
+    if context:
+        prompt += f"\n\nContext: {context}"
+
+    r = call_model(model, [{"role": "user", "content": prompt}],
+        system=system, max_tokens=2048)
+    raw = r["text"]
+    parsed = parse_json_from_claude(raw)
+
+    # If the model suggested tool calls, execute them
+    steps_executed = []
+    if isinstance(parsed, list):
+        for i, step in enumerate(parsed[:max_steps]):
+            action = step.get("action", "none")
+            if action != "none" and action in BATCH_HANDLERS:
+                try:
+                    tool_result = BATCH_HANDLERS[action](step.get("action_input", {}))
+                    step["observation"] = tool_result.get("result") or tool_result.get("summary") or str(tool_result)[:500]
+                except Exception as e:
+                    step["observation"] = f"Tool error: {str(e)}"
+            steps_executed.append(step)
+
+        # If no final answer yet, do a synthesis pass
+        final = next((s for s in steps_executed if s.get("is_final")), None)
+        if not final:
+            observations = "\n".join(f"Step {i+1}: {s.get('thought','')} → {s.get('observation','')}" for i, s in enumerate(steps_executed))
+            synth = call_model(model, [{"role": "user", "content": f"Based on these reasoning steps, give a final answer.\n\n{observations}\n\nOriginal problem: {problem}"}],
+                system="Give a clear, direct answer. Respond with JSON: {\"answer\": \"...\", \"confidence\": 0.0-1.0}", max_tokens=1024)
+            final_parsed = parse_json_from_claude(synth["text"])
+            if final_parsed:
+                steps_executed.append({"thought": "synthesis", "is_final": True, **final_parsed})
+            else:
+                steps_executed.append({"thought": "synthesis", "is_final": True, "answer": synth["text"], "confidence": 0.5})
+
+        return {"problem": problem, "steps": steps_executed, "model": r["model"],
+                "answer": next((s.get("answer") for s in reversed(steps_executed) if s.get("is_final")), raw),
+                "confidence": next((s.get("confidence") for s in reversed(steps_executed) if s.get("is_final")), None)}
+    else:
+        return {"problem": problem, "model": r["model"], "steps": [], "answer": parsed or raw, "confidence": 0.5}
+
+
+# ── New Auto-Added Tools ──────────────────────────────────────────────────────
+
+def review_code_inner(code, language="auto", focus="quality", model="claude-haiku"):
+    """Review code for quality, security, and performance issues."""
+    if not code:
+        return {"error": "code required"}
+    r = call_model(model, [{"role": "user", "content": f"Review this {language} code. Focus: {focus}.\n\nReturn JSON with keys: \"issues\" (array of {{severity, line, issue, fix}}), \"score\" (1-10), \"summary\" (string).\n\n```\n{code}\n```"}],
+        system="You are a senior code reviewer. Always respond with valid JSON only.", max_tokens=2048)
+    parsed = parse_json_from_claude(r["text"])
+    return {"language": language, "focus": focus, "model": r["model"], **(parsed if parsed else {"result": r["text"]})}
+
+
+def generate_docs_inner(code, style="jsdoc", model="claude-haiku"):
+    """Generate documentation for code."""
+    if not code:
+        return {"error": "code required"}
+    r = call_model(model, [{"role": "user", "content": f"Generate {style} documentation for this code. Return the fully documented code.\n\n```\n{code}\n```"}],
+        system="You are a documentation expert. Return documented code only.", max_tokens=2048)
+    return {"style": style, "model": r["model"], "documented_code": r["text"]}
+
+
+def convert_code_inner(code, from_lang="auto", to_lang="python", model="claude-haiku"):
+    """Convert code from one language to another."""
+    if not code or not to_lang:
+        return {"error": "code and to_lang required"}
+    r = call_model(model, [{"role": "user", "content": f"Convert this {from_lang} code to {to_lang}. Return only the converted code.\n\n```\n{code}\n```"}],
+        system="You are a polyglot programmer. Return only the converted code, no explanation.", max_tokens=2048)
+    return {"from": from_lang, "to": to_lang, "model": r["model"], "converted_code": r["text"]}
+
+
+def generate_api_spec_inner(description, format="openapi", model="claude-haiku"):
+    """Generate API specification from description."""
+    if not description:
+        return {"error": "description required"}
+    r = call_model(model, [{"role": "user", "content": f"Generate a {format} 3.0 specification (YAML) for this API:\n\n{description}"}],
+        system="You are an API architect. Return valid OpenAPI YAML only.", max_tokens=4096)
+    return {"format": format, "model": r["model"], "spec": r["text"]}
+
+
+def diff_inner(text_a, text_b, model="claude-haiku"):
+    """Analyze differences between two texts or code snippets."""
+    if not text_a or not text_b:
+        return {"error": "text_a and text_b required"}
+    r = call_model(model, [{"role": "user", "content": f"Compare these two texts and explain the differences. Return JSON with keys: \"changes\" (array of {{type, description}}), \"summary\" (string), \"similarity_pct\" (number).\n\nText A:\n{text_a}\n\nText B:\n{text_b}"}],
+        system="You are a diff analysis expert. Always respond with valid JSON only.", max_tokens=2048)
+    parsed = parse_json_from_claude(r["text"])
+    return {"model": r["model"], **(parsed if parsed else {"result": r["text"]})}
+
+
+def parse_csv_inner(csv_text, question="", model="claude-haiku"):
+    """Analyze CSV data and answer questions about it."""
+    if not csv_text:
+        return {"error": "csv_text required"}
+    prompt = f"Analyze this CSV data."
+    if question:
+        prompt += f" Answer: {question}"
+    prompt += f"\n\nReturn JSON with keys: \"columns\" (array), \"row_count\" (int), \"insights\" (array of strings), \"answer\" (string if question asked).\n\n{csv_text[:5000]}"
+    r = call_model(model, [{"role": "user", "content": prompt}],
+        system="You are a data analyst. Always respond with valid JSON only.", max_tokens=2048)
+    parsed = parse_json_from_claude(r["text"])
+    return {"model": r["model"], **(parsed if parsed else {"result": r["text"]})}
+
+
+def cron_expr_inner(description, model="claude-haiku"):
+    """Generate or explain cron expressions."""
+    if not description:
+        return {"error": "description required"}
+    r = call_model(model, [{"role": "user", "content": f"Return JSON with keys: \"cron\" (the cron expression), \"explanation\" (human readable), \"next_5_runs\" (array of example timestamps).\n\n{description}"}],
+        system="You are a cron/scheduling expert. Always respond with valid JSON only.", max_tokens=512)
+    parsed = parse_json_from_claude(r["text"])
+    return {"model": r["model"], **(parsed if parsed else {"result": r["text"]})}
+
+
+def changelog_inner(commits, version="", model="claude-haiku"):
+    """Generate a changelog from commit messages."""
+    if not commits:
+        return {"error": "commits required (string or array)"}
+    commit_text = "\n".join(commits) if isinstance(commits, list) else commits
+    r = call_model(model, [{"role": "user", "content": f"Generate a professional changelog{' for version ' + version if version else ''}. Group by: Added, Changed, Fixed, Removed. Use markdown format.\n\nCommits:\n{commit_text}"}],
+        system="You are a release manager. Generate clean, user-facing changelogs.", max_tokens=2048)
+    return {"version": version, "model": r["model"], "changelog": r["text"]}
+
+
+def name_generator_inner(description, count=10, style="startup", model="claude-haiku"):
+    """Generate names for products, companies, features, etc."""
+    if not description:
+        return {"error": "description required"}
+    r = call_model(model, [{"role": "user", "content": f"Generate {count} {style}-style names for: {description}\n\nReturn JSON with keys: \"names\" (array of {{name, tagline, available_domain}})"}],
+        system="You are a naming and branding expert. Always respond with valid JSON only.", max_tokens=1024)
+    parsed = parse_json_from_claude(r["text"])
+    return {"style": style, "model": r["model"], **(parsed if parsed else {"result": r["text"]})}
+
+
+def privacy_check_inner(text, model="claude-haiku"):
+    """Scan text for PII, secrets, and sensitive data."""
+    if not text:
+        return {"error": "text required"}
+    r = call_model(model, [{"role": "user", "content": f"Scan this text for PII and sensitive data. Return JSON with keys: \"found\" (array of {{type, value_redacted, location}}), \"risk_level\" (low/medium/high), \"recommendation\" (string).\n\n{text[:5000]}"}],
+        system="You are a data privacy expert. Always respond with valid JSON only. Redact actual sensitive values.", max_tokens=1024)
+    parsed = parse_json_from_claude(r["text"])
+    return {"model": r["model"], **(parsed if parsed else {"result": r["text"]})}
+
+
+# Routes for new tools
+
+@ai_tools_bp.route("/review-code", methods=["POST"])
+def review_code():
+    data = request.get_json() or {}
+    code = data.get("code", "")
+    if not code:
+        return jsonify({"error": "code required", "hint": "POST {\"code\": \"...\", \"language\": \"python\", \"focus\": \"security\"}"}), 400
+    result = review_code_inner(code, data.get("language", "auto"), data.get("focus", "quality"), model=data.get("model", "claude-haiku"))
+    log_payment("/review-code", 0.05, request.remote_addr)
+    return jsonify(agent_response(result, "/review-code"))
+
+
+@ai_tools_bp.route("/generate-docs", methods=["POST"])
+def generate_docs():
+    data = request.get_json() or {}
+    code = data.get("code", "")
+    if not code:
+        return jsonify({"error": "code required"}), 400
+    result = generate_docs_inner(code, data.get("style", "jsdoc"), model=data.get("model", "claude-haiku"))
+    log_payment("/generate-docs", 0.03, request.remote_addr)
+    return jsonify(agent_response(result, "/generate-docs"))
+
+
+@ai_tools_bp.route("/convert-code", methods=["POST"])
+def convert_code():
+    data = request.get_json() or {}
+    code = data.get("code", "")
+    if not code:
+        return jsonify({"error": "code required", "hint": "POST {\"code\": \"...\", \"to_lang\": \"python\"}"}), 400
+    result = convert_code_inner(code, data.get("from_lang", "auto"), data.get("to_lang", "python"), model=data.get("model", "claude-haiku"))
+    log_payment("/convert-code", 0.03, request.remote_addr)
+    return jsonify(agent_response(result, "/convert-code"))
+
+
+@ai_tools_bp.route("/generate-api-spec", methods=["POST"])
+def generate_api_spec():
+    data = request.get_json() or {}
+    desc = data.get("description", "")
+    if not desc:
+        return jsonify({"error": "description required"}), 400
+    result = generate_api_spec_inner(desc, data.get("format", "openapi"), model=data.get("model", "claude-haiku"))
+    log_payment("/generate-api-spec", 0.05, request.remote_addr)
+    return jsonify(agent_response(result, "/generate-api-spec"))
+
+
+@ai_tools_bp.route("/diff", methods=["POST"])
+def diff():
+    data = request.get_json() or {}
+    if not data.get("text_a") or not data.get("text_b"):
+        return jsonify({"error": "text_a and text_b required"}), 400
+    result = diff_inner(data["text_a"], data["text_b"], model=data.get("model", "claude-haiku"))
+    log_payment("/diff", 0.02, request.remote_addr)
+    return jsonify(agent_response(result, "/diff"))
+
+
+@ai_tools_bp.route("/parse-csv", methods=["POST"])
+def parse_csv():
+    data = request.get_json() or {}
+    csv_text = data.get("csv_text", "")
+    if not csv_text:
+        return jsonify({"error": "csv_text required"}), 400
+    result = parse_csv_inner(csv_text, data.get("question", ""), model=data.get("model", "claude-haiku"))
+    log_payment("/parse-csv", 0.03, request.remote_addr)
+    return jsonify(agent_response(result, "/parse-csv"))
+
+
+@ai_tools_bp.route("/cron", methods=["POST"])
+def cron():
+    data = request.get_json() or {}
+    desc = data.get("description", "")
+    if not desc:
+        return jsonify({"error": "description required", "hint": "POST {\"description\": \"every weekday at 9am\"}"}), 400
+    result = cron_expr_inner(desc, model=data.get("model", "claude-haiku"))
+    log_payment("/cron", 0.01, request.remote_addr)
+    return jsonify(agent_response(result, "/cron"))
+
+
+@ai_tools_bp.route("/changelog", methods=["POST"])
+def changelog():
+    data = request.get_json() or {}
+    commits = data.get("commits", "")
+    if not commits:
+        return jsonify({"error": "commits required (string or array)"}), 400
+    result = changelog_inner(commits, data.get("version", ""), model=data.get("model", "claude-haiku"))
+    log_payment("/changelog", 0.02, request.remote_addr)
+    return jsonify(agent_response(result, "/changelog"))
+
+
+@ai_tools_bp.route("/name-generator", methods=["POST"])
+def name_generator():
+    data = request.get_json() or {}
+    desc = data.get("description", "")
+    if not desc:
+        return jsonify({"error": "description required"}), 400
+    result = name_generator_inner(desc, int(data.get("count", 10)), data.get("style", "startup"), model=data.get("model", "claude-haiku"))
+    log_payment("/name-generator", 0.02, request.remote_addr)
+    return jsonify(agent_response(result, "/name-generator"))
+
+
+@ai_tools_bp.route("/privacy-check", methods=["POST"])
+def privacy_check():
+    data = request.get_json() or {}
+    text = data.get("text", "")
+    if not text:
+        return jsonify({"error": "text required"}), 400
+    result = privacy_check_inner(text, model=data.get("model", "claude-haiku"))
+    log_payment("/privacy-check", 0.02, request.remote_addr)
+    return jsonify(agent_response(result, "/privacy-check"))
+
+
+@ai_tools_bp.route("/think", methods=["POST"])
+def think():
+    data = request.get_json() or {}
+    problem = data.get("problem", "")
+    if not problem:
+        return jsonify({"error": "problem required", "hint": "POST {\"problem\": \"How do I...\", \"context\": \"optional\", \"max_steps\": 5}"}), 400
+    result = think_inner(problem, data.get("context", ""), data.get("tools"), int(data.get("max_steps", 5)), model=data.get("model", "claude-haiku"))
+    log_payment("/think", 0.10, request.remote_addr)
+    return jsonify(agent_response(result, "/think"))
+
+
 @ai_tools_bp.route("/pipeline", methods=["POST"])
 def pipeline():
     data = request.get_json() or {}
@@ -1374,4 +1662,15 @@ BATCH_HANDLERS = {
     "fact": lambda d: fact_inner(d.get("text", ""), int(d.get("count", 10)), model=d.get("model", "claude-haiku")),
     "rewrite": lambda d: rewrite_inner(d.get("text", ""), d.get("audience", "general audience"), d.get("tone", "neutral"), model=d.get("model", "claude-haiku")),
     "tag": lambda d: tag_inner(d.get("text", ""), d.get("taxonomy"), int(d.get("max_tags", 10)), model=d.get("model", "claude-haiku")),
+    "think": lambda d: think_inner(d.get("problem", ""), d.get("context", ""), d.get("tools", []), int(d.get("max_steps", 5)), model=d.get("model", "claude-haiku")),
+    "review_code": lambda d: review_code_inner(d.get("code", ""), d.get("language", "auto"), d.get("focus", "quality"), model=d.get("model", "claude-haiku")),
+    "generate_docs": lambda d: generate_docs_inner(d.get("code", ""), d.get("style", "jsdoc"), model=d.get("model", "claude-haiku")),
+    "convert_code": lambda d: convert_code_inner(d.get("code", ""), d.get("from_lang", "auto"), d.get("to_lang", "python"), model=d.get("model", "claude-haiku")),
+    "generate_api_spec": lambda d: generate_api_spec_inner(d.get("description", ""), d.get("format", "openapi"), model=d.get("model", "claude-haiku")),
+    "diff": lambda d: diff_inner(d.get("text_a", ""), d.get("text_b", ""), model=d.get("model", "claude-haiku")),
+    "parse_csv": lambda d: parse_csv_inner(d.get("csv_text", ""), d.get("question", ""), model=d.get("model", "claude-haiku")),
+    "cron": lambda d: cron_expr_inner(d.get("description", ""), model=d.get("model", "claude-haiku")),
+    "changelog": lambda d: changelog_inner(d.get("commits", ""), d.get("version", ""), model=d.get("model", "claude-haiku")),
+    "name_generator": lambda d: name_generator_inner(d.get("description", ""), int(d.get("count", 10)), d.get("style", "startup"), model=d.get("model", "claude-haiku")),
+    "privacy_check": lambda d: privacy_check_inner(d.get("text", ""), model=d.get("model", "claude-haiku")),
 }

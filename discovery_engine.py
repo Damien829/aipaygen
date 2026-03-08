@@ -296,7 +296,7 @@ def _try_pr_awesome_list(repo: str, section: str, entry: str) -> dict:
                     "OpenAPI spec: https://api.aipaygen.com/openapi.json\n"
                     "MCP tools: https://api.aipaygen.com/sdk"
                 ),
-                "head": f"djautomd-lab:{branch_name}",
+                "head": f"Damien829:{branch_name}",
                 "base": default_branch,
             },
             headers=_gh_headers(), timeout=15

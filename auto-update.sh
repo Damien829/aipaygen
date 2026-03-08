@@ -20,7 +20,7 @@ echo "[$TS] Checking for updates..." >> "$LOG"
 # Pull latest
 git fetch origin master 2>> "$LOG"
 LOCAL=$(git rev-parse HEAD)
-REMOTE=$(git rev-parse origin/main)
+REMOTE=$(git rev-parse origin/master)
 
 if [ "$LOCAL" = "$REMOTE" ]; then
     echo "[$TS] Already up to date." >> "$LOG"

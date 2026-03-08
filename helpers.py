@@ -2,6 +2,7 @@
 import json
 import os
 import time as _time
+import hashlib as _hashlib
 import functools
 from datetime import datetime
 from flask import request, jsonify
@@ -20,6 +21,18 @@ def cache_get(key: str):
 
 def cache_set(key: str, data, ttl: int):
     _ttl_cache[key] = (data, _time.time() + ttl)
+
+
+def _cache_cleanup():
+    """Remove expired entries from cache and rate limit dicts."""
+    now = _time.time()
+    expired = [k for k, v in _ttl_cache.items() if now >= v[1]]
+    for k in expired:
+        del _ttl_cache[k]
+    for d in (_ip_rate, _identity_rate):
+        stale = [k for k, v in d.items() if not v or max(v) < now - 120]
+        for k in stale:
+            del d[k]
 
 
 # ── Per-IP Rate Limiter ──────────────────────────────────────────────────────
@@ -72,7 +85,7 @@ def log_payment(endpoint, amount_usd, caller_ip, request_id="", payment_type="x4
         "ts": datetime.utcnow().isoformat(),
         "endpoint": endpoint,
         "amount_usd": amount_usd,
-        "ip": caller_ip,
+        "ip": _hashlib.sha256(caller_ip.encode()).hexdigest()[:16],
         "request_id": request_id,
         "payment_type": payment_type,
         "tx_hash": tx_hash,
@@ -140,6 +153,8 @@ def require_admin(f):
             token = auth[7:]
         if not token:
             token = request.headers.get("X-Admin-Key", "")
+        if not token:
+            token = request.form.get("key", "")
         if not admin_secret:
             return jsonify({"error": "misconfigured", "message": "ADMIN_SECRET not set"}), 503
         if not token or token != admin_secret:
@@ -199,3 +214,22 @@ def call_llm(messages, system="", max_tokens=1024, endpoint="unknown", model_ove
                 if deduction["balance_remaining"] < 0.10:
                     result["metered_warning"] = f"Low balance: ${deduction['balance_remaining']:.4f} remaining"
     return result, None
+
+
+# Periodic cache cleanup
+import threading as _threading
+
+
+def _start_cache_cleanup():
+    def _loop():
+        while True:
+            _time.sleep(300)
+            try:
+                _cache_cleanup()
+            except Exception:
+                pass
+    t = _threading.Thread(target=_loop, daemon=True)
+    t.start()
+
+
+_start_cache_cleanup()

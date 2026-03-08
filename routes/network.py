@@ -58,6 +58,17 @@ def message_broadcast():
     return jsonify(agent_response({"broadcast": True, "result": result}, "/message/broadcast"))
 
 
+@network_bp.route("/message/mark-read", methods=["POST"])
+def message_mark_read():
+    data = request.get_json() or {}
+    msg_id = data.get("msg_id", "")
+    agent_id = data.get("agent_id", "")
+    if not msg_id or not agent_id:
+        return jsonify({"error": "msg_id and agent_id required"}), 400
+    success = mark_read(msg_id, agent_id)
+    return jsonify({"msg_id": msg_id, "marked_read": success, "_meta": {"free": True}})
+
+
 # -- Shared Knowledge Base -----------------------------------------------------
 
 @network_bp.route("/knowledge/add", methods=["POST"])

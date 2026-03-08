@@ -142,15 +142,15 @@ OUR_MANIFEST = {
         "openapi": f"{BASE_URL}/openapi.json",
     },
     "pricing": "Free tier available. Pay-per-use via x402 (USDC on Base).",
-    "source": "https://github.com/djautomd-lab/aipaygen",
+    "source": "https://github.com/Damien829/aipaygen",
 }
 
 _INTRO_TEMPLATES = {
-    "x402": "Hi {name}! We noticed your x402 payment endpoint at {url}. AiPayGen is an AI agent platform on Base Mainnet with 1000+ skills, 10000+ callable API catalog, and 85+ MCP tools. We'd love to explore mutual discovery listing and x402 interoperability. Check us out: https://api.aipaygen.com/.well-known/x402.json | Catalog: https://api.aipaygen.com/catalog",
-    "mcp_directory": "Hi {name}! AiPayGen offers 85+ metered MCP tools across 5 pricing tiers plus a 10000+ API catalog accessible via MCP. SSE and streamable-HTTP transports supported. We'd love to be listed on {url}. Our MCP endpoint: https://api.aipaygen.com/mcp — install via pip: `pip install aipaygen-mcp`. Details: https://api.aipaygen.com/discover",
+    "x402": "Hi {name}! We noticed your x402 payment endpoint at {url}. AiPayGen is an AI agent platform on Base Mainnet with 1000+ skills, 10000+ callable API catalog, and 106 MCP tools. We'd love to explore mutual discovery listing and x402 interoperability. Check us out: https://api.aipaygen.com/.well-known/x402.json | Catalog: https://api.aipaygen.com/catalog",
+    "mcp_directory": "Hi {name}! AiPayGen offers 106 metered MCP tools across 5 pricing tiers plus a 10000+ API catalog accessible via MCP. SSE and streamable-HTTP transports supported. We'd love to be listed on {url}. Our MCP endpoint: https://api.aipaygen.com/mcp — install via pip: `pip install aipaygen-mcp`. Details: https://api.aipaygen.com/discover",
     "agent": "Hi {name}! AiPayGen is an AI agent service with 1000+ skills, 10000+ callable API catalog, 13 specialist agents, and A2A protocol support. Our agents can discover and call any API in the catalog, chain skills, share memory, and transact via x402 USDC. Let's connect! API: https://api.aipaygen.com",
-    "marketplace": "Hi {name}! We'd love to list AiPayGen on your platform. We offer 1000+ AI skills, 10000+ API catalog, 85+ MCP tools, 13 specialist agents, and multi-model routing across 11 models. Monetized via x402 USDC and API keys. Homepage: https://aipaygen.com | API: https://api.aipaygen.com/discover",
-    "github_repo": "Great project! AiPayGen is a complementary AI agent platform with 1000+ skills, 10000+ callable API catalog, and 85+ MCP tools. We support x402 payments, A2A protocol, and multi-model routing. Would love to explore collaboration or integration. Check us out: https://github.com/djautomd-lab/aipaygen",
+    "marketplace": "Hi {name}! We'd love to list AiPayGen on your platform. We offer 1000+ AI skills, 10000+ API catalog, 106 MCP tools, 13 specialist agents, and multi-model routing across 11 models. Monetized via x402 USDC and API keys. Homepage: https://aipaygen.com | API: https://api.aipaygen.com/discover",
+    "github_repo": "Great project! AiPayGen is a complementary AI agent platform with 1000+ skills, 10000+ callable API catalog, and 106 MCP tools. We support x402 payments, A2A protocol, and multi-model routing. Would love to explore collaboration or integration. Check us out: https://github.com/Damien829/aipaygen",
 }
 
 
@@ -915,7 +915,7 @@ AiPayGen facts:
 - x402 payment protocol (USDC on Base mainnet)
 - MCP server at https://api.aipaygen.com/mcp
 - Free tier available
-- Open source: https://github.com/djautomd-lab/aipaygen
+- Open source: https://github.com/Damien829/aipaygen
 
 Make it relevant to the repo's topic. If it's an x402 repo, focus on payment integration.
 If it's an MCP repo, focus on our MCP server. If it's an AI agents repo, focus on our skills.

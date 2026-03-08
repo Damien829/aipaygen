@@ -1,5 +1,5 @@
 """
-AiPayGen MCP Server — thin client that proxies 65+ AI tools via api.aipaygen.com.
+AiPayGen MCP Server — thin client that proxies 106 AI tools via api.aipaygen.com.
 
 Install:
     pip install aipaygen-mcp
@@ -34,8 +34,8 @@ API_KEY = os.environ.get("AIPAYGEN_API_KEY", "")
 mcp = FastMCP(
     "AiPayGen",
     instructions=(
-        "AiPayGen provides 65+ AI-powered tools: research, write, code, translate, "
-        "analyze, summarize, vision, RAG, web scraping, agent memory, marketplace, "
+        "AiPayGen provides 106 AI-powered tools: research, write, code, translate,"
+        "analyze, summarize, vision, RAG, web scraping, custom agent builder, agent memory, marketplace, "
         "data lookups (weather, crypto, stocks, news), and more. "
         "Free tier: 10 calls/day. Set AIPAYGEN_API_KEY for unlimited access."
     ),
@@ -67,7 +67,7 @@ def _get(endpoint: str, params: dict = None) -> dict:
     """GET an AiPayGen API endpoint."""
     url = f"{BASE_URL}/{endpoint.lstrip('/')}"
     if params:
-        qs = "&".join(f"{k}={v}" for k, v in params.items() if v is not None)
+        qs = "&".join(f"{k}={urllib.parse.quote(str(v))}" for k, v in params.items() if v is not None)
         if qs:
             url += f"?{qs}"
     headers = {"User-Agent": "aipaygen-mcp/1.4"}
@@ -332,6 +332,72 @@ def workflow(goal: str, context: str = "") -> dict:
 
 
 @mcp.tool()
+def review_code(code: str, language: str = "auto", focus: str = "quality") -> dict:
+    """Review code for quality, security, and performance issues."""
+    return _call("review-code", {"code": code, "language": language, "focus": focus})
+
+
+@mcp.tool()
+def generate_docs(code: str, style: str = "jsdoc") -> dict:
+    """Generate documentation for code."""
+    return _call("generate-docs", {"code": code, "style": style})
+
+
+@mcp.tool()
+def convert_code(code: str, from_lang: str = "auto", to_lang: str = "python") -> dict:
+    """Convert code from one language to another."""
+    return _call("convert-code", {"code": code, "from_lang": from_lang, "to_lang": to_lang})
+
+
+@mcp.tool()
+def generate_api_spec(description: str, format: str = "openapi") -> dict:
+    """Generate an OpenAPI specification from description."""
+    return _call("generate-api-spec", {"description": description, "format": format})
+
+
+@mcp.tool()
+def diff(text_a: str, text_b: str) -> dict:
+    """Analyze differences between two texts or code snippets."""
+    return _call("diff", {"text_a": text_a, "text_b": text_b})
+
+
+@mcp.tool()
+def parse_csv(csv_text: str, question: str = "") -> dict:
+    """Analyze CSV data and answer questions about it."""
+    return _call("parse-csv", {"csv_text": csv_text, "question": question})
+
+
+@mcp.tool()
+def cron_expression(description: str) -> dict:
+    """Generate or explain cron expressions from natural language."""
+    return _call("cron", {"description": description})
+
+
+@mcp.tool()
+def changelog(commits: str, version: str = "") -> dict:
+    """Generate a changelog from commit messages."""
+    return _call("changelog", {"commits": commits, "version": version})
+
+
+@mcp.tool()
+def name_generator(description: str, count: int = 10, style: str = "startup") -> dict:
+    """Generate names for products, companies, or features."""
+    return _call("name-generator", {"description": description, "count": count, "style": style})
+
+
+@mcp.tool()
+def privacy_check(text: str) -> dict:
+    """Scan text for PII, secrets, and sensitive data."""
+    return _call("privacy-check", {"text": text})
+
+
+@mcp.tool()
+def think(problem: str, context: str = "", max_steps: int = 5) -> dict:
+    """Autonomous chain-of-thought reasoning. Breaks down a problem, reasons step-by-step, calls tools if needed, returns structured solution with confidence score."""
+    return _call("think", {"problem": problem, "context": context, "max_steps": max_steps})
+
+
+@mcp.tool()
 def pipeline(steps: list[dict]) -> dict:
     """Chain multiple AI operations. Each step: {"tool":"research","input":{"topic":"X"}}."""
     return _call("pipeline", {"steps": steps})
@@ -478,7 +544,7 @@ def generate_api_key(label: str = "") -> dict:
 @mcp.tool()
 def check_balance(key: str) -> dict:
     """Check the balance of an AiPayGen API key."""
-    return _get("keys/balance", {"key": key})
+    return _get("auth/status", {"key": key})
 
 
 @mcp.tool()
@@ -497,7 +563,7 @@ def ask(question: str) -> dict:
 
 @mcp.tool()
 def list_skills(category: str = "") -> dict:
-    """List all available skills. AiPayGen has 65+ built-in skills and absorbs new ones dynamically."""
+    """List all available skills. AiPayGen has 106 built-in skills and absorbs new ones dynamically."""
     params = {}
     if category:
         params["category"] = category
@@ -673,6 +739,57 @@ def get_trending_knowledge() -> dict:
     return _get("knowledge/trending", {})
 
 
+# ── Agent Builder Tools ──────────────────────────────────────────────────────
+
+@mcp.tool()
+def create_agent(name: str, system_prompt: str, tools: list[str] = None,
+                 model: str = "auto", memory_enabled: bool = True) -> dict:
+    """Create a custom AI agent with specific tools, personality, and model. Returns agent ID and config."""
+    return _call("agents/build", {
+        "name": name, "system_prompt": system_prompt,
+        "tools": tools or [], "model": model, "memory_enabled": memory_enabled,
+    })
+
+
+@mcp.tool()
+def list_my_agents() -> dict:
+    """List all custom AI agents you've created."""
+    return _get("agents/custom", {})
+
+
+@mcp.tool()
+def run_agent(agent_id: str, task: str, max_steps: int = 10) -> dict:
+    """Run a custom AI agent on a specific task. The agent uses its configured tools and personality."""
+    return _call(f"agents/custom/{agent_id}/run", {"task": task, "max_steps": max_steps})
+
+
+@mcp.tool()
+def schedule_agent(agent_id: str, schedule_type: str, config: dict) -> dict:
+    """Schedule a custom agent to run automatically. Types: 'loop' (interval), 'cron' (schedule), 'event' (trigger).
+    Loop config: {"minutes": 30} or {"hours": 1}
+    Cron config: {"hour": 9, "minute": 0, "day_of_week": "mon-fri"}
+    Event config: {"trigger": "message"}"""
+    return _call(f"agents/custom/{agent_id}/schedule", {"type": schedule_type, "config": config})
+
+
+@mcp.tool()
+def pause_agent(agent_id: str) -> dict:
+    """Pause a custom AI agent. Stops any active schedules."""
+    return _call(f"agents/custom/{agent_id}", {"status": "paused"})
+
+
+@mcp.tool()
+def get_agent_runs(agent_id: str, limit: int = 20) -> dict:
+    """Get execution history for a custom AI agent."""
+    return _get(f"agents/custom/{agent_id}/runs", {"limit": limit})
+
+
+@mcp.tool()
+def delete_agent(agent_id: str) -> dict:
+    """Delete (archive) a custom AI agent."""
+    return _call(f"agents/custom/{agent_id}/delete", {})
+
+
 def _run_self_test():
     """Quick smoke test: hit a free endpoint to verify connectivity."""
     print(f"AiPayGen MCP self-test")
@@ -685,7 +802,7 @@ def _run_self_test():
             sys.exit(1)
         temp = result.get("temperature_c", "?")
         print(f"  OK: London weather = {temp}°C")
-        print(f"  65+ tools ready. Run 'aipaygen-mcp' to start the server.")
+        print(f"  106 tools ready. Run 'aipaygen-mcp' to start the server.")
     except Exception as e:
         print(f"  FAIL: {e}")
         sys.exit(1)

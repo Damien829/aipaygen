@@ -2,7 +2,7 @@ import re
 import requests
 from bs4 import BeautifulSoup
 from markdownify import markdownify as md
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 
 SCRAPE_HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; AiPayGen/1.0; +https://aipaygen.com)"
