@@ -123,12 +123,12 @@ GITHUB_SEARCH_QUERIES = [
 
 OUR_MANIFEST = {
     "name": "AiPayGen",
-    "description": "AI agent service with 1000+ skills, 10000+ API catalog, multi-model routing (Claude/GPT-4/Gemini/DeepSeek/Llama/Mistral), x402 payments, MCP distribution. Free tier available.",
+    "description": "AI agent service with 1500+ skills, 4100+ API catalog, multi-model routing (Claude/GPT-4/Gemini/DeepSeek/Llama/Mistral), x402 payments, MCP distribution. Free tier available.",
     "url": BASE_URL,
     "wallet": WALLET,
     "capabilities": ["x402", "mcp", "a2a", "skills", "multi-model", "agent-memory", "marketplace", "api-catalog"],
-    "skills_count": 1004,
-    "catalog_apis": "10000+",
+    "skills_count": 1500,
+    "catalog_apis": "4100+",
     "models": ["claude-sonnet", "claude-haiku", "gpt-4o", "gemini-2-flash", "deepseek-chat", "llama-3.3-70b", "mistral-large"],
     "endpoints": {
         "health": f"{BASE_URL}/health",
@@ -146,11 +146,11 @@ OUR_MANIFEST = {
 }
 
 _INTRO_TEMPLATES = {
-    "x402": "Hi {name}! We noticed your x402 payment endpoint at {url}. AiPayGen is an AI agent platform on Base Mainnet with 1000+ skills, 10000+ callable API catalog, and 106 MCP tools. We'd love to explore mutual discovery listing and x402 interoperability. Check us out: https://api.aipaygen.com/.well-known/x402.json | Catalog: https://api.aipaygen.com/catalog",
-    "mcp_directory": "Hi {name}! AiPayGen offers 106 metered MCP tools across 5 pricing tiers plus a 10000+ API catalog accessible via MCP. SSE and streamable-HTTP transports supported. We'd love to be listed on {url}. Our MCP endpoint: https://api.aipaygen.com/mcp — install via pip: `pip install aipaygen-mcp`. Details: https://api.aipaygen.com/discover",
-    "agent": "Hi {name}! AiPayGen is an AI agent service with 1000+ skills, 10000+ callable API catalog, 13 specialist agents, and A2A protocol support. Our agents can discover and call any API in the catalog, chain skills, share memory, and transact via x402 USDC. Let's connect! API: https://api.aipaygen.com",
-    "marketplace": "Hi {name}! We'd love to list AiPayGen on your platform. We offer 1000+ AI skills, 10000+ API catalog, 106 MCP tools, 13 specialist agents, and multi-model routing across 11 models. Monetized via x402 USDC and API keys. Homepage: https://aipaygen.com | API: https://api.aipaygen.com/discover",
-    "github_repo": "Great project! AiPayGen is a complementary AI agent platform with 1000+ skills, 10000+ callable API catalog, and 106 MCP tools. We support x402 payments, A2A protocol, and multi-model routing. Would love to explore collaboration or integration. Check us out: https://github.com/Damien829/aipaygen",
+    "x402": "Hi {name}! We noticed your x402 payment endpoint at {url}. AiPayGen is an AI agent platform on Base Mainnet with 1500+ skills, 4100+ callable API catalog, and 106 MCP tools. We'd love to explore mutual discovery listing and x402 interoperability. Check us out: https://api.aipaygen.com/.well-known/x402.json | Catalog: https://api.aipaygen.com/catalog",
+    "mcp_directory": "Hi {name}! AiPayGen offers 106 metered MCP tools across 5 pricing tiers plus a 4100+ API catalog accessible via MCP. SSE and streamable-HTTP transports supported. We'd love to be listed on {url}. Our MCP endpoint: https://api.aipaygen.com/mcp — install via pip: `pip install aipaygen-mcp`. Details: https://api.aipaygen.com/discover",
+    "agent": "Hi {name}! AiPayGen is an AI agent service with 1500+ skills, 4100+ callable API catalog, 13 specialist agents, and A2A protocol support. Our agents can discover and call any API in the catalog, chain skills, share memory, and transact via x402 USDC. Let's connect! API: https://api.aipaygen.com",
+    "marketplace": "Hi {name}! We'd love to list AiPayGen on your platform. We offer 1500+ AI skills, 4100+ API catalog, 106 MCP tools, 13 specialist agents, and multi-model routing across 15 models. Monetized via x402 USDC and API keys. Homepage: https://aipaygen.com | API: https://api.aipaygen.com/discover",
+    "github_repo": "Great project! AiPayGen is a complementary AI agent platform with 1500+ skills, 4100+ callable API catalog, and 106 MCP tools. We support x402 payments, A2A protocol, and multi-model routing. Would love to explore collaboration or integration. Check us out: https://github.com/Damien829/aipaygen",
 }
 
 
@@ -722,7 +722,7 @@ class OutboundAgent:
             return _INTRO_TEMPLATES[service_type].format(name=name, url=url)
         try:
             prompt = f"""Write a brief, professional intro message (2-3 sentences) from AiPayGen to {name} ({url}).
-We're an AI agent service with 1000+ skills, multi-model routing (Claude/GPT-4/Gemini/DeepSeek/Llama/Mistral), and x402 payment support on Base mainnet.
+We're an AI agent service with 1500+ skills, multi-model routing (Claude/GPT-4/Gemini/DeepSeek/Llama/Mistral), and x402 payment support on Base mainnet.
 Propose a reciprocal listing — we list them in our directory, they list us in theirs.
 Their capabilities: {json.dumps(agent_json.get('capabilities', agent_json.get('skills', [])))[:500]}
 Keep it concise, friendly, agent-to-agent. No markdown. Mention our MCP endpoint."""
@@ -784,7 +784,7 @@ Keep it concise, friendly, agent-to-agent. No markdown. Mention our MCP endpoint
             """, (cutoff_old, cutoff_recent)).fetchall()
 
         templates = [
-            "Quick follow-up: AiPayGen now has 646+ skills and free tier (100 calls/day). Any interest in integration?",
+            "Quick follow-up: AiPayGen now has 1500+ skills and free tier (100 calls/day). Any interest in integration?",
             "Value prop: Our multi-model routing (Claude/GPT-4/Gemini/DeepSeek) + x402 micropayments could complement your service. Happy to set up a test.",
             "Special offer: We're offering first 1000 API calls free for early partners. Let me know if you'd like to explore.",
         ]

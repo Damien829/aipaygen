@@ -46,7 +46,7 @@ def _call(endpoint: str, payload: dict) -> dict:
     """Call an AiPayGen API endpoint and return the JSON response."""
     url = f"{BASE_URL}/{endpoint.lstrip('/')}"
     data = json.dumps(payload).encode()
-    headers = {"Content-Type": "application/json", "User-Agent": "aipaygen-mcp/1.4"}
+    headers = {"Content-Type": "application/json", "User-Agent": "aipaygen-mcp/1.6"}
     if API_KEY:
         headers["Authorization"] = f"Bearer {API_KEY}"
     req = urllib.request.Request(url, data=data, headers=headers, method="POST")
@@ -70,7 +70,7 @@ def _get(endpoint: str, params: dict = None) -> dict:
         qs = "&".join(f"{k}={urllib.parse.quote(str(v))}" for k, v in params.items() if v is not None)
         if qs:
             url += f"?{qs}"
-    headers = {"User-Agent": "aipaygen-mcp/1.4"}
+    headers = {"User-Agent": "aipaygen-mcp/1.6"}
     if API_KEY:
         headers["Authorization"] = f"Bearer {API_KEY}"
     req = urllib.request.Request(url, headers=headers, method="GET")

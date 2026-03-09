@@ -545,8 +545,8 @@ def _build_discover_services():
         {"endpoint": "/free-tier/status", "method": "GET", "price_usd": 0.01, "description": "Check how many free AI calls remain today for your IP. 10 free calls/day, resets midnight UTC."},
         {"endpoint": "/sdk/code", "method": "GET", "price_usd": 0.01, "input": {"lang": "python|javascript|curl", "endpoint": "optional"}, "description": "Get copy-paste SDK code in Python, JavaScript, or cURL"},
         {"endpoint": "/sitemap.xml", "method": "GET", "price_usd": 0.01, "description": "XML sitemap of all public endpoints for crawlers and agents"},
-        {"endpoint": "/catalog", "method": "GET", "price_usd": 0.01, "input": {"category": "optional", "min_score": 0, "free_only": False, "page": 1}, "description": "Browse 10000+ discovered APIs — the largest autonomous API catalog. Filter by category, quality score, auth requirement"},
-        {"endpoint": "/models", "method": "GET", "price_usd": 0.01, "description": "List all supported LLM models (11 models, 5 providers) with pricing and capabilities."},
+        {"endpoint": "/catalog", "method": "GET", "price_usd": 0.01, "input": {"category": "optional", "min_score": 0, "free_only": False, "page": 1}, "description": "Browse 4100+ discovered APIs — the largest autonomous API catalog. Filter by category, quality score, auth requirement"},
+        {"endpoint": "/models", "method": "GET", "price_usd": 0.01, "description": "List all supported LLM models (15 models, 7 providers) with pricing and capabilities."},
         {"endpoint": "/api-call", "method": "POST", "price_usd": 0.05, "input": {"api_id": "int from /catalog", "endpoint": "/path", "params": {}, "api_key": "optional", "enrich": False}, "description": "Proxy-call any API in the catalog — optionally enrich results with Claude analysis"},
         # --- Agent Platform ---
         {"endpoint": "/agents/register", "method": "POST", "price_usd": 0.01, "input": {"agent_id": "string", "name": "string", "description": "string", "capabilities": [], "endpoint": "optional URL"}, "description": "Register your agent in the AiPayGen agent registry"},
@@ -815,7 +815,7 @@ def discover():
     return jsonify({
         "meta": {
             "name": "AiPayGen",
-            "description": "AI agent API marketplace with 106 tools and 646+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day).",
+            "description": "AI agent API marketplace with 106 tools and 1500+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day).",
             "categories": list(categories.keys()),
         },
         "payment": {
@@ -1507,7 +1507,7 @@ def openapi_spec():
         "info": {
             "title": "AiPayGen",
             "description": (
-                "Multi-model AI platform (11 LLMs, 5 providers) for autonomous agents. "
+                "Multi-model AI platform (15 LLMs, 7 providers) for autonomous agents. "
                 "No API keys required. Pay in USDC on Base Mainnet via x402 protocol, "
                 "or buy credits for metered token-based billing. "
                 "Wallet identity verification (EVM/Solana) with JWT sessions."
@@ -2463,7 +2463,7 @@ def ai_plugin():
             "is_user_authenticated": False,
         },
         "logo_url": "https://aipaygen.com/favicon.ico",
-        "contact_email": "",
+        "contact_email": "hello@aipaygen.com",
         "legal_info_url": f"{base_url}/llms.txt",
     })
 
@@ -2474,25 +2474,6 @@ def well_known_openapi():
     return redirect("/openapi.json", code=301)
 
 
-@meta_bp.route("/.well-known/x402.json")
-def x402_discovery():
-    """x402 payment discovery — tells agents how to pay this server."""
-    return jsonify({
-        "x402": True,
-        "version": "1.0",
-        "network": "eip155:8453",
-        "currency": "USDC",
-        "contract": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-        "wallet": WALLET_ADDRESS,
-        "facilitator": os.environ.get("FACILITATOR_URL", "https://x402.org/facilitator"),
-        "discovery": {
-            "catalog": "https://api.aipaygen.com/discover",
-            "openapi": "https://api.aipaygen.com/openapi.json",
-            "llms_txt": "https://api.aipaygen.com/llms.txt",
-            "agent_card": "https://api.aipaygen.com/.well-known/agent.json",
-        },
-        "flow": "POST endpoint -> HTTP 402 with X-Payment-Info -> retry with X-Payment header",
-    })
 
 
 @meta_bp.route("/.well-known/agent.json")
@@ -2502,7 +2483,7 @@ def agent_manifest():
     return jsonify({
         "name": "AiPayGen",
         "description": (
-            "AI agent API marketplace with 106 tools and 840+ searchable skills. "
+            "AI agent API marketplace with 106 tools and 1500+ searchable skills. "
             "Research, writing, coding, analysis, web scraping, real-time data, agent memory, "
             "and multi-model AI (Claude, GPT-4o, DeepSeek, Gemini). "
             "Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day)."
@@ -2660,11 +2641,11 @@ def agents_json():
         "agents": [{
             "name": "AiPayGen",
             "description": (
-                "Multi-model AI platform (11 LLMs, 5 providers) with 140+ endpoints + web scrapers + agent memory + "
+                "Multi-model AI platform (15 LLMs, 7 providers) with 106 tools and 140+ endpoints + web scrapers + agent memory + "
                 "wallet-based identity + metered token pricing + agent economy. "
                 "Research, write, code, analyze, vision, RAG, diagrams, test-cases, workflows, "
                 "web scraping (Google Maps, Twitter, LinkedIn, TikTok, YouTube), persistent agent memory, "
-                "and a searchable catalog of 200+ discovered APIs. "
+                "and a searchable catalog of 4100+ discovered APIs. "
                 "No API key required — pay in USDC on Base via x402 protocol. "
                 "Also available as MCP tools: mcp install aipaygen-mcp"
             ),
@@ -2730,23 +2711,34 @@ def agents_json():
 
 @meta_bp.route("/.well-known/x402.json")
 def x402_manifest():
-    """x402 Bazaar auto-discovery manifest — indexes this service in the CDP Bazaar and agent directories."""
+    """x402 payment discovery + Bazaar auto-discovery manifest — tells agents how to pay and indexes this service."""
     base = "https://api.aipaygen.com"
     return jsonify({
+        "x402": True,
         "x402Version": 1,
+        "version": "1.0",
         "network": EVM_NETWORK,
+        "currency": "USDC",
         "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  # USDC on Base Mainnet
         "payTo": WALLET_ADDRESS,
+        "wallet": WALLET_ADDRESS,
         "facilitator": FACILITATOR_URL,
         "name": "AiPayGen",
         "description": (
-            "140+ Claude-powered AI tools, web scrapers, agent memory, file storage, "
-            "webhook relay, async jobs, and an API catalog of 200+ discovered APIs. "
+            "106 AI tools, 1500+ skills, web scrapers, agent memory, file storage, "
+            "webhook relay, async jobs, and an API catalog of 4100+ discovered APIs. "
             "No API key required — pay per call in USDC on Base via x402 protocol."
         ),
         "url": base,
         "openapi": f"{base}/openapi.json",
         "llms_txt": f"{base}/llms.txt",
+        "discovery": {
+            "catalog": f"{base}/discover",
+            "openapi": f"{base}/openapi.json",
+            "llms_txt": f"{base}/llms.txt",
+            "agent_card": f"{base}/.well-known/agent.json",
+        },
+        "flow": "POST endpoint -> HTTP 402 with X-Payment-Info -> retry with X-Payment header",
         "categories": ["ai", "scraping", "data", "memory", "workflows", "agent-infrastructure"],
         "endpoints": [
             {"path": "/research", "method": "POST", "price": "$0.01", "description": "AI research on any topic"},

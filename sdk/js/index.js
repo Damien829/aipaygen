@@ -1,7 +1,7 @@
 /**
  * AiPayGen JavaScript SDK
  *
- * AI agent marketplace with 99 tools. Pay per call via x402 or prepaid API key.
+ * AI agent marketplace with 106 tools. Pay per call via x402 or prepaid API key.
  *
  * npm install aipaygen
  *
@@ -24,9 +24,9 @@ class AiPayGen {
    * @param {string} [options.baseUrl] - Override base URL
    */
   constructor(options = {}) {
-    this.apiKey = options.apiKey || process.env.AIPAYGENT_API_KEY;
-    this.x402Token = options.x402Token || process.env.AIPAYGENT_X402_TOKEN;
-    this.baseUrl = options.baseUrl || process.env.AIPAYGENT_BASE_URL || DEFAULT_BASE_URL;
+    this.apiKey = options.apiKey || process.env.AIPAYGEN_API_KEY;
+    this.x402Token = options.x402Token || process.env.AIPAYGEN_X402_TOKEN;
+    this.baseUrl = options.baseUrl || process.env.AIPAYGEN_BASE_URL || DEFAULT_BASE_URL;
   }
 
   _headers() {

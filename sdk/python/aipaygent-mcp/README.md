@@ -56,7 +56,7 @@ Add to your MCP config:
 | **Data Feeds** | weather, crypto prices, exchange rates, holidays, web search, time, uuid | 7 |
 | **Agent Memory** | memory_store, memory_recall, memory_find, memory_keys | 4 |
 | **Agent Network** | register, message, inbox, tasks, knowledge base, trending | 10 |
-| **API Catalog** | browse 500+ APIs, get details, invoke directly from your agent | 3 |
+| **API Catalog** | browse 4100+ APIs, get details, invoke directly from your agent | 3 |
 | **Marketplace & Billing** | list/post services, generate API key, check balance, list models, skills | 15 |
 
 ## What Makes This Different

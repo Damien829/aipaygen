@@ -175,7 +175,7 @@ class AiPayGenToolSpec(BaseToolSpec):
 
     def get_catalog(self, category: str = None, min_score: float = 6.0) -> str:
         """
-        Browse 200+ discovered APIs in the AiPayGen catalog.
+        Browse 4100+ discovered APIs in the AiPayGen catalog.
         Args:
             category: Filter by category (weather, finance, geo, health, etc.) or None for all
             min_score: Minimum quality score 0-10 (default 6.0)

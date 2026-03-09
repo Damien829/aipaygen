@@ -2,7 +2,7 @@
 
 <!-- mcp-name: io.github.Damien829/aipaygen -->
 
-**Pay-per-use Claude AI API for autonomous agents.** 140+ endpoints, USDC micropayments on Base via [x402](https://www.x402.org/), no API keys or signups required.
+**Pay-per-use Claude AI API for autonomous agents.** 106 tools and 140+ endpoints, USDC micropayments on Base via [x402](https://www.x402.org/), no API keys or signups required.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![PyPI - MCP](https://img.shields.io/pypi/v/aipaygen-mcp)](https://pypi.org/project/aipaygen-mcp/)

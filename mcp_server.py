@@ -71,7 +71,7 @@ mcp = FastMCP(
         "RAG (document Q&A), diagram generation, workflow orchestration, chain (pipeline multiple AI steps), "
         "web scraping (Google Maps, Twitter, Instagram, LinkedIn, YouTube, TikTok), "
         "persistent agent memory (survives sessions), agent marketplace (list & discover agent services), "
-        "a catalog of 500+ discovered APIs, and 646+ searchable skills. "
+        "a catalog of 4100+ APIs, and 1500+ searchable skills. "
         "\n\n"
         "PRICING: Set AIPAYGEN_API_KEY env var for unlimited metered access. "
         "Without a key, you get 10 free calls/day. "
@@ -393,61 +393,61 @@ def tag(text: str, taxonomy: list[str] = None, max_tags: int = 10) -> dict:
 
 # ── Heavy AI Tools (multi-step) ──────────────────────────────────────────────
 
-@metered_tool("standard")
+@metered_tool("ai")
 def review_code(code: str, language: str = "auto", focus: str = "quality") -> dict:
     """Review code for quality, security, and performance issues. Returns issues, score, and summary."""
     return review_code_inner(code, language, focus)
 
 
-@metered_tool("standard")
+@metered_tool("ai")
 def generate_docs(code: str, style: str = "jsdoc") -> dict:
     """Generate documentation for code. Supports jsdoc, docstring, rustdoc, etc."""
     return generate_docs_inner(code, style)
 
 
-@metered_tool("standard")
+@metered_tool("ai")
 def convert_code(code: str, from_lang: str = "auto", to_lang: str = "python") -> dict:
     """Convert code from one programming language to another."""
     return convert_code_inner(code, from_lang, to_lang)
 
 
-@metered_tool("standard")
+@metered_tool("ai")
 def generate_api_spec(description: str, format: str = "openapi") -> dict:
     """Generate an OpenAPI/AsyncAPI specification from a natural language description."""
     return generate_api_spec_inner(description, format)
 
 
-@metered_tool("standard")
+@metered_tool("ai")
 def diff(text_a: str, text_b: str) -> dict:
     """Analyze differences between two texts or code snippets. Returns changes, summary, and similarity."""
     return diff_inner(text_a, text_b)
 
 
-@metered_tool("standard")
+@metered_tool("ai")
 def parse_csv(csv_text: str, question: str = "") -> dict:
     """Analyze CSV data and optionally answer questions about it. Returns columns, row count, and insights."""
     return parse_csv_inner(csv_text, question)
 
 
-@metered_tool("standard")
+@metered_tool("ai")
 def cron_expression(description: str) -> dict:
     """Generate or explain cron expressions from natural language. Returns cron string and next 5 runs."""
     return cron_expr_inner(description)
 
 
-@metered_tool("standard")
+@metered_tool("ai")
 def changelog(commits: str, version: str = "") -> dict:
     """Generate a professional changelog from commit messages. Groups by Added/Changed/Fixed/Removed."""
     return changelog_inner(commits, version)
 
 
-@metered_tool("standard")
+@metered_tool("ai")
 def name_generator(description: str, count: int = 10, style: str = "startup") -> dict:
     """Generate names for products, companies, or features with taglines and domain suggestions."""
     return name_generator_inner(description, count, style)
 
 
-@metered_tool("standard")
+@metered_tool("ai")
 def privacy_check(text: str) -> dict:
     """Scan text for PII, secrets, and sensitive data. Returns found items, risk level, and recommendations."""
     return privacy_check_inner(text)
@@ -599,7 +599,7 @@ def memory_keys(agent_id: str) -> dict:
 @metered_tool("standard")
 def browse_catalog(category: str = "", min_score: float = 0.0, free_only: bool = False, page: int = 1) -> dict:
     """
-    Browse the AiPayGen catalog of 500+ discovered APIs.
+    Browse the AiPayGen catalog of 4100+ APIs.
     Filter by category (geo, finance, weather, social_media, developer, news, health, science, scraping),
     minimum quality score (0-10), or free_only to show only APIs that don't require auth.
     """
@@ -748,8 +748,8 @@ def chain_operations(steps: list) -> dict:
               {"action": "summarize", "params": {"text": "{{prev_result}}", "format": "bullets"}}]
     """
     _CHAIN = {
-        "research": lambda p: research_inner(p.get("query", "")),
-        "summarize": lambda p: summarize_inner(p.get("text", ""), p.get("format", "bullets")),
+        "research": lambda p: research_inner(p.get("topic", "")),
+        "summarize": lambda p: summarize_inner(p.get("text", ""), p.get("length", "short")),
         "analyze": lambda p: analyze_inner(p.get("text", ""), p.get("question", "Analyze")),
         "sentiment": lambda p: sentiment_inner(p.get("text", "")),
         "keywords": lambda p: keywords_inner(p.get("text", ""), int(p.get("n", 10))),
@@ -760,8 +760,8 @@ def chain_operations(steps: list) -> dict:
         "compare": lambda p: compare_inner(p.get("text_a", ""), p.get("text_b", ""), p.get("focus", "")),
         "outline": lambda p: outline_inner(p.get("topic", "")),
         "diagram": lambda p: diagram_inner(p.get("description", ""), p.get("diagram_type", "flowchart")),
-        "json_schema": lambda p: json_schema_inner(p.get("description", ""), p.get("example", {})),
-        "workflow": lambda p: workflow_inner(p.get("goal", ""), p.get("available_data", {})),
+        "json_schema": lambda p: json_schema_inner(p.get("description", ""), str(p.get("example", ""))),
+        "workflow": lambda p: workflow_inner(p.get("goal", ""), str(p.get("available_data", ""))),
     }
     if len(steps) > 5:
         return {"error": "max 5 steps"}
@@ -1203,6 +1203,116 @@ def absorb_skill(url: str = "", text: str = "") -> dict:
         return {"error": str(e)}
 
 
+# ── Agent Builder & Account Tools ─────────────────────────────────────────────
+
+@metered_tool("free")
+def check_balance() -> dict:
+    """Check your API key balance and usage stats. Requires AIPAYGEN_API_KEY env var."""
+    api_key = os.environ.get("AIPAYGEN_API_KEY", "")
+    if not api_key:
+        return {"error": "AIPAYGEN_API_KEY env var not set"}
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/auth/status",
+            headers={"Authorization": f"Bearer {api_key}"}, timeout=5)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("free")
+def list_models() -> dict:
+    """List all available AI models with their providers and capabilities."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/models", timeout=5)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def create_agent(name: str, description: str, tools: list = None,
+                 template: str = "", model: str = "auto") -> dict:
+    """Create a custom AI agent with selected tools and configuration."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/agents/build",
+            json={"name": name, "description": description,
+                  "tools": tools or [], "template": template, "model": model},
+            timeout=30)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def list_my_agents() -> dict:
+    """List all agents you have created. Requires AIPAYGEN_API_KEY env var."""
+    api_key = os.environ.get("AIPAYGEN_API_KEY", "")
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/agents/list",
+            headers={"Authorization": f"Bearer {api_key}"} if api_key else {},
+            timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("ai")
+def run_agent(agent_id: str, input_text: str = "") -> dict:
+    """Run a custom agent by ID with optional input text."""
+    try:
+        resp = _mcp_requests.post(f"http://localhost:5001/agents/{agent_id}/run",
+            json={"input": input_text}, timeout=120)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def schedule_agent(agent_id: str, schedule_type: str = "cron",
+                   schedule_value: str = "") -> dict:
+    """Schedule an agent to run automatically. schedule_type: cron | loop | event."""
+    try:
+        resp = _mcp_requests.post(f"http://localhost:5001/agents/{agent_id}/schedule",
+            json={"schedule_type": schedule_type, "schedule_value": schedule_value},
+            timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def pause_agent(agent_id: str) -> dict:
+    """Pause a scheduled agent."""
+    try:
+        resp = _mcp_requests.post(f"http://localhost:5001/agents/{agent_id}/pause",
+            timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def get_agent_runs(agent_id: str) -> dict:
+    """Get execution history for an agent."""
+    try:
+        resp = _mcp_requests.get(f"http://localhost:5001/agents/{agent_id}/runs",
+            timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def delete_agent(agent_id: str) -> dict:
+    """Delete a custom agent by ID."""
+    try:
+        resp = _mcp_requests.delete(f"http://localhost:5001/agents/{agent_id}",
+            timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def main():
     import sys
     if "--http" in sys.argv:
@@ -1214,7 +1324,7 @@ def main():
 
         async def health(request):
             tool_count = len([m for m in dir() if callable(getattr(__import__(__name__), m, None)) and hasattr(getattr(__import__(__name__), m, None), '__wrapped__')])
-            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 106, "version": "1.5.0"})
+            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 106, "version": "1.6.0"})
 
         starlette_app.routes.insert(0, Route("/health", health))
         uvicorn.run(starlette_app, host="0.0.0.0", port=5002)

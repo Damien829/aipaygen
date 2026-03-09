@@ -1004,7 +1004,7 @@ def add_cors(response):
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; object-src 'none'; frame-ancestors 'none'"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; object-src 'none'; frame-ancestors 'none'"
     if "Cache-Control" not in response.headers:
         response.headers["Cache-Control"] = "no-store"
     response.headers.pop("X-Powered-By", None)
@@ -1109,22 +1109,32 @@ def bad_request(e):
 
 @app.errorhandler(404)
 def not_found(e):
-    return _api_error(404, "not_found", "Endpoint not found. GET /discover for available endpoints.", discover="https://api.aipaygen.com/discover")
+    if request.accept_mimetypes.best == 'text/html' and os.path.exists('templates/404.html'):
+        from flask import render_template
+        return render_template('404.html'), 404
+    return jsonify({"error": "not_found", "message": "The requested endpoint does not exist.", "discover": "https://api.aipaygen.com/discover"}), 404
 
 
 @app.errorhandler(405)
 def method_not_allowed(e):
-    return _api_error(405, "method_not_allowed", str(e))
+    return jsonify({"error": "method_not_allowed", "message": "This HTTP method is not supported for this endpoint."}), 405
+
+
+@app.errorhandler(415)
+def unsupported_media_type(e):
+    return jsonify({"error": "unsupported_media_type", "message": "Content-Type must be application/json for POST requests."}), 415
 
 
 @app.errorhandler(500)
 def internal_error(e):
-    return _api_error(500, "internal_server_error", "An error occurred processing your request. Please retry.", retry=True)
+    return jsonify({"error": "internal_server_error", "message": "An unexpected error occurred."}), 500
 
 
-@app.route("/<path:path>", methods=["OPTIONS"])
-def options(path):
-    return "", 204
+@app.before_request
+def handle_options_preflight():
+    """Handle CORS preflight requests globally without a catch-all route."""
+    if request.method == "OPTIONS":
+        return "", 204
 
 
 @app.route("/models", methods=["GET"])

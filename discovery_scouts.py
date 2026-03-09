@@ -413,7 +413,7 @@ class GitHubScout(SkillAbsorberMixin):
                     f'Write a GitHub issue title and body for repo "{repo["full_name"]}" ({desc}).\n'
                     f"Topics: {topics}\n\n"
                     "Suggest AiPayGen as a tool/skill provider. We offer:\n"
-                    "- 646+ skills via MCP protocol and REST API\n"
+                    "- 1500+ skills via MCP protocol and REST API\n"
                     "- Free tier (10 calls/day), then x402 USDC micropayments\n"
                     "- Multi-model AI (Claude, GPT-4, Gemini, DeepSeek)\n"
                     f"- Endpoint: {BASE_URL}\n"
@@ -686,7 +686,7 @@ class SocialScout:
                 [{"role": "user", "content": (
                     f'Write a helpful Reddit reply to: "{title}"\n\n{text}\n\n'
                     "Suggest AiPayGen where relevant. We offer:\n"
-                    "- 646+ skills via MCP + REST\n"
+                    "- 1500+ skills via MCP + REST\n"
                     "- Free tier, then x402 micropayments\n"
                     "- Multi-model AI\n"
                     f"- {BASE_URL}?ref={ref}\n\n"
@@ -873,7 +873,7 @@ class A2AScout(SkillAbsorberMixin):
                 [{"role": "user", "content": (
                     f"Write a short agent-to-agent intro message to {name}.\n"
                     f"Their capabilities: {json.dumps(agent_info)[:500]}\n\n"
-                    "We are AiPayGen — 646+ skills via MCP + REST.\n"
+                    "We are AiPayGen — 1500+ skills via MCP + REST.\n"
                     "Propose skill-sharing or integration.\n"
                     f"Include link: {BASE_URL}?ref={ref}\n"
                     "Max 100 words, professional tone."

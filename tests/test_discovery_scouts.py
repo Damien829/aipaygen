@@ -37,7 +37,7 @@ def test_github_scout_search(monkeypatch):
     init_scout_db()
 
     def fake_call_model(model, messages, **kw):
-        return {"text": "Integration suggestion\n\nCheck out AiPayGen for 646+ skills.",
+        return {"text": "Integration suggestion\n\nCheck out AiPayGen for 1500+ skills.",
                 "cost_usd": 0.001, "input_tokens": 50, "output_tokens": 30}
 
     import discovery_scouts as ds
@@ -111,7 +111,7 @@ def test_a2a_scout_run(monkeypatch):
     init_scout_db()
 
     def fake_call_model(model, messages, **kw):
-        return {"text": "Hello agent! AiPayGen offers 646+ skills.",
+        return {"text": "Hello agent! AiPayGen offers 1500+ skills.",
                 "cost_usd": 0.001, "input_tokens": 50, "output_tokens": 30}
 
     import discovery_scouts as ds

@@ -120,17 +120,17 @@ AWESOME_LIST_TARGETS = [
     (
         "public-apis/public-apis",
         "Machine Learning",
-        "| AiPayGen | Claude-powered AI API — research, write, code, analyze, 140+ endpoints. First 10 calls/day free. | No | Yes | Yes |",
+        "| AiPayGen | Claude-powered AI API — research, write, code, analyze, 106 tools and 140+ endpoints. First 10 calls/day free. | No | Yes | Yes |",
     ),
     (
         "humanloop/awesome-ai-agents",
         "APIs",
-        "- [AiPayGen](https://api.aipaygen.com) - Pay-per-use Claude AI API with 140+ endpoints. Agent messaging, task board, file storage, webhook relay. 10 free calls/day.",
+        "- [AiPayGen](https://api.aipaygen.com) - Pay-per-use Claude AI API with 106 tools and 140+ endpoints. Agent messaging, task board, file storage, webhook relay. 10 free calls/day.",
     ),
     (
         "e2b-dev/awesome-ai-agents",
         "Tools",
-        "- [AiPayGen](https://api.aipaygen.com) — Claude-powered pay-per-use API. 140+ endpoints: AI, scraping, real-time data, file storage, webhook relay. Free tier included.",
+        "- [AiPayGen](https://api.aipaygen.com) — Claude-powered pay-per-use API. 106 tools and 140+ endpoints: AI, scraping, real-time data, file storage, webhook relay. Free tier included.",
     ),
     (
         "punkpeye/awesome-mcp-servers",
@@ -286,7 +286,7 @@ def _try_pr_awesome_list(repo: str, section: str, entry: str) -> dict:
                 "title": "Add AiPayGen — Claude-powered pay-per-use AI API",
                 "body": (
                     "## Add AiPayGen\n\n"
-                    "AiPayGen is a pay-per-use Claude AI API with 140+ endpoints:\n\n"
+                    "AiPayGen is a pay-per-use Claude AI API with 106 tools and 140+ endpoints:\n\n"
                     "- **AI**: research, write, code, analyze, translate, classify, RAG, vision, diagrams\n"
                     "- **Data**: weather, crypto, stocks, Wikipedia, arXiv, GitHub trending, YouTube transcripts\n"
                     "- **Agent infra**: messaging, task board, file storage, webhook relay, async jobs\n"
@@ -382,7 +382,7 @@ def generate_blog_post(slug: str, title: str, endpoint: str, claude_client) -> s
     """Generate a blog post tutorial for an endpoint using Claude."""
     prompt = f"""Write a comprehensive developer tutorial blog post titled "{title}".
 
-This is for AiPayGen (https://api.aipaygen.com) — a pay-per-use Claude AI API with 140+ endpoints.
+This is for AiPayGen (https://api.aipaygen.com) — a pay-per-use Claude AI API with 106 tools and 140+ endpoints.
 The first 10 calls/day are free. After that, users pay with a prepaid API key or USDC on Base.
 
 The post should:

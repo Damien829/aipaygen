@@ -121,11 +121,11 @@ def parse_json_from_claude(text):
 
 # ── Response Helpers ─────────────────────────────────────────────────────────
 
-def agent_response(data: dict, endpoint: str, network: str = "eip155:8453") -> dict:
+def agent_response(data: dict, endpoint: str, network: str = "eip155:8453", model: str = "claude-haiku-4-5-20251001") -> dict:
     """Wrap result with standard agent-friendly metadata."""
     data["_meta"] = {
         "endpoint": endpoint,
-        "model": "claude-haiku-4-5-20251001",
+        "model": model,
         "network": network,
         "ts": datetime.utcnow().isoformat() + "Z",
     }

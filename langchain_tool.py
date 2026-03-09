@@ -139,7 +139,7 @@ if LANGCHAIN_AVAILABLE:
         """Browse the AiPayGen API catalog — find APIs for any use case."""
         name: str = "aipaygen_catalog"
         description: str = (
-            "Browse 200+ discovered APIs in the AiPayGen catalog. "
+            "Browse 4100+ discovered APIs in the AiPayGen catalog. "
             "Input: category name like 'weather', 'finance', 'geo', 'health', or leave blank for all."
         )
         args_schema: Type[BaseModel] = AiPayGenInput

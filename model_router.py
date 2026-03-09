@@ -394,7 +394,10 @@ def _get_anthropic_client():
     global _anthropic_client
     if _anthropic_client is None:
         import anthropic
-        _anthropic_client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+        key = os.environ.get("ANTHROPIC_API_KEY", "")
+        if not key:
+            raise ModelNotFoundError("ANTHROPIC_API_KEY not configured")
+        _anthropic_client = anthropic.Anthropic(api_key=key)
     return _anthropic_client
 
 
@@ -402,7 +405,10 @@ def _get_openai_client():
     global _openai_client
     if _openai_client is None:
         from openai import OpenAI
-        _openai_client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+        key = os.environ.get("OPENAI_API_KEY", "")
+        if not key:
+            raise ModelNotFoundError("OPENAI_API_KEY not configured")
+        _openai_client = OpenAI(api_key=key)
     return _openai_client
 
 
@@ -410,7 +416,10 @@ def _get_google_client():
     global _google_client
     if _google_client is None:
         from google import genai
-        _google_client = genai.Client(api_key=os.environ["GOOGLE_API_KEY"])
+        key = os.environ.get("GOOGLE_API_KEY", "")
+        if not key:
+            raise ModelNotFoundError("GOOGLE_API_KEY not configured")
+        _google_client = genai.Client(api_key=key)
     return _google_client
 
 # ---------------------------------------------------------------------------
@@ -430,13 +439,13 @@ def _dispatch(cfg: dict, messages: list[dict], system: str, tok_limit: int, temp
     elif provider == "deepseek":
         return _call_openai_compatible(
             "https://api.deepseek.com/chat/completions",
-            os.environ["DEEPSEEK_API_KEY"],
+            os.environ.get("DEEPSEEK_API_KEY", ""),
             model_id, messages, system, tok_limit, temperature,
         )
     elif provider == "together":
         return _call_openai_compatible(
             "https://api.together.xyz/v1/chat/completions",
-            os.environ["TOGETHER_API_KEY"],
+            os.environ.get("TOGETHER_API_KEY", ""),
             model_id, messages, system, tok_limit, temperature,
         )
     elif provider == "xai":

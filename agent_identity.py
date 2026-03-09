@@ -29,17 +29,25 @@ class ChallengeExpiredError(Exception):
 _pending_challenges: dict = {}  # nonce -> {message, wallet, expires_at}
 
 
+def _sweep_expired_challenges():
+    """Remove challenges older than CHALLENGE_TTL."""
+    now = time.time()
+    expired = [k for k, v in _pending_challenges.items() if now > v["created"] + CHALLENGE_TTL]
+    for k in expired:
+        del _pending_challenges[k]
+
+
 def generate_challenge(wallet_address: str) -> dict:
     """Generate a challenge message for wallet ownership proof."""
+    _sweep_expired_challenges()
     nonce = uuid.uuid4().hex
-    expires_at = time.time() + CHALLENGE_TTL
     message = f"AiPayGen identity verification\nWallet: {wallet_address}\nNonce: {nonce}"
     _pending_challenges[nonce] = {
-        "message": message,
         "wallet": wallet_address,
-        "expires_at": expires_at,
+        "message": message,
+        "created": time.time(),
     }
-    return {"nonce": nonce, "message": message, "expires_at": int(expires_at)}
+    return {"nonce": nonce, "message": message, "expires_at": int(time.time() + CHALLENGE_TTL)}
 
 
 def _get_and_validate_challenge(nonce: str) -> dict:
@@ -47,7 +55,7 @@ def _get_and_validate_challenge(nonce: str) -> dict:
     ch = _pending_challenges.pop(nonce, None)
     if not ch:
         raise ChallengeExpiredError("Challenge not found or already used")
-    if time.time() > ch["expires_at"]:
+    if time.time() > ch["created"] + CHALLENGE_TTL:
         raise ChallengeExpiredError("Challenge expired")
     return ch
 
