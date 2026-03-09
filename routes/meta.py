@@ -2768,6 +2768,49 @@ def x402_manifest():
 
 # ── Security Policy ──────────────────────────────────────────────────────────
 
+@meta_bp.route("/.well-known/mcp/server-card.json")
+def smithery_server_card():
+    """Smithery server card — static metadata for MCP directory scanning."""
+    return jsonify({
+        "serverInfo": {
+            "name": "AiPayGen",
+            "version": "1.6.0"
+        },
+        "authentication": {
+            "required": False,
+            "schemes": ["bearer"],
+            "note": "Optional API key for metered access. 10 free calls/day without key."
+        },
+        "tools": [
+            {"name": "research", "description": "Research any topic with web sources and AI synthesis"},
+            {"name": "summarize", "description": "Summarize text into key points"},
+            {"name": "analyze", "description": "Analyze text and answer questions about it"},
+            {"name": "write", "description": "Generate content — articles, emails, code docs"},
+            {"name": "code", "description": "Generate, review, convert, and document code"},
+            {"name": "translate", "description": "Translate text between 50+ languages"},
+            {"name": "web_search", "description": "Search the web and return structured results"},
+            {"name": "scrape_website", "description": "Extract content from any URL"},
+            {"name": "vision", "description": "Analyze images with AI"},
+            {"name": "sentiment", "description": "Detect sentiment and emotion in text"},
+            {"name": "classify", "description": "Classify text into categories"},
+            {"name": "extract", "description": "Extract structured data from unstructured text"},
+            {"name": "compare", "description": "Compare two texts for differences and similarity"},
+            {"name": "diagram", "description": "Generate Mermaid diagrams from descriptions"},
+            {"name": "chain_operations", "description": "Pipeline multiple AI operations together"},
+            {"name": "memory_store", "description": "Persistent agent memory across sessions"},
+            {"name": "memory_recall", "description": "Recall stored memories by key"},
+            {"name": "create_agent", "description": "Build custom AI agents with selected tools"},
+            {"name": "run_agent", "description": "Execute a custom agent"},
+            {"name": "browse_catalog", "description": "Browse 4100+ discovered APIs"},
+            {"name": "get_weather", "description": "Current weather for any location"},
+            {"name": "get_crypto_prices", "description": "Live cryptocurrency prices"},
+            {"name": "get_exchange_rates", "description": "Currency exchange rates"},
+        ],
+        "resources": [],
+        "prompts": []
+    })
+
+
 @meta_bp.route("/.well-known/security.txt")
 def security_txt():
     """RFC 9116 security.txt — machine-readable security policy."""
