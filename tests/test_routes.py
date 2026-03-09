@@ -78,10 +78,22 @@ def test_agent_requires_task(client):
     assert r.status_code == 400
 
 
-@patch("model_router.call_model")
-def test_research_with_mock(mock_call, client):
+@patch("routes.ai_tools.scrape_url")
+@patch("routes.ai_tools.search_web")
+@patch("routes.ai_tools.call_model")
+def test_research_with_mock(mock_call, mock_search, mock_scrape, client):
+    mock_search.return_value = {
+        "results": [
+            {"title": "Test Result", "url": "https://example.com", "snippet": "A test result"},
+        ]
+    }
+    mock_scrape.return_value = {
+        "url": "https://example.com",
+        "text": "This is test content about the topic with enough words to pass the filter threshold for research.",
+        "word_count": 100,
+    }
     mock_call.return_value = {
-        "text": json.dumps({"summary": "Test research", "key_findings": ["finding 1"]}),
+        "text": "Test research answer with [1] citation.",
         "model": "claude-haiku",
         "model_id": "claude-haiku-4-5-20251001",
         "provider": "anthropic",
@@ -91,5 +103,7 @@ def test_research_with_mock(mock_call, client):
         "selected_reason": None,
     }
     r = client.post("/research", json={"question": "test topic"})
-    # Should succeed or at least not crash (may need API key in some configs)
-    assert r.status_code in (200, 402, 422, 429)
+    assert r.status_code == 200
+    data = r.get_json()
+    assert "answer" in data
+    assert "sources" in data

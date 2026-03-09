@@ -2635,7 +2635,7 @@ def agents_json():
     memory_endpoints = ["memory/set", "memory/get", "memory/search", "memory/clear"]
     identity_endpoints = ["agents/challenge", "agents/verify", "agents/me", "agents/search"]
     free_endpoints = ["preview", "discover", "openapi.json", "catalog", "agents", "agents/register",
-                      "run-discovery", "api-call", ".well-known/agents.json", "health", "models"]
+                      "api-call", ".well-known/agents.json", "health", "models"]
     return jsonify({
         "$schema": "https://agentsfoundation.org/agents.json/schema/v1",
         "agents": [{

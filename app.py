@@ -921,6 +921,15 @@ import glob as _glob
 _db_files = _glob.glob(os.path.join(os.path.dirname(__file__), "*.db"))
 register_db_paths(_db_files)
 
+# Enable WAL mode on all SQLite databases for better concurrent read performance
+import sqlite3 as _sqlite3
+for _dbf in _db_files:
+    try:
+        _wc = _sqlite3.connect(_dbf)
+        _wc.execute("PRAGMA journal_mode=WAL")
+        _wc.close()
+    except Exception:
+        pass
 
 # Scheduler now in scheduler.py — all jobs registered there
 from scheduler import init_scheduler, get_scheduler
