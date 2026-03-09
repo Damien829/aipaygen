@@ -36,7 +36,7 @@ if python -m pytest tests/ -q --tb=line >> "$LOG" 2>&1; then
     echo "[$TS] Tests passed. Restarting server..." >> "$LOG"
     pkill -f "gunicorn.*app:app" || true
     sleep 3
-    gunicorn --workers 4 --worker-class sync --bind 127.0.0.1:5001 --timeout 120 --daemon app:app
+    gunicorn --workers 4 --worker-class sync --bind 127.0.0.1:5001 --timeout 120 --keep-alive 5 --access-logfile /home/damien809/agent-service/access.log --error-logfile /home/damien809/agent-service/agent.log --log-level info --daemon app:app
     echo "[$TS] Server restarted successfully." >> "$LOG"
 
     # Update MCP server too
@@ -92,7 +92,7 @@ if [ "$MINUTE" -lt 15 ]; then
         # Restart to pick up new packages
         pkill -f "gunicorn.*app:app" || true
         sleep 3
-        gunicorn --workers 4 --worker-class sync --bind 127.0.0.1:5001 --timeout 120 --daemon app:app
+        gunicorn --workers 4 --worker-class sync --bind 127.0.0.1:5001 --timeout 120 --keep-alive 5 --access-logfile /home/damien809/agent-service/access.log --error-logfile /home/damien809/agent-service/agent.log --log-level info --daemon app:app
         echo "[$TS] Server restarted after security updates." >> "$LOG"
     else
         echo "[$TS] WARNING: Tests failed after pip upgrade. Pinning back..." >> "$LOG"

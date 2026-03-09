@@ -348,12 +348,12 @@ def blog_index():
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AiPayGen Blog — AI Agent & API Developer Tutorials</title>
-<meta name="description" content="Developer tutorials for building with AiPayGen — 140+ Claude-powered AI API endpoints. Covers AI agents, scraping, x402 payments, real-time data, and more. First 10 calls/day free.">
+<meta name="description" content="Developer tutorials for building with AiPayGen — 106 tools and 140+ Claude-powered AI API endpoints. Covers AI agents, scraping, x402 payments, real-time data, and more. First 10 calls/day free.">
 <link rel="canonical" href="https://api.aipaygen.com/blog">
 <link rel="alternate" type="application/rss+xml" title="AiPayGen Blog RSS" href="/feed.xml">
 <meta property="og:type" content="website">
 <meta property="og:title" content="AiPayGen Developer Blog">
-<meta property="og:description" content="Tutorials for building AI agents and automations with AiPayGen's 140+ Claude-powered endpoints.">
+<meta property="og:description" content="Tutorials for building AI agents and automations with AiPayGen's 106 tools and 140+ Claude-powered endpoints.">
 <meta property="og:url" content="https://api.aipaygen.com/blog">
 <meta property="og:image" content="https://api.aipaygen.com/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -363,9 +363,9 @@ def blog_index():
 <body>
 <a class="rss" href="/feed.xml">RSS feed</a>
 <h1>AiPayGen Developer Blog</h1>
-<p>Tutorials for building AI agents with AiPayGen — 140+ Claude-powered endpoints. <strong>First 10 calls/day free.</strong></p>
+<p>Tutorials for building AI agents with AiPayGen — 106 tools and 140+ Claude-powered endpoints. <strong>First 10 calls/day free.</strong></p>
 <ul style="padding-left:1.2rem">{items}</ul>
-<p><a href="https://api.aipaygen.com/discover">Browse all 140+ endpoints →</a> · <a href="https://api.aipaygen.com/buy-credits">Buy credits ($5+) →</a></p>
+<p><a href="https://api.aipaygen.com/discover">Browse all 106 tools and 140+ endpoints →</a> · <a href="https://api.aipaygen.com/buy-credits">Buy credits ($5+) →</a></p>
 </body>
 </html>"""
     resp = Response(html, content_type="text/html")
@@ -382,7 +382,7 @@ def blog_post(slug):
     # Sanitize title for use in HTML attributes and text (content is trusted AI-generated HTML)
     safe_title = sanitize_html(post['title'])
     canonical = f"https://api.aipaygen.com/blog/{sanitize_html(slug)}"
-    desc = f"{safe_title} — Developer tutorial for AiPayGen, the pay-per-use Claude AI API with 140+ endpoints."
+    desc = f"{safe_title} — Developer tutorial for AiPayGen, the pay-per-use Claude AI API with 106 tools and 140+ endpoints."
     jsonld = json.dumps({
         "@context": "https://schema.org",
         "@type": "TechArticle",
@@ -424,11 +424,11 @@ pre{{padding:16px;overflow-x:auto;display:block}}a{{color:#6366f1}}h1{{color:#1e
 </style>
 </head>
 <body>
-<div class="nav"><a href="/blog">← All posts</a> · <a href="https://api.aipaygen.com">AiPayGen API</a> · <a href="/discover">140+ endpoints</a></div>
+<div class="nav"><a href="/blog">← All posts</a> · <a href="https://api.aipaygen.com">AiPayGen API</a> · <a href="/discover">106 tools</a></div>
 <h1>{safe_title}</h1>
 {post['content']}
 <div class="cta">
-  <strong>Try it free →</strong> First 10 calls/day free, no credit card. <a href="https://api.aipaygen.com/discover">Browse all 140+ endpoints</a> or <a href="https://api.aipaygen.com/buy-credits">buy credits ($5+)</a>.
+  <strong>Try it free →</strong> First 10 calls/day free, no credit card. <a href="https://api.aipaygen.com/discover">Browse all 106 tools and 140+ endpoints</a> or <a href="https://api.aipaygen.com/buy-credits">buy credits ($5+)</a>.
 </div>
 <p style="color:#888;font-size:0.85rem">Published: {post.get('generated_at','')[:10]} · <a href="/feed.xml">RSS feed</a></p>
 </body>
@@ -483,6 +483,7 @@ def referral_redirect(agent_id):
 # ══════════════════════════════════════════════════════════════════════════════
 
 @admin_bp.route("/discovery/status", methods=["GET"])
+@require_admin
 def discovery_engine_status():
     log = get_outreach_log(50)
     posts = list_blog_posts()
@@ -908,7 +909,7 @@ _KNOWLEDGE_SEEDS = [
     {
         "topic": "aipaygen-api-reference",
         "content": (
-            "AiPayGen API (https://api.aipaygen.com) has 140+ endpoints. "
+            "AiPayGen API (https://api.aipaygen.com) has 106 tools and 140+ endpoints. "
             "Key endpoints: /research ($0.01), /write ($0.05), /analyze ($0.02), /code ($0.05), "
             "/scrape/google-maps ($0.10), /chain ($0.25 for 5-step pipelines), /rag ($0.05). "
             "Free tier: 10 calls/day per IP. Prepaid keys: /buy-credits. "
@@ -1127,7 +1128,7 @@ def rss_feed():
   <channel>
     <title>AiPayGen Developer Blog</title>
     <link>https://api.aipaygen.com/blog</link>
-    <description>Developer tutorials for building AI agents with AiPayGen — 140+ Claude-powered API endpoints. First 10 calls/day free.</description>
+    <description>Developer tutorials for building AI agents with AiPayGen — 106 tools and 140+ Claude-powered API endpoints. First 10 calls/day free.</description>
     <language>en-us</language>
     <atom:link href="https://api.aipaygen.com/feed.xml" rel="self" type="application/rss+xml"/>
     <image>
@@ -1157,7 +1158,7 @@ def og_image():
   <rect x="60" y="60" width="1080" height="510" rx="20" fill="#141414" opacity="0.8"/>
   <text x="600" y="220" font-family="system-ui,sans-serif" font-size="72" font-weight="800" fill="#ffffff" text-anchor="middle">AiPayGen</text>
   <text x="600" y="310" font-family="system-ui,sans-serif" font-size="32" fill="#a78bfa" text-anchor="middle">Pay-per-use Claude AI API</text>
-  <text x="600" y="390" font-family="system-ui,sans-serif" font-size="26" fill="#888" text-anchor="middle">140+ endpoints · 10 free calls/day · No signup</text>
+  <text x="600" y="390" font-family="system-ui,sans-serif" font-size="26" fill="#888" text-anchor="middle">106 tools · 15 models · 4100+ APIs · No signup</text>
   <text x="600" y="460" font-family="system-ui,sans-serif" font-size="22" fill="#6366f1" text-anchor="middle">api.aipaygen.com</text>
   <rect x="440" y="490" width="320" height="48" rx="24" fill="#6366f1"/>
   <text x="600" y="521" font-family="system-ui,sans-serif" font-size="20" font-weight="600" fill="#fff" text-anchor="middle">Try free — no credit card</text>
@@ -1227,7 +1228,7 @@ a{{color:#6366f1}}h1,h2{{color:#1e1b4b}}.stat{{display:inline-block;background:#
 <div>
   <div class="stat"><div class="n">{total_calls:,}</div><div class="l">Total API calls</div></div>
   <div class="stat"><div class="n">${total_earned:.2f}</div><div class="l">Revenue logged</div></div>
-  <div class="stat"><div class="n">140+</div><div class="l">Endpoints</div></div>
+  <div class="stat"><div class="n">106</div><div class="l">MCP Tools</div></div>
   <div class="stat"><div class="n">10</div><div class="l">Free calls/day</div></div>
   <div class="stat"><div class="n">${cost['total_cost_usd']:.4f}</div><div class="l">Claude cost today</div></div>
 </div>
@@ -1243,7 +1244,7 @@ a{{color:#6366f1}}h1,h2{{color:#1e1b4b}}.stat{{display:inline-block;background:#
   <li><strong>Mar 2026</strong> — Referral system (10% commission), discovery engine (GitHub outreach, sitemap pings)</li>
   <li><strong>Mar 2026</strong> — Async jobs, file storage, webhook relay, free data tier (14+ endpoints)</li>
   <li><strong>Mar 2026</strong> — Prepaid API keys (Stripe), SSE streaming, MCP server (79 tools)</li>
-  <li><strong>Mar 2026</strong> — 140+ endpoints: AI, scraping, code execution, agent messaging, task board, knowledge base</li>
+  <li><strong>Mar 2026</strong> — 106 tools and 140+ endpoints: AI, scraping, code execution, agent messaging, task board, knowledge base</li>
 </ul>
 
 <p style="color:#888;font-size:0.85rem">Auto-updated · <a href="https://api.aipaygen.com/health">Health status</a> · <a href="https://api.aipaygen.com/self-test">Canary test</a></p>
@@ -1333,8 +1334,8 @@ def reddit_posts():
     subreddits = [
         {
             "subreddit": "r/MachineLearning",
-            "title": "[P] AiPayGen — Pay-per-use Claude API with 140+ endpoints. Free tier (10/day), x402 crypto payments, MCP tools.",
-            "body": f"""I built a pay-per-use AI API on top of Claude with 140+ endpoints — research, write, code, analyze, scrape, RAG, vision, diagrams, and more.
+            "title": "[P] AiPayGen — Pay-per-use Claude API with 106 tools and 140+ endpoints. Free tier (10/day), x402 crypto payments, MCP tools.",
+            "body": f"""I built a pay-per-use AI API on top of Claude with 106 tools and 140+ endpoints — research, write, code, analyze, scrape, RAG, vision, diagrams, and more.
 
 **Key features:**
 - First 10 calls/day completely free (no signup, no key)
@@ -1368,12 +1369,12 @@ Try it: https://api.aipaygen.com/preview (no auth needed)""",
         },
         {
             "subreddit": "r/selfhosted",
-            "title": "I built a pay-per-use AI API (Claude-powered) that runs on a Raspberry Pi — x402 payments, 140+ endpoints",
+            "title": "I built a pay-per-use AI API (Claude-powered) that runs on a Raspberry Pi — x402 payments, 106 tools",
             "body": f"""Running on a Raspberry Pi 5 at home behind Cloudflare tunnel.
 
 Stack: Flask + Gunicorn + SQLite + APScheduler + Cloudflare tunnel + systemd
 
-It handles x402 payment verification, API key management, referral tracking, scheduled blog generation, and 140+ Claude-powered endpoints — all on a Pi.
+It handles x402 payment verification, API key management, referral tracking, scheduled blog generation, and 106 tools and 140+ Claude-powered endpoints — all on a Pi.
 
 What surprised me: SQLite handles this fine for the traffic volume a self-hosted project gets.
 

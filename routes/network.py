@@ -5,8 +5,22 @@ from agent_network import (
     submit_task, browse_tasks, claim_task, complete_task, get_task,
 )
 from helpers import log_payment, agent_response
+from agent_identity import verify_jwt
 
 network_bp = Blueprint("network", __name__)
+
+
+def _verify_agent_access(agent_id):
+    """Verify the caller owns this agent_id via JWT Bearer token."""
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer ey"):
+        try:
+            payload = verify_jwt(auth[7:])
+            if payload.get("agent_id") == agent_id:
+                return True
+        except Exception:
+            pass
+    return False
 
 
 # -- Messaging ----------------------------------------------------------------
@@ -26,6 +40,8 @@ def message_send():
 
 @network_bp.route("/message/inbox/<agent_id>", methods=["GET"])
 def message_inbox(agent_id):
+    if not _verify_agent_access(agent_id):
+        return jsonify({"error": "unauthorized", "message": "JWT required. Use /agents/challenge + /agents/verify to get a token for this agent_id."}), 401
     unread_only = request.args.get("unread_only", "0") in ("1", "true", "yes")
     messages = get_inbox(agent_id, unread_only=unread_only)
     return jsonify({"agent_id": agent_id, "messages": messages, "count": len(messages), "_meta": {"free": True}})
@@ -65,6 +81,8 @@ def message_mark_read():
     agent_id = data.get("agent_id", "")
     if not msg_id or not agent_id:
         return jsonify({"error": "msg_id and agent_id required"}), 400
+    if not _verify_agent_access(agent_id):
+        return jsonify({"error": "unauthorized", "message": "JWT required to mark messages as read."}), 401
     success = mark_read(msg_id, agent_id)
     return jsonify({"msg_id": msg_id, "marked_read": success, "_meta": {"free": True}})
 

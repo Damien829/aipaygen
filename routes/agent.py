@@ -50,12 +50,14 @@ def _resolve_agent_id(data, require_verified=False):
 @agent_bp.route("/memory/set", methods=["POST"])
 def memory_set_route():
     data = request.get_json() or {}
-    agent_id, verified = _resolve_agent_id(data)
+    agent_id, verified = _resolve_agent_id(data, require_verified=True)
+    if not verified:
+        return jsonify({"error": "unauthorized", "message": "JWT required for memory writes. Use /agents/challenge + /agents/verify first."}), 401
     key = data.get("key", "")
     value = data.get("value")
     tags = data.get("tags", [])
     if not agent_id or not key or value is None:
-        return jsonify({"error": "agent_id, key, and value required (or use JWT auth)"}), 400
+        return jsonify({"error": "agent_id, key, and value required"}), 400
     result = memory_set(agent_id, key, value, tags if isinstance(tags, list) else [tags])
     log_payment("/memory/set", 0.01, request.remote_addr)
     return jsonify(agent_response({**result, "verified": verified}, "/memory/set"))
@@ -101,9 +103,11 @@ def memory_list_route():
 @agent_bp.route("/memory/clear", methods=["POST"])
 def memory_clear_route():
     data = request.get_json() or {}
-    agent_id, verified = _resolve_agent_id(data)
+    agent_id, verified = _resolve_agent_id(data, require_verified=True)
+    if not verified:
+        return jsonify({"error": "unauthorized", "message": "JWT required for memory clear. Use /agents/challenge + /agents/verify first."}), 401
     if not agent_id:
-        return jsonify({"error": "agent_id required (or use JWT auth)"}), 400
+        return jsonify({"error": "agent_id required"}), 400
     deleted = memory_clear(agent_id)
     log_payment("/memory/clear", 0.01, request.remote_addr)
     return jsonify(agent_response({"agent_id": agent_id, "deleted": deleted, "verified": verified}, "/memory/clear"))
@@ -173,7 +177,9 @@ def agent_me():
 @agent_bp.route("/agents/register", methods=["POST"])
 def agents_register():
     data = request.get_json() or {}
-    agent_id = data.get("agent_id", "")
+    agent_id, verified = _resolve_agent_id(data, require_verified=True)
+    if not verified:
+        return jsonify({"error": "unauthorized", "message": "JWT required to register agents. Use /agents/challenge + /agents/verify first."}), 401
     name = data.get("name", "")
     description = data.get("description", "")
     capabilities = data.get("capabilities", [])

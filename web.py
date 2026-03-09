@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 from markdownify import markdownify as md
 from ddgs import DDGS
+from security import validate_url, SSRFError
 
 SCRAPE_HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; AiPayGen/1.0; +https://aipaygen.com)"
@@ -12,6 +13,10 @@ STRIP_TAGS = ["script", "style", "nav", "footer", "header", "aside", "iframe", "
 
 
 def scrape_url(url: str, timeout: int = 10) -> dict:
+    try:
+        url = validate_url(url, allow_http=True)
+    except SSRFError as e:
+        return {"error": f"SSRF blocked: {e}", "url": url, "blocked": True}
     try:
         resp = requests.get(url, headers=SCRAPE_HEADERS, timeout=timeout)
         resp.raise_for_status()

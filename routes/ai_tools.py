@@ -1508,7 +1508,7 @@ def code_run():
     start = _time.time()
     try:
         result = subprocess.run(
-            ["python3", "-c", code],
+            ["python3", "-I", "-c", code],
             capture_output=True,
             text=True,
             timeout=timeout,

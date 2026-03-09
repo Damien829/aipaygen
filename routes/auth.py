@@ -10,7 +10,7 @@ import stripe as _stripe
 from flask import Blueprint, request, jsonify
 
 from api_keys import generate_key, topup_key, get_key_status
-from helpers import log_payment
+from helpers import log_payment, require_admin, check_identity_rate_limit
 from funnel_tracker import log_event as funnel_log_event
 from referral import record_conversion
 
@@ -50,6 +50,9 @@ auth_bp = Blueprint("auth", __name__)
 
 @auth_bp.route("/auth/generate-key", methods=["POST"])
 def auth_generate_key():
+    ip = request.headers.get("CF-Connecting-IP", request.remote_addr)
+    if not check_identity_rate_limit(ip):
+        return jsonify({"error": "rate_limited", "message": "Too many key generation requests. Max 10/min."}), 429
     data = request.get_json() or {}
     label = data.get("label", "")
     key_data = generate_key(initial_balance=0.0, label=label)
@@ -64,6 +67,7 @@ def auth_generate_key():
 
 
 @auth_bp.route("/auth/topup", methods=["POST"])
+@require_admin
 def auth_topup():
     data = request.get_json() or {}
     key = data.get("key", "")
@@ -309,7 +313,7 @@ _BUY_PAGE = """<!DOCTYPE html>
       <div class="feat"><span>&#10003;</span> Web scraping (6 sites)</div>
       <div class="feat"><span>&#10003;</span> Sentiment &amp; analysis</div>
       <div class="feat"><span>&#10003;</span> Agent memory</div>
-      <div class="feat"><span>&#10003;</span> 500+ API catalog</div>
+      <div class="feat"><span>&#10003;</span> 4,100+ API catalog</div>
       <div class="feat"><span>&#10003;</span> 15 AI models</div>
     </div>
   </div>
@@ -381,7 +385,7 @@ _BUY_PAGE = """<!DOCTYPE html>
   <!-- Shared bottom section -->
   <div class="trust">
     <strong>The most powerful AI toolkit you can buy per call</strong><br>
-    106 tools &middot; 15 frontier models &middot; 500+ APIs &middot; Published on <strong>PyPI</strong> &amp; <strong>MCP Registry</strong><br>
+    106 tools &middot; 15 frontier models &middot; 4100+ APIs &middot; Published on <strong>PyPI</strong> &amp; <strong>MCP Registry</strong><br>
     Credits never expire &middot; 20% bulk discount at $20+ &middot; Secure checkout via Stripe &middot; <a href="/security">Security</a>
   </div>
 

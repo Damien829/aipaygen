@@ -13,7 +13,7 @@ from agent_memory import (
 from api_catalog import get_all_apis, get_api, get_recent_runs
 from apify_client import run_actor_sync
 from api_discovery import run_all_hunters
-from helpers import log_payment, agent_response, get_client_ip as _get_client_ip, call_llm
+from helpers import log_payment, agent_response, get_client_ip as _get_client_ip, call_llm, require_admin
 from funnel_tracker import log_event as funnel_log_event
 
 marketplace_bp = Blueprint("marketplace", __name__)
@@ -65,6 +65,7 @@ def catalog_item(api_id):
 
 
 @marketplace_bp.route("/run-discovery", methods=["POST"])
+@require_admin
 def run_discovery():
     job_id = str(uuid.uuid4())[:8]
     _discovery_jobs[job_id] = {"status": "running", "started_at": datetime.utcnow().isoformat()}
@@ -270,6 +271,18 @@ def scrape_facebook_ads():
         return jsonify({"error": "scrape_failed", "message": str(e)}), 502
 
 
+_ALLOWED_ACTORS = {
+    "nwua9Gu5YrADL7ZDj",  # Instagram
+    "shu8hvrXbJbY3Eb9W",  # TikTok
+    "61RPP7dywgiy0JPD0",  # YouTube
+    "2SyF0bVxmgGr8IVCZ",  # Google Maps
+    "h7sDV53CddomktSi5",  # Twitter/X
+    "aYG0l9s7dbB7j3gbS",  # Web scraper
+    "GdWCkxBtKWOsKjdch",  # Google search
+    "JJghSZmShuco4j9gJ",  # Facebook ads
+}
+
+
 @marketplace_bp.route("/scrape/actor", methods=["POST"])
 def scrape_actor():
     data = request.get_json() or {}
@@ -278,6 +291,8 @@ def scrape_actor():
     max_items = min(int(data.get("max_items", 10)), 50)
     if not actor_id:
         return jsonify({"error": "actor_id required (e.g. 'aYG0l9s7dbB7j3gbS')"}), 400
+    if actor_id not in _ALLOWED_ACTORS:
+        return jsonify({"error": "actor_not_allowed", "message": "Only pre-approved Apify actors are permitted.", "allowed": list(_ALLOWED_ACTORS)}), 403
     try:
         results = run_actor_sync(actor_id, run_input, max_items=max_items)
         log_payment("/scrape/actor", 0.10, request.remote_addr)
@@ -315,8 +330,17 @@ def marketplace_browse():
 
 @marketplace_bp.route("/marketplace/list", methods=["POST"])
 def marketplace_list():
-    """Register your agent's service in the marketplace — free to list."""
+    """Register your agent's service in the marketplace — requires JWT ownership proof."""
+    from agent_identity import verify_jwt
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer ey"):
+        return jsonify({"error": "unauthorized", "message": "JWT required to list on marketplace. Use /agents/challenge + /agents/verify first."}), 401
+    try:
+        payload = verify_jwt(auth[7:])
+    except Exception:
+        return jsonify({"error": "unauthorized", "message": "Invalid or expired JWT."}), 401
     data = request.get_json() or {}
+    data["agent_id"] = payload["agent_id"]  # enforce ownership
     required = ["agent_id", "name", "endpoint", "price_usd"]
     for f in required:
         if not data.get(f):
