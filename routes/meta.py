@@ -1029,7 +1029,10 @@ def robots_txt():
         "Allow: /docs\n"
         "Allow: /llms.txt\n"
         "Allow: /security\n"
+        "Allow: /openapi.json\n"
+        "Allow: /.well-known/\n"
         "Allow: /.well-known/agent.json\n"
+        "Allow: /.well-known/ai-plugin.json\n"
         "Allow: /.well-known/security.txt\n"
         "Disallow: /admin/\n"
         "Disallow: /stats\n"
@@ -1436,40 +1439,108 @@ AiPayGen is a pay-per-use AI platform for autonomous agents. Research, write, co
 - **Web Scraping** — Google Maps, Twitter/X, Instagram, LinkedIn, YouTube, TikTok, any website
 - **Agent Infrastructure** — persistent memory, messaging, task boards, webhook relay, async jobs, file storage
 - **Data & Utilities** — weather, crypto, stocks, news, Wikipedia, arXiv, GitHub trending
-- **Skills Library** — 646+ searchable skills via TF-IDF. Search, browse, and execute dynamically.
+- **Skills Library** — 1500+ searchable skills via TF-IDF. Search, browse, and execute dynamically.
 - **Multi-Model** — Claude, GPT-4o, DeepSeek, Gemini. All AI endpoints accept `model` parameter.
 
-## Payment Options (3 Paths)
+## Authentication (3 Paths)
 
-### 1. API Key (Recommended — Easiest)
+### 1. Free Tier (No Auth)
+- 10 calls/day per IP, no key needed
+- Just POST JSON to any endpoint
+
+### 2. API Key (Recommended)
 Buy a prepaid API key via Stripe or x402. Use it everywhere with Bearer auth.
 - `POST /credits/buy` with `{"amount_usd": 5.0}` → returns `apk_xxx` key
 - Use: `Authorization: Bearer apk_xxx` header on any endpoint
 - 20% bulk discount when balance >= $2.00
 - Token-based metering available: `X-Pricing: metered` header
 
-### 2. x402 USDC (Crypto-Native)
+### 3. x402 USDC (Crypto-Native)
 - **Standard**: [x402](https://x402.org) — HTTP 402 Payment Required
 - **Network**: Base Mainnet (eip155:8453)
 - **Token**: USDC (6 decimals)
 - **Flow**: POST endpoint → 402 with payment instructions → retry with `X-Payment` header
 
-### 3. MCP (Free Tier)
+## Top 15 Tools — Input/Output & Pricing
+
+| Tool | Endpoint | Price | Input (JSON POST) | Output |
+|------|----------|-------|--------------------|--------|
+| Research | POST /research | $0.01 | `{"topic": "..."}` | `{"result": "...", "_meta": {...}}` |
+| Summarize | POST /summarize | $0.01 | `{"text": "..."}` | `{"summary": "..."}` |
+| Translate | POST /translate | $0.02 | `{"text": "...", "target": "es"}` | `{"translation": "..."}` |
+| Code | POST /code | $0.05 | `{"task": "...", "language": "python"}` | `{"code": "...", "explanation": "..."}` |
+| Write | POST /write | $0.05 | `{"prompt": "...", "tone": "professional"}` | `{"text": "..."}` |
+| Analyze | POST /analyze | $0.02 | `{"text": "...", "aspects": [...]}` | `{"analysis": "..."}` |
+| Scrape Website | POST /scrape/website | $0.02 | `{"url": "https://..."}` | `{"content": "...", "title": "..."}` |
+| Sentiment | POST /sentiment | $0.01 | `{"text": "..."}` | `{"sentiment": "positive", "score": 0.92}` |
+| Extract | POST /extract | $0.02 | `{"text": "...", "fields": [...]}` | `{"extracted": {...}}` |
+| Compare | POST /compare | $0.02 | `{"items": ["A", "B"]}` | `{"comparison": "..."}` |
+| Classify | POST /classify | $0.01 | `{"text": "...", "categories": [...]}` | `{"category": "...", "confidence": 0.95}` |
+| Web Search | POST /web-search | $0.02 | `{"query": "..."}` | `{"results": [...]}` |
+| Fact Check | POST /fact | $0.02 | `{"claim": "..."}` | `{"verdict": "...", "evidence": "..."}` |
+| Batch | POST /batch | $0.10 | `{"operations": [{...}, ...]}` | `{"results": [...]}` |
+| Vision | POST /vision | $0.05 | `{"image_url": "...", "question": "..."}` | `{"description": "..."}` |
+
+## Example curl Calls
+
+### Research
+```bash
+curl -X POST https://api.aipaygen.com/research \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer apk_YOUR_KEY" \\
+  -d '{"topic": "quantum computing breakthroughs 2026"}'
+```
+
+### Summarize
+```bash
+curl -X POST https://api.aipaygen.com/summarize \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer apk_YOUR_KEY" \\
+  -d '{"text": "Long article text here...", "length": "short"}'
+```
+
+### Translate
+```bash
+curl -X POST https://api.aipaygen.com/translate \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer apk_YOUR_KEY" \\
+  -d '{"text": "Hello world", "target": "ja"}'
+```
+
+### Code
+```bash
+curl -X POST https://api.aipaygen.com/code \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer apk_YOUR_KEY" \\
+  -d '{"task": "fibonacci sequence generator", "language": "python"}'
+```
+
+### Scrape Website
+```bash
+curl -X POST https://api.aipaygen.com/scrape/website \\
+  -H "Content-Type: application/json" \\
+  -H "Authorization: Bearer apk_YOUR_KEY" \\
+  -d '{"url": "https://example.com"}'
+```
+
+## MCP (Model Context Protocol)
+
 - 10 free calls/day, no payment needed
 - Unlimited with `AIPAYGEN_API_KEY` env var
 - Install: `pip install aipaygen-mcp && claude mcp add aipaygen -- python -m aipaygen_mcp`
-- SSE endpoint: https://mcp.aipaygen.com/mcp
+- Remote SSE: https://mcp.aipaygen.com/mcp
 
 ## Discovery Endpoints
 
 - `GET /discover` — machine-readable service catalog (JSON)
 - `GET /.well-known/agent.json` — A2A Agent Card
+- `GET /.well-known/ai-plugin.json` — ChatGPT/OpenAI plugin manifest
 - `GET /openapi.json` — OpenAPI 3.1 spec
 - `GET /llms.txt` — this file
 - `GET /health` — service health check
 - `POST /preview` — free Claude demo (no payment needed)
 
-## Quick Start
+## Quick Start (Python)
 
 ```python
 import httpx
@@ -1489,6 +1560,14 @@ result = httpx.post(f"{BASE}/research",
 print(httpx.post(f"{BASE}/preview", json={"topic": "AI agents"}).json())
 ```
 
+## Links
+
+- Documentation: https://aipaygen.com/docs
+- OpenAPI Spec: https://api.aipaygen.com/openapi.json
+- Buy Credits: https://aipaygen.com/buy-credits
+- Security: https://aipaygen.com/security
+- MCP Registry: https://registry.modelcontextprotocol.io/servers/io.github.Damien829/aipaygen
+
 ## Notes for AI Agents
 
 - All paid responses include `_meta` with endpoint, model, network, timestamp.
@@ -1496,936 +1575,16 @@ print(httpx.post(f"{BASE}/preview", json={"topic": "AI agents"}).json())
 - USDC precision: 6 decimals. Network: Base Mainnet (eip155:8453).
 - Agent memory persists indefinitely — use a stable `agent_id`.
 - API key is the fastest path — one POST and you're running.
+- 402 responses include `Link` headers pointing to /openapi.json and /.well-known/ai-plugin.json.
 """
 
 
 @meta_bp.route("/openapi.json")
 def openapi_spec():
-    base_url = "https://api.aipaygen.com"
-    return jsonify({
-        "openapi": "3.1.0",
-        "info": {
-            "title": "AiPayGen",
-            "description": (
-                "Multi-model AI platform (15 LLMs, 7 providers) for autonomous agents. "
-                "No API keys required. Pay in USDC on Base Mainnet via x402 protocol, "
-                "or buy credits for metered token-based billing. "
-                "Wallet identity verification (EVM/Solana) with JWT sessions."
-            ),
-            "version": "2.0.0",
-            "x-payment-protocol": "x402",
-            "x-payment-network": EVM_NETWORK,
-            "x-payment-token": "USDC",
-        },
-        "servers": [{"url": base_url}],
-        "paths": {
-            "/research": {
-                "post": {
-                    "operationId": "research",
-                    "summary": "Research a topic",
-                    "description": "Claude researches a topic and returns a structured summary, key points, and sources to check. Costs $0.01 USDC per call via x402.",
-                    "x-price-usd": 0.01,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["topic"],
-                            "properties": {"topic": {"type": "string", "description": "The topic to research"}}
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Research result", "content": {"application/json": {"schema": {"type": "object", "properties": {"result": {"type": "string"}, "topic": {"type": "string"}}}}}}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/summarize": {
-                "post": {
-                    "operationId": "summarize",
-                    "summary": "Summarize long text",
-                    "description": "Compress long text into key points. Costs $0.01 USDC per call via x402.",
-                    "x-price-usd": 0.01,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["text"],
-                            "properties": {
-                                "text": {"type": "string", "description": "Text to summarize"},
-                                "length": {"type": "string", "enum": ["short", "medium", "detailed"], "default": "short"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Summary result"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/analyze": {
-                "post": {
-                    "operationId": "analyze",
-                    "summary": "Analyze content",
-                    "description": "Deep structured analysis of any content or data. Costs $0.02 USDC per call via x402.",
-                    "x-price-usd": 0.02,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["content"],
-                            "properties": {
-                                "content": {"type": "string", "description": "Content to analyze"},
-                                "question": {"type": "string", "description": "What to analyze for", "default": "Provide a structured analysis"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Analysis result"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/translate": {
-                "post": {
-                    "operationId": "translate",
-                    "summary": "Translate text",
-                    "description": "Translate text to any language. Costs $0.02 USDC per call via x402.",
-                    "x-price-usd": 0.02,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["text"],
-                            "properties": {
-                                "text": {"type": "string", "description": "Text to translate"},
-                                "language": {"type": "string", "description": "Target language", "default": "Spanish"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Translation result"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/social": {
-                "post": {
-                    "operationId": "social",
-                    "summary": "Generate social media posts",
-                    "description": "Generate platform-optimized posts for Twitter, LinkedIn, Instagram and more. Costs $0.03 USDC per call via x402.",
-                    "x-price-usd": 0.03,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["topic"],
-                            "properties": {
-                                "topic": {"type": "string", "description": "Topic or content for the posts"},
-                                "platforms": {"type": "array", "items": {"type": "string"}, "default": ["twitter", "linkedin", "instagram"]},
-                                "tone": {"type": "string", "default": "engaging"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Social posts result"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/write": {
-                "post": {
-                    "operationId": "write",
-                    "summary": "Write content",
-                    "description": "Write articles, copy, or content to your specification. Costs $0.05 USDC per call via x402.",
-                    "x-price-usd": 0.05,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["spec"],
-                            "properties": {
-                                "spec": {"type": "string", "description": "Content specification"},
-                                "type": {"type": "string", "enum": ["article", "post", "copy"], "default": "article"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Written content result"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/code": {
-                "post": {
-                    "operationId": "code",
-                    "summary": "Generate code",
-                    "description": "Generate production-ready code in any language from a description. Costs $0.05 USDC per call via x402.",
-                    "x-price-usd": 0.05,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["description"],
-                            "properties": {
-                                "description": {"type": "string", "description": "What to build"},
-                                "language": {"type": "string", "description": "Programming language", "default": "Python"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Generated code result"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/batch": {
-                "post": {
-                    "operationId": "batch",
-                    "summary": "Run multiple operations in one payment",
-                    "description": "Execute up to 5 operations in a single x402 payment. Best value for agents running multi-step pipelines. Costs $0.10 USDC per call.",
-                    "x-price-usd": 0.10,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["operations"],
-                            "properties": {
-                                "operations": {
-                                    "type": "array",
-                                    "maxItems": 5,
-                                    "items": {
-                                        "type": "object",
-                                        "required": ["endpoint", "input"],
-                                        "properties": {
-                                            "endpoint": {"type": "string", "description": "Endpoint name, e.g. /research"},
-                                            "input": {"type": "object", "description": "Input payload for that endpoint"}
-                                        }
-                                    }
-                                }
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Array of results"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/preview": {
-                "post": {
-                    "operationId": "preview",
-                    "summary": "Free 120-token preview",
-                    "description": "Try the service before paying. Returns a capped 120-token research preview. Free, no payment required.",
-                    "x-price-usd": 0.00,
-                    "requestBody": {
-                        "required": False,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "properties": {"topic": {"type": "string", "description": "Topic to preview"}}
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Preview result with link to full API"}}
-                }
-            },
-            "/score": {
-                "post": {
-                    "operationId": "score",
-                    "summary": "Score content quality",
-                    "description": "Score content on any custom rubric. Returns per-criterion scores, strengths, weaknesses, and recommendation. Costs $0.02 USDC via x402.",
-                    "x-price-usd": 0.02,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["content"],
-                            "properties": {
-                                "content": {"type": "string", "description": "Content to score"},
-                                "criteria": {"type": "array", "items": {"type": "string"}, "default": ["clarity", "accuracy", "engagement"], "description": "Scoring criteria"},
-                                "scale": {"type": "integer", "default": 10, "description": "Maximum score value"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Score result with per-criterion breakdown"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/timeline": {
-                "post": {
-                    "operationId": "timeline",
-                    "summary": "Extract timeline of events",
-                    "description": "Extract or reconstruct a chronological timeline from any text. Returns dated events with significance ratings. Costs $0.02 USDC via x402.",
-                    "x-price-usd": 0.02,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["text"],
-                            "properties": {
-                                "text": {"type": "string", "description": "Source text to extract timeline from"},
-                                "direction": {"type": "string", "enum": ["chronological", "reverse"], "default": "chronological"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Timeline with events, span, and summary"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/action": {
-                "post": {
-                    "operationId": "action",
-                    "summary": "Extract action items",
-                    "description": "Extract action items, tasks, owners, and due dates from meeting notes or any text. Costs $0.01 USDC via x402.",
-                    "x-price-usd": 0.01,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["text"],
-                            "properties": {
-                                "text": {"type": "string", "description": "Meeting notes or text containing tasks"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Action items with owners, due dates, and priorities"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/pitch": {
-                "post": {
-                    "operationId": "pitch",
-                    "summary": "Generate elevator pitch",
-                    "description": "Generate a timed elevator pitch with hook, value prop, and call to action. Costs $0.03 USDC via x402.",
-                    "x-price-usd": 0.03,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["product"],
-                            "properties": {
-                                "product": {"type": "string", "description": "Product, service, or idea to pitch"},
-                                "audience": {"type": "string", "description": "Target audience (e.g. investors, customers)", "default": "general"},
-                                "length": {"type": "string", "enum": ["15s", "30s", "60s"], "default": "30s"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Pitch with hook, value prop, call to action, and full script"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/debate": {
-                "post": {
-                    "operationId": "debate",
-                    "summary": "Arguments for and against a position",
-                    "description": "Generate structured debate arguments with strength ratings and a verdict. Costs $0.03 USDC via x402.",
-                    "x-price-usd": 0.03,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["topic"],
-                            "properties": {
-                                "topic": {"type": "string", "description": "Topic or position to debate"},
-                                "perspective": {"type": "string", "enum": ["balanced", "for", "against"], "default": "balanced"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "For/against arguments with strength ratings, verdict, and nuance"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/headline": {
-                "post": {
-                    "operationId": "headline",
-                    "summary": "Generate headlines and titles",
-                    "description": "Generate multiple headline variations for any content with type labels and a best pick. Costs $0.01 USDC via x402.",
-                    "x-price-usd": 0.01,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["content"],
-                            "properties": {
-                                "content": {"type": "string", "description": "Content to generate headlines for"},
-                                "count": {"type": "integer", "default": 5, "description": "Number of headlines to generate"},
-                                "style": {"type": "string", "default": "engaging", "description": "Headline style (engaging, clickbait, informative, question, how-to)"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Headlines array with types and best pick"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/fact": {
-                "post": {
-                    "operationId": "fact",
-                    "summary": "Extract factual claims",
-                    "description": "Extract factual claims from text with verifiability scores and source hints. Costs $0.02 USDC via x402.",
-                    "x-price-usd": 0.02,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["text"],
-                            "properties": {
-                                "text": {"type": "string", "description": "Text to extract facts from"},
-                                "count": {"type": "integer", "default": 10, "description": "Maximum number of facts to extract"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Facts with verifiability ratings, source hints, and confidence scores"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/rewrite": {
-                "post": {
-                    "operationId": "rewrite",
-                    "summary": "Rewrite for a target audience",
-                    "description": "Rewrite text for a specific audience, reading level, or brand voice. Costs $0.02 USDC via x402.",
-                    "x-price-usd": 0.02,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["text"],
-                            "properties": {
-                                "text": {"type": "string", "description": "Text to rewrite"},
-                                "audience": {"type": "string", "description": "Target audience (e.g. 5th grader, executive, developer)", "default": "general audience"},
-                                "tone": {"type": "string", "description": "Desired tone (e.g. friendly, formal, casual)", "default": "neutral"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Rewritten text"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/tag": {
-                "post": {
-                    "operationId": "tag",
-                    "summary": "Auto-tag content",
-                    "description": "Tag content using a provided taxonomy or free-form tagging. Returns tags, primary tag, and categories. Costs $0.01 USDC via x402.",
-                    "x-price-usd": 0.01,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["text"],
-                            "properties": {
-                                "text": {"type": "string", "description": "Content to tag"},
-                                "taxonomy": {"type": "array", "items": {"type": "string"}, "description": "Optional list of allowed tags. Omit for free-form tagging."},
-                                "max_tags": {"type": "integer", "default": 10, "description": "Maximum number of tags to return"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Tags, primary tag, and categories"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/pipeline": {
-                "post": {
-                    "operationId": "pipeline",
-                    "summary": "Chain operations with output passing",
-                    "description": "Chain up to 5 operations where each step can reference the previous step's output using {{prev}}. Costs $0.15 USDC via x402.",
-                    "x-price-usd": 0.15,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["steps"],
-                            "properties": {
-                                "steps": {
-                                    "type": "array",
-                                    "maxItems": 5,
-                                    "description": "Ordered list of steps to execute",
-                                    "items": {
-                                        "type": "object",
-                                        "required": ["endpoint", "input"],
-                                        "properties": {
-                                            "endpoint": {"type": "string", "description": "Endpoint name, e.g. research"},
-                                            "input": {"type": "object", "description": "Input payload. Use \"{{prev}}\" as a value to inject the previous step's output."}
-                                        }
-                                    }
-                                }
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Step-by-step results with final_output"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/discover": {
-                "get": {
-                    "operationId": "discover",
-                    "summary": "Service manifest",
-                    "description": "Machine-readable JSON manifest of all services, prices, and payment details. Free.",
-                    "responses": {"200": {"description": "Service manifest"}}
-                }
-            },
-            "/data/weather": {
-                "get": {
-                    "operationId": "get_weather",
-                    "summary": "Live weather data (FREE)",
-                    "description": "Current weather for any city via Open-Meteo. Returns temperature, wind speed, weather code. Free.",
-                    "x-price-usd": 0.00,
-                    "parameters": [{"name": "city", "in": "query", "required": True, "schema": {"type": "string"}, "description": "City name (e.g. London, Tokyo, New York)"}],
-                    "responses": {"200": {"description": "Temperature, wind, weather code, lat/lon"}}
-                }
-            },
-            "/data/crypto": {
-                "get": {
-                    "operationId": "get_crypto",
-                    "summary": "Crypto prices (FREE)",
-                    "description": "Real-time prices from CoinGecko for bitcoin, ethereum, and 10k+ tokens. Returns USD/EUR/GBP prices and 24h change. Free.",
-                    "x-price-usd": 0.00,
-                    "parameters": [{"name": "symbol", "in": "query", "required": False, "schema": {"type": "string"}, "description": "Comma-separated coin IDs (e.g. bitcoin,ethereum,solana)"}],
-                    "responses": {"200": {"description": "Prices in USD/EUR/GBP with 24h change"}}
-                }
-            },
-            "/data/exchange-rates": {
-                "get": {
-                    "operationId": "get_exchange_rates",
-                    "summary": "Currency exchange rates (FREE)",
-                    "description": "Live rates for 160+ currencies. Free.",
-                    "x-price-usd": 0.00,
-                    "parameters": [{"name": "base", "in": "query", "schema": {"type": "string", "default": "USD"}, "description": "Base currency (e.g. USD, EUR, GBP)"}],
-                    "responses": {"200": {"description": "Exchange rates object keyed by currency code"}}
-                }
-            },
-            "/data/ip": {
-                "get": {
-                    "operationId": "get_ip_geo",
-                    "summary": "IP geolocation (FREE)",
-                    "description": "Geolocate any IP: city, country, ISP, lat/lon. Free.",
-                    "x-price-usd": 0.00,
-                    "parameters": [{"name": "ip", "in": "query", "schema": {"type": "string"}, "description": "IP address to look up (omit to use your own)"}],
-                    "responses": {"200": {"description": "City, country, ISP, lat/lon, timezone"}}
-                }
-            },
-            "/data/news": {
-                "get": {
-                    "operationId": "get_news",
-                    "summary": "Top Hacker News stories (FREE)",
-                    "description": "Top 10 Hacker News stories right now. Free.",
-                    "x-price-usd": 0.00,
-                    "responses": {"200": {"description": "Array of top stories with title, url, score, comments"}}
-                }
-            },
-            "/data/country": {
-                "get": {
-                    "operationId": "get_country",
-                    "summary": "Country facts (FREE)",
-                    "description": "Country details: capital, population, languages, currencies, flags. Free.",
-                    "x-price-usd": 0.00,
-                    "parameters": [{"name": "name", "in": "query", "required": True, "schema": {"type": "string"}, "description": "Country name (e.g. France, Brazil, Japan)"}],
-                    "responses": {"200": {"description": "Capital, population, languages, currencies, flags"}}
-                }
-            },
-            "/data/stocks": {
-                "get": {
-                    "operationId": "get_stocks",
-                    "summary": "Stock price (FREE)",
-                    "description": "Real-time stock price from Yahoo Finance. Free.",
-                    "x-price-usd": 0.00,
-                    "parameters": [{"name": "symbol", "in": "query", "required": True, "schema": {"type": "string"}, "description": "Ticker symbol (e.g. AAPL, TSLA, GOOGL)"}],
-                    "responses": {"200": {"description": "Current price, open, high, low, volume"}}
-                }
-            },
-            "/web/search": {
-                "get": {
-                    "operationId": "web_search",
-                    "summary": "Web search via DuckDuckGo",
-                    "description": "DuckDuckGo instant answers + related results. Costs $0.02 USDC via x402.",
-                    "x-price-usd": 0.02,
-                    "parameters": [
-                        {"name": "q", "in": "query", "required": True, "schema": {"type": "string"}, "description": "Search query"},
-                        {"name": "n", "in": "query", "schema": {"type": "integer", "default": 10}, "description": "Max results (up to 25)"}
-                    ],
-                    "responses": {"200": {"description": "Instant answer, result array, count"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/message/send": {
-                "post": {
-                    "operationId": "send_message",
-                    "summary": "Send agent-to-agent message",
-                    "description": "Send a message from one agent to another. Messages are stored and can be retrieved via /message/inbox. Costs $0.01 USDC via x402.",
-                    "x-price-usd": 0.01,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["from_agent", "to_agent", "body"],
-                            "properties": {
-                                "from_agent": {"type": "string", "description": "Sender agent ID"},
-                                "to_agent": {"type": "string", "description": "Recipient agent ID"},
-                                "subject": {"type": "string", "description": "Message subject"},
-                                "body": {"type": "string", "description": "Message body"},
-                                "thread_id": {"type": "string", "description": "Thread ID for replies (optional)"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "msg_id, thread_id, sent:true"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/message/inbox/{agent_id}": {
-                "get": {
-                    "operationId": "get_inbox",
-                    "summary": "Read agent inbox (FREE)",
-                    "description": "Retrieve messages sent to an agent. Filter by unread. Free.",
-                    "x-price-usd": 0.00,
-                    "parameters": [
-                        {"name": "agent_id", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Agent ID to read inbox for"},
-                        {"name": "unread_only", "in": "query", "schema": {"type": "integer", "enum": [0, 1]}, "description": "Set to 1 for unread only"}
-                    ],
-                    "responses": {"200": {"description": "Array of messages"}}
-                }
-            },
-            "/knowledge/add": {
-                "post": {
-                    "operationId": "add_knowledge",
-                    "summary": "Add to shared knowledge base",
-                    "description": "Contribute a knowledge entry to the shared agent knowledge base. Costs $0.01 USDC via x402.",
-                    "x-price-usd": 0.01,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["topic", "content", "author_agent"],
-                            "properties": {
-                                "topic": {"type": "string", "description": "Knowledge topic or category"},
-                                "content": {"type": "string", "description": "Knowledge content"},
-                                "author_agent": {"type": "string", "description": "Contributing agent ID"},
-                                "tags": {"type": "array", "items": {"type": "string"}, "description": "Optional tags"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "entry_id, added:true"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/knowledge/search": {
-                "get": {
-                    "operationId": "search_knowledge",
-                    "summary": "Search shared knowledge base (FREE)",
-                    "description": "Full-text search across all agent-contributed knowledge. Free.",
-                    "x-price-usd": 0.00,
-                    "parameters": [
-                        {"name": "q", "in": "query", "required": True, "schema": {"type": "string"}, "description": "Search query"},
-                        {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 10}, "description": "Max results"}
-                    ],
-                    "responses": {"200": {"description": "Matching knowledge entries"}}
-                }
-            },
-            "/task/submit": {
-                "post": {
-                    "operationId": "submit_task",
-                    "summary": "Post a task for other agents",
-                    "description": "Post a task on the agent task board. Other agents can claim and complete it. Costs $0.01 USDC via x402.",
-                    "x-price-usd": 0.01,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["posted_by", "title", "description"],
-                            "properties": {
-                                "posted_by": {"type": "string", "description": "Agent ID posting the task"},
-                                "title": {"type": "string", "description": "Task title"},
-                                "description": {"type": "string", "description": "Detailed task description"},
-                                "skills_needed": {"type": "array", "items": {"type": "string"}, "description": "Skills required (e.g. python, web-search)"},
-                                "reward_usd": {"type": "number", "default": 0.0, "description": "USDC reward offered"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "task_id, submitted:true"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/task/browse": {
-                "get": {
-                    "operationId": "browse_tasks",
-                    "summary": "Browse agent task board (FREE)",
-                    "description": "Browse open tasks on the agent task board. Filter by skill. Free.",
-                    "x-price-usd": 0.00,
-                    "parameters": [
-                        {"name": "skill", "in": "query", "schema": {"type": "string"}, "description": "Filter by skill (e.g. python, web-search)"},
-                        {"name": "status", "in": "query", "schema": {"type": "string", "default": "open"}, "description": "Task status (open, claimed, completed)"}
-                    ],
-                    "responses": {"200": {"description": "Array of tasks"}}
-                }
-            },
-            "/marketplace": {
-                "get": {
-                    "operationId": "browse_marketplace",
-                    "summary": "Browse agent marketplace (FREE)",
-                    "description": "Browse all agent services listed in the marketplace. Filter by category and price. Free.",
-                    "x-price-usd": 0.00,
-                    "parameters": [
-                        {"name": "category", "in": "query", "schema": {"type": "string"}, "description": "Filter by category (data, search, code, scraping, nlp, content, analytics, knowledge)"},
-                        {"name": "max_price", "in": "query", "schema": {"type": "number"}, "description": "Maximum price in USD"},
-                        {"name": "page", "in": "query", "schema": {"type": "integer", "default": 1}}
-                    ],
-                    "responses": {"200": {"description": "Listings array, total count, pages"}}
-                }
-            },
-            "/marketplace/call": {
-                "post": {
-                    "operationId": "call_marketplace_service",
-                    "summary": "Call any marketplace service",
-                    "description": "Proxy call to any marketplace listing. Handles request forwarding + response. Costs $0.05 USDC via x402.",
-                    "x-price-usd": 0.05,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["listing_id"],
-                            "properties": {
-                                "listing_id": {"type": "string", "description": "Marketplace listing ID to call"},
-                                "payload": {"type": "object", "description": "Request payload to forward"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Service response"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/scrape/web": {
-                "post": {
-                    "operationId": "scrape_web",
-                    "summary": "Web crawler (Apify)",
-                    "description": "Crawl any website and extract structured content. Costs $0.05 USDC via x402.",
-                    "x-price-usd": 0.05,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["url"],
-                            "properties": {
-                                "url": {"type": "string", "description": "URL to crawl"},
-                                "max_pages": {"type": "integer", "default": 5}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Crawled pages with structured content"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/scrape/google-maps": {
-                "post": {
-                    "operationId": "scrape_google_maps",
-                    "summary": "Google Maps scraper (Apify)",
-                    "description": "Scrape places, ratings, addresses, reviews from Google Maps. Costs $0.10 USDC via x402.",
-                    "x-price-usd": 0.10,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["query"],
-                            "properties": {
-                                "query": {"type": "string", "description": "Search query (e.g. 'restaurants in NYC')"},
-                                "max_items": {"type": "integer", "default": 5}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Places with ratings, addresses, reviews"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/code/run": {
-                "post": {
-                    "operationId": "run_code",
-                    "summary": "Execute Python code",
-                    "description": "Run Python code in a sandboxed subprocess. Returns stdout, stderr, return code. Costs $0.05 USDC via x402.",
-                    "x-price-usd": 0.05,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["code"],
-                            "properties": {
-                                "code": {"type": "string", "description": "Python code to execute (max 5000 chars)"},
-                                "timeout": {"type": "integer", "default": 10, "description": "Timeout in seconds (max 15)"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "stdout, stderr, returncode, execution_time_ms"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/enrich": {
-                "post": {
-                    "operationId": "enrich_entity",
-                    "summary": "Entity enrichment",
-                    "description": "Aggregate data from multiple sources for an IP, crypto token, country, or company. Returns a unified enrichment profile. Costs $0.05 USDC via x402.",
-                    "x-price-usd": 0.05,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["entity", "type"],
-                            "properties": {
-                                "entity": {"type": "string", "description": "Entity to enrich (IP address, coin ID, country name, company name)"},
-                                "type": {"type": "string", "enum": ["ip", "crypto", "country", "company"], "description": "Entity type"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Enriched profile with data from multiple sources"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/agents": {
-                "get": {
-                    "operationId": "list_agents",
-                    "summary": "List registered agents (FREE)",
-                    "description": "List all agents registered in the agent registry. Free.",
-                    "x-price-usd": 0.00,
-                    "responses": {"200": {"description": "Array of agents with capabilities and endpoints"}}
-                }
-            },
-            "/agents/register": {
-                "post": {
-                    "operationId": "register_agent",
-                    "summary": "Register an agent (FREE)",
-                    "description": "Register your agent in the shared agent registry. Free — we want your agent here.",
-                    "x-price-usd": 0.00,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["agent_id", "name", "capabilities"],
-                            "properties": {
-                                "agent_id": {"type": "string", "description": "Unique agent identifier"},
-                                "name": {"type": "string", "description": "Human-readable agent name"},
-                                "description": {"type": "string"},
-                                "capabilities": {"type": "array", "items": {"type": "string"}, "description": "List of capability tags"},
-                                "endpoint": {"type": "string", "description": "Your agent's base URL"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "agent_id, registered:true"}}
-                }
-            },
-            "/rag": {
-                "post": {
-                    "operationId": "rag_qa",
-                    "summary": "RAG document Q&A",
-                    "description": "Provide documents + question, get a grounded answer with citations. Costs $0.05 USDC via x402.",
-                    "x-price-usd": 0.05,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["query", "documents"],
-                            "properties": {
-                                "query": {"type": "string", "description": "Question to answer"},
-                                "documents": {"type": "array", "items": {"type": "string"}, "description": "Array of document texts to search"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Answer with citations and confidence score"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/vision": {
-                "post": {
-                    "operationId": "vision_analysis",
-                    "summary": "Image analysis (vision)",
-                    "description": "Analyze an image URL with Claude vision. Returns structured description, objects, text, sentiment. Costs $0.05 USDC via x402.",
-                    "x-price-usd": 0.05,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["image_url"],
-                            "properties": {
-                                "image_url": {"type": "string", "description": "Public URL of image to analyze"},
-                                "question": {"type": "string", "description": "Specific question about the image"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Description, objects, text, sentiment, answer"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/workflow": {
-                "post": {
-                    "operationId": "agentic_workflow",
-                    "summary": "Multi-step agentic workflow",
-                    "description": "Multi-step agentic reasoning with Claude Sonnet. Breaks goal into steps, executes each, returns structured plan + results. Costs $0.20 USDC via x402.",
-                    "x-price-usd": 0.20,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["goal"],
-                            "properties": {
-                                "goal": {"type": "string", "description": "High-level goal for the agent to accomplish"},
-                                "context": {"type": "string", "description": "Additional context"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "Plan, steps, results, summary"}, "402": {"description": "Payment required"}}
-                }
-            },
-            "/models": {
-                "get": {
-                    "operationId": "list_models",
-                    "summary": "List available AI models (FREE)",
-                    "description": "List all supported LLM models with provider, pricing, and capabilities. Free.",
-                    "x-price-usd": 0.00,
-                    "responses": {"200": {"description": "Array of models with provider, cost, and max_tokens"}}
-                }
-            },
-            "/agents/challenge": {
-                "post": {
-                    "operationId": "agent_challenge",
-                    "summary": "Request wallet verification challenge (FREE)",
-                    "description": "Start wallet-based identity verification. Returns a challenge string to sign. Free.",
-                    "x-price-usd": 0.00,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["wallet_address"],
-                            "properties": {
-                                "wallet_address": {"type": "string", "description": "EVM or Solana wallet address"},
-                                "chain": {"type": "string", "enum": ["evm", "solana"], "default": "evm"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "challenge string and expiry"}}
-                }
-            },
-            "/agents/verify": {
-                "post": {
-                    "operationId": "agent_verify",
-                    "summary": "Verify wallet signature, get JWT (FREE)",
-                    "description": "Submit signed challenge to verify wallet ownership. Returns a JWT session token. Free.",
-                    "x-price-usd": 0.00,
-                    "requestBody": {
-                        "required": True,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "required": ["wallet_address", "signature"],
-                            "properties": {
-                                "wallet_address": {"type": "string", "description": "Wallet address used in challenge"},
-                                "signature": {"type": "string", "description": "Signed challenge message"},
-                                "chain": {"type": "string", "enum": ["evm", "solana"], "default": "evm"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "JWT token and agent profile"}}
-                }
-            },
-            "/agents/me": {
-                "get": {
-                    "operationId": "agent_profile",
-                    "summary": "Get current agent profile (FREE)",
-                    "description": "View your agent profile. Requires JWT in Authorization header. Free.",
-                    "x-price-usd": 0.00,
-                    "parameters": [{"name": "Authorization", "in": "header", "required": True, "schema": {"type": "string"}, "description": "Bearer <JWT>"}],
-                    "responses": {"200": {"description": "Agent profile with wallet, reputation, and capabilities"}}
-                }
-            },
-            "/agents/search": {
-                "get": {
-                    "operationId": "search_agents",
-                    "summary": "Search verified agents (FREE)",
-                    "description": "Search wallet-verified agents by capability, name, or wallet address. Free.",
-                    "x-price-usd": 0.00,
-                    "parameters": [
-                        {"name": "q", "in": "query", "schema": {"type": "string"}, "description": "Search query (name, capability, wallet)"},
-                        {"name": "capability", "in": "query", "schema": {"type": "string"}, "description": "Filter by capability tag"},
-                        {"name": "limit", "in": "query", "schema": {"type": "integer", "default": 20}, "description": "Max results"}
-                    ],
-                    "responses": {"200": {"description": "Array of matching agent profiles"}}
-                }
-            },
-            "/agents/{agent_id}/portfolio": {
-                "get": {
-                    "operationId": "agent_portfolio",
-                    "summary": "View agent portfolio (FREE)",
-                    "description": "View a verified agent's public portfolio: capabilities, reputation, and transaction history. Free.",
-                    "x-price-usd": 0.00,
-                    "parameters": [{"name": "agent_id", "in": "path", "required": True, "schema": {"type": "string"}, "description": "Agent wallet address or ID"}],
-                    "responses": {"200": {"description": "Agent portfolio with reputation score and history"}}
-                }
-            },
-            "/credits/buy": {
-                "post": {
-                    "operationId": "buy_credits",
-                    "summary": "Buy prepaid credit pack",
-                    "description": "Purchase a $5 USDC credit pack via x402. Returns a prepaid API key for metered token-based billing. Costs $5.00 USDC via x402.",
-                    "x-price-usd": 5.00,
-                    "requestBody": {
-                        "required": False,
-                        "content": {"application/json": {"schema": {
-                            "type": "object",
-                            "properties": {
-                                "amount_usd": {"type": "number", "default": 5.0, "description": "Credit amount in USD"},
-                                "label": {"type": "string", "default": "x402-credit-pack", "description": "Label for the API key"}
-                            }
-                        }}}
-                    },
-                    "responses": {"200": {"description": "API key, balance, and pricing instructions"}, "402": {"description": "Payment required"}}
-                }
-            },
-        }
-    })
+    from openapi_gen import generate_openapi_spec
+    return jsonify(generate_openapi_spec())
+
+
 
 
 @meta_bp.route("/llms.txt")
@@ -2447,24 +1606,22 @@ def ai_plugin():
         "schema_version": "v1",
         "name_for_human": "AiPayGen",
         "name_for_model": "aipaygen",
-        "description_for_human": "Pay-per-use Claude AI services. Research, write, code, translate, analyze — pay in USDC on Base. No API key needed.",
+        "description_for_human": "106 AI tools — research, write, code, translate, scrape, and more. 10 free calls/day.",
         "description_for_model": (
-            "AiPayGen is an x402 resource server offering Claude-powered AI endpoints. "
-            "No API key required. POST to any endpoint, receive HTTP 402 with payment instructions, "
-            "attach a signed USDC payment on Base Mainnet (eip155:8453), and receive the result. "
-            "Endpoints: /research ($0.01), /summarize ($0.01), /analyze ($0.02), /translate ($0.02), "
-            "/social ($0.03), /write ($0.05), /code ($0.05), /batch ($0.10 for up to 5 ops), /preview (free). "
-            "GET /discover for the full machine-readable manifest. GET /openapi.json for the OpenAPI 3.1 spec."
+            "AiPayGen provides 106 AI-powered tools accessible via a single API. "
+            "Use for research, writing, code generation, translation, sentiment analysis, "
+            "web scraping, data extraction, content comparison, fact-checking, and more. "
+            "Free tier: 10 calls/day per IP. Paid: prepaid API key (Bearer apk_xxx) or "
+            "x402 USDC micropayment. All tools accept JSON POST requests."
         ),
-        "auth": {"type": "none"},
+        "auth": {"type": "service_http", "authorization_type": "bearer"},
         "api": {
             "type": "openapi",
             "url": f"{base_url}/openapi.json",
-            "is_user_authenticated": False,
         },
         "logo_url": "https://aipaygen.com/favicon.ico",
         "contact_email": "hello@aipaygen.com",
-        "legal_info_url": f"{base_url}/llms.txt",
+        "legal_info_url": f"{base_url}/security",
     })
 
 
@@ -3461,6 +2618,12 @@ _TRY_PAGE = """<!DOCTYPE html>
   .result-box { margin-top: 16px; background: #0d0d0d; border: 1px solid #222; border-radius: 10px; padding: 16px; font-size: 0.85rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; display: none; max-height: 400px; overflow-y: auto; }
   .result-box.show { display: block; }
 
+  .curl-wrap { margin-top: 12px; display: none; }
+  .curl-wrap.show { display: block; }
+  .curl-box { background: #111; border: 1px solid #2a2a2a; border-radius: 8px; padding: 12px; font-size: 0.75rem; font-family: 'SF Mono', 'Fira Code', monospace; color: #8b8; white-space: pre-wrap; word-break: break-all; max-height: 160px; overflow-y: auto; }
+  .copy-curl-btn { margin-top: 6px; background: #1e1e1e; border: 1px solid #333; border-radius: 6px; padding: 6px 14px; color: #aaa; font-size: 0.75rem; cursor: pointer; transition: all 0.15s; }
+  .copy-curl-btn:hover { background: #1a1a3e; border-color: #6366f1; color: #c4b5fd; }
+
   .cta { text-align: center; margin-top: 24px; }
   .cta a { display: inline-block; background: #6366f1; color: #fff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 0.95rem; }
   .cta p { color: #555; font-size: 0.78rem; margin-top: 8px; }
@@ -3506,25 +2669,38 @@ _TRY_PAGE = """<!DOCTYPE html>
       <div class="tool-btn" data-tool="keywords" data-placeholder="Paste text to extract keywords..." data-desc="Extracts topics, entities, and key phrases">Keywords</div>
       <div class="tool-btn" data-tool="explain" data-placeholder="Enter a concept to explain..." data-desc="Explains any concept in simple terms with analogies">Explain</div>
       <div class="tool-btn" data-tool="code" data-placeholder="Describe what code to generate..." data-desc="Generates code in any language from a description">Code</div>
+      <div class="tool-btn" data-tool="research" data-placeholder="Enter a topic to research..." data-desc="Researches any topic with key points and sources">Research</div>
+      <div class="tool-btn" data-tool="analyze" data-placeholder="Paste content to analyze (add question on second line)..." data-desc="Analyzes content with findings, sentiment, and confidence">Analyze</div>
+      <div class="tool-btn" data-tool="compare" data-placeholder="Enter two items separated by a blank line..." data-desc="Compares two texts with similarities, differences, and scores">Compare</div>
+      <div class="tool-btn" data-tool="extract" data-placeholder="Paste text, then what to extract on second line..." data-desc="Extracts structured data, entities, and facts from text">Extract</div>
+      <div class="tool-btn" data-tool="questions" data-placeholder="Enter a topic to generate questions about..." data-desc="Generates FAQ, interview, or quiz questions from content">Questions</div>
+      <div class="tool-btn" data-tool="decide" data-placeholder="Describe a decision (options on second line, comma-separated)..." data-desc="Analyzes decisions with pros, cons, risks, and recommendations">Decide</div>
+      <div class="tool-btn" data-tool="classify" data-placeholder="Text to classify (categories on second line, comma-separated)..." data-desc="Classifies text into custom categories with confidence scores">Classify</div>
+      <div class="tool-btn" data-tool="rewrite" data-placeholder="Text to rewrite (style/audience on second line)..." data-desc="Rewrites text for a different audience or tone">Rewrite</div>
+      <div class="tool-btn" data-tool="headline" data-placeholder="Enter content to generate headlines for..." data-desc="Generates engaging headlines and titles for any content">Headline</div>
     </div>
     <p class="tool-desc" id="desc">Detects polarity, emotions, confidence, and key phrases</p>
     <textarea id="input" placeholder="Type any text to analyze sentiment..."></textarea>
     <button class="run-btn" id="run" onclick="runTool()">&#9654; Run</button>
     <div class="result-box" id="result"></div>
+    <div class="curl-wrap" id="curl-wrap">
+      <div class="curl-box" id="curl-cmd"></div>
+      <button class="copy-curl-btn" id="copy-curl" onclick="copyCurl()">Copy as curl</button>
+    </div>
   </div>
 
   <div class="cta">
     <a href="/buy-credits">Get API Key — From $1</a>
     <p>106 tools &middot; 15 AI models &middot; Credits never expire</p>
   </div>
-  <p class="free-note">Free demo uses the same AI models as paid API. Limited to 5 demos per session.</p>
+  <p class="free-note">Free demo uses the same AI models as paid API. Limited to 10 demos per session.</p>
 </div>
 
 <!-- Upsell modal -->
 <div class="modal-overlay" id="upsell-modal">
   <div class="modal">
     <button class="modal-close" onclick="closeModal()">&times;</button>
-    <h2>You've used all 5 free demos</h2>
+    <h2>You've used all 10 free demos</h2>
     <p class="modal-sub">Pick a plan to unlock unlimited access to all 106 tools.</p>
     <div class="modal-plans">
       <div class="modal-plan" data-amt="1" onclick="selectModalPlan(this)">
@@ -3550,7 +2726,8 @@ _TRY_PAGE = """<!DOCTYPE html>
 <script>
 let currentTool = 'sentiment';
 let demoCount = 0;
-const MAX_DEMOS = 5;
+const MAX_DEMOS = 10;
+let lastCurl = '';
 
 document.querySelectorAll('.tool-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -3614,6 +2791,33 @@ async function runTool() {
     else if (currentTool === 'keywords') body.text = input;
     else if (currentTool === 'explain') { body.concept = input; body.level = 'beginner'; }
     else if (currentTool === 'code') { body.description = input; body.language = 'python'; }
+    else if (currentTool === 'research') body.topic = input;
+    else if (currentTool === 'analyze') {
+      const lines = input.split('\\n');
+      body.content = lines[0]; body.question = lines.slice(1).join(' ') || 'general analysis';
+    }
+    else if (currentTool === 'compare') {
+      const parts = input.split('\\n\\n');
+      body.text_a = parts[0] || ''; body.text_b = parts.slice(1).join('\\n\\n') || '';
+    }
+    else if (currentTool === 'extract') {
+      const lines = input.split('\\n');
+      body.text = lines[0]; body.schema_desc = lines.slice(1).join(' ') || '';
+    }
+    else if (currentTool === 'questions') body.content = input;
+    else if (currentTool === 'decide') {
+      const lines = input.split('\\n');
+      body.decision = lines[0]; if (lines[1]) body.options = lines[1].split(',').map(s => s.trim());
+    }
+    else if (currentTool === 'classify') {
+      const lines = input.split('\\n');
+      body.text = lines[0]; body.categories = (lines[1] || 'positive,negative,neutral').split(',').map(s => s.trim());
+    }
+    else if (currentTool === 'rewrite') {
+      const lines = input.split('\\n');
+      body.text = lines[0]; body.audience = lines[1] || 'general';
+    }
+    else if (currentTool === 'headline') body.content = input;
 
     const res = await fetch('/try/' + currentTool, {
       method: 'POST',
@@ -3633,11 +2837,26 @@ async function runTool() {
       box.textContent = output + '\\n\\n--- ' + remaining + ' free demo' + (remaining !== 1 ? 's' : '') + ' remaining';
       box.className = 'result-box show';
     }
+    // Build curl command
+    const curlBody = JSON.stringify(body);
+    lastCurl = "curl -X POST https://api.aipaygen.com/" + currentTool + " \\\\\\n  -H 'Content-Type: application/json' \\\\\\n  -H 'Authorization: Bearer YOUR_API_KEY' \\\\\\n  -d '" + curlBody.replace(/'/g, "'\\\\''") + "'";
+    const curlEl = document.getElementById('curl-cmd');
+    curlEl.textContent = lastCurl;
+    document.getElementById('curl-wrap').className = 'curl-wrap show';
+    document.getElementById('copy-curl').textContent = 'Copy as curl';
   } catch(e) {
     box.textContent = 'Error: ' + e.message;
     box.className = 'result-box show';
+    document.getElementById('curl-wrap').className = 'curl-wrap';
   }
   btn.disabled = false; btn.textContent = '\\u25B6 Run';
+}
+
+function copyCurl() {
+  navigator.clipboard.writeText(lastCurl).then(() => {
+    document.getElementById('copy-curl').textContent = 'Copied!';
+    setTimeout(() => { document.getElementById('copy-curl').textContent = 'Copy as curl'; }, 2000);
+  });
 }
 </script>
 </body>
@@ -3649,7 +2868,7 @@ def try_page():
     return _TRY_PAGE, 200, {"Content-Type": "text/html"}
 
 
-# Per-IP demo rate limiter (3 per 10 minutes)
+# Per-IP demo rate limiter (10 per 10 minutes)
 _demo_usage = {}
 
 def _check_demo_limit(ip):
@@ -3657,7 +2876,7 @@ def _check_demo_limit(ip):
     key = f"demo:{ip}"
     entries = _demo_usage.get(key, [])
     entries = [t for t in entries if now - t < 600]
-    if len(entries) >= 5:
+    if len(entries) >= 10:
         return False
     entries.append(now)
     _demo_usage[key] = entries
@@ -3669,10 +2888,13 @@ def try_tool(tool):
     from routes.ai_tools import (
         sentiment_inner, summarize_inner, translate_inner,
         keywords_inner, explain_inner, code_inner,
+        research_inner, analyze_inner, compare_inner,
+        extract_inner, questions_inner, decide_inner,
+        classify_inner, rewrite_inner, headline_inner,
     )
     ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "unknown")
     if not _check_demo_limit(ip):
-        return jsonify({"error": "Demo limit reached (5 per 10 minutes)", "upgrade": "/buy-credits"}), 429
+        return jsonify({"error": "Demo limit reached (10 per 10 minutes)", "upgrade": "/buy-credits"}), 429
 
     data = request.get_json() or {}
     try:
@@ -3688,8 +2910,26 @@ def try_tool(tool):
             result = explain_inner(data.get("concept", "")[:200])
         elif tool == "code":
             result = code_inner(data.get("description", "")[:300], data.get("language", "python"))
+        elif tool == "research":
+            result = research_inner(data.get("topic", "")[:300])
+        elif tool == "analyze":
+            result = analyze_inner(data.get("content", "")[:2000], data.get("question", "general analysis")[:300])
+        elif tool == "compare":
+            result = compare_inner(data.get("text_a", "")[:1000], data.get("text_b", "")[:1000])
+        elif tool == "extract":
+            result = extract_inner(data.get("text", "")[:2000], data.get("schema_desc", ""), data.get("fields", []))
+        elif tool == "questions":
+            result = questions_inner(data.get("content", "")[:2000])
+        elif tool == "decide":
+            result = decide_inner(data.get("decision", "")[:500], data.get("options", None))
+        elif tool == "classify":
+            result = classify_inner(data.get("text", "")[:1000], data.get("categories", []))
+        elif tool == "rewrite":
+            result = rewrite_inner(data.get("text", "")[:2000], data.get("audience", "general")[:100])
+        elif tool == "headline":
+            result = headline_inner(data.get("content", "")[:1000])
         else:
-            return jsonify({"error": f"Unknown demo tool: {tool}. Try: sentiment, summarize, translate, keywords, explain, code"}), 400
+            return jsonify({"error": f"Unknown demo tool: {tool}. Try: sentiment, summarize, translate, keywords, explain, code, research, analyze, compare, extract, questions, decide, classify, rewrite, headline"}), 400
         funnel_log_event("demo_used", endpoint=f"/try/{tool}", ip=ip)
         return jsonify({"result": result, "tool": tool, "_meta": {"free_demo": True, "upgrade": "/buy-credits"}})
     except Exception as e:

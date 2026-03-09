@@ -1,0 +1,16 @@
+venv/
+.env
+.env.enc
+*.db
+*.db-wal
+*.db-shm
+__pycache__/
+.git/
+.gitignore
+tests/
+docs/plans/
+*.log
+uploads/
+*.pyc
+.pytest_cache/
+node_modules/

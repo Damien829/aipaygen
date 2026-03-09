@@ -492,34 +492,97 @@ _SUCCESS_PAGE = """<!DOCTYPE html>
   <h1>Payment Successful</h1>
   <p class="sub">Your API key is ready.</p>
 
-  <div class="key-box">
+  <div class="key-box" id="key-box" style="display:none">
     <div class="key-label">YOUR API KEY</div>
-    <div class="key-val" onclick="copyKey(this)" title="Click to copy">{{ key }}</div>
+    <div class="key-val" id="key-display" title="Click to copy"></div>
     <div class="copy-hint">Click to copy</div>
   </div>
+  <div id="loading" style="color:#888;margin-bottom:24px;">Confirming payment... this may take a few seconds.</div>
 
-  <p class="balance">Balance: <span>${{ balance }}</span></p>
+  <p class="balance" id="balance-row" style="display:none">Balance: <span id="balance-val"></span></p>
 
-  <pre>curl https://api.aipaygen.com/research \\
-  -H "Authorization: Bearer {{ key }}" \\
-  -H "Content-Type: application/json" \\
-  -d '{"topic": "quantum computing"}'</pre>
-
-  <pre># Check balance
-curl "https://api.aipaygen.com/auth/status?key={{ key }}"</pre>
+  <pre id="curl-example" style="display:none"></pre>
+  <pre id="check-example" style="display:none"></pre>
 
   <a href="/buy-credits" class="btn">Buy More Credits</a>
 </div>
 <script>
-function copyKey(el) {
-  navigator.clipboard.writeText(el.textContent.trim());
-  const orig = el.textContent;
-  el.textContent = 'Copied!';
-  setTimeout(() => el.textContent = orig, 1500);
+const sid = new URLSearchParams(window.location.search).get('session_id');
+function poll() {
+  if (!sid) { document.getElementById('loading').textContent = 'Missing session ID.'; return; }
+  fetch('/auth/key-status?session_id=' + encodeURIComponent(sid))
+    .then(r => r.json())
+    .then(d => {
+      if (d.ready && d.api_key) {
+        const key = d.api_key;
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('key-box').style.display = 'block';
+        const kd = document.getElementById('key-display');
+        kd.textContent = key;
+        kd.dataset.key = key;
+        kd.onclick = function() {
+          navigator.clipboard.writeText(this.dataset.key);
+          const orig = this.textContent;
+          this.textContent = 'Copied!';
+          setTimeout(() => this.textContent = orig, 1500);
+        };
+        const br = document.getElementById('balance-row');
+        br.style.display = 'block';
+        document.getElementById('balance-val').textContent = '$' + d.balance;
+        const ce = document.getElementById('curl-example');
+        ce.style.display = 'block';
+        ce.textContent = 'curl https://api.aipaygen.com/research \\\n  -H "Authorization: Bearer ' + key + '" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"topic": "quantum computing"}\'';
+        const ck = document.getElementById('check-example');
+        ck.style.display = 'block';
+        ck.textContent = '# Check balance\ncurl "https://api.aipaygen.com/auth/status?key=' + key + '"';
+      } else {
+        setTimeout(poll, 2000);
+      }
+    })
+    .catch(() => setTimeout(poll, 2000));
 }
+poll();
 </script>
 </body>
 </html>"""
+
+
+@auth_bp.route("/webhooks/register", methods=["POST"])
+def register_user_webhook():
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer apk_"):
+        return jsonify({"error": "API key required"}), 401
+    api_key = auth[7:]
+    data = request.get_json(silent=True) or {}
+    url = data.get("url", "")
+    events = data.get("events", [])
+    if not url or not events:
+        return jsonify({"error": "url and events required"}), 400
+    from webhook_dispatch import register_webhook
+    wh_id = register_webhook(api_key, url, events)
+    if wh_id is None:
+        return jsonify({"error": "Invalid URL — must be HTTPS"}), 400
+    return jsonify({"webhook_id": wh_id, "url": url, "events": events})
+
+
+@auth_bp.route("/webhooks", methods=["GET"])
+def list_user_webhooks():
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer apk_"):
+        return jsonify({"error": "API key required"}), 401
+    from webhook_dispatch import list_webhooks
+    return jsonify({"webhooks": list_webhooks(auth[7:])})
+
+
+@auth_bp.route("/webhooks/<int:webhook_id>", methods=["DELETE"])
+def delete_user_webhook(webhook_id):
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer apk_"):
+        return jsonify({"error": "API key required"}), 401
+    from webhook_dispatch import delete_webhook
+    if delete_webhook(webhook_id, auth[7:]):
+        return jsonify({"deleted": True})
+    return jsonify({"error": "Not found or not owned by this key"}), 404
 
 
 @auth_bp.route("/buy-credits", methods=["GET"])
@@ -615,6 +678,20 @@ def stripe_webhook():
 
             log_payment("/stripe/topup", amount, session.get("customer_details", {}).get("email", "stripe"))
             _notify_checkout(amount, "PAID", api_key)
+
+            # Send API key email and link to account
+            customer_email = session.get("customer_details", {}).get("email", "")
+            if customer_email and api_key:
+                try:
+                    from email_service import send_api_key_email
+                    from accounts import create_or_get_account, link_key_to_account
+                    bal = float(meta.get("amount", 0))
+                    send_api_key_email(customer_email, api_key, bal)
+                    acct = create_or_get_account(customer_email)
+                    link_key_to_account(acct["id"], api_key)
+                except Exception:
+                    pass
+
             # Credit referral commission if ?ref= was passed during checkout
             ref_agent = meta.get("ref_agent", "")
             if ref_agent:
@@ -626,28 +703,21 @@ def stripe_webhook():
     return jsonify({"received": True})
 
 
+@auth_bp.route("/auth/key-status", methods=["GET"])
+def key_status():
+    session_id = request.args.get("session_id", "")
+    if not session_id:
+        return jsonify({"ready": False})
+    try:
+        session = _stripe.checkout.Session.retrieve(session_id)
+        key = session.metadata.get("api_key")
+        if key:
+            return jsonify({"ready": True, "api_key": key, "balance": session.metadata.get("balance_usd", session.metadata.get("amount", "0"))})
+        return jsonify({"ready": False})
+    except Exception:
+        return jsonify({"ready": False})
+
+
 @auth_bp.route("/buy-credits/success", methods=["GET"])
 def buy_credits_success():
-    from security import sanitize_html
-    key = ""
-    amount = ""
-    session_id = request.args.get("session_id", "")
-    if session_id and STRIPE_SECRET_KEY:
-        try:
-            session = _stripe.checkout.Session.retrieve(session_id)
-            meta = session.get("metadata", {})
-            key = meta.get("api_key", "")
-            amount = meta.get("amount", "")
-        except Exception:
-            pass
-    # Fallback to query params for legacy links
-    if not key:
-        key = request.args.get("key", "")
-    if not amount:
-        amount = request.args.get("amount", "")
-    if key and not re.match(r'^apk_[A-Za-z0-9_-]{20,60}$', key):
-        key = ""
-    status = get_key_status(key) if key else None
-    balance = f"{status['balance_usd']:.2f}" if status else sanitize_html(amount)
-    html = _SUCCESS_PAGE.replace("{{ key }}", sanitize_html(key)).replace("{{ balance }}", balance)
-    return html, 200, {"Content-Type": "text/html"}
+    return _SUCCESS_PAGE, 200, {"Content-Type": "text/html"}

@@ -320,11 +320,11 @@ def funnel_dashboard():
     </table>
   </div>
 
-  <p style="text-align:center;margin-top:20px;font-size:0.75rem;color:#444"><a href="/stats" style="color:#555">Payment stats</a> &middot; Auto-refreshes every 30s</p>
+  <p style="text-align:center;margin-top:20px;font-size:0.75rem;color:#444"><a href="/stats" style="color:#555">Payment stats</a> &middot; Auto-refreshes every 5m</p>
 </div>
 <script>
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/admin/sw.js');
-setTimeout(() => location.reload(), 30000);
+setTimeout(() => location.reload(), 300000);
 </script>
 </body>
 </html>""", 200, {"Content-Type": "text/html"}

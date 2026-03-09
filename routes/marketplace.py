@@ -42,7 +42,7 @@ def catalog():
     apis, total = get_all_apis(page=page, per_page=per_page, category=category,
                                source=source, min_score=min_score, free_only=free_only)
     try:
-        funnel_log_event("catalog_browse", _get_client_ip())
+        funnel_log_event("catalog_browse", endpoint="/catalog", ip=_get_client_ip())
     except Exception:
         pass
     return jsonify({

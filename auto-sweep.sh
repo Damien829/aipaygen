@@ -15,30 +15,45 @@ fi
 
 ISSUES=0
 
-# 1. Health check
-API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://api.aipaygen.com/health 2>/dev/null || echo "000")
-if [ "$API_STATUS" != "200" ]; then
-    echo "[$TS] CRITICAL: API health returned $API_STATUS" >> "$LOG"
-    wall "AiPayGen ALERT: API health check failed ($API_STATUS)" 2>/dev/null || true
+# 1. Health check — local first (fast), then public (tunnel verification)
+API_LOCAL=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://127.0.0.1:5001/health 2>/dev/null || echo "000")
+API_PUBLIC=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://api.aipaygen.com/health 2>/dev/null || echo "000")
+
+if [ "$API_LOCAL" != "200" ]; then
+    echo "[$TS] CRITICAL: API process down (local=$API_LOCAL)" >> "$LOG"
+    wall "AiPayGen ALERT: API process down ($API_LOCAL)" 2>/dev/null || true
     ISSUES=$((ISSUES + 1))
-    # Try to restart
+    # Full restart — kill stale workers, wait, relaunch
     source venv/bin/activate 2>/dev/null
+    pkill -f "gunicorn.*app:app" 2>/dev/null || true
+    sleep 2
     gunicorn --workers 4 --worker-class sync --bind 127.0.0.1:5001 --timeout 120 --daemon app:app 2>/dev/null || true
-    echo "[$TS] Attempted auto-restart" >> "$LOG"
+    echo "[$TS] Attempted gunicorn restart" >> "$LOG"
+elif [ "$API_PUBLIC" != "200" ]; then
+    echo "[$TS] WARNING: API local OK but tunnel returned $API_PUBLIC" >> "$LOG"
+    ISSUES=$((ISSUES + 1))
+    # Tunnel down — restart cloudflared
+    sudo systemctl restart aipaygent-tunnel.service 2>/dev/null || true
+    echo "[$TS] Attempted tunnel restart" >> "$LOG"
 else
-    echo "[$TS] API health OK" >> "$LOG"
+    echo "[$TS] API health OK (local+tunnel)" >> "$LOG"
 fi
 
-# 2. MCP health check
-MCP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://mcp.aipaygen.com/health 2>/dev/null || echo "000")
-if [ "$MCP_STATUS" != "200" ]; then
-    echo "[$TS] CRITICAL: MCP health returned $MCP_STATUS" >> "$LOG"
-    wall "AiPayGen ALERT: MCP health check failed ($MCP_STATUS)" 2>/dev/null || true
+# 2. MCP health check — local first, then public
+MCP_LOCAL=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://127.0.0.1:5002/health 2>/dev/null || echo "000")
+MCP_PUBLIC=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 https://mcp.aipaygen.com/health 2>/dev/null || echo "000")
+
+if [ "$MCP_LOCAL" != "200" ]; then
+    echo "[$TS] CRITICAL: MCP process down (local=$MCP_LOCAL)" >> "$LOG"
+    wall "AiPayGen ALERT: MCP process down ($MCP_LOCAL)" 2>/dev/null || true
     ISSUES=$((ISSUES + 1))
     systemctl --user restart aipaygen-mcp.service 2>/dev/null || true
     echo "[$TS] Attempted MCP restart" >> "$LOG"
+elif [ "$MCP_PUBLIC" != "200" ]; then
+    echo "[$TS] WARNING: MCP local OK but tunnel returned $MCP_PUBLIC" >> "$LOG"
+    ISSUES=$((ISSUES + 1))
 else
-    echo "[$TS] MCP health OK" >> "$LOG"
+    echo "[$TS] MCP health OK (local+tunnel)" >> "$LOG"
 fi
 
 # 3. Key pages check

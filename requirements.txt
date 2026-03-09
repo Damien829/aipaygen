@@ -55,5 +55,8 @@ pydantic-settings==2.13.1
 # Search
 primp==1.1.2
 
+# Email
+resend==2.23.0
+
 # Dev / test
 pytest==9.0.2

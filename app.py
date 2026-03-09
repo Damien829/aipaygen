@@ -44,7 +44,7 @@ from agent_network import (
     init_network_db, send_message, get_inbox, mark_read, broadcast_message,
     add_knowledge, search_knowledge, get_trending_topics, vote_knowledge,
     submit_task, browse_tasks, claim_task, complete_task, get_task,
-    check_and_use_free_tier, get_free_tier_status,
+    check_and_use_free_tier, get_free_tier_status, get_free_tier_remaining,
     update_reputation, get_reputation, get_leaderboard,
     subscribe_tasks, get_task_subscribers,
 )
@@ -651,6 +651,16 @@ routes: dict[str, RouteConfig] = {
         mime_type="application/json",
         description="Buy $5 credit pack — returns prepaid API key for metered token-based billing",
     ),
+    "POST /session/start": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.001", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Start persistent agent session with shared context",
+    ),
+    "POST /workflow/run": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Run multi-step AI workflow — chain tools together with 15% discount",
+    ),
 }
 
 _raw_flask_wsgi = app.wsgi_app  # save original Flask WSGI before x402 wraps it
@@ -703,6 +713,28 @@ def _api_key_wsgi(environ, start_response):
                 return [body]
         except Exception:
             pass
+
+    # 0.5 Free tier — 10 calls/day per IP before requiring payment
+    if routes.get(route_key) and not auth.startswith("Bearer apk_") and not environ.get("HTTP_X_PAYMENT"):
+        _ip = environ.get("HTTP_CF_CONNECTING_IP", environ.get("REMOTE_ADDR", "unknown"))
+        if check_and_use_free_tier(_ip):
+            remaining = get_free_tier_remaining(_ip)
+            environ["X_FREE_TIER"] = "1"
+            environ["X_FREE_REMAINING"] = str(remaining)
+
+            def _free_tier_start_response(status, headers, exc_info=None):
+                if remaining <= 3:
+                    headers = list(headers) + [
+                        ("X-Free-Calls-Remaining", str(remaining)),
+                        ("X-Upgrade-Hint", "Buy API key at https://aipaygen.com/buy-credits"),
+                    ]
+                else:
+                    headers = list(headers) + [("X-Free-Calls-Remaining", str(remaining))]
+                return start_response(status, headers, exc_info)
+
+            return _raw_flask_wsgi(environ, _free_tier_start_response)
+        else:
+            funnel_log_event("free_tier_exhausted", endpoint=environ.get("PATH_INFO", ""), ip=_ip)
 
     # 1. Prepaid API key bypass (Bearer apk_xxx)
     if auth.startswith("Bearer apk_"):
@@ -780,15 +812,41 @@ def _api_key_wsgi(environ, start_response):
             path = environ.get("PATH_INFO", "")
             ip = environ.get("HTTP_CF_CONNECTING_IP", environ.get("REMOTE_ADDR", ""))
             funnel_log_event("402_shown", endpoint=path, ip=ip)
+            remaining = get_free_tier_remaining(ip)
+            # Get today's usage stats for personalized message
+            try:
+                from agent_network import _conn as _network_conn
+                from datetime import datetime
+                today = datetime.utcnow().strftime("%Y-%m-%d")
+                with _network_conn() as nc:
+                    row = nc.execute("SELECT calls_used FROM free_tier_usage WHERE ip=? AND date=?", (ip, today)).fetchone()
+                    calls_today = row["calls_used"] if row else 0
+            except Exception:
+                calls_today = 10
+            # Add upgrade headers and discovery Link headers to 402 response
+            captured["headers"] = list(captured["headers"]) + [
+                ("X-Free-Calls-Remaining", str(remaining)),
+                ("Link", '</openapi.json>; rel="service-desc"'),
+                ("Link", '</.well-known/ai-plugin.json>; rel="ai-plugin"'),
+            ]
+            if remaining == 0:
+                captured["headers"].append(("X-Upgrade-Hint", "Buy API key at https://aipaygen.com/buy-credits"))
             route_cfg = routes.get(route_key)
             price = route_cfg.accepts[0].price if route_cfg else "varies"
             enrichment = json.dumps({
                 "endpoint": path,
                 "price": price,
+                "free_tier": {
+                    "calls_remaining_today": remaining,
+                    "daily_limit": 10,
+                    "calls_used_today": calls_today,
+                    "status": f"exhausted — you made {calls_today} calls today. Unlock unlimited for $5." if remaining == 0 else f"{remaining} free calls left today",
+                },
                 "payment_options": {
                     "api_key": {
                         "recommended": True,
                         "description": "Prepaid API key — fastest path to access.",
+                        "buy_now": "https://aipaygen.com/buy-credits",
                         "how": "POST https://api.aipaygen.com/credits/buy with {\"amount_usd\": 5.0}",
                         "usage": f"Authorization: Bearer apk_YOUR_KEY",
                         "bulk_discount": "20% off when balance >= $2.00",
@@ -912,8 +970,12 @@ init_keys_db()
 init_jobs_db()
 init_files_db()
 init_webhooks_db()
+from webhook_dispatch import init_webhooks_dispatch_db
+init_webhooks_dispatch_db()
 init_referral_db()
 init_discovery_db()
+from accounts import init_accounts_db
+init_accounts_db()
 bootstrap_all_agents()
 
 # Register all DB paths for weekly maintenance vacuum
@@ -989,7 +1051,7 @@ def add_cors(response):
         response.headers["Access-Control-Allow-Origin"] = "https://aipaygen.com"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Payment, Authorization, Accept, X-Idempotency-Key"
-    response.headers["Access-Control-Expose-Headers"] = "X-Request-ID, X-Payment-Info, X-Payment-Receipt"
+    response.headers["Access-Control-Expose-Headers"] = "X-Request-ID, X-Payment-Info, X-Payment-Receipt, X-Free-Calls-Remaining, X-Upgrade-Hint"
     # Full UUID correlation ID per request
     req_id = request.headers.get("X-Idempotency-Key") or str(uuid.uuid4())
     response.headers["X-Request-ID"] = req_id
@@ -1146,6 +1208,38 @@ def handle_options_preflight():
         return "", 204
 
 
+# ── Bot / Scanner Filtering ──────────────────────────────────────────────────
+
+_SCANNER_PATHS = frozenset([
+    "/wp-admin", "/wp-login.php", "/wp-content", "/wordpress",
+    "/.git/config", "/.env", "/.htaccess", "/phpinfo.php",
+    "/admin/config", "/cgi-bin", "/wp-includes",
+    "/xmlrpc.php", "/wp-cron.php", "/wp-json/wp",
+])
+
+_BOT_UA_SUBSTRINGS = [
+    "SparixEmailScraper", "CMS-Checker", "zgrab", "masscan",
+    "nuclei", "sqlmap", "nikto", "dirbuster", "gobuster",
+    "wpscan", "nmap", "scaninfo", "censys",
+]
+
+
+@app.before_request
+def block_scanners():
+    """Block known vulnerability scanners and path probes."""
+    path = request.path.lower()
+    # Block WordPress / common scanner paths
+    for p in _SCANNER_PATHS:
+        if path.startswith(p.lower()):
+            return "", 403
+    # Block known scanner user agents
+    ua = request.headers.get("User-Agent", "")
+    ua_lower = ua.lower()
+    for bot in _BOT_UA_SUBSTRINGS:
+        if bot.lower() in ua_lower:
+            return "", 403
+
+
 @app.route("/models", methods=["GET"])
 def models_list():
     """List all available AI models with pricing."""
@@ -1226,6 +1320,18 @@ from routes.builder import builder_bp, init_builder_bp, init_builder_db
 init_builder_db()
 init_builder_bp(_skills_db_path, _skills_engine, BATCH_HANDLERS)
 app.register_blueprint(builder_bp)
+
+# Sessions
+from routes.sessions import sessions_bp
+app.register_blueprint(sessions_bp)
+
+# Workflow Engine
+from routes.workflow import workflow_bp
+app.register_blueprint(workflow_bp)
+
+# Accounts
+from routes.accounts import accounts_bp
+app.register_blueprint(accounts_bp)
 
 
 if __name__ == "__main__":

@@ -5,6 +5,9 @@ from datetime import datetime, timedelta
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "funnel.db")
 
+# IPs to exclude from tracking (localhost / cron noise)
+_IGNORE_IPS = {"127.0.0.1", "::1", "localhost", ""}
+
 
 def _conn():
     c = sqlite3.connect(DB_PATH)
@@ -26,10 +29,13 @@ def init_funnel_db():
         """)
         c.execute("CREATE INDEX IF NOT EXISTS idx_funnel_type ON funnel_events(event_type)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_funnel_created ON funnel_events(created_at)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_funnel_created_type ON funnel_events(created_at, event_type)")
 
 
 def log_event(event_type: str, endpoint: str = "", ip: str = "", metadata: str = "{}"):
     """Append a funnel event. Types: 402_shown, discover_hit, llms_txt_hit, credits_bought, key_generated, mcp_free_exhausted"""
+    if ip in _IGNORE_IPS:
+        return
     now = datetime.utcnow().isoformat()
     with _conn() as c:
         c.execute(
