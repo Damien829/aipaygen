@@ -66,17 +66,19 @@ _skills_engine = SkillsSearchEngine(_skills_db_path)
 mcp = FastMCP(
     "AiPayGen",
     instructions=(
-        "AiPayGen is an AI agent API marketplace with 106 tools. "
-        "Capabilities: research, write, code, translate, analyze, summarize, vision (image analysis), "
+        "AiPayGen lets you build, run, and schedule AI agents with 106 tools. "
+        "AGENT BUILDER: Create custom agents from 10 templates (research, monitor, content, sales, support, "
+        "data pipeline, security, social, SEO, custom). Schedule agents on loops, cron, or event triggers. "
+        "TOOLS: research, write, code, translate, analyze, summarize, vision (image analysis), "
         "RAG (document Q&A), diagram generation, workflow orchestration, chain (pipeline multiple AI steps), "
-        "web scraping (Google Maps, Twitter, Instagram, LinkedIn, YouTube, TikTok), "
-        "persistent agent memory (survives sessions), agent marketplace (list & discover agent services), "
-        "a catalog of 4100+ APIs, and 1500+ searchable skills. "
+        "web scraping (Google Maps, Twitter, Instagram, YouTube, TikTok), "
+        "persistent agent memory, agent marketplace, 4100+ API catalog, 1500+ skills. "
+        "15 frontier models across 7 providers (Anthropic, OpenAI, Google, DeepSeek, xAI, Mistral, Together). "
         "\n\n"
         "PRICING: Set AIPAYGEN_API_KEY env var for unlimited metered access. "
         "Without a key, you get 10 free calls/day. "
         "Get a key: POST https://api.aipaygen.com/credits/buy or visit https://api.aipaygen.com/docs. "
-        "AI tools cost ~$0.006/call (3x model cost markup). Utility tools cost $0.002/call. "
+        "AI tools ~$0.006/call. Utility tools $0.002/call. "
         "All results include _billing metadata with cost and remaining balance."
     ),
     host="0.0.0.0",
