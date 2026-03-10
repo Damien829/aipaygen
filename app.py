@@ -726,7 +726,7 @@ def _api_key_wsgi(environ, start_response):
                 if remaining <= 3:
                     headers = list(headers) + [
                         ("X-Free-Calls-Remaining", str(remaining)),
-                        ("X-Upgrade-Hint", "Buy API key at https://aipaygen.com/buy-credits"),
+                        ("X-Upgrade-Hint", "Buy API key at https://aipaygen.com/buy-credits or fund with crypto at https://aipaygen.com/crypto"),
                     ]
                 else:
                     headers = list(headers) + [("X-Free-Calls-Remaining", str(remaining))]
@@ -830,7 +830,7 @@ def _api_key_wsgi(environ, start_response):
                 ("Link", '</.well-known/ai-plugin.json>; rel="ai-plugin"'),
             ]
             if remaining == 0:
-                captured["headers"].append(("X-Upgrade-Hint", "Buy API key at https://aipaygen.com/buy-credits"))
+                captured["headers"].append(("X-Upgrade-Hint", "Buy API key at https://aipaygen.com/buy-credits or fund with crypto at https://aipaygen.com/crypto"))
             route_cfg = routes.get(route_key)
             price = route_cfg.accepts[0].price if route_cfg else "varies"
             enrichment = json.dumps({

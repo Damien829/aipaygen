@@ -1393,3 +1393,12 @@ Full Python client example in the blog post above.""",
         },
     ]
     return jsonify({"subreddits": subreddits, "note": "Copy-paste these for launch day. Post during peak hours 9am-12pm EST."})
+
+
+@admin_bp.route("/admin/crypto/deposits", methods=["GET"])
+@require_admin
+def admin_crypto_deposits():
+    from crypto_deposits import get_all_deposits
+    limit = int(request.args.get("limit", 100))
+    deposits = get_all_deposits(limit=limit)
+    return jsonify({"deposits": deposits, "count": len(deposits)})
