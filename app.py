@@ -1333,6 +1333,16 @@ app.register_blueprint(workflow_bp)
 from routes.accounts import accounts_bp
 app.register_blueprint(accounts_bp)
 
+# Crypto deposits
+from routes.crypto import crypto_bp
+from crypto_deposits import init_crypto_db
+init_crypto_db()
+app.register_blueprint(crypto_bp)
+
+# Start crypto deposit poller (background thread)
+from crypto_poller import start_poller as _start_crypto_poller
+_start_crypto_poller(WALLET_ADDRESS)
+
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5001, debug=False)

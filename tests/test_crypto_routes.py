@@ -66,6 +66,8 @@ def test_crypto_claim_missing_fields(client):
 @patch("routes.crypto.verify_base_tx")
 def test_crypto_claim_valid(mock_verify, mock_topup, client):
     """POST /crypto/claim with valid tx returns credited."""
+    import uuid
+    tx_hash = f"0x{uuid.uuid4().hex}"
     mock_verify.return_value = {
         "valid": True,
         "amount_usdc": 10.0,
@@ -80,7 +82,7 @@ def test_crypto_claim_valid(mock_verify, mock_topup, client):
     api_key = _generate_key(client)
     resp = client.post("/crypto/claim", json={
         "api_key": api_key,
-        "tx_hash": "0xabc123unique_valid_test",
+        "tx_hash": tx_hash,
         "network": "base",
     })
     assert resp.status_code == 200
@@ -88,7 +90,7 @@ def test_crypto_claim_valid(mock_verify, mock_topup, client):
     assert data["status"] == "credited"
     assert data["amount_usd"] == 10.0
     assert data["network"] == "base"
-    assert data["tx_hash"] == "0xabc123unique_valid_test"
+    assert data["tx_hash"] == tx_hash
     mock_verify.assert_called_once()
     mock_topup.assert_called_once()
 
