@@ -70,17 +70,17 @@ LANDING_HTML = '''<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AiPayGen — The Most Powerful AI Toolkit</title>
 <link rel="alternate" type="text/plain" href="/llms.txt" title="LLMs.txt">
-<meta name="description" content="155 AI tools in one API key. Research, write, code, translate, analyze, scrape — from $0.004/call. Install via pip or use remotely.">
+<meta name="description" content="161 AI tools in one API key. Research, write, code, translate, analyze, scrape — from $0.004/call. Install via pip or use remotely.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
 <meta property="og:title" content="AiPayGen — The Most Powerful AI Toolkit">
-<meta property="og:description" content="Research, write, code, translate, analyze, scrape — 155 AI tools from $0.004/call. MCP compatible.">
+<meta property="og:description" content="Research, write, code, translate, analyze, scrape — 161 AI tools from $0.004/call. MCP compatible.">
 <meta property="og:url" content="https://api.aipaygen.com">
 <meta property="og:image" content="https://api.aipaygen.com/og-image.png">
 <meta property="og:site_name" content="AiPayGen">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="AiPayGen — The Most Powerful AI Toolkit">
-<meta name="twitter:description" content="Research, write, code, translate, analyze, scrape — 155 AI tools from $0.004/call. Try free.">
+<meta name="twitter:description" content="Research, write, code, translate, analyze, scrape — 161 AI tools from $0.004/call. Try free.">
 <meta name="twitter:image" content="https://api.aipaygen.com/og-image.png">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"AiPayGen","url":"https://api.aipaygen.com","description":"Pay-per-use AI endpoints for autonomous agents via x402 micropayments on Base.","applicationCategory":"DeveloperApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0.01","priceCurrency":"USD","description":"Per API call, paid in USDC on Base"},"provider":{"@type":"Organization","name":"AiPayGen","url":"https://api.aipaygen.com"}}
@@ -357,10 +357,10 @@ LANDING_HTML = '''<!DOCTYPE html>
 
 <section class="hero">
   <h1 class="fade-up">
-    The Most Powerful AI Toolkit.<br><span class="accent">155 Tools. One API.</span>
+    The Most Powerful AI Toolkit.<br><span class="accent">161 Tools. One API.</span>
   </h1>
   <p class="hero-sub fade-up delay-1">
-    Build custom AI agents in minutes. 15 frontier models, 155 tools, scheduling &amp; automation &mdash; from <code>$0.004/call</code>.
+    Build custom AI agents in minutes. 15 frontier models, 161 tools, scheduling &amp; automation &mdash; from <code>$0.004/call</code>.
   </p>
   <div class="fade-up delay-2" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
     <a href="/builder" class="btn-cta">Build Your Agent &rarr;</a>
@@ -382,7 +382,7 @@ LANDING_HTML = '''<!DOCTYPE html>
     <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">APIs Indexed</div>
   </div>
   <div style="text-align:center">
-    <div id="stat-tools" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">153</div>
+    <div id="stat-tools" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">161</div>
     <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">MCP Tools</div>
   </div>
   <div style="text-align:center">
@@ -398,7 +398,7 @@ LANDING_HTML = '''<!DOCTYPE html>
 <div class="value-grid">
   <div class="value-card fade-up">
     <span class="value-icon">&gt;_</span>
-    <h3>155 AI tools</h3>
+    <h3>161 AI tools</h3>
     <p>Research, write, code, analyze, translate, scrape &mdash; powered by Claude, GPT-4o, Gemini, DeepSeek.</p>
   </div>
   <div class="value-card fade-up delay-1">
@@ -819,7 +819,7 @@ def discover():
     return jsonify({
         "meta": {
             "name": "AiPayGen",
-            "description": "AI agent API marketplace with 155 tools and 1500+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day).",
+            "description": "AI agent API marketplace with 161 tools and 1500+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day).",
             "categories": list(categories.keys()),
         },
         "payment": {
@@ -951,7 +951,7 @@ def live_stats():
             _mcp_src = f.read()
         mcp_count = _mcp_src.count("@metered_tool") + _mcp_src.count("@mcp.tool()")
     except Exception:
-        mcp_count = 155
+        mcp_count = 161
     stats = {"mcp_tools": mcp_count}
 
     def _count(db, query):
@@ -1020,8 +1020,6 @@ def preview():
     _cache_set(ck, result, 300)  # 5 min
     return jsonify(result)
 
-
-@meta_bp.route("/robots.txt")
 
 @meta_bp.route("/robots.txt")
 def robots_txt():
@@ -1142,10 +1140,10 @@ a:hover{text-decoration:underline}
 <div class="content">
 
 <h1>Documentation</h1>
-<p class="subtitle">155 AI tools, custom agent builder, scheduling, and 15 AI models — all in one API.</p>
+<p class="subtitle">161 AI tools, custom agent builder, scheduling, and 15 AI models — all in one API.</p>
 
 <h2 id="overview">Overview</h2>
-<p>AiPayGen is the most comprehensive AI toolkit for developers and agents. Build custom AI agents, access 155 tools, 1500+ skills, and 4000+ APIs — all through a single API key or MCP connection.</p>
+<p>AiPayGen is the most comprehensive AI toolkit for developers and agents. Build custom AI agents, access 161 tools, 1500+ skills, and 4000+ APIs — all through a single API key or MCP connection.</p>
 
 <div class="cta-box">
   <strong style="color:#fff">Start building in 30 seconds</strong><br>
@@ -1339,7 +1337,7 @@ result = httpx.post(f"{BASE}/agents/custom/{agent_id}/run",
 <div class="endpoint"><span class="method post">POST</span><span class="path">/catalog/{id}/invoke</span><div class="desc">Invoke a cataloged API through AiPayGen.</div></div>
 
 <h2 id="mcp">MCP Integration</h2>
-<p>All 155 tools are available as MCP tools. Three ways to connect:</p>
+<p>All 161 tools are available as MCP tools. Three ways to connect:</p>
 
 <h3>1. PyPI Package (Recommended)</h3>
 <pre><code># Install
@@ -1431,7 +1429,7 @@ def docs_page():
 LLMS_TXT = """\
 # AiPayGen
 
-> 155 AI tools in one API. Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (10 free/day).
+> 161 AI tools in one API. Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (10 free/day).
 
 ## What This Service Does
 
@@ -1610,9 +1608,9 @@ def ai_plugin():
         "schema_version": "v1",
         "name_for_human": "AiPayGen",
         "name_for_model": "aipaygen",
-        "description_for_human": "155 AI tools — research, write, code, translate, scrape, and more. 10 free calls/day.",
+        "description_for_human": "161 AI tools — research, write, code, translate, scrape, and more. 10 free calls/day.",
         "description_for_model": (
-            "AiPayGen provides 153 AI-powered tools accessible via a single API. "
+            "AiPayGen provides 161 AI-powered tools accessible via a single API. "
             "Use for research, writing, code generation, translation, sentiment analysis, "
             "web scraping, data extraction, content comparison, fact-checking, and more. "
             "Free tier: 10 calls/day per IP. Paid: prepaid API key (Bearer apk_xxx) or "
@@ -1644,7 +1642,7 @@ def agent_manifest():
     return jsonify({
         "name": "AiPayGen",
         "description": (
-            "AI agent API marketplace with 155 tools and 1500+ searchable skills. "
+            "AI agent API marketplace with 161 tools and 1500+ searchable skills. "
             "Research, writing, coding, analysis, web scraping, real-time data, agent memory, "
             "and multi-model AI (Claude, GPT-4o, DeepSeek, Gemini). "
             "Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day)."
@@ -1802,7 +1800,7 @@ def agents_json():
         "agents": [{
             "name": "AiPayGen",
             "description": (
-                "Multi-model AI platform (15 LLMs, 7 providers) with 155 tools and 140+ endpoints + web scrapers + agent memory + "
+                "Multi-model AI platform (15 LLMs, 7 providers) with 161 tools and 140+ endpoints + web scrapers + agent memory + "
                 "wallet-based identity + metered token pricing + agent economy. "
                 "Research, write, code, analyze, vision, RAG, diagrams, test-cases, workflows, "
                 "web scraping (Google Maps, Twitter, LinkedIn, TikTok, YouTube), persistent agent memory, "
@@ -1886,7 +1884,7 @@ def x402_manifest():
         "facilitator": FACILITATOR_URL,
         "name": "AiPayGen",
         "description": (
-            "155 AI tools, 1500+ skills, web scrapers, agent memory, file storage, "
+            "161 AI tools, 1500+ skills, web scrapers, agent memory, file storage, "
             "webhook relay, async jobs, and an API catalog of 4100+ discovered APIs. "
             "No API key required — pay per call in USDC on Base via x402 protocol."
         ),
@@ -1935,7 +1933,7 @@ def smithery_server_card():
     return jsonify({
         "serverInfo": {
             "name": "AiPayGen",
-            "version": "1.7.0"
+            "version": "1.7.1"
         },
         "authentication": {
             "required": False,
@@ -2536,7 +2534,7 @@ curl -X POST "$BASE{endpoint}" \\
   -H "X-Payment: $X_PAYMENT" \\
   -d \'{{"query": "latest AI agent frameworks 2026"}}\'
 
-# List all 153 endpoints
+# List all 161 endpoints
 curl "$BASE/discover" | python3 -m json.tool
 '''
     else:
@@ -2663,7 +2661,7 @@ _TRY_PAGE = """<!DOCTYPE html>
 <div class="wrap">
   <div style="display:flex;gap:16px;margin-bottom:20px;font-size:0.85rem"><a href="/" style="color:#888;text-decoration:none">Home</a><a href="/docs" style="color:#888;text-decoration:none">Docs</a><a href="/buy-credits" style="color:#818cf8;text-decoration:none;font-weight:600">Get API Key</a></div>
   <h1>Try AiPayGen</h1>
-  <p class="sub">Test any tool below — completely free, no sign-up. <a href="/discover">See all 155 tools &rarr;</a></p>
+  <p class="sub">Test any tool below — completely free, no sign-up. <a href="/discover">See all 161 tools &rarr;</a></p>
 
   <div class="demo-card">
     <div class="tool-row">
@@ -2704,7 +2702,7 @@ _TRY_PAGE = """<!DOCTYPE html>
 
   <div class="cta">
     <a href="/buy-credits">Get API Key — From $1</a>
-    <p>155 tools &middot; 15 AI models &middot; Credits never expire</p>
+    <p>161 tools &middot; 15 AI models &middot; Credits never expire</p>
   </div>
   <p class="free-note">Free demo uses the same AI models as paid API. Limited to 10 demos per session.</p>
 </div>
@@ -2714,7 +2712,7 @@ _TRY_PAGE = """<!DOCTYPE html>
   <div class="modal">
     <button class="modal-close" onclick="closeModal()">&times;</button>
     <h2>You've used all 10 free demos</h2>
-    <p class="modal-sub">Pick a plan to unlock unlimited access to all 155 tools.</p>
+    <p class="modal-sub">Pick a plan to unlock unlimited access to all 161 tools.</p>
     <div class="modal-plans">
       <div class="modal-plan" data-amt="1" onclick="selectModalPlan(this)">
         <div class="mp-left"><span class="mp-amount">$1</span><span class="mp-detail">~160 calls</span></div>
