@@ -85,6 +85,30 @@ def send_magic_link(to: str, link: str) -> bool:
         return False
 
 
+def send_deposit_confirmation(api_key: str, amount: float, network: str, tx_hash: str) -> bool:
+    """Send deposit confirmation email (if account has email on file)."""
+    try:
+        import sqlite3
+        accounts_db = os.path.join(os.path.dirname(__file__), "accounts.db")
+        conn = sqlite3.connect(accounts_db)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT email FROM accounts WHERE api_key = ?", (api_key,)).fetchone()
+        conn.close()
+        if not row or not row["email"]:
+            return False
+        email = row["email"]
+        explorer = "https://basescan.org/tx/" if network == "base" else "https://solscan.io/tx/"
+        resend.Emails.send({
+            "from": FROM_EMAIL,
+            "to": [email],
+            "subject": f"Deposit Confirmed — ${amount:.2f} USDC",
+            "html": f'<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0a0a0a;color:#e8e8e8;font-family:-apple-system,sans-serif;"><div style="max-width:520px;margin:40px auto;background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:40px;"><h1 style="font-size:1.5rem;">Deposit Confirmed</h1><p style="color:#888;">Your USDC deposit has been verified and credited.</p><p style="font-size:1.3rem;color:#34d399;font-weight:700;">${amount:.2f} USDC</p><p style="font-size:0.85rem;color:#888;">Network: {network.title()} — <a href="{explorer}{tx_hash}" style="color:#6366f1;">View Transaction</a></p></div></body></html>'
+        })
+        return True
+    except Exception:
+        return False
+
+
 def send_weekly_digest(to: str, calls: int = 0, top_tools: list = None, spent: float = 0.0) -> bool:
     top_tools = top_tools or []
     tools_html = ", ".join(top_tools) if top_tools else "None"

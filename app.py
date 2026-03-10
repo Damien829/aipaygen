@@ -726,7 +726,7 @@ def _api_key_wsgi(environ, start_response):
                 if remaining <= 3:
                     headers = list(headers) + [
                         ("X-Free-Calls-Remaining", str(remaining)),
-                        ("X-Upgrade-Hint", "Buy API key at https://aipaygen.com/buy-credits"),
+                        ("X-Upgrade-Hint", "Buy API key at https://aipaygen.com/buy-credits or fund with crypto at https://aipaygen.com/crypto"),
                     ]
                 else:
                     headers = list(headers) + [("X-Free-Calls-Remaining", str(remaining))]
@@ -830,7 +830,7 @@ def _api_key_wsgi(environ, start_response):
                 ("Link", '</.well-known/ai-plugin.json>; rel="ai-plugin"'),
             ]
             if remaining == 0:
-                captured["headers"].append(("X-Upgrade-Hint", "Buy API key at https://aipaygen.com/buy-credits"))
+                captured["headers"].append(("X-Upgrade-Hint", "Buy API key at https://aipaygen.com/buy-credits or fund with crypto at https://aipaygen.com/crypto"))
             route_cfg = routes.get(route_key)
             price = route_cfg.accepts[0].price if route_cfg else "varies"
             enrichment = json.dumps({
@@ -1332,6 +1332,16 @@ app.register_blueprint(workflow_bp)
 # Accounts
 from routes.accounts import accounts_bp
 app.register_blueprint(accounts_bp)
+
+# Crypto deposits
+from routes.crypto import crypto_bp
+from crypto_deposits import init_crypto_db
+init_crypto_db()
+app.register_blueprint(crypto_bp)
+
+# Start crypto deposit poller (background thread)
+from crypto_poller import start_poller as _start_crypto_poller
+_start_crypto_poller(WALLET_ADDRESS)
 
 
 if __name__ == "__main__":
