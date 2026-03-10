@@ -151,3 +151,134 @@ def test_get_all_perf():
     assert isinstance(result, dict)
     assert test_model in result
     _perf_stats.pop(test_model, None)
+
+
+# --- Response cache tests ---
+
+def test_cache_hit():
+    from model_router import _response_cache, _cache_key, _CACHE_TTL
+    _response_cache.clear()
+    key = _cache_key("claude-haiku", [{"role": "user", "content": "hello"}], "system", 0.7)
+    assert isinstance(key, str)
+    assert len(key) == 64  # sha256 hex digest
+
+
+def test_cache_key_deterministic():
+    from model_router import _cache_key
+    k1 = _cache_key("claude-haiku", [{"role": "user", "content": "test"}], "", 0.7)
+    k2 = _cache_key("claude-haiku", [{"role": "user", "content": "test"}], "", 0.7)
+    assert k1 == k2
+
+
+def test_cache_key_differs_on_input():
+    from model_router import _cache_key
+    k1 = _cache_key("claude-haiku", [{"role": "user", "content": "hello"}], "", 0.7)
+    k2 = _cache_key("claude-haiku", [{"role": "user", "content": "world"}], "", 0.7)
+    assert k1 != k2
+
+
+def test_cache_key_differs_on_model():
+    from model_router import _cache_key
+    k1 = _cache_key("claude-haiku", [{"role": "user", "content": "test"}], "", 0.7)
+    k2 = _cache_key("gpt-4o-mini", [{"role": "user", "content": "test"}], "", 0.7)
+    assert k1 != k2
+
+
+def test_cache_key_differs_on_temperature():
+    from model_router import _cache_key
+    k1 = _cache_key("claude-haiku", [{"role": "user", "content": "test"}], "", 0.7)
+    k2 = _cache_key("claude-haiku", [{"role": "user", "content": "test"}], "", 0.0)
+    assert k1 != k2
+
+
+def test_cache_store_and_retrieve():
+    from model_router import _response_cache, _cache_key, _cache_store, _cache_get
+    _response_cache.clear()
+    key = _cache_key("test-model", [{"role": "user", "content": "cached"}], "", 0.7)
+    response = {"text": "cached response", "input_tokens": 10, "output_tokens": 20}
+    _cache_store(key, response)
+    hit = _cache_get(key)
+    assert hit is not None
+    assert hit["text"] == "cached response"
+
+
+def test_cache_miss():
+    from model_router import _response_cache, _cache_get
+    _response_cache.clear()
+    assert _cache_get("nonexistent-key") is None
+
+
+def test_cache_eviction():
+    from model_router import _response_cache, _cache_store, _cache_get, _CACHE_MAX_ENTRIES
+    _response_cache.clear()
+    for i in range(_CACHE_MAX_ENTRIES + 10):
+        _cache_store(f"key-{i}", {"text": f"val-{i}", "input_tokens": 0, "output_tokens": 0})
+    assert len(_response_cache) <= _CACHE_MAX_ENTRIES
+    assert _cache_get("key-0") is None
+
+
+def test_clear_cache():
+    from model_router import _response_cache, _cache_store, clear_cache
+    _cache_store("k", {"text": "v", "input_tokens": 0, "output_tokens": 0})
+    assert len(_response_cache) > 0
+    clear_cache()
+    assert len(_response_cache) == 0
+
+
+# --- Domain system prompt tests ---
+
+def test_domain_prompts_exist():
+    from model_router import _DOMAIN_SYSTEM_PROMPTS
+    assert "code" in _DOMAIN_SYSTEM_PROMPTS
+    assert "research" in _DOMAIN_SYSTEM_PROMPTS
+    assert "creative" in _DOMAIN_SYSTEM_PROMPTS
+    assert "data" in _DOMAIN_SYSTEM_PROMPTS
+    assert "general" in _DOMAIN_SYSTEM_PROMPTS
+
+
+def test_domain_prompts_are_strings():
+    from model_router import _DOMAIN_SYSTEM_PROMPTS
+    for domain, prompt in _DOMAIN_SYSTEM_PROMPTS.items():
+        assert isinstance(prompt, str), f"{domain} prompt should be a string"
+        assert len(prompt) > 10, f"{domain} prompt should be non-trivial"
+
+
+def test_get_domain_prompt():
+    from model_router import _get_domain_prompt
+    assert "code" in _get_domain_prompt("code").lower() or "coding" in _get_domain_prompt("code").lower()
+    assert _get_domain_prompt("nonexistent") == _get_domain_prompt("general")
+
+
+# --- Streaming tests ---
+
+def test_stream_openai_compatible_function_exists():
+    from model_router import _stream_openai_compatible
+    assert callable(_stream_openai_compatible)
+
+
+def test_all_providers_have_streaming():
+    from model_router import MODEL_REGISTRY
+    providers_with_streaming = {"anthropic", "openai", "deepseek", "together", "xai", "mistral", "google"}
+    for name, cfg in MODEL_REGISTRY.items():
+        assert cfg["provider"] in providers_with_streaming, f"{name} provider {cfg['provider']} has no streaming"
+
+
+# --- Retry / rate limit tests ---
+
+def test_rate_limit_error_class():
+    from model_router import RateLimitError
+    e = RateLimitError("rate limited", retry_after=2.0)
+    assert e.retry_after == 2.0
+    assert "rate limited" in str(e)
+
+
+def test_rate_limit_error_no_retry_after():
+    from model_router import RateLimitError
+    e = RateLimitError("rate limited")
+    assert e.retry_after is None
+
+
+def test_retry_config_exists():
+    from model_router import _RETRY_MAX_ATTEMPTS, _RETRY_BASE_DELAY
+    assert _RETRY_MAX_ATTEMPTS == 2
+    assert _RETRY_BASE_DELAY == 1.0

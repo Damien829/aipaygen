@@ -118,3 +118,46 @@ def test_synthesize_model_failure_fallback():
     ]
     result = _synthesize_answer(obs, "task", call_model_fn=failing_model)
     assert "1 steps" in result  # naive fallback
+
+
+# --- Auto-scoring tests ---
+
+from model_router import _auto_score_response
+
+
+def test_auto_score_good_response():
+    score = _auto_score_response("Here is a detailed explanation of the topic with multiple paragraphs and thorough analysis.", 1500)
+    assert score >= 0.7
+
+
+def test_auto_score_empty_response():
+    score = _auto_score_response("", 5000)
+    assert score <= 0.5
+
+
+def test_auto_score_short_response():
+    score = _auto_score_response("Ok", 1000)
+    assert score <= 0.5
+
+
+def test_auto_score_refusal():
+    # 0.7 base - 0.2 refusal + 0.1 fast = 0.6 (lower than good response)
+    score = _auto_score_response("I cannot assist with that request. As an AI language model, I'm unable to help.", 5000)
+    assert score <= 0.5
+
+
+def test_auto_score_fast_response():
+    score = _auto_score_response("Good answer with useful content here.", 500)
+    assert score >= 0.7
+
+
+def test_auto_score_slow_response():
+    score = _auto_score_response("Good answer with useful content here.", 15000)
+    assert score < _auto_score_response("Good answer with useful content here.", 500)
+
+
+def test_auto_score_clamps():
+    score = _auto_score_response("", 20000)
+    assert 0.0 <= score <= 1.0
+    score = _auto_score_response("A" * 500, 100)
+    assert 0.0 <= score <= 1.0

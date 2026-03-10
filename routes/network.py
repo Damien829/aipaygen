@@ -1,3 +1,4 @@
+import os
 from flask import Blueprint, request, jsonify
 from agent_network import (
     send_message, get_inbox, mark_read, broadcast_message,
@@ -11,7 +12,14 @@ network_bp = Blueprint("network", __name__)
 
 
 def _verify_agent_access(agent_id):
-    """Verify the caller owns this agent_id via JWT Bearer token."""
+    """Verify the caller owns this agent_id via JWT Bearer token or admin key on localhost."""
+    # Localhost + admin key bypass (for cron scripts)
+    admin_secret = os.environ.get("ADMIN_SECRET", "")
+    if admin_secret and request.remote_addr in ("127.0.0.1", "::1"):
+        auth = request.headers.get("Authorization", "")
+        if auth == f"Bearer {admin_secret}":
+            return True
+    # Normal JWT path
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer ey"):
         try:

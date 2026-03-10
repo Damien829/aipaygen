@@ -5,6 +5,8 @@ Fallback chains: anthropic↔openai, deepseek↔together, google→anthropic, xa
 """
 
 import collections as _collections
+import hashlib as _hashlib
+import json as _json
 import logging
 import os
 import time as _time
@@ -18,6 +20,47 @@ def _mask_key(key: str) -> str:
     if not key or len(key) < 12:
         return "***"
     return f"{key[:4]}...{key[-4:]}"
+
+# ---------------------------------------------------------------------------
+# Response cache — hash-based, TTL, LRU eviction
+# ---------------------------------------------------------------------------
+
+_CACHE_TTL = 300  # 5 minutes
+_CACHE_MAX_ENTRIES = 500
+
+# {key: {"response": dict, "cached_at": float}}
+_response_cache: dict[str, dict] = {}
+
+
+def _cache_key(model: str, messages: list[dict], system: str, temperature: float) -> str:
+    """Generate deterministic cache key from call parameters."""
+    payload = _json.dumps({"m": model, "msgs": messages, "s": system, "t": temperature}, sort_keys=True)
+    return _hashlib.sha256(payload.encode()).hexdigest()
+
+
+def _cache_get(key: str) -> dict | None:
+    """Return cached response or None if miss/expired."""
+    entry = _response_cache.get(key)
+    if entry is None:
+        return None
+    if (_time.time() - entry["cached_at"]) > _CACHE_TTL:
+        _response_cache.pop(key, None)
+        return None
+    return entry["response"]
+
+
+def _cache_store(key: str, response: dict):
+    """Store response in cache with LRU eviction."""
+    while len(_response_cache) >= _CACHE_MAX_ENTRIES:
+        oldest_key = next(iter(_response_cache))
+        del _response_cache[oldest_key]
+    _response_cache[key] = {"response": response, "cached_at": _time.time()}
+
+
+def clear_cache():
+    """Clear the entire response cache."""
+    _response_cache.clear()
+
 
 # ---------------------------------------------------------------------------
 # Model registry
@@ -492,6 +535,12 @@ def call_model(
     provider = cfg["provider"]
     tok_limit = max_tokens or cfg["max_tokens"]
 
+    # Inject domain system prompt if caller didn't provide one
+    if not system:
+        task_text = messages[-1].get("content", "") if messages else ""
+        _cls = _classify_task(task_text)
+        system = _get_domain_prompt(_cls["domain"])
+
     # Check circuit breaker — if provider is down, try fallback immediately
     if not _check_circuit(provider):
         fallback = _get_fallback_model(canonical)
@@ -501,21 +550,53 @@ def call_model(
             provider = cfg["provider"]
             tok_limit = max_tokens or cfg["max_tokens"]
 
+    # Check cache (skip for high-temperature creative calls)
+    cache_key = None
+    if temperature <= 0.9:
+        cache_key = _cache_key(canonical, messages, system, temperature)
+        cached = _cache_get(cache_key)
+        if cached is not None:
+            cost = calculate_cost(canonical, cached["input_tokens"], cached["output_tokens"])
+            return {**cached, "model": canonical, "model_id": cfg["model_id"],
+                    "provider": provider, "cost_usd": cost, "cached": True,
+                    "selected_reason": selected_reason}
+
     t0 = _time.time()
-    try:
-        result = _dispatch(cfg, messages, system, tok_limit, temperature)
-        latency_ms = (_time.time() - t0) * 1000
-        _record_perf(canonical, latency_ms, True)
-        _record_success(provider)
-    except BillingError:
-        # Billing errors should not be retried on fallback — they affect all providers
-        raise
-    except Exception as exc:
-        latency_ms = (_time.time() - t0) * 1000
-        _record_perf(canonical, latency_ms, False)
-        _log.warning("Provider %s failed for %s: %s", provider, canonical, type(exc).__name__)
-        _record_failure(provider)
-        # Try fallback
+    result = None
+    last_exc = None
+    for attempt in range(_RETRY_MAX_ATTEMPTS + 1):
+        try:
+            result = _dispatch(cfg, messages, system, tok_limit, temperature)
+            latency_ms = (_time.time() - t0) * 1000
+            _record_perf(canonical, latency_ms, True)
+            _record_success(provider)
+            break
+        except BillingError:
+            raise
+        except RateLimitError as exc:
+            last_exc = exc
+            if attempt < _RETRY_MAX_ATTEMPTS:
+                delay = exc.retry_after or (_RETRY_BASE_DELAY * (2 ** attempt))
+                _log.info("Rate limited on %s attempt %d, retrying in %.1fs", canonical, attempt + 1, delay)
+                _time.sleep(delay)
+                continue
+            latency_ms = (_time.time() - t0) * 1000
+            _record_perf(canonical, latency_ms, False)
+            _record_failure(provider)
+        except Exception as exc:
+            last_exc = exc
+            if attempt < _RETRY_MAX_ATTEMPTS:
+                delay = _RETRY_BASE_DELAY * (2 ** attempt)
+                _log.info("Transient error on %s attempt %d, retrying in %.1fs", canonical, attempt + 1, delay)
+                _time.sleep(delay)
+                continue
+            latency_ms = (_time.time() - t0) * 1000
+            _record_perf(canonical, latency_ms, False)
+            _log.warning("Provider %s failed for %s after %d attempts: %s", provider, canonical, attempt + 1, type(exc).__name__)
+            _record_failure(provider)
+
+    # Fallback if all retries failed
+    if result is None:
         fallback = _get_fallback_model(canonical)
         if fallback:
             fb_cfg = get_model_config(fallback)
@@ -529,10 +610,22 @@ def call_model(
             canonical = fb_cfg["canonical_name"]
             provider = fb_provider
             cfg = fb_cfg
-        else:
-            raise
+        elif last_exc:
+            raise last_exc
+
+    # Store in cache
+    if cache_key and result:
+        _cache_store(cache_key, {"text": result["text"], "input_tokens": result["input_tokens"],
+                                  "output_tokens": result["output_tokens"]})
 
     cost = calculate_cost(canonical, result["input_tokens"], result["output_tokens"])
+
+    # Auto-feedback: score and record outcome
+    classification = _classify_task(messages[-1].get("content", "") if messages else "")
+    latency_ms_total = (_time.time() - t0) * 1000
+    auto_score = _auto_score_response(result["text"], latency_ms_total)
+    record_outcome(canonical, classification["domain"], auto_score)
+
     return {
         "text": result["text"],
         "model": canonical,
@@ -583,8 +676,33 @@ def call_model_stream(
             yield from _stream_anthropic(cfg["model_id"], messages, system, tok_limit, temperature, canonical)
         elif provider == "openai":
             yield from _stream_openai(cfg["model_id"], messages, system, tok_limit, temperature, canonical)
+        elif provider == "google":
+            # Google genai doesn't support SSE streaming — blocking fallback
+            result = call_model(model, messages, system=system, max_tokens=max_tokens, temperature=temperature)
+            yield {"text": result["text"]}
+            yield {"done": True, "model": canonical, "cost_usd": result["cost_usd"],
+                   "input_tokens": result["input_tokens"], "output_tokens": result["output_tokens"]}
+        elif provider == "deepseek":
+            yield from _stream_openai_compatible(
+                "https://api.deepseek.com/chat/completions",
+                os.environ.get("DEEPSEEK_API_KEY", ""),
+                cfg["model_id"], messages, system, tok_limit, temperature, canonical)
+        elif provider == "together":
+            yield from _stream_openai_compatible(
+                "https://api.together.xyz/v1/chat/completions",
+                os.environ.get("TOGETHER_API_KEY", ""),
+                cfg["model_id"], messages, system, tok_limit, temperature, canonical)
+        elif provider == "xai":
+            yield from _stream_openai_compatible(
+                "https://api.x.ai/v1/chat/completions",
+                os.environ.get("XAI_API_KEY", ""),
+                cfg["model_id"], messages, system, tok_limit, temperature, canonical)
+        elif provider == "mistral":
+            yield from _stream_openai_compatible(
+                "https://api.mistral.ai/v1/chat/completions",
+                os.environ.get("MISTRAL_API_KEY", ""),
+                cfg["model_id"], messages, system, tok_limit, temperature, canonical)
         else:
-            # Fallback: blocking call, yield entire text as one chunk
             result = call_model(model, messages, system=system, max_tokens=max_tokens, temperature=temperature)
             yield {"text": result["text"]}
             yield {"done": True, "model": canonical, "cost_usd": result["cost_usd"],
@@ -633,6 +751,42 @@ def _stream_openai(model_id, messages, system, max_tokens, temperature, canonica
            "input_tokens": int(est_input), "output_tokens": int(est_output)}
 
 
+def _stream_openai_compatible(base_url, api_key, model_id, messages, system, max_tokens, temperature, canonical):
+    """Stream from any OpenAI-compatible API (DeepSeek, Together, xAI, Mistral)."""
+    msgs = []
+    if system:
+        msgs.append({"role": "system", "content": system})
+    msgs.extend(messages)
+    full_text = ""
+    with httpx.stream(
+        "POST", base_url,
+        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+        json={"model": model_id, "messages": msgs, "max_tokens": max_tokens, "temperature": temperature, "stream": True},
+        timeout=120,
+    ) as resp:
+        resp.raise_for_status()
+        for line in resp.iter_lines():
+            if not line.startswith("data: "):
+                continue
+            data_str = line[6:]
+            if data_str.strip() == "[DONE]":
+                break
+            try:
+                chunk = _json.loads(data_str)
+                delta = chunk.get("choices", [{}])[0].get("delta", {})
+                content = delta.get("content", "")
+                if content:
+                    full_text += content
+                    yield {"text": content}
+            except (_json.JSONDecodeError, IndexError, KeyError):
+                continue
+    est_input = sum(len(m.get("content", "").split()) * 1.3 for m in msgs)
+    est_output = len(full_text.split()) * 1.3
+    cost = calculate_cost(canonical, int(est_input), int(est_output))
+    yield {"done": True, "model": canonical, "cost_usd": cost,
+           "input_tokens": int(est_input), "output_tokens": int(est_output)}
+
+
 # ---------------------------------------------------------------------------
 # Provider implementations
 # ---------------------------------------------------------------------------
@@ -640,6 +794,17 @@ def _stream_openai(model_id, messages, system, max_tokens, temperature, canonica
 class BillingError(Exception):
     """Raised when the provider rejects a request due to billing/credit issues."""
     pass
+
+
+class RateLimitError(Exception):
+    """Raised when a provider returns 429 Too Many Requests."""
+    def __init__(self, message: str, retry_after: float | None = None):
+        super().__init__(message)
+        self.retry_after = retry_after
+
+
+_RETRY_MAX_ATTEMPTS = 2
+_RETRY_BASE_DELAY = 1.0  # seconds
 
 
 def _call_anthropic(model_id, messages, system, max_tokens, temperature):
@@ -711,6 +876,15 @@ def _call_openai_compatible(base_url, api_key, model_id, messages, system, max_t
         )
         resp.raise_for_status()
     except httpx.HTTPStatusError as e:
+        if e.response.status_code == 429:
+            retry_after = None
+            ra_header = e.response.headers.get("retry-after")
+            if ra_header:
+                try:
+                    retry_after = float(ra_header)
+                except ValueError:
+                    pass
+            raise RateLimitError(f"Rate limited by {base_url}", retry_after=retry_after) from e
         _log.error("API error from %s model=%s status=%s key=%s", base_url, model_id, e.response.status_code, _mask_key(api_key))
         raise
     except Exception as e:
@@ -823,6 +997,25 @@ _DOMAIN_PREFERENCES: dict[str, dict[str, float]] = {
 }
 
 # ---------------------------------------------------------------------------
+# Domain-specific system prompts — applied when caller provides no system prompt
+# ---------------------------------------------------------------------------
+
+_DOMAIN_SYSTEM_PROMPTS = {
+    "code": "You are a precise coding assistant. Return code directly. Use comments only where logic is non-obvious. No preambles.",
+    "research": "You are a thorough research assistant. Cite sources when available. Be comprehensive but concise.",
+    "creative": "You are a creative writing assistant. Be vivid, original, and engaging. Match the requested tone.",
+    "data": "You are a data processing assistant. Return structured output (JSON/CSV) when appropriate. Be exact with numbers.",
+    "finance": "You are a financial analysis assistant. Be precise with numbers. Note assumptions and risks.",
+    "general": "You are a helpful AI assistant. Be concise and direct.",
+}
+
+
+def _get_domain_prompt(domain: str) -> str:
+    """Return the system prompt for a domain, falling back to general."""
+    return _DOMAIN_SYSTEM_PROMPTS.get(domain, _DOMAIN_SYSTEM_PROMPTS["general"])
+
+
+# ---------------------------------------------------------------------------
 # Outcome-based feedback loop — adjusts domain preferences dynamically
 # ---------------------------------------------------------------------------
 
@@ -866,6 +1059,38 @@ def get_all_outcomes() -> dict:
                 "recent": [round(x, 3) for x in s[-5:]],
             }
     return result
+
+
+# ---------------------------------------------------------------------------
+# Auto-scoring — heuristic quality scoring for the feedback loop
+# ---------------------------------------------------------------------------
+
+_REFUSAL_PHRASES = ["i cannot", "i'm unable", "i am unable", "as an ai", "i can't help",
+                     "i'm not able", "i apologize, but i cannot"]
+
+
+def _auto_score_response(text: str, latency_ms: float) -> float:
+    """Auto-score a response for the feedback loop. Returns 0.0-1.0."""
+    score = 0.7  # neutral-positive baseline
+    text_lower = text.lower().strip()
+
+    # Penalize empty/very short
+    if len(text_lower) < 10:
+        score -= 0.3
+    # Penalize refusals
+    if any(phrase in text_lower for phrase in _REFUSAL_PHRASES):
+        score -= 0.2
+    # Penalize slow responses
+    if latency_ms > 10000:
+        score -= 0.1
+    # Reward fast responses
+    if latency_ms < 2000:
+        score += 0.1
+    # Reward substantial output
+    if len(text.split()) > 50:
+        score += 0.1
+
+    return max(0.0, min(1.0, score))
 
 
 def auto_select_model(task_text: str, max_cost_usd: float | None = None,
