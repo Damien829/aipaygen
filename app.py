@@ -763,8 +763,8 @@ def _api_key_wsgi(environ, start_response):
                             environ["X_APIKEY_BYPASS"] = key
                             environ["X_PRICING_MODE"] = "flat"
                             return _raw_flask_wsgi(environ, start_response)
-            except Exception:
-                pass
+            except Exception as _key_err:
+                logging.getLogger(__name__).error("API key auth failed: %s", _key_err)
 
     # 2. If request carries an X-Payment header, it's an x402-paying agent —
     #    let x402 middleware handle verification with facilitator fallback.
@@ -825,7 +825,8 @@ def _api_key_wsgi(environ, start_response):
                 with _network_conn() as nc:
                     row = nc.execute("SELECT calls_used FROM free_tier_usage WHERE ip=? AND date=?", (ip, today)).fetchone()
                     calls_today = row["calls_used"] if row else 0
-            except Exception:
+            except Exception as _ft_err:
+                logging.getLogger(__name__).error("Free tier lookup failed: %s", _ft_err)
                 calls_today = 10
             # Add x402-standard headers + upgrade hints + discovery Link headers
             route_cfg_hdr = routes.get(route_key)

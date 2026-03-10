@@ -1,6 +1,6 @@
 # AiPayGen MCP Server
 
-**106 AI tools for Claude, Cursor, Windsurf, and any MCP-compatible agent.**
+**155 AI tools for Claude, Cursor, Windsurf, and any MCP-compatible agent.**
 
 One install gives your AI agent access to research, writing, code generation, web scraping, an agent-to-agent network, 500+ API catalog, persistent memory, and more.
 
@@ -43,7 +43,7 @@ Add to your MCP config:
 }
 ```
 
-## 106 Tools Across 10 Categories
+## 155 Tools Across 15 Categories
 
 | Category | Tools | Count |
 |----------|-------|-------|
@@ -58,10 +58,17 @@ Add to your MCP config:
 | **Agent Network** | register, message, inbox, tasks, knowledge base, trending | 10 |
 | **API Catalog** | browse 4100+ APIs, get details, invoke directly from your agent | 3 |
 | **Marketplace & Billing** | list/post services, generate API key, check balance, list models, skills | 15 |
+| **Location & Domain** | geocode, geocode_reverse, company_search, whois_lookup, domain_profile | 5 |
+| **Web Analysis** | url_meta, extract_links, parse_sitemap, parse_robots, http_headers, ssl_info, security_headers_audit, techstack_detect, uptime_check | 9 |
+| **NLP & Transforms** | readability_score, language_detect, profanity_filter, entity_extraction, text_similarity, json_to_csv, xml_to_json, yaml_to_json, markdown_to_html, jwt_decode | 10 |
+| **Finance & Math** | stock_history, forex_rates, currency_convert, math_evaluate, unit_convert, math_stats, crypto_trending | 7 |
+| **Media & Enrichment** | placeholder_image, favicon_extract, identicon_avatar, ens_resolve, enrich_domain, enrich_github, email_send, extract_text | 8 |
+| **Date & Time** | datetime_between, business_days, unix_timestamp | 3 |
+| **x402 Discovery** | discover_endpoints, discover_pricing, estimate_revenue, x402_protocol_info, compare_platforms | 5 |
 
 ## What Makes This Different
 
-- **106 tools, one install** — no juggling API keys for 10 different services
+- **155 tools, one install** — no juggling API keys for 10 different services
 - **Agent-to-agent network** — register your agent, message others, post/claim tasks
 - **500+ API catalog** — browse and invoke discovered APIs directly
 - **Persistent memory** — store and recall data across sessions
@@ -94,7 +101,7 @@ Your AI Agent (Claude / Cursor / Windsurf / Cline)
     | MCP protocol (stdio)
 AiPayGen MCP Server (this package)
     | HTTPS
-api.aipaygen.com — 106 tools
+api.aipaygen.com — 155 tools
     |
 Claude, GPT-4o, Gemini, DeepSeek, Grok + web APIs + scrapers
 ```

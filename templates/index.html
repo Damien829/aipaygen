@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}AiPayGen{% endblock %}
-{% block description %}106 AI tools in one API. Multi-model (Claude, GPT-4o, Gemini, DeepSeek, Grok). Pay per call. 3 free calls/day.{% endblock %}
+{% block description %}155 AI tools in one API. Multi-model (Claude, GPT-4o, Gemini, DeepSeek, Grok). Pay per call. 10 free calls/day.{% endblock %}
 
 {% block head %}
 <style>
@@ -88,18 +88,18 @@
   <div style="position:relative;z-index:1">
     <div class="hero-badge fade-in">
       <span class="badge">Live on Base Mainnet</span>
-      <span class="badge badge-cyan">106 Tools</span>
+      <span class="badge badge-cyan">155 tools</span>
     </div>
     <h1 class="fade-in delay-1">The AI Agent API</h1>
     <p class="hero-sub fade-in delay-2">
-      106 tools across 15 models from 7 providers. Research, write, code, analyze, scrape, translate — pay per call.
+      155 tools across 15 models from 7 providers. Research, write, code, analyze, scrape, translate — pay per call.
     </p>
     <div class="hero-actions fade-in delay-3">
       <a href="/try" class="btn btn-primary">Try Free</a>
       <a href="/buy-credits" class="btn btn-secondary">Get API Key</a>
     </div>
     <p class="hero-tag fade-in delay-3">
-      <span>3 free calls/day</span> &middot; No sign-up required &middot;
+      <span>10 free calls/day</span> &middot; No sign-up required &middot;
       <code>pip install aipaygen-mcp</code>
     </p>
   </div>
@@ -138,7 +138,7 @@
   <div class="section-subtitle">One API key. Every AI tool.</div>
   <div class="bento-grid">
     <div class="card card-lg">
-      <h3>106 AI Tools</h3>
+      <h3>155 AI Tools</h3>
       <p>Research, write, code, analyze, extract, translate, scrape, RAG, vision, diagrams, and more — every tool is one POST request away.</p>
       <div class="tag-row">
         <span class="tag">research</span><span class="tag">write</span><span class="tag">code</span>
@@ -206,7 +206,7 @@
     <div class="step-card card">
       <div class="step-num">3</div>
       <h3>Pay</h3>
-      <p>3 free calls/day. Then prepay with Stripe ($5+) or pay per call with USDC on Base.</p>
+      <p>10 free calls/day. Then prepay with Stripe ($5+) or pay per call with USDC on Base.</p>
       <div class="code-block mt-4" style="text-align:left">
         <pre><code class="language-bash">curl -X POST https://api.aipaygen.com/credits/buy \
   -d '{"amount_usd": 5.0}'</code></pre>
@@ -228,7 +228,7 @@
       <ul class="pricing-features">
         <li>3 AI calls per day</li>
         <li>No sign-up required</li>
-        <li>All 106 tools</li>
+        <li>All 155 tools</li>
         <li>MCP access</li>
       </ul>
       <a href="/try" class="btn btn-secondary" style="width:100%;justify-content:center">Try Now</a>
@@ -241,7 +241,7 @@
       <ul class="pricing-features">
         <li>Unlimited calls</li>
         <li>Prepaid API key</li>
-        <li>All 106 tools</li>
+        <li>All 155 tools</li>
         <li>Agent Builder</li>
         <li>Priority routing</li>
       </ul>
@@ -290,11 +290,11 @@
 // Fetch live stats
 fetch('/api/stats').then(function(r){return r.json()}).then(function(d){
   var map = {
-    'stat-agents': d.agents_registered || 0,
+    'stat-agents': d.agents || 0,
     'stat-keys': d.api_keys || 0,
     'stat-skills': d.skills || 0,
-    'stat-apis': d.apis_indexed || 0,
-    'stat-tools': d.mcp_tools || 106
+    'stat-apis': d.apis || 0,
+    'stat-tools': d.mcp_tools || 155
   };
   Object.keys(map).forEach(function(id){
     var el = document.getElementById(id);

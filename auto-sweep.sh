@@ -27,7 +27,7 @@ if [ "$API_LOCAL" != "200" ]; then
     source venv/bin/activate 2>/dev/null
     pkill -f "gunicorn.*app:app" 2>/dev/null || true
     sleep 2
-    gunicorn --workers 4 --worker-class sync --bind 127.0.0.1:5001 --timeout 120 --daemon app:app 2>/dev/null || true
+    gunicorn --workers 2 --worker-class sync --bind 127.0.0.1:5001 --timeout 120 --daemon app:app 2>/dev/null || true
     echo "[$TS] Attempted gunicorn restart" >> "$LOG"
 elif [ "$API_PUBLIC" != "200" ]; then
     echo "[$TS] WARNING: API local OK but tunnel returned $API_PUBLIC" >> "$LOG"

@@ -146,11 +146,11 @@ OUR_MANIFEST = {
 }
 
 _INTRO_TEMPLATES = {
-    "x402": "Hi {name}! We noticed your x402 payment endpoint at {url}. AiPayGen is an AI agent platform on Base Mainnet with 1500+ skills, 4100+ callable API catalog, and 106 MCP tools. We'd love to explore mutual discovery listing and x402 interoperability. Check us out: https://api.aipaygen.com/.well-known/x402.json | Catalog: https://api.aipaygen.com/catalog",
-    "mcp_directory": "Hi {name}! AiPayGen offers 106 metered MCP tools across 5 pricing tiers plus a 4100+ API catalog accessible via MCP. SSE and streamable-HTTP transports supported. We'd love to be listed on {url}. Our MCP endpoint: https://api.aipaygen.com/mcp — install via pip: `pip install aipaygen-mcp`. Details: https://api.aipaygen.com/discover",
+    "x402": "Hi {name}! We noticed your x402 payment endpoint at {url}. AiPayGen is an AI agent platform on Base Mainnet with 1500+ skills, 4100+ callable API catalog, and 155 MCP tools. We'd love to explore mutual discovery listing and x402 interoperability. Check us out: https://api.aipaygen.com/.well-known/x402.json | Catalog: https://api.aipaygen.com/catalog",
+    "mcp_directory": "Hi {name}! AiPayGen offers 155 metered MCP tools across 5 pricing tiers plus a 4100+ API catalog accessible via MCP. SSE and streamable-HTTP transports supported. We'd love to be listed on {url}. Our MCP endpoint: https://api.aipaygen.com/mcp — install via pip: `pip install aipaygen-mcp`. Details: https://api.aipaygen.com/discover",
     "agent": "Hi {name}! AiPayGen is an AI agent service with 1500+ skills, 4100+ callable API catalog, 13 specialist agents, and A2A protocol support. Our agents can discover and call any API in the catalog, chain skills, share memory, and transact via x402 USDC. Let's connect! API: https://api.aipaygen.com",
-    "marketplace": "Hi {name}! We'd love to list AiPayGen on your platform. We offer 1500+ AI skills, 4100+ API catalog, 106 MCP tools, 13 specialist agents, and multi-model routing across 15 models. Monetized via x402 USDC and API keys. Homepage: https://aipaygen.com | API: https://api.aipaygen.com/discover",
-    "github_repo": "Great project! AiPayGen is a complementary AI agent platform with 1500+ skills, 4100+ callable API catalog, and 106 MCP tools. We support x402 payments, A2A protocol, and multi-model routing. Would love to explore collaboration or integration. Check us out: https://github.com/Damien829/aipaygen",
+    "marketplace": "Hi {name}! We'd love to list AiPayGen on your platform. We offer 1500+ AI skills, 4100+ API catalog, 155 MCP tools, 13 specialist agents, and multi-model routing across 15 models. Monetized via x402 USDC and API keys. Homepage: https://aipaygen.com | API: https://api.aipaygen.com/discover",
+    "github_repo": "Great project! AiPayGen is a complementary AI agent platform with 1500+ skills, 4100+ callable API catalog, and 155 MCP tools. We support x402 payments, A2A protocol, and multi-model routing. Would love to explore collaboration or integration. Check us out: https://github.com/Damien829/aipaygen",
 }
 
 

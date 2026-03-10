@@ -1,5 +1,5 @@
 """
-AiPayGen MCP Server — 148 metered tools
+AiPayGen MCP Server — 155 tools (148 metered + 7 free)
 
 Exposes all AiPayGen capabilities as MCP tools with usage metering.
 10 free calls/day without an API key. Unlimited with a prepaid key.
@@ -68,7 +68,7 @@ _skills_engine = SkillsSearchEngine(_skills_db_path)
 mcp = FastMCP(
     "AiPayGen",
     instructions=(
-        "AiPayGen lets you build, run, and schedule AI agents with 148 tools. "
+        "AiPayGen lets you build, run, and schedule AI agents with 155 tools. "
         "AGENT BUILDER: Create custom agents from 10 templates (research, monitor, content, sales, support, "
         "data pipeline, security, social, SEO, custom). Schedule agents on loops, cron, or event triggers. "
         "TOOLS: research, write, code, translate, analyze, summarize, vision (image analysis), "
@@ -1827,6 +1827,69 @@ def crypto_trending() -> dict:
         return {"error": str(e)}
 
 
+# ── Crypto Deposit Tools ─────────────────────────────────────────────────────
+
+@metered_tool("standard")
+def get_crypto_deposit_info() -> dict:
+    """Get crypto deposit information — wallet address, supported networks (Base/Solana), fees, limits."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/crypto/deposit", timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def create_deposit(
+    network: Annotated[str, Field(description="Network: 'base' or 'solana'")] = "base",
+    amount_usd: Annotated[float, Field(description="Expected deposit amount in USD")] = 10.0,
+) -> dict:
+    """Create a crypto deposit intent — returns unique address, QR code, and instructions."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/crypto/deposit", json={"network": network, "amount_usd": amount_usd}, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def claim_deposit(
+    tx_hash: Annotated[str, Field(description="Transaction hash to verify and claim")],
+    network: Annotated[str, Field(description="Network: 'base' or 'solana'")] = "base",
+) -> dict:
+    """Claim a crypto deposit by providing the transaction hash for onchain verification."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/crypto/claim", json={"tx_hash": tx_hash, "network": network}, timeout=30)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def get_deposit_history(
+    api_key: Annotated[str, Field(description="API key to check deposit history for")],
+) -> dict:
+    """Get deposit history for an API key."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/crypto/deposits", params={"api_key": api_key}, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def get_deposit_address(
+    api_key: Annotated[str, Field(description="API key to get a unique deposit address for")],
+    network: Annotated[str, Field(description="Network: 'base' or 'solana'")] = "base",
+) -> dict:
+    """Get or create a unique deposit address for an API key on a specific network."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/crypto/address", params={"api_key": api_key, "network": network}, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
 # ── x402 Discovery Tools ─────────────────────────────────────────────────────
 
 @mcp.tool()
@@ -1903,7 +1966,7 @@ def main():
 
         async def health(request):
             tool_count = len([m for m in dir() if callable(getattr(__import__(__name__), m, None)) and hasattr(getattr(__import__(__name__), m, None), '__wrapped__')])
-            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 148, "version": "1.6.0"})
+            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 155, "version": "1.7.0"})
 
         starlette_app.routes.insert(0, Route("/health", health))
         uvicorn.run(starlette_app, host="0.0.0.0", port=5002)

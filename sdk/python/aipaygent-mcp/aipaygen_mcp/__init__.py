@@ -1,3 +1,3 @@
-"""AiPayGen MCP Server — 106 AI tools for Claude, Cursor, and any MCP client."""
+"""AiPayGen MCP Server — 155 AI tools for Claude, Cursor, and any MCP client."""
 
-__version__ = "1.3.0"
+__version__ = "1.7.1"

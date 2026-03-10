@@ -188,9 +188,12 @@ def get_trending_topics(limit: int = 10) -> list:
 
 
 def vote_knowledge(entry_id: str, up: bool = True) -> dict:
-    col = "upvotes" if up else "downvotes"
+    if up:
+        stmt = "UPDATE knowledge_base SET upvotes=upvotes+1 WHERE entry_id=?"
+    else:
+        stmt = "UPDATE knowledge_base SET downvotes=downvotes+1 WHERE entry_id=?"
     with _conn() as c:
-        c.execute(f"UPDATE knowledge_base SET {col}={col}+1 WHERE entry_id=?", (entry_id,))
+        c.execute(stmt, (entry_id,))
         row = c.execute(
             "SELECT upvotes, downvotes, author_agent FROM knowledge_base WHERE entry_id=?",
             (entry_id,)

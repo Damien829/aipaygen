@@ -1,11 +1,11 @@
 # Reddit Launch Post — r/MCP, r/ClaudeAI, r/artificial
 
 ## Title
-AiPayGen: 153 AI tools as one MCP server — research, code, scrape, translate, analyze — with pay-per-call in USDC
+AiPayGen: 155 AI tools as one MCP server — research, code, scrape, translate, analyze — with pay-per-call in USDC
 
 ## Body (r/MCP)
 
-Hey everyone! I built **AiPayGen** — an MCP server with 153 AI tools you can add to Claude, Cursor, or any MCP-compatible client.
+Hey everyone! I built **AiPayGen** — an MCP server with 155 AI tools you can add to Claude, Cursor, or any MCP-compatible client.
 
 ### Quick install:
 ```bash
@@ -21,9 +21,10 @@ Or connect to the remote server: `https://mcp.aipaygen.com/mcp`
 - **Utility APIs**: geocoding, WHOIS, SSL certs, security audits, stock history, forex, PDF extraction, JSON/CSV transforms
 - **Agent infra**: persistent memory, agent messaging, knowledge base, 4000+ API catalog
 - **Data feeds** (free): weather, crypto, exchange rates, time
+- **Crypto deposits**: USDC on Base + Solana — deposit, claim, and check balance via API or MCP
 
 ### Pricing:
-- **Free tier**: 3 calls/day, no API key needed
+- **Free tier**: 10 calls/day, no API key needed
 - **Paid**: Prepaid keys from $5 (Stripe) or pay-per-call in USDC via x402 protocol on Base/Solana
 - **Seller marketplace**: Register your own APIs and get paid — 3% platform fee
 

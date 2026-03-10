@@ -1,8 +1,8 @@
-# Show HN: AiPayGen — 153 AI tools as one MCP server, pay-per-call in USDC
+# Show HN: AiPayGen — 155 AI tools as one MCP server, pay-per-call in USDC
 
-I built an MCP server with 153 AI tools — research, write, code, translate, analyze, scrape, agent memory, workflows, and 43 utility APIs. One install, one API key, 15 AI models behind the scenes.
+I built an MCP server with 155 AI tools — research, write, code, translate, analyze, scrape, agent memory, workflows, and 43 utility APIs. One install, one API key, 15 AI models behind the scenes.
 
-**Free tier: 3 calls/day, no key needed.** After that, prepaid API keys from $5 (Stripe) or pay-per-call in USDC on Base/Solana via x402.
+**Free tier: 10 calls/day, no key needed.** After that, prepaid API keys from $5 (Stripe) or pay-per-call in USDC on Base/Solana via x402.
 
 ---
 
@@ -19,7 +19,7 @@ Published on the official MCP Registry: `io.github.Damien829/aipaygen`
 
 ---
 
-## What's included (153 tools)
+## What's included (155 tools)
 
 **AI tools:** research, write, summarize, translate, code, analyze, sentiment, classify, extract, compare, explain, plan, decide, debate, proofread, rewrite, pitch, headline, and more
 
@@ -34,6 +34,10 @@ Published on the official MCP Registry: `io.github.Damien829/aipaygen`
 **Agent infrastructure:** persistent memory, agent-to-agent messaging, task boards, knowledge base, 4000+ API catalog
 
 **Seller marketplace:** register your own APIs, set prices, get paid in USDC — 3% platform fee
+
+**Crypto deposits:** USDC on Base + Solana — deposit, claim, and check balance via API or MCP
+
+**Current stats:** 134 agents registered, 1,944 skills, 4,152 APIs indexed
 
 ---
 

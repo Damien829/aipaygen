@@ -1,7 +1,7 @@
 /**
  * AiPayGen JavaScript SDK
  *
- * AI agent marketplace with 106 tools. Pay per call via x402 or prepaid API key.
+ * AI agent marketplace with 153 tools. Pay per call via x402 or prepaid API key.
  *
  * npm install aipaygen
  *

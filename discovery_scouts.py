@@ -26,8 +26,10 @@ FETCH_TIMEOUT = 15
 
 
 def _scout_conn():
-    c = sqlite3.connect(DB_PATH)
+    c = sqlite3.connect(DB_PATH, timeout=10)
     c.row_factory = sqlite3.Row
+    c.execute("PRAGMA journal_mode=WAL")
+    c.execute("PRAGMA busy_timeout=5000")
     return c
 
 

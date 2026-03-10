@@ -1,5 +1,5 @@
 """
-AiPayGen MCP Server — thin client that proxies 106 AI tools via api.aipaygen.com.
+AiPayGen MCP Server — thin client that proxies 155 AI tools via api.aipaygen.com.
 
 Install:
     pip install aipaygen-mcp
@@ -25,6 +25,7 @@ import sys
 import json
 import urllib.request
 import urllib.error
+import urllib.parse
 
 from mcp.server.fastmcp import FastMCP
 
@@ -34,9 +35,9 @@ API_KEY = os.environ.get("AIPAYGEN_API_KEY", "")
 mcp = FastMCP(
     "AiPayGen",
     instructions=(
-        "AiPayGen provides 106 AI-powered tools: research, write, code, translate,"
+        "AiPayGen provides 153 AI-powered tools: research, write, code, translate, "
         "analyze, summarize, vision, RAG, web scraping, custom agent builder, agent memory, marketplace, "
-        "data lookups (weather, crypto, stocks, news), and more. "
+        "utility APIs (geocode, WHOIS, SSL, security, math, finance, NLP, transforms), and more. "
         "Free tier: 10 calls/day. Set AIPAYGEN_API_KEY for unlimited access."
     ),
 )
@@ -46,7 +47,7 @@ def _call(endpoint: str, payload: dict) -> dict:
     """Call an AiPayGen API endpoint and return the JSON response."""
     url = f"{BASE_URL}/{endpoint.lstrip('/')}"
     data = json.dumps(payload).encode()
-    headers = {"Content-Type": "application/json", "User-Agent": "aipaygen-mcp/1.6"}
+    headers = {"Content-Type": "application/json", "User-Agent": "aipaygen-mcp/1.7"}
     if API_KEY:
         headers["Authorization"] = f"Bearer {API_KEY}"
     req = urllib.request.Request(url, data=data, headers=headers, method="POST")
@@ -70,7 +71,7 @@ def _get(endpoint: str, params: dict = None) -> dict:
         qs = "&".join(f"{k}={urllib.parse.quote(str(v))}" for k, v in params.items() if v is not None)
         if qs:
             url += f"?{qs}"
-    headers = {"User-Agent": "aipaygen-mcp/1.6"}
+    headers = {"User-Agent": "aipaygen-mcp/1.7"}
     if API_KEY:
         headers["Authorization"] = f"Bearer {API_KEY}"
     req = urllib.request.Request(url, headers=headers, method="GET")
@@ -563,7 +564,7 @@ def ask(question: str) -> dict:
 
 @mcp.tool()
 def list_skills(category: str = "") -> dict:
-    """List all available skills. AiPayGen has 106 built-in skills and absorbs new ones dynamically."""
+    """List all available skills. AiPayGen has 155 built-in tools and absorbs new ones dynamically."""
     params = {}
     if category:
         params["category"] = category
@@ -790,6 +791,371 @@ def delete_agent(agent_id: str) -> dict:
     return _call(f"agents/custom/{agent_id}/delete", {})
 
 
+# ── Utility: Location ────────────────────────────────────────────────────
+
+@mcp.tool()
+def geocode(q: str) -> dict:
+    """Convert an address or place name to geographic coordinates (lat/lon) via Nominatim."""
+    return _get("data/geocode", {"q": q})
+
+
+@mcp.tool()
+def geocode_reverse(lat: str, lon: str) -> dict:
+    """Convert geographic coordinates (lat/lon) to a human-readable address."""
+    return _get("data/geocode/reverse", {"lat": lat, "lon": lon})
+
+
+# ── Utility: Company & Domain ────────────────────────────────────────────
+
+@mcp.tool()
+def company_search(q: str) -> dict:
+    """Search for company information via Wikipedia enrichment. Returns description, domain guess, thumbnail."""
+    return _get("data/company", {"q": q})
+
+
+@mcp.tool()
+def whois_lookup(domain: str) -> dict:
+    """WHOIS/RDAP lookup for a domain. Returns registrar, status, nameservers, and events."""
+    return _get("data/whois", {"domain": domain})
+
+
+@mcp.tool()
+def domain_profile(domain: str) -> dict:
+    """Full domain profile combining DNS records (A, AAAA, MX, TXT, NS, CNAME) and WHOIS data."""
+    return _get("data/domain", {"domain": domain})
+
+
+# ── Utility: Text Analysis ───────────────────────────────────────────────
+
+@mcp.tool()
+def readability_score(text: str) -> dict:
+    """Compute Flesch-Kincaid readability score and grade level for text."""
+    return _call("data/readability", {"text": text})
+
+
+@mcp.tool()
+def language_detect(text: str) -> dict:
+    """Detect the language of text using Unicode script analysis. Returns language code and confidence."""
+    return _get("data/language", {"text": text})
+
+
+@mcp.tool()
+def profanity_filter(text: str) -> dict:
+    """Detect and filter profanity from text. Returns cleaned text and list of found words."""
+    return _call("data/profanity", {"text": text})
+
+
+# ── Utility: Web & URL ───────────────────────────────────────────────────
+
+@mcp.tool()
+def url_meta(url: str) -> dict:
+    """Extract meta tags (Open Graph, Twitter Cards) from a URL. Returns title, OG data, and Twitter card data."""
+    return _get("data/meta", {"url": url})
+
+
+@mcp.tool()
+def extract_links(url: str) -> dict:
+    """Extract all links from a web page. Returns deduplicated absolute URLs."""
+    return _get("data/links", {"url": url})
+
+
+@mcp.tool()
+def parse_sitemap(domain: str) -> dict:
+    """Parse sitemap.xml from a domain. Returns list of indexed URLs."""
+    return _get("data/sitemap", {"domain": domain})
+
+
+@mcp.tool()
+def parse_robots(domain: str) -> dict:
+    """Parse robots.txt from a domain. Returns crawl rules, sitemaps, and raw content."""
+    return _get("data/robots", {"domain": domain})
+
+
+@mcp.tool()
+def http_headers(url: str) -> dict:
+    """Get HTTP response headers from a URL. Returns status code and all headers."""
+    return _get("data/headers", {"url": url})
+
+
+@mcp.tool()
+def ssl_info(domain: str) -> dict:
+    """Get SSL certificate details for a domain: subject, issuer, expiry, serial number."""
+    return _get("data/ssl", {"domain": domain})
+
+
+# ── Utility: Compute & Dev ───────────────────────────────────────────────
+
+@mcp.tool()
+def jwt_decode(token: str) -> dict:
+    """Decode a JWT token without verification. Returns header, payload, and expiry status."""
+    return _call("data/jwt/decode", {"token": token})
+
+
+@mcp.tool()
+def markdown_to_html(text: str) -> dict:
+    """Convert Markdown text to HTML. Supports tables, fenced code blocks, and syntax highlighting."""
+    return _call("data/markdown", {"text": text})
+
+
+# ── Utility: Media & Visual ──────────────────────────────────────────────
+
+@mcp.tool()
+def placeholder_image(width: int = 300, height: int = 200, bg: str = "cccccc",
+                       fg: str = "666666", text: str = "") -> dict:
+    """Generate a placeholder image (SVG). Returns SVG markup."""
+    params = {"width": width, "height": height, "bg": bg, "fg": fg}
+    if text:
+        params["text"] = text
+    return _get("data/placeholder", params)
+
+
+@mcp.tool()
+def favicon_extract(domain: str) -> dict:
+    """Extract favicon URLs from a domain. Returns list of icon URLs found."""
+    return _get("data/favicon", {"domain": domain})
+
+
+@mcp.tool()
+def identicon_avatar(input_str: str, size: int = 80) -> dict:
+    """Generate a deterministic identicon avatar (SVG) from any string."""
+    return _get("data/avatar", {"input": input_str, "size": size})
+
+
+# ── Utility: Blockchain ──────────────────────────────────────────────────
+
+@mcp.tool()
+def ens_resolve(name: str) -> dict:
+    """Resolve ENS name to Ethereum address, or reverse-resolve address to ENS name."""
+    return _get("data/ens", {"name": name})
+
+
+# ── Utility: Enrichment ──────────────────────────────────────────────────
+
+@mcp.tool()
+def enrich_domain(domain: str) -> dict:
+    """Domain enrichment: detect tech stack, social profiles, DNS records, and meta tags."""
+    return _get("data/enrich/domain", {"domain": domain})
+
+
+@mcp.tool()
+def enrich_github(username: str) -> dict:
+    """GitHub user enrichment: profile info, bio, follower count, and top repositories."""
+    return _get("data/enrich/github", {"username": username})
+
+
+# ── Utility: Email ───────────────────────────────────────────────────────
+
+@mcp.tool()
+def email_send(to: str, subject: str, body: str) -> dict:
+    """Send an email via Resend (from noreply@aipaygen.com)."""
+    return _call("data/email/send", {"to": to, "subject": subject, "body": body})
+
+
+# ── Utility: Document Extraction ─────────────────────────────────────────
+
+@mcp.tool()
+def extract_text(html: str = "", url: str = "") -> dict:
+    """Extract clean text from HTML content or a URL. Strips scripts, styles, and tags."""
+    payload = {}
+    if url:
+        payload["url"] = url
+    elif html:
+        payload["html"] = html
+    return _call("data/extract/text", payload)
+
+
+# ── Utility: Finance ─────────────────────────────────────────────────────
+
+@mcp.tool()
+def stock_history(symbol: str) -> dict:
+    """Get 1-month historical OHLCV candles for a stock symbol via yfinance."""
+    return _get("data/finance/history", {"symbol": symbol})
+
+
+@mcp.tool()
+def forex_rates(base: str = "USD") -> dict:
+    """Get 150+ currency exchange rates for a base currency."""
+    return _get("data/finance/forex", {"base": base})
+
+
+@mcp.tool()
+def currency_convert(amount: float = 1.0, from_currency: str = "USD", to_currency: str = "EUR") -> dict:
+    """Convert an amount between currencies using live exchange rates."""
+    return _get("data/finance/convert", {"amount": amount, "from": from_currency, "to": to_currency})
+
+
+# ── Utility: NLP ─────────────────────────────────────────────────────────
+
+@mcp.tool()
+def entity_extraction(text: str) -> dict:
+    """Extract named entities from text: emails, URLs, IPs, crypto addresses, phone numbers, dates, hashtags, mentions."""
+    return _call("data/entities", {"text": text})
+
+
+@mcp.tool()
+def text_similarity(text1: str, text2: str) -> dict:
+    """Compute similarity between two texts using Jaccard and cosine metrics."""
+    return _call("data/similarity", {"text1": text1, "text2": text2})
+
+
+# ── Utility: Data Transforms ─────────────────────────────────────────────
+
+@mcp.tool()
+def json_to_csv(data: list) -> dict:
+    """Convert a JSON array of objects to CSV format."""
+    return _call("data/transform/json-to-csv", {"data": data})
+
+
+@mcp.tool()
+def xml_to_json(xml: str) -> dict:
+    """Convert XML to JSON. Handles nested elements and attributes."""
+    return _call("data/transform/xml", {"xml": xml})
+
+
+@mcp.tool()
+def yaml_to_json(yaml_str: str) -> dict:
+    """Convert YAML to JSON."""
+    return _call("data/transform/yaml", {"yaml": yaml_str})
+
+
+# ── Utility: Date & Time ─────────────────────────────────────────────────
+
+@mcp.tool()
+def datetime_between(from_date: str, to_date: str) -> dict:
+    """Calculate duration between two dates: days, weeks, months, years, hours, minutes, seconds."""
+    return _get("data/datetime/between", {"from": from_date, "to": to_date})
+
+
+@mcp.tool()
+def business_days(from_date: str, to_date: str) -> dict:
+    """Count business days (weekdays) between two dates."""
+    return _get("data/datetime/business-days", {"from": from_date, "to": to_date})
+
+
+@mcp.tool()
+def unix_timestamp(timestamp: str = "") -> dict:
+    """Convert Unix timestamp to human-readable date, or get current Unix timestamp."""
+    params = {"timestamp": timestamp} if timestamp else {}
+    return _get("data/datetime/unix", params)
+
+
+# ── Utility: Security ────────────────────────────────────────────────────
+
+@mcp.tool()
+def security_headers_audit(url: str) -> dict:
+    """Audit security headers of a URL (HSTS, CSP, X-Frame-Options, etc.). Returns A+ to F grade."""
+    return _get("data/security/headers", {"url": url})
+
+
+@mcp.tool()
+def techstack_detect(url: str) -> dict:
+    """Detect technology stack of a website: frameworks, CDNs, analytics, server software."""
+    return _get("data/security/techstack", {"url": url})
+
+
+@mcp.tool()
+def uptime_check(url: str) -> dict:
+    """Check if a URL is up or down. Returns status, response time, and content length."""
+    return _get("data/security/uptime", {"url": url})
+
+
+# ── Utility: Math & Statistics ───────────────────────────────────────────
+
+@mcp.tool()
+def math_evaluate(expression: str) -> dict:
+    """Safely compute a math expression using AST parsing. Supports +, -, *, /, ^, sqrt, sin, cos, log, etc."""
+    return _call("data/math/eval", {"expression": expression})
+
+
+@mcp.tool()
+def unit_convert(value: float, from_unit: str, to_unit: str) -> dict:
+    """Convert between units: length, weight, volume, speed, data size, and temperature."""
+    return _get("data/math/convert", {"value": value, "from": from_unit, "to": to_unit})
+
+
+@mcp.tool()
+def math_stats(numbers: list) -> dict:
+    """Statistical analysis: mean, median, mode, std dev, variance, quartiles, min/max, range."""
+    return _call("data/math/stats", {"numbers": numbers})
+
+
+# ── Utility: Crypto ──────────────────────────────────────────────────────
+
+@mcp.tool()
+def crypto_trending() -> dict:
+    """Get trending cryptocurrency tokens and DeFi data from CoinGecko."""
+    return _get("data/crypto/trending")
+
+
+# ── Crypto Deposits ─────────────────────────────────────────────────────
+
+@mcp.tool()
+def get_crypto_deposit_info() -> dict:
+    """Get crypto deposit information — wallet address, supported networks (Base/Solana), fees, limits."""
+    return _get("crypto/deposit")
+
+
+@mcp.tool()
+def create_deposit(network: str = "base", amount_usd: float = 10.0) -> dict:
+    """Create a crypto deposit intent — returns unique address, QR code, and instructions."""
+    return _post("crypto/deposit", {"network": network, "amount_usd": amount_usd})
+
+
+@mcp.tool()
+def claim_deposit(tx_hash: str = "", network: str = "base") -> dict:
+    """Claim a crypto deposit by providing the transaction hash for onchain verification."""
+    return _post("crypto/claim", {"tx_hash": tx_hash, "network": network})
+
+
+@mcp.tool()
+def get_deposit_history(api_key: str = "") -> dict:
+    """Get deposit history for an API key."""
+    return _get("crypto/deposits", {"api_key": api_key})
+
+
+@mcp.tool()
+def get_deposit_address_for_key(api_key: str = "", network: str = "base") -> dict:
+    """Get or create a unique deposit address for an API key on a specific network."""
+    return _get("crypto/address", {"api_key": api_key, "network": network})
+
+
+# ── x402 Discovery ───────────────────────────────────────────────────────
+
+@mcp.tool()
+def discover_endpoints(category: str = "", search: str = "") -> dict:
+    """Discover all available paid API endpoints with pricing, categories, and x402 payment info."""
+    params = {}
+    if category:
+        params["category"] = category
+    if search:
+        params["search"] = search
+    return _get("discover", params)
+
+
+@mcp.tool()
+def discover_pricing() -> dict:
+    """Get pricing overview — min/max/avg prices, histogram, and total endpoint count."""
+    return _get("discover/pricing")
+
+
+@mcp.tool()
+def estimate_revenue(price_per_call: float = 0.005, daily_calls: int = 1000) -> dict:
+    """Estimate how much revenue a seller could earn from their API on the platform."""
+    return _call("sell/estimate", {"price_per_call": price_per_call, "daily_calls": daily_calls})
+
+
+@mcp.tool()
+def x402_protocol_info() -> dict:
+    """Get x402 protocol discovery metadata — chains, wallet, facilitator, discovery endpoints."""
+    return _get(".well-known/x402")
+
+
+@mcp.tool()
+def compare_platforms() -> dict:
+    """Compare AiPayGen with competitors (APIToll, RelAI) for agent decision-making."""
+    return _get("discover/compare")
+
+
 def _run_self_test():
     """Quick smoke test: hit a free endpoint to verify connectivity."""
     print(f"AiPayGen MCP self-test")
@@ -802,7 +1168,7 @@ def _run_self_test():
             sys.exit(1)
         temp = result.get("temperature_c", "?")
         print(f"  OK: London weather = {temp}°C")
-        print(f"  106 tools ready. Run 'aipaygen-mcp' to start the server.")
+        print(f"  155 tools ready. Run 'aipaygen-mcp' to start the server.")
     except Exception as e:
         print(f"  FAIL: {e}")
         sys.exit(1)

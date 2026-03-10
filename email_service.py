@@ -1,7 +1,11 @@
 """AiPayGen transactional email service via Resend."""
 
+import html as _html
+import logging
 import os
 import resend
+
+logger = logging.getLogger(__name__)
 
 resend.api_key = os.getenv("RESEND_API_KEY", "")
 FROM_EMAIL = "AiPayGen <noreply@aipaygen.com>"
@@ -37,7 +41,8 @@ def send_api_key_email(to: str, api_key: str, balance: float) -> bool:
 </body></html>"""
         })
         return True
-    except Exception:
+    except Exception as e:
+        logger.error("send_api_key_email to=%s failed: %s", to, e)
         return False
 
 
@@ -59,7 +64,8 @@ def send_free_tier_nudge(to: str, tools_used: int = 0, calls_made: int = 0) -> b
 </body></html>"""
         })
         return True
-    except Exception:
+    except Exception as e:
+        logger.error("send_free_tier_nudge to=%s failed: %s", to, e)
         return False
 
 
@@ -81,7 +87,8 @@ def send_magic_link(to: str, link: str) -> bool:
 </body></html>"""
         })
         return True
-    except Exception:
+    except Exception as e:
+        logger.error("send_magic_link to=%s failed: %s", to, e)
         return False
 
 
@@ -105,13 +112,14 @@ def send_deposit_confirmation(api_key: str, amount: float, network: str, tx_hash
             "html": f'<!DOCTYPE html><html><body style="margin:0;padding:0;background:#0a0a0a;color:#e8e8e8;font-family:-apple-system,sans-serif;"><div style="max-width:520px;margin:40px auto;background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:40px;"><h1 style="font-size:1.5rem;">Deposit Confirmed</h1><p style="color:#888;">Your USDC deposit has been verified and credited.</p><p style="font-size:1.3rem;color:#34d399;font-weight:700;">${amount:.2f} USDC</p><p style="font-size:0.85rem;color:#888;">Network: {network.title()} — <a href="{explorer}{tx_hash}" style="color:#6366f1;">View Transaction</a></p></div></body></html>'
         })
         return True
-    except Exception:
+    except Exception as e:
+        logger.error("send_deposit_confirmation key=%s...%s failed: %s", api_key[:8], api_key[-4:], e)
         return False
 
 
 def send_weekly_digest(to: str, calls: int = 0, top_tools: list = None, spent: float = 0.0) -> bool:
     top_tools = top_tools or []
-    tools_html = ", ".join(top_tools) if top_tools else "None"
+    tools_html = ", ".join(_html.escape(t) for t in top_tools) if top_tools else "None"
     try:
         resend.Emails.send({
             "from": FROM_EMAIL,
@@ -133,5 +141,6 @@ def send_weekly_digest(to: str, calls: int = 0, top_tools: list = None, spent: f
 </body></html>"""
         })
         return True
-    except Exception:
+    except Exception as e:
+        logger.error("send_weekly_digest to=%s failed: %s", to, e)
         return False

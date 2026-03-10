@@ -418,6 +418,13 @@ def process_payment(agent_wallet_id, seller_slug, route_path, amount_usd, escrow
                     "seller_received": seller_amount, "platform_fee": platform_amount}
 
 
+def get_escrow_hold(escrow_id):
+    """Get an escrow hold by ID."""
+    with _conn() as c:
+        row = c.execute("SELECT * FROM escrow_holds WHERE id=?", (escrow_id,)).fetchone()
+        return dict(row) if row else None
+
+
 def resolve_escrow(escrow_id, action="release"):
     """Release or refund an escrow hold. action: 'release' | 'refund'"""
     now = datetime.utcnow().isoformat() + "Z"

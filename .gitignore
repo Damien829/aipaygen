@@ -18,3 +18,5 @@ node_modules/
 payments.jsonl
 cloudflared
 .worktrees/
+.mcp_publisher_token
+.agent_key

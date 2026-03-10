@@ -23,7 +23,14 @@ class TestSellerCRUD:
     """Seller registration, lookup, listing, update, delete."""
 
     def setup_method(self):
-        sm._DB_PATH = "file::memory:?cache=shared"
+        sm._DB_PATH = _test_db_path
+        # Drop all tables and re-create for clean state
+        import sqlite3
+        c = sqlite3.connect(_test_db_path)
+        for tbl in ["seller_apis", "agent_wallets", "escrow_holds", "wallet_transactions", "seller_payouts"]:
+            c.execute(f"DROP TABLE IF EXISTS {tbl}")
+        c.commit()
+        c.close()
         sm.init_seller_db()
 
     def test_register_seller_api(self):
@@ -205,7 +212,14 @@ class TestAgentWallets:
     """Wallet creation, funding, policy, transactions."""
 
     def setup_method(self):
-        sm._DB_PATH = "file::memory:?cache=shared"
+        sm._DB_PATH = _test_db_path
+        # Drop all tables and re-create for clean state
+        import sqlite3
+        c = sqlite3.connect(_test_db_path)
+        for tbl in ["seller_apis", "agent_wallets", "escrow_holds", "wallet_transactions", "seller_payouts"]:
+            c.execute(f"DROP TABLE IF EXISTS {tbl}")
+        c.commit()
+        c.close()
         sm.init_seller_db()
 
     def test_create_wallet(self):
@@ -279,7 +293,14 @@ class TestPaymentProcessing:
     """Payment flow — direct and escrow."""
 
     def setup_method(self):
-        sm._DB_PATH = "file::memory:?cache=shared"
+        sm._DB_PATH = _test_db_path
+        # Drop all tables and re-create for clean state
+        import sqlite3
+        c = sqlite3.connect(_test_db_path)
+        for tbl in ["seller_apis", "agent_wallets", "escrow_holds", "wallet_transactions", "seller_payouts"]:
+            c.execute(f"DROP TABLE IF EXISTS {tbl}")
+        c.commit()
+        c.close()
         sm.init_seller_db()
 
     def _setup_wallet_and_seller(self, balance=10.0, escrow=False):
@@ -292,7 +313,7 @@ class TestPaymentProcessing:
             seller_id="seller-pay", slug="pay-api", name="Pay API",
             description="", base_url="https://example.com",
             routes=[{"path": "/data", "method": "GET", "price_usd": 0.01}],
-            seller_wallet="0xabc", escrow_enabled=escrow,
+            seller_wallet="0x" + "a" * 40, escrow_enabled=escrow,
         )
         return wid
 
@@ -425,7 +446,14 @@ class TestDashboardAndWithdrawal:
     """Seller dashboard and withdrawal."""
 
     def setup_method(self):
-        sm._DB_PATH = "file::memory:?cache=shared"
+        sm._DB_PATH = _test_db_path
+        # Drop all tables and re-create for clean state
+        import sqlite3
+        c = sqlite3.connect(_test_db_path)
+        for tbl in ["seller_apis", "agent_wallets", "escrow_holds", "wallet_transactions", "seller_payouts"]:
+            c.execute(f"DROP TABLE IF EXISTS {tbl}")
+        c.commit()
+        c.close()
         sm.init_seller_db()
 
     def test_seller_dashboard_empty(self):
@@ -437,7 +465,7 @@ class TestDashboardAndWithdrawal:
         sm.register_seller_api(
             seller_id="s-dash", slug="dash-api", name="Dash",
             description="", base_url="https://example.com",
-            routes=[], seller_wallet="0x123",
+            routes=[], seller_wallet="0x" + "1" * 40,
         )
         # Simulate some revenue by processing a payment
         wallet = sm.create_agent_wallet("apk_dash")
@@ -452,7 +480,7 @@ class TestDashboardAndWithdrawal:
         sm.register_seller_api(
             seller_id="s-wd", slug="wd-api", name="WD",
             description="", base_url="https://example.com",
-            routes=[], seller_wallet="0xabc",
+            routes=[], seller_wallet="0x" + "a" * 40,
         )
         # Generate balance
         wallet = sm.create_agent_wallet("apk_wd")
@@ -462,13 +490,13 @@ class TestDashboardAndWithdrawal:
         result = sm.request_withdrawal("s-wd")
         assert "payout_id" in result
         assert result["status"] == "pending"
-        assert result["wallet"] == "0xabc"
+        assert result["wallet"] == "0x" + "a" * 40
 
     def test_withdrawal_insufficient_balance(self):
         sm.register_seller_api(
             seller_id="s-insuf", slug="insuf-api", name="Insuf",
             description="", base_url="https://example.com",
-            routes=[], seller_wallet="0xabc",
+            routes=[], seller_wallet="0x" + "a" * 40,
         )
         result = sm.request_withdrawal("s-insuf", amount_usd=100.0)
         assert result["error"] == "insufficient_balance"
@@ -477,13 +505,13 @@ class TestDashboardAndWithdrawal:
         sm.register_seller_api(
             seller_id="s-min", slug="min-api", name="Min",
             description="", base_url="https://example.com",
-            routes=[], seller_wallet="0xabc",
+            routes=[], seller_wallet="0x" + "a" * 40,
         )
         wallet = sm.create_agent_wallet("apk_min")
         sm.fund_agent_wallet(wallet["wallet_id"], 100.0)
         sm.process_payment(wallet["wallet_id"], "min-api", "/x", 0.50, escrow=False)
-
-        result = sm.request_withdrawal("s-min", amount_usd=0.50)
+        # Seller got 0.485 (0.50 * 0.97). Request 0.40 which is < $1 minimum.
+        result = sm.request_withdrawal("s-min", amount_usd=0.40)
         assert "error" in result
         assert "Minimum" in result["error"]
 
@@ -513,6 +541,8 @@ class TestDashboardAndWithdrawal:
 
 @pytest.fixture(scope="module")
 def client():
+    sm._DB_PATH = _test_db_path
+    sm.init_seller_db()
     from app import app
     app.config["TESTING"] = True
     with app.test_client() as c:
@@ -525,6 +555,15 @@ def _auth_header(key="apk_test_seller_key"):
 
 class TestSellerRoutes:
     """Integration tests for /sell/* and /wallet/* endpoints."""
+
+    def setup_method(self):
+        import sqlite3
+        c = sqlite3.connect(_test_db_path)
+        for tbl in ["seller_apis", "agent_wallets", "escrow_holds", "wallet_transactions", "seller_payouts"]:
+            c.execute(f"DROP TABLE IF EXISTS {tbl}")
+        c.commit()
+        c.close()
+        sm.init_seller_db()
 
     def test_directory_no_auth(self, client):
         """Directory is public."""
@@ -593,6 +632,15 @@ class TestSellerRoutes:
 class TestWalletRoutes:
     """Integration tests for /wallet/* endpoints."""
 
+    def setup_method(self):
+        import sqlite3
+        c = sqlite3.connect(_test_db_path)
+        for tbl in ["seller_apis", "agent_wallets", "escrow_holds", "wallet_transactions", "seller_payouts"]:
+            c.execute(f"DROP TABLE IF EXISTS {tbl}")
+        c.commit()
+        c.close()
+        sm.init_seller_db()
+
     def test_wallet_balance_missing_id(self, client):
         r = client.get("/wallet/balance")
         assert r.status_code == 400
@@ -659,6 +707,15 @@ class TestWalletRoutes:
 
 class TestProxyRoute:
     """Tests for /sell/<slug>/<path> proxy endpoint."""
+
+    def setup_method(self):
+        import sqlite3
+        c = sqlite3.connect(_test_db_path)
+        for tbl in ["seller_apis", "agent_wallets", "escrow_holds", "wallet_transactions", "seller_payouts"]:
+            c.execute(f"DROP TABLE IF EXISTS {tbl}")
+        c.commit()
+        c.close()
+        sm.init_seller_db()
 
     def test_proxy_seller_not_found(self, client):
         r = client.get("/sell/nonexistent-slug-xyz/v1/data")

@@ -1,8 +1,11 @@
 """APScheduler job definitions — extracted from app.py for modularity."""
+import logging
 import os
 import time as _time
 import re as _re
 from apscheduler.schedulers.background import BackgroundScheduler
+
+logger = logging.getLogger(__name__)
 
 _scheduler = BackgroundScheduler(daemon=True)
 
@@ -27,16 +30,16 @@ def init_scheduler(claude_client, call_model_fn, parse_json_fn,
         _harvester = SkillHarvester(call_model_fn, parse_json_fn)
         _scheduler.add_job(_harvester.run_all, "cron", hour=4, minute=0)
     except Exception as e:
-        print(f"[scheduler] skill harvester init failed: {e}")
+        logger.warning("skill harvester init failed: %s", e)
 
     # ── API Hunter-Gatherer — hourly ─────────────────────────────────────
     def _run_api_hunter():
         try:
             found = run_all_hunters(claude_client, max_per_run=200)
             injected = inject_high_scorers(min_score=7)
-            print(f"[api_hunter] found={found}, injected={injected}")
+            logger.info("api_hunter found=%s, injected=%s", found, injected)
         except Exception as e:
-            print(f"[api_hunter] failed: {e}")
+            logger.error("api_hunter failed: %s", e)
 
     _scheduler.add_job(_run_api_hunter, "interval", hours=1, id="api_hunter")
 
@@ -61,7 +64,7 @@ def init_scheduler(claude_client, call_model_fn, parse_json_fn,
                 else:
                     update_health(api["id"], "healthy", latency)
         except Exception as e:
-            print(f"[health_check] failed: {e}")
+            logger.error("health_check failed: %s", e)
 
     _scheduler.add_job(_run_health_checks, "interval", hours=4, id="health_checks")
 
@@ -92,9 +95,9 @@ def init_scheduler(claude_client, call_model_fn, parse_json_fn,
             conn.commit()
             conn.close()
             if generated:
-                print(f"[auto_skills] generated {generated} new skills from catalog")
+                logger.info("auto_skills generated %s new skills from catalog", generated)
         except Exception as e:
-            print(f"[auto_skills] failed: {e}")
+            logger.error("auto_skills failed: %s", e)
 
     _scheduler.add_job(_auto_generate_skills, "cron", hour=5, minute=30, id="auto_skills")
 
@@ -119,7 +122,7 @@ def init_scheduler(claude_client, call_model_fn, parse_json_fn,
         _scheduler.add_job(_tw.run, "cron", hour="6,12,18,0", minute=0, id="scout_twitter")
         _scheduler.add_job(_follow.run, "interval", hours=6, id="scout_followup")
     except Exception as e:
-        print(f"[scheduler] scout init failed: {e}")
+        logger.warning("scout init failed: %s", e)
 
     # ── Start scheduler ──────────────────────────────────────────────────
     _scheduler.start()

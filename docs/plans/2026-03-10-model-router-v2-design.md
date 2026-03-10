@@ -105,5 +105,5 @@ Add `RateLimitError` exception class alongside `BillingError`.
 - No new providers or models
 - No persistent cache (disk/Redis) — in-memory is fine at current scale
 - No user-facing feedback UI changes
-- No prompt engineering per individual tool (106 tools × prompts = maintenance nightmare)
+- No prompt engineering per individual tool (155 tools × prompts = maintenance nightmare)
 - No changes to circuit breaker thresholds (working fine)

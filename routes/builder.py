@@ -414,8 +414,8 @@ def create_agent():
         return jsonify({"error": "system_prompt must be 5000 characters or less"}), 400
 
     tools = data.get("tools", [])
-    if not isinstance(tools, list) or len(tools) > 106:
-        return jsonify({"error": "tools must be a list of up to 106 tool names"}), 400
+    if not isinstance(tools, list) or len(tools) > 155:
+        return jsonify({"error": "tools must be a list of up to 155 tool names"}), 400
 
     # Validate tool names are alphanumeric/underscore only
     import re

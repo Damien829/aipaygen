@@ -79,7 +79,17 @@ def record_api_economics(api_id: int, revenue: float, cost: float):
         )
 
 
+_UPSERT_ALLOWED_COLS = {
+    "name", "description", "base_url", "docs_url", "auth_required", "auth_type",
+    "category", "source", "quality_score", "price_usd", "sample_endpoint",
+    "is_active", "created_at", "updated_at", "x402_compatible", "total_calls",
+    "total_revenue_usd", "total_cost_usd", "last_health_check", "health_status",
+    "avg_latency_ms", "openapi_url",
+}
+
+
 def upsert_api(**kwargs) -> int:
+    kwargs = {k: v for k, v in kwargs.items() if k in _UPSERT_ALLOWED_COLS}
     now = datetime.utcnow().isoformat()
     with _conn() as c:
         existing = c.execute(
