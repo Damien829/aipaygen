@@ -30,7 +30,7 @@ from crypto_deposits import (
 )
 from crypto_verify import verify_base_tx, verify_solana_tx
 from crypto_wallet import get_main_wallet, derive_deposit_address
-from helpers import check_identity_rate_limit, get_client_ip
+from helpers import check_identity_rate_limit, get_client_ip, log_payment
 from funnel_tracker import log_event
 
 logger = logging.getLogger(__name__)
@@ -262,6 +262,7 @@ def crypto_claim():
 
     log_event("crypto_deposit_credited", "/crypto/claim", ip,
               json.dumps({"amount": credit_amount, "network": network, "tx_hash": tx_hash}))
+    log_payment("/crypto/claim", credit_amount, ip, payment_type=f"crypto_{network}", tx_hash=tx_hash)
 
     # Try email notification (best effort)
     try:

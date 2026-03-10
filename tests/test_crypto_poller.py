@@ -49,13 +49,13 @@ class TestProcessBaseTransfers(unittest.TestCase):
         self, mock_claimed, mock_pending, mock_record, mock_topup, mock_credited
     ):
         mock_claimed.return_value = True
+        mock_pending.return_value = [{"api_key": "apk_test"}]
 
         from crypto_poller import process_base_transfers
 
         process_base_transfers([self._make_transfer()], self.WALLET)
 
         mock_claimed.assert_called_once_with("0xabc123")
-        mock_pending.assert_not_called()
         mock_record.assert_not_called()
         mock_topup.assert_not_called()
 
@@ -67,15 +67,14 @@ class TestProcessBaseTransfers(unittest.TestCase):
     def test_process_base_transfer_skips_no_pending(
         self, mock_claimed, mock_pending, mock_record, mock_topup, mock_credited
     ):
-        mock_claimed.return_value = False
         mock_pending.return_value = []
 
         from crypto_poller import process_base_transfers
 
         process_base_transfers([self._make_transfer()], self.WALLET)
 
-        mock_claimed.assert_called_once_with("0xabc123")
         mock_pending.assert_called_once_with(self.WALLET, "base")
+        mock_claimed.assert_not_called()
         mock_record.assert_not_called()
         mock_topup.assert_not_called()
 

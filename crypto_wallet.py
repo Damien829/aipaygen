@@ -16,7 +16,9 @@ def derive_evm_address(mnemonic: str, index: int) -> str:
     """Derive an EVM address from a mnemonic at the given index."""
     from eth_account import Account
 
-    Account.enable_unaudited_hdwallet_features()
+    if not getattr(Account, "_hdwallet_enabled", False):
+        Account.enable_unaudited_hdwallet_features()
+        Account._hdwallet_enabled = True
     acct = Account.from_mnemonic(mnemonic, account_path=f"m/44'/60'/0'/0/{index}")
     return acct.address
 
