@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}AiPayGen{% endblock %} — AI Agent API</title>
+<meta name="description" content="{% block description %}106 AI tools in one API. Multi-model. Pay per call with API key, x402 USDC, or MCP. 3 free calls/day.{% endblock %}">
+<link rel="icon" href="/static/icon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/main.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+{% block head %}{% endblock %}
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav" id="mainNav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <span class="dot"></span>
+      AiPayGen
+    </a>
+    <button class="nav-hamburger" id="navToggle" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="/builder">Build Agent</a></li>
+      <li><a href="/try">Try Free</a></li>
+      <li><a href="/docs">Docs</a></li>
+      <li><a href="/discover">API</a></li>
+      <li><a href="/blog">Blog</a></li>
+      <li><a href="/buy-credits" class="nav-cta">Get API Key</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main class="pt-nav">
+{% block content %}{% endblock %}
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="logo">AiPayGen</div>
+      <p>The AI agent API marketplace. 106 tools, 15 models, 7 providers. Pay per call.</p>
+      <p class="mt-2" style="color:var(--text-muted)">Base Mainnet &middot; x402 Protocol</p>
+    </div>
+    <div class="footer-col">
+      <h4>Product</h4>
+      <a href="/docs">Documentation</a>
+      <a href="/try">Try Free</a>
+      <a href="/builder">Agent Builder</a>
+      <a href="/buy-credits">Pricing</a>
+      <a href="/sdk">SDK</a>
+    </div>
+    <div class="footer-col">
+      <h4>Resources</h4>
+      <a href="/blog">Blog</a>
+      <a href="/openapi.json">OpenAPI Spec</a>
+      <a href="/discover">API Catalog</a>
+      <a href="/llms.txt">llms.txt</a>
+      <a href="/sitemap.xml">Sitemap</a>
+    </div>
+    <div class="footer-col">
+      <h4>Connect</h4>
+      <a href="https://github.com/Damien829/aipaygen">GitHub</a>
+      <a href="https://pypi.org/project/aipaygen-mcp/">PyPI</a>
+      <a href="https://registry.modelcontextprotocol.io">MCP Registry</a>
+      <a href="https://smithery.ai/servers/Damien829/Aipaygen">Smithery</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>&copy; 2026 AiPayGen. All rights reserved.</span>
+    <span>Built on Base &middot; Powered by Claude</span>
+  </div>
+</footer>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+<script>
+// Mobile nav toggle
+document.getElementById('navToggle')?.addEventListener('click', () => {
+  document.getElementById('navLinks').classList.toggle('open');
+});
+
+// Nav scroll effect
+window.addEventListener('scroll', () => {
+  document.getElementById('mainNav')?.classList.toggle('scrolled', window.scrollY > 20);
+});
+
+// Scroll-triggered fade-in (Intersection Observer)
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }});
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+// Copy button for code blocks
+document.querySelectorAll('.code-block').forEach(block => {
+  const btn = block.querySelector('.copy-btn');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const code = block.querySelector('code')?.textContent || block.querySelector('pre')?.textContent || '';
+    navigator.clipboard.writeText(code).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  });
+});
+
+// Toast utility
+window.showToast = (msg, duration = 3000) => {
+  let t = document.querySelector('.toast');
+  if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); }
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+};
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

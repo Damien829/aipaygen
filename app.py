@@ -801,7 +801,11 @@ def _api_key_wsgi(environ, start_response):
 
     def intercept_start_response(status, headers, exc_info=None):
         captured["status"] = status
-        captured["headers"] = headers
+        captured["headers"] = list(headers)
+        captured["exc_info"] = exc_info
+        # For 402s, delay start_response so we can add headers first
+        if status.startswith("402"):
+            return lambda s: None  # dummy write function
         return start_response(status, headers, exc_info)
 
     result = _x402_wsgi(environ, intercept_start_response)
@@ -823,11 +827,20 @@ def _api_key_wsgi(environ, start_response):
                     calls_today = row["calls_used"] if row else 0
             except Exception:
                 calls_today = 10
-            # Add upgrade headers and discovery Link headers to 402 response
+            # Add x402-standard headers + upgrade hints + discovery Link headers
+            route_cfg_hdr = routes.get(route_key)
+            price_hdr = _parse_x402_price(route_cfg_hdr) if route_cfg_hdr else "0"
             captured["headers"] = list(captured["headers"]) + [
                 ("X-Free-Calls-Remaining", str(remaining)),
+                ("X-Payment-Required", "true"),
+                ("X-Price-USDC", price_hdr),
+                ("X-Pay-To", WALLET_ADDRESS),
+                ("X-Network", str(EVM_NETWORK)),
+                ("X-Facilitator-URL", FACILITATOR_URL),
                 ("Link", '</openapi.json>; rel="service-desc"'),
                 ("Link", '</.well-known/ai-plugin.json>; rel="ai-plugin"'),
+                ("Link", '</.well-known/x402>; rel="payment-requirements"'),
+                ("Link", '</discover>; rel="discovery"'),
             ]
             if remaining == 0:
                 captured["headers"].append(("X-Upgrade-Hint", "Buy API key at https://aipaygen.com/buy-credits or fund with crypto at https://aipaygen.com/crypto"))
@@ -879,9 +892,21 @@ def _api_key_wsgi(environ, start_response):
             # Replace empty body with enriched one
             original = b"".join(result)
             if not original or original == b"{}":
-                return [enrichment]
+                body = enrichment
+            else:
+                body = original
+            # Now send the 402 response with enriched headers
+            captured["headers"].append(("Content-Length", str(len(body))))
+            start_response(captured["status"], captured["headers"], captured.get("exc_info"))
+            return [body]
         except Exception:
+            # Fallback: send original 402 without enrichment
+            start_response(captured["status"], captured["headers"], captured.get("exc_info"))
             pass
+
+    # For 402s that hit the exception path, result may already be consumed
+    if captured.get("status", "").startswith("402"):
+        return result
 
     return result
 
@@ -1051,7 +1076,7 @@ def add_cors(response):
         response.headers["Access-Control-Allow-Origin"] = "https://aipaygen.com"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Payment, Authorization, Accept, X-Idempotency-Key"
-    response.headers["Access-Control-Expose-Headers"] = "X-Request-ID, X-Payment-Info, X-Payment-Receipt, X-Free-Calls-Remaining, X-Upgrade-Hint"
+    response.headers["Access-Control-Expose-Headers"] = "X-Request-ID, X-Payment-Info, X-Payment-Receipt, X-Free-Calls-Remaining, X-Upgrade-Hint, X-Payment-Required, X-Price-USDC, X-Pay-To, X-Network, X-Facilitator-URL"
     # Full UUID correlation ID per request
     req_id = request.headers.get("X-Idempotency-Key") or str(uuid.uuid4())
     response.headers["X-Request-ID"] = req_id
@@ -1332,6 +1357,19 @@ app.register_blueprint(workflow_bp)
 # Accounts
 from routes.accounts import accounts_bp
 app.register_blueprint(accounts_bp)
+
+# Discovery (x402 catalog, pricing, compare, wallet analytics)
+from routes.discovery import discovery_bp, init_discovery
+init_discovery(routes)
+app.register_blueprint(discovery_bp)
+
+# Utility (API Toll-style tools — geocode, whois, NLP, finance, security, math, transforms)
+from routes.utility import utility_bp
+app.register_blueprint(utility_bp)
+
+# Seller marketplace
+from routes.seller import seller_bp
+app.register_blueprint(seller_bp)
 
 # Crypto deposits
 from routes.crypto import crypto_bp

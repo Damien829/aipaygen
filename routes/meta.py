@@ -638,8 +638,12 @@ def _build_discover_services():
 
 @meta_bp.route("/")
 def landing():
-    from flask import make_response
-    resp = make_response(render_template_string(LANDING_HTML, nav=NAV_HTML, footer=FOOTER_HTML))
+    from flask import make_response, render_template
+    try:
+        resp = make_response(render_template("index.html"))
+    except Exception:
+        # Fallback to legacy inline HTML if template fails
+        resp = make_response(render_template_string(LANDING_HTML, nav=NAV_HTML, footer=FOOTER_HTML))
     resp.headers["Link"] = '</llms.txt>; rel="llms-txt"'
     return resp
 
