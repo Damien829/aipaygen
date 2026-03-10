@@ -1,5 +1,5 @@
 """
-AiPayGen MCP Server — 106 metered tools
+AiPayGen MCP Server — 148 metered tools
 
 Exposes all AiPayGen capabilities as MCP tools with usage metering.
 10 free calls/day without an API key. Unlimited with a prepaid key.
@@ -22,6 +22,8 @@ import sys
 import os
 import functools
 import hashlib
+from typing import Annotated
+from pydantic import Field
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -66,7 +68,7 @@ _skills_engine = SkillsSearchEngine(_skills_db_path)
 mcp = FastMCP(
     "AiPayGen",
     instructions=(
-        "AiPayGen lets you build, run, and schedule AI agents with 106 tools. "
+        "AiPayGen lets you build, run, and schedule AI agents with 148 tools. "
         "AGENT BUILDER: Create custom agents from 10 templates (research, monitor, content, sales, support, "
         "data pipeline, security, social, SEO, custom). Schedule agents on loops, cron, or event triggers. "
         "TOOLS: research, write, code, translate, analyze, summarize, vision (image analysis), "
@@ -1315,6 +1317,581 @@ def delete_agent(agent_id: str) -> dict:
         return {"error": str(e)}
 
 
+# ── Utility Tools: Geocoding & Location ──────────────────────────────────────
+
+@metered_tool("standard")
+def geocode(q: Annotated[str, Field(description="Address or place name to geocode")]) -> dict:
+    """Convert an address or place name to geographic coordinates (lat/lon) via Nominatim."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/geocode", params={"q": q}, timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def geocode_reverse(
+    lat: Annotated[str, Field(description="Latitude coordinate")],
+    lon: Annotated[str, Field(description="Longitude coordinate")],
+) -> dict:
+    """Convert geographic coordinates (lat/lon) to a human-readable address."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/geocode/reverse", params={"lat": lat, "lon": lon}, timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Utility Tools: Company & Domain ──────────────────────────────────────────
+
+@metered_tool("standard")
+def company_search(q: Annotated[str, Field(description="Company name to search")]) -> dict:
+    """Search for company information via Wikipedia enrichment. Returns description, domain guess, thumbnail."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/company", params={"q": q}, timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def whois_lookup(domain: Annotated[str, Field(description="Domain name to look up (e.g. example.com)")]) -> dict:
+    """WHOIS/RDAP lookup for a domain. Returns registrar, status, nameservers, and events."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/whois", params={"domain": domain}, timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def domain_profile(domain: Annotated[str, Field(description="Domain name (e.g. example.com)")]) -> dict:
+    """Full domain profile combining DNS records (A, AAAA, MX, TXT, NS, CNAME) and WHOIS data."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/domain", params={"domain": domain}, timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Utility Tools: Text Analysis ─────────────────────────────────────────────
+
+@metered_tool("standard")
+def readability_score(text: Annotated[str, Field(description="Text to analyze for readability")]) -> dict:
+    """Compute Flesch-Kincaid readability score and grade level for text."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/data/readability", json={"text": text}, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def language_detect(text: Annotated[str, Field(description="Text to detect language of")]) -> dict:
+    """Detect the language of text using Unicode script analysis. Returns language code and confidence."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/language", params={"text": text}, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def profanity_filter(text: Annotated[str, Field(description="Text to check for profanity")]) -> dict:
+    """Detect and filter profanity from text. Returns cleaned text and list of found words."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/data/profanity", json={"text": text}, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Utility Tools: Web & URL ─────────────────────────────────────────────────
+
+@metered_tool("standard")
+def url_meta(url: Annotated[str, Field(description="URL to extract meta tags from")]) -> dict:
+    """Extract meta tags (Open Graph, Twitter Cards) from a URL. Returns title, OG data, and Twitter card data."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/meta", params={"url": url}, timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def extract_links(url: Annotated[str, Field(description="URL to extract links from")]) -> dict:
+    """Extract all links from a web page. Returns deduplicated absolute URLs."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/links", params={"url": url}, timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def parse_sitemap(domain: Annotated[str, Field(description="Domain to parse sitemap.xml from (e.g. example.com)")]) -> dict:
+    """Parse sitemap.xml from a domain. Returns list of indexed URLs."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/sitemap", params={"domain": domain}, timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def parse_robots(domain: Annotated[str, Field(description="Domain to parse robots.txt from (e.g. example.com)")]) -> dict:
+    """Parse robots.txt from a domain. Returns crawl rules, sitemaps, and raw content."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/robots", params={"domain": domain}, timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def http_headers(url: Annotated[str, Field(description="URL to get HTTP headers from")]) -> dict:
+    """Get HTTP response headers from a URL. Returns status code and all headers."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/headers", params={"url": url}, timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def ssl_info(domain: Annotated[str, Field(description="Domain to check SSL certificate for")]) -> dict:
+    """Get SSL certificate details for a domain: subject, issuer, expiry, serial number."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/ssl", params={"domain": domain}, timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Utility Tools: Compute & Dev ─────────────────────────────────────────────
+
+@metered_tool("standard")
+def jwt_decode(token: Annotated[str, Field(description="JWT token string to decode")]) -> dict:
+    """Decode a JWT token without verification. Returns header, payload, and expiry status."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/data/jwt/decode", json={"token": token}, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def markdown_to_html(text: Annotated[str, Field(description="Markdown text to convert to HTML")]) -> dict:
+    """Convert Markdown text to HTML. Supports tables, fenced code blocks, and syntax highlighting."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/data/markdown", json={"text": text}, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Utility Tools: Media & Visual ────────────────────────────────────────────
+
+@metered_tool("standard")
+def placeholder_image(
+    width: Annotated[int, Field(description="Image width in pixels")] = 300,
+    height: Annotated[int, Field(description="Image height in pixels")] = 200,
+    bg: Annotated[str, Field(description="Background color hex (without #)")] = "cccccc",
+    fg: Annotated[str, Field(description="Foreground/text color hex (without #)")] = "666666",
+    text: Annotated[str, Field(description="Text to display on image")] = "",
+) -> dict:
+    """Generate a placeholder image (SVG). Returns SVG markup."""
+    try:
+        params = {"width": width, "height": height, "bg": bg, "fg": fg}
+        if text:
+            params["text"] = text
+        resp = _mcp_requests.get("http://localhost:5001/data/placeholder", params=params, timeout=10)
+        return {"svg": resp.text, "width": width, "height": height}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def favicon_extract(domain: Annotated[str, Field(description="Domain to extract favicon from (e.g. example.com)")]) -> dict:
+    """Extract favicon URLs from a domain. Returns list of icon URLs found."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/favicon", params={"domain": domain}, timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def identicon_avatar(
+    input_str: Annotated[str, Field(description="String to generate identicon from (e.g. email, username)")],
+    size: Annotated[int, Field(description="Avatar size in pixels")] = 80,
+) -> dict:
+    """Generate a deterministic identicon avatar (SVG) from any string."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/avatar", params={"input": input_str, "size": size}, timeout=10)
+        return {"svg": resp.text, "input": input_str, "size": size}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Utility Tools: Blockchain ────────────────────────────────────────────────
+
+@metered_tool("standard")
+def ens_resolve(name: Annotated[str, Field(description="ENS name (e.g. vitalik.eth) or 0x address for reverse lookup")]) -> dict:
+    """Resolve ENS name to Ethereum address, or reverse-resolve address to ENS name."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/ens", params={"name": name}, timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Utility Tools: Enrichment ────────────────────────────────────────────────
+
+@metered_tool("standard")
+def enrich_domain(domain: Annotated[str, Field(description="Domain to enrich (e.g. example.com)")]) -> dict:
+    """Domain enrichment: detect tech stack, social profiles, DNS records, and meta tags."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/enrich/domain", params={"domain": domain}, timeout=20)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def enrich_github(username: Annotated[str, Field(description="GitHub username to enrich")]) -> dict:
+    """GitHub user enrichment: profile info, bio, follower count, and top repositories."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/enrich/github", params={"username": username}, timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Utility Tools: Email ─────────────────────────────────────────────────────
+
+@metered_tool("standard")
+def email_send(
+    to: Annotated[str, Field(description="Recipient email address")],
+    subject: Annotated[str, Field(description="Email subject line")],
+    body: Annotated[str, Field(description="Email body text")],
+) -> dict:
+    """Send an email via Resend (from noreply@aipaygen.com)."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/data/email/send",
+            json={"to": to, "subject": subject, "body": body}, timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Utility Tools: Document Extraction ───────────────────────────────────────
+
+@metered_tool("standard")
+def extract_text(
+    html: Annotated[str, Field(description="Raw HTML to extract text from")] = "",
+    url: Annotated[str, Field(description="URL to fetch and extract text from")] = "",
+) -> dict:
+    """Extract clean text from HTML content or a URL. Strips scripts, styles, and tags."""
+    try:
+        payload = {}
+        if url:
+            payload["url"] = url
+        elif html:
+            payload["html"] = html
+        resp = _mcp_requests.post("http://localhost:5001/data/extract/text", json=payload, timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Utility Tools: Finance ───────────────────────────────────────────────────
+
+@metered_tool("standard")
+def stock_history(symbol: Annotated[str, Field(description="Stock ticker symbol (e.g. AAPL, MSFT)")]) -> dict:
+    """Get 1-month historical OHLCV candles for a stock symbol via yfinance."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/finance/history", params={"symbol": symbol}, timeout=20)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def forex_rates(base: Annotated[str, Field(description="Base currency code (e.g. USD, EUR)")] = "USD") -> dict:
+    """Get 150+ currency exchange rates for a base currency."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/finance/forex", params={"base": base}, timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def currency_convert(
+    amount: Annotated[float, Field(description="Amount to convert")] = 1.0,
+    from_currency: Annotated[str, Field(description="Source currency code (e.g. USD)")] = "USD",
+    to_currency: Annotated[str, Field(description="Target currency code (e.g. EUR)")] = "EUR",
+) -> dict:
+    """Convert an amount between currencies using live exchange rates."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/finance/convert",
+            params={"amount": amount, "from": from_currency, "to": to_currency}, timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Utility Tools: NLP ───────────────────────────────────────────────────────
+
+@metered_tool("standard")
+def entity_extraction(text: Annotated[str, Field(description="Text to extract entities from")]) -> dict:
+    """Extract named entities from text: emails, URLs, IPs, crypto addresses, phone numbers, dates, hashtags, mentions."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/data/entities", json={"text": text}, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def text_similarity(
+    text1: Annotated[str, Field(description="First text to compare")],
+    text2: Annotated[str, Field(description="Second text to compare")],
+) -> dict:
+    """Compute similarity between two texts using Jaccard and cosine metrics."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/data/similarity",
+            json={"text1": text1, "text2": text2}, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Utility Tools: Data Transforms ───────────────────────────────────────────
+
+@metered_tool("standard")
+def json_to_csv(data: Annotated[list, Field(description="JSON array of objects to convert to CSV")]) -> dict:
+    """Convert a JSON array of objects to CSV format."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/data/transform/json-to-csv",
+            json={"data": data}, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def xml_to_json(xml: Annotated[str, Field(description="XML string to convert to JSON")]) -> dict:
+    """Convert XML to JSON. Handles nested elements and attributes."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/data/transform/xml",
+            json={"xml": xml}, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def yaml_to_json(yaml_str: Annotated[str, Field(description="YAML string to convert to JSON")]) -> dict:
+    """Convert YAML to JSON."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/data/transform/yaml",
+            json={"yaml": yaml_str}, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Utility Tools: Date & Time ───────────────────────────────────────────────
+
+@metered_tool("standard")
+def datetime_between(
+    from_date: Annotated[str, Field(description="Start date in YYYY-MM-DD format")],
+    to_date: Annotated[str, Field(description="End date in YYYY-MM-DD format")],
+) -> dict:
+    """Calculate duration between two dates: days, weeks, months, years, hours, minutes, seconds."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/datetime/between",
+            params={"from": from_date, "to": to_date}, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def business_days(
+    from_date: Annotated[str, Field(description="Start date in YYYY-MM-DD format")],
+    to_date: Annotated[str, Field(description="End date in YYYY-MM-DD format")],
+) -> dict:
+    """Count business days (weekdays) between two dates."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/datetime/business-days",
+            params={"from": from_date, "to": to_date}, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def unix_timestamp(timestamp: Annotated[str, Field(description="Unix timestamp to convert (leave empty for current time)")] = "") -> dict:
+    """Convert Unix timestamp to human-readable date, or get current Unix timestamp."""
+    try:
+        params = {"timestamp": timestamp} if timestamp else {}
+        resp = _mcp_requests.get("http://localhost:5001/data/datetime/unix", params=params, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Utility Tools: Security ──────────────────────────────────────────────────
+
+@metered_tool("standard")
+def security_headers_audit(url: Annotated[str, Field(description="URL to audit security headers for")]) -> dict:
+    """Audit security headers of a URL (HSTS, CSP, X-Frame-Options, etc.). Returns A+ to F grade."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/security/headers", params={"url": url}, timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def techstack_detect(url: Annotated[str, Field(description="URL to detect technology stack from")]) -> dict:
+    """Detect technology stack of a website: frameworks, CDNs, analytics, server software."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/security/techstack", params={"url": url}, timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def uptime_check(url: Annotated[str, Field(description="URL to check uptime for")]) -> dict:
+    """Check if a URL is up or down. Returns status, response time, and content length."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/security/uptime", params={"url": url}, timeout=20)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Utility Tools: Math & Statistics ─────────────────────────────────────────
+
+@metered_tool("standard")
+def math_evaluate(expression: Annotated[str, Field(description="Math expression to compute (e.g. 'sqrt(144) + 2^3')")]) -> dict:
+    """Safely compute a math expression using AST parsing. Supports +, -, *, /, ^, sqrt, sin, cos, log, etc."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/data/math/eval",
+            json={"expression": expression}, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def unit_convert(
+    value: Annotated[float, Field(description="Numeric value to convert")],
+    from_unit: Annotated[str, Field(description="Source unit (e.g. km, lb, c, gb)")],
+    to_unit: Annotated[str, Field(description="Target unit (e.g. mi, kg, f, mb)")],
+) -> dict:
+    """Convert between units: length, weight, volume, speed, data size, and temperature."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/math/convert",
+            params={"value": value, "from": from_unit, "to": to_unit}, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@metered_tool("standard")
+def math_stats(numbers: Annotated[list, Field(description="List of numbers for statistical analysis")]) -> dict:
+    """Statistical analysis: mean, median, mode, std dev, variance, quartiles, min/max, range."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/data/math/stats",
+            json={"numbers": numbers}, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Utility Tools: Crypto ────────────────────────────────────────────────────
+
+@metered_tool("standard")
+def crypto_trending() -> dict:
+    """Get trending cryptocurrency tokens and DeFi data from CoinGecko."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/crypto/trending", timeout=15)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── x402 Discovery Tools ─────────────────────────────────────────────────────
+
+@mcp.tool()
+def discover_endpoints(
+    category: Annotated[str, Field(description="Filter by category: ai, data, agent, utility, web_analysis, nlp, finance, location, commerce")] = "",
+    search: Annotated[str, Field(description="Search keyword in endpoint descriptions")] = "",
+) -> dict:
+    """Discover all available paid API endpoints with pricing, categories, and x402 payment info."""
+    try:
+        params = {}
+        if category:
+            params["category"] = category
+        if search:
+            params["search"] = search
+        resp = _mcp_requests.get("http://localhost:5001/discover", params=params, timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@mcp.tool()
+def discover_pricing() -> dict:
+    """Get pricing overview — min/max/avg prices, histogram, and total endpoint count."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/discover/pricing", timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@mcp.tool()
+def estimate_revenue(
+    price_per_call: Annotated[float, Field(description="Price per API call in USD")] = 0.005,
+    daily_calls: Annotated[int, Field(description="Expected daily API calls")] = 1000,
+) -> dict:
+    """Estimate how much revenue a seller could earn from their API on the platform."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/sell/estimate",
+                                   json={"price_per_call": price_per_call, "daily_calls": daily_calls},
+                                   timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@mcp.tool()
+def x402_protocol_info() -> dict:
+    """Get x402 protocol discovery metadata — chains, wallet, facilitator, discovery endpoints."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/.well-known/x402", timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@mcp.tool()
+def compare_platforms() -> dict:
+    """Compare AiPayGen with competitors (APIToll, RelAI) for agent decision-making."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/discover/compare", timeout=10)
+        return resp.json()
+    except Exception as e:
+        return {"error": str(e)}
+
+
 def main():
     import sys
     if "--http" in sys.argv:
@@ -1326,7 +1903,7 @@ def main():
 
         async def health(request):
             tool_count = len([m for m in dir() if callable(getattr(__import__(__name__), m, None)) and hasattr(getattr(__import__(__name__), m, None), '__wrapped__')])
-            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 106, "version": "1.6.0"})
+            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 148, "version": "1.6.0"})
 
         starlette_app.routes.insert(0, Route("/health", health))
         uvicorn.run(starlette_app, host="0.0.0.0", port=5002)
