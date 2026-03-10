@@ -4,6 +4,8 @@ venv/
 .env
 .env.enc
 *.db
+*.db-shm
+*.db-wal
 *.log
 uploads/
 .pytest_cache/

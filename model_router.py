@@ -507,6 +507,9 @@ def call_model(
         latency_ms = (_time.time() - t0) * 1000
         _record_perf(canonical, latency_ms, True)
         _record_success(provider)
+    except BillingError:
+        # Billing errors should not be retried on fallback — they affect all providers
+        raise
     except Exception as exc:
         latency_ms = (_time.time() - t0) * 1000
         _record_perf(canonical, latency_ms, False)
@@ -634,12 +637,23 @@ def _stream_openai(model_id, messages, system, max_tokens, temperature, canonica
 # Provider implementations
 # ---------------------------------------------------------------------------
 
+class BillingError(Exception):
+    """Raised when the provider rejects a request due to billing/credit issues."""
+    pass
+
+
 def _call_anthropic(model_id, messages, system, max_tokens, temperature):
     client = _get_anthropic_client()
     kwargs = dict(model=model_id, messages=messages, max_tokens=max_tokens, temperature=temperature)
     if system:
         kwargs["system"] = system
-    resp = client.messages.create(**kwargs)
+    try:
+        resp = client.messages.create(**kwargs)
+    except Exception as exc:
+        msg = str(exc).lower()
+        if "credit balance" in msg or "billing" in msg or "purchase credits" in msg:
+            raise BillingError(f"Anthropic billing error: {exc}") from exc
+        raise
     return {
         "text": resp.content[0].text,
         "input_tokens": resp.usage.input_tokens,

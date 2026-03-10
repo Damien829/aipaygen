@@ -84,27 +84,39 @@ if apis:
 
 # Source 2: Process queued messages
 print("  [2/3] Processing agent inbox...")
-inbox = api_call("agent/inbox", {"agent_id": "aipaygen-system"})
-messages = inbox.get("messages", [])
-if messages:
-    print(f"  Found {len(messages)} queued messages")
-    for msg in messages[:5]:
-        body = msg.get("body", "")
-        subject = msg.get("subject", "")
-        # If message contains a skill/tool request, absorb it
-        if any(kw in (subject + body).lower() for kw in ["skill", "tool", "api", "add", "create"]):
-            result = api_call("skills/absorb", {"text": f"{subject}: {body}"})
-            if result.get("absorbed"):
-                print(f"    Absorbed skill from message: {subject}")
-else:
-    print("  No queued messages")
+try:
+    inbox_req = urllib.request.Request(
+        f"{BASE}/message/inbox/aipaygen-system?unread_only=1",
+        headers={"Authorization": f"Bearer {ADMIN_KEY}"} if ADMIN_KEY else {},
+    )
+    with urllib.request.urlopen(inbox_req, timeout=10) as r:
+        inbox = json.loads(r.read().decode())
+    messages = inbox.get("messages", [])
+    if messages:
+        print(f"  Found {len(messages)} queued messages")
+        for msg in messages[:5]:
+            body = msg.get("body", "")
+            subject = msg.get("subject", "")
+            if any(kw in (subject + body).lower() for kw in ["skill", "tool", "api", "add", "create"]):
+                result = api_call("skills/absorb", {"text": f"{subject}: {body}"})
+                if result.get("absorbed"):
+                    print(f"    Absorbed skill from message: {subject}")
+    else:
+        print("  No queued messages")
+except Exception as e:
+    print(f"  Inbox check failed: {e}")
 
 # Source 3: Check open tasks
 print("  [3/3] Checking task board...")
-tasks = api_call("task/browse", {"status": "open", "limit": 5})
-task_list = tasks.get("tasks", [])
-if task_list:
-    print(f"  Found {len(task_list)} open tasks")
+try:
+    tasks_req = urllib.request.Request(f"{BASE}/task/browse?status=open&limit=5")
+    with urllib.request.urlopen(tasks_req, timeout=10) as r:
+        tasks = json.loads(r.read().decode())
+    task_list = tasks.get("tasks", [])
+    if task_list:
+        print(f"  Found {len(task_list)} open tasks")
+except Exception as e:
+    print(f"  Task board check failed: {e}")
 
 # Log stats
 print(f"  Discovery complete: {absorbed} new skills absorbed")

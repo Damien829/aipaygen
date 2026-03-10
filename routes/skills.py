@@ -194,7 +194,8 @@ def absorb_skill():
         content = resp.get("body", "")
 
     # Use AI to extract a skill definition from the content
-    result = call_model("claude-haiku", [{"role": "user", "content": f"""Analyze this content and create a reusable AI skill from it.
+    try:
+        result = call_model("claude-haiku", [{"role": "user", "content": f"""Analyze this content and create a reusable AI skill from it.
 
 Content:
 {content[:8000]}
@@ -207,6 +208,11 @@ Return JSON with:
 - "input_schema": {{"input": "description of expected input"}}
 """}],
         system="You are a skill extraction expert. Always respond with valid JSON only.", max_tokens=1024)
+    except Exception as exc:
+        msg = str(exc)
+        if "billing" in msg.lower() or "credit" in msg.lower():
+            return jsonify({"error": "billing", "message": "AI provider billing issue — cannot absorb skills right now"}), 503
+        return jsonify({"error": "model_error", "message": f"AI model call failed: {msg[:200]}"}), 503
 
     parsed = parse_json_from_claude(result["text"])
     if not parsed or "name" not in parsed:

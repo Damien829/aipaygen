@@ -6,7 +6,7 @@ After=network.target
 User=damien809
 WorkingDirectory=/home/damien809/agent-service
 ExecStart=/home/damien809/agent-service/venv/bin/gunicorn \
-    --workers 4 \
+    --workers 2 \
     --worker-class sync \
     --bind 127.0.0.1:5001 \
     --timeout 120 \
