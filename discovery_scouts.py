@@ -28,13 +28,13 @@ FETCH_TIMEOUT = 15
 def _scout_conn():
     c = sqlite3.connect(DB_PATH, timeout=10)
     c.row_factory = sqlite3.Row
-    c.execute("PRAGMA journal_mode=WAL")
-    c.execute("PRAGMA busy_timeout=5000")
     return c
 
 
 def init_scout_db():
     with _scout_conn() as c:
+        c.execute("PRAGMA journal_mode=WAL")
+        c.execute("PRAGMA busy_timeout=5000")
         c.execute("""
             CREATE TABLE IF NOT EXISTS scout_outreach (
                 id INTEGER PRIMARY KEY,

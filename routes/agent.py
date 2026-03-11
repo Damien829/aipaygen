@@ -6,7 +6,7 @@ from datetime import datetime
 
 from flask import Blueprint, request, jsonify, Response
 from model_router import call_model
-from helpers import log_payment, agent_response, get_client_ip as _get_client_ip, check_identity_rate_limit as _check_identity_rate_limit
+from helpers import log_payment, agent_response, get_client_ip as _get_client_ip, check_identity_rate_limit as _check_identity_rate_limit, require_verified_agent
 from agent_memory import memory_set, memory_get, memory_search, memory_clear, memory_list, register_agent, list_agents, marketplace_get_services
 from agent_identity import generate_challenge, verify_challenge, verify_jwt, InvalidSignatureError, ChallengeExpiredError
 from agent_network import get_reputation
@@ -64,12 +64,17 @@ def memory_set_route():
 
 
 @agent_bp.route("/memory/get", methods=["POST"])
+@require_verified_agent
 def memory_get_route():
     data = request.get_json() or {}
-    agent_id, verified = _resolve_agent_id(data)
+    agent_id = data.get("agent_id", "")
+    if agent_id and agent_id != request.agent["agent_id"]:
+        return jsonify({"error": "forbidden", "message": "Cannot access another agent's memory"}), 403
+    agent_id = agent_id or request.agent["agent_id"]
+    verified = True
     key = data.get("key", "")
-    if not agent_id or not key:
-        return jsonify({"error": "agent_id and key required (or use JWT auth)"}), 400
+    if not key:
+        return jsonify({"error": "key required"}), 400
     result = memory_get(agent_id, key)
     log_payment("/memory/get", 0.01, request.remote_addr)
     if not result:
@@ -78,23 +83,31 @@ def memory_get_route():
 
 
 @agent_bp.route("/memory/search", methods=["POST"])
+@require_verified_agent
 def memory_search_route():
     data = request.get_json() or {}
-    agent_id, verified = _resolve_agent_id(data)
+    agent_id = data.get("agent_id", "")
+    if agent_id and agent_id != request.agent["agent_id"]:
+        return jsonify({"error": "forbidden", "message": "Cannot access another agent's memory"}), 403
+    agent_id = agent_id or request.agent["agent_id"]
+    verified = True
     query = data.get("query", "")
-    if not agent_id or not query:
-        return jsonify({"error": "agent_id and query required (or use JWT auth)"}), 400
+    if not query:
+        return jsonify({"error": "query required"}), 400
     results = memory_search(agent_id, query)
     log_payment("/memory/search", 0.02, request.remote_addr)
     return jsonify(agent_response({"agent_id": agent_id, "query": query, "results": results, "count": len(results), "verified": verified}, "/memory/search"))
 
 
 @agent_bp.route("/memory/list", methods=["POST"])
+@require_verified_agent
 def memory_list_route():
     data = request.get_json() or {}
-    agent_id, verified = _resolve_agent_id(data)
-    if not agent_id:
-        return jsonify({"error": "agent_id required (or use JWT auth)"}), 400
+    agent_id = data.get("agent_id", "")
+    if agent_id and agent_id != request.agent["agent_id"]:
+        return jsonify({"error": "forbidden", "message": "Cannot access another agent's memory"}), 403
+    agent_id = agent_id or request.agent["agent_id"]
+    verified = True
     keys = memory_list(agent_id)
     log_payment("/memory/list", 0.01, request.remote_addr)
     return jsonify(agent_response({"agent_id": agent_id, "keys": keys, "count": len(keys), "verified": verified}, "/memory/list"))

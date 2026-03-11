@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><title>Recover API Key — AiPayGen</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a0a;color:#e8e8e8;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.card{background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:40px;max-width:420px;width:100%;text-align:center}
+h1{font-size:1.5rem;margin-bottom:8px}
+.sub{color:#888;margin-bottom:24px}
+input{width:100%;padding:12px;border-radius:10px;border:1px solid #2a2a2a;background:#1e1e1e;color:#e8e8e8;font-size:1rem;margin-bottom:16px}
+button{width:100%;padding:12px;border-radius:10px;border:none;background:#6366f1;color:#fff;font-size:1rem;font-weight:600;cursor:pointer}
+.msg{margin-top:16px;color:#34d399}
+.links{margin-top:20px;font-size:0.85rem}
+.links a{color:#6366f1;text-decoration:none}
+</style></head><body>
+<div class="card">
+  <h1>Recover API Key</h1>
+  <p class="sub">Enter the email used at purchase. We'll send a sign-in link to view your keys.</p>
+  <form id="f" onsubmit="return go()">
+    <input id="email" type="email" placeholder="you@example.com" required>
+    <button type="submit">Look Up</button>
+  </form>
+  <p class="msg" id="msg" style="display:none"></p>
+  <div class="links"><a href="/auth/login">Sign In</a> &middot; <a href="/">Home</a></div>
+</div>
+<script>
+async function go(){
+  event.preventDefault();
+  const r=await fetch('/auth/key-lookup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:document.getElementById('email').value})});
+  const d=await r.json();
+  const m=document.getElementById('msg');m.style.display='block';m.textContent=d.message;
+  return false;
+}
+</script></body></html>

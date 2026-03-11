@@ -35,7 +35,7 @@ API_KEY = os.environ.get("AIPAYGEN_API_KEY", "")
 mcp = FastMCP(
     "AiPayGen",
     instructions=(
-        "AiPayGen provides 153 AI-powered tools: research, write, code, translate, "
+        "AiPayGen provides 155 AI-powered tools: research, write, code, translate, "
         "analyze, summarize, vision, RAG, web scraping, custom agent builder, agent memory, marketplace, "
         "utility APIs (geocode, WHOIS, SSL, security, math, finance, NLP, transforms), and more. "
         "Free tier: 10 calls/day. Set AIPAYGEN_API_KEY for unlimited access."
@@ -1098,13 +1098,13 @@ def get_crypto_deposit_info() -> dict:
 @mcp.tool()
 def create_deposit(network: str = "base", amount_usd: float = 10.0) -> dict:
     """Create a crypto deposit intent — returns unique address, QR code, and instructions."""
-    return _post("crypto/deposit", {"network": network, "amount_usd": amount_usd})
+    return _call("crypto/deposit", {"network": network, "amount_usd": amount_usd})
 
 
 @mcp.tool()
 def claim_deposit(tx_hash: str = "", network: str = "base") -> dict:
     """Claim a crypto deposit by providing the transaction hash for onchain verification."""
-    return _post("crypto/claim", {"tx_hash": tx_hash, "network": network})
+    return _call("crypto/claim", {"tx_hash": tx_hash, "network": network})
 
 
 @mcp.tool()

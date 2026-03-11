@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Payment Successful — AiPayGen</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e8e8e8; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .card { background: #141414; border: 1px solid #2a2a2a; border-radius: 16px; padding: 40px; max-width: 520px; width: 100%; text-align: center; }
+  .icon { font-size: 3rem; margin-bottom: 16px; }
+  h1 { font-size: 1.6rem; margin-bottom: 8px; }
+  .sub { color: #888; margin-bottom: 28px; }
+  .key-box { background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 10px; padding: 16px; margin-bottom: 24px; }
+  .key-label { font-size: 0.8rem; color: #888; margin-bottom: 6px; }
+  .key-val { font-family: monospace; font-size: 0.95rem; color: #a78bfa; word-break: break-all; cursor: pointer; }
+  .key-val:hover { color: #c4b5fd; }
+  .balance { font-size: 1.1rem; margin-bottom: 24px; }
+  .balance span { color: #34d399; font-weight: 700; }
+  pre { background: #1a1a1a; border-radius: 8px; padding: 14px; font-size: 0.8rem; color: #888; text-align: left; overflow-x: auto; margin-bottom: 8px; }
+  .btn { display: inline-block; background: #6366f1; color: #fff; text-decoration: none; border-radius: 10px; padding: 12px 24px; font-weight: 600; margin-top: 20px; }
+  .copy-hint { font-size: 0.75rem; color: #555; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon">&#10003;</div>
+  <h1>Payment Successful</h1>
+  <p class="sub">Your API key is ready.</p>
+
+  <div class="key-box" id="key-box" style="display:none">
+    <div class="key-label">YOUR API KEY</div>
+    <div class="key-val" id="key-display" title="Click to copy"></div>
+    <div class="copy-hint">Click to copy</div>
+  </div>
+  <div id="loading" style="color:#888;margin-bottom:24px;">Confirming payment... this may take a few seconds.</div>
+
+  <p class="balance" id="balance-row" style="display:none">Balance: <span id="balance-val"></span></p>
+
+  <pre id="curl-example" style="display:none"></pre>
+  <pre id="check-example" style="display:none"></pre>
+
+  <a href="/buy-credits" class="btn">Buy More Credits</a>
+</div>
+<script>
+const sid = new URLSearchParams(window.location.search).get('session_id');
+function poll() {
+  if (!sid) { document.getElementById('loading').textContent = 'Missing session ID.'; return; }
+  fetch('/auth/key-status?session_id=' + encodeURIComponent(sid))
+    .then(r => r.json())
+    .then(d => {
+      if (d.ready && d.api_key) {
+        const key = d.api_key;
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('key-box').style.display = 'block';
+        const kd = document.getElementById('key-display');
+        kd.textContent = key;
+        kd.dataset.key = key;
+        kd.onclick = function() {
+          navigator.clipboard.writeText(this.dataset.key);
+          const orig = this.textContent;
+          this.textContent = 'Copied!';
+          setTimeout(() => this.textContent = orig, 1500);
+        };
+        const br = document.getElementById('balance-row');
+        br.style.display = 'block';
+        document.getElementById('balance-val').textContent = '$' + d.balance;
+        const ce = document.getElementById('curl-example');
+        ce.style.display = 'block';
+        ce.textContent = 'curl https://api.aipaygen.com/research \\\n  -H "Authorization: Bearer ' + key + '" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"topic": "quantum computing"}\'';
+        const ck = document.getElementById('check-example');
+        ck.style.display = 'block';
+        ck.textContent = '# Check balance\ncurl "https://api.aipaygen.com/auth/status?key=' + key + '"';
+      } else {
+        setTimeout(poll, 2000);
+      }
+    })
+    .catch(() => setTimeout(poll, 2000));
+}
+poll();
+</script>
+</body>
+</html>

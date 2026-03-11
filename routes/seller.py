@@ -8,10 +8,10 @@ from datetime import datetime
 
 import requests as _requests
 import stripe
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, render_template
 
 from api_keys import validate_key
-from helpers import log_payment, agent_response
+from helpers import log_payment, agent_response, require_api_key
 from security import validate_url, SSRFError
 from seller_marketplace import (
     register_seller_api, get_seller_api, list_seller_apis,
@@ -26,13 +26,22 @@ seller_bp = Blueprint("seller", __name__)
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
 
-OUR_WALLET = "0x366D488a48de1B2773F3a21F1A6972715056Cb30"
+OUR_WALLET = os.getenv("WALLET_ADDRESS", "0x366D488a48de1B2773F3a21F1A6972715056Cb30")
 PROXY_TIMEOUT = 30
 
 
 def init_seller_bp():
     """Called from app.py to initialize."""
     pass  # No global state needed
+
+
+# ── Seller Onboarding Page ────────────────────────────────────────────────────
+
+
+@seller_bp.route("/sell", methods=["GET"])
+def sell_page():
+    """Visual seller onboarding page."""
+    return render_template("seller.html")
 
 
 # ── Auth helper ───────────────────────────────────────────────────────────────
@@ -93,10 +102,10 @@ def sell_register():
     )
 
     # Background verification
-    if result and result.get("api_id"):
+    if result and result.get("slug"):
         t = threading.Thread(
             target=verify_seller_endpoint,
-            args=(result["api_id"],),
+            args=(result["slug"],),
             daemon=True,
         )
         t.start()
@@ -276,13 +285,11 @@ def sell_proxy(slug, subpath):
     if not wallet:
         return jsonify({"error": "wallet not found"}), 404
 
-    # Vendor allowlist enforcement
-    allowlist = wallet.get("vendor_allowlist", "[]")
+    # Vendor allowlist enforcement (get_agent_wallet already returns a parsed list)
+    allowlist = wallet.get("vendor_allowlist", [])
     if isinstance(allowlist, str):
-        try:
-            allowlist = json.loads(allowlist) if allowlist.startswith("[") else [a.strip() for a in allowlist.split(",")]
-        except (json.JSONDecodeError, ValueError):
-            allowlist = []
+        logger.warning("vendor_allowlist returned as string for wallet %s, expected list", wallet.get("id"))
+        allowlist = []
     if allowlist and "*" not in allowlist and slug not in allowlist:
         return jsonify({
             "error": "vendor_blocked",
@@ -431,6 +438,9 @@ def wallet_create():
 @seller_bp.route("/wallet/balance", methods=["GET"])
 def wallet_balance():
     """Get wallet balance."""
+    api_key, key_data, err = _auth_or_401()
+    if err:
+        return err
     wallet_id = request.headers.get("X-Wallet-ID") or request.args.get("wallet_id")
     if not wallet_id:
         return jsonify({"error": "X-Wallet-ID header or wallet_id query param required"}), 400
@@ -438,6 +448,8 @@ def wallet_balance():
     wallet = get_agent_wallet(wallet_id)
     if not wallet:
         return jsonify({"error": "wallet not found"}), 404
+    if wallet.get("owner_api_key") != api_key:
+        return jsonify({"error": "not your wallet"}), 403
 
     return jsonify(agent_response(wallet, "/wallet/balance"))
 
@@ -521,9 +533,18 @@ def wallet_policy():
 @seller_bp.route("/wallet/transactions", methods=["GET"])
 def wallet_transactions():
     """Get wallet transaction history."""
+    api_key, key_data, err = _auth_or_401()
+    if err:
+        return err
     wallet_id = request.headers.get("X-Wallet-ID") or request.args.get("wallet_id")
     if not wallet_id:
         return jsonify({"error": "X-Wallet-ID header or wallet_id query param required"}), 400
+
+    wallet = get_agent_wallet(wallet_id)
+    if not wallet:
+        return jsonify({"error": "wallet not found"}), 404
+    if wallet.get("owner_api_key") != api_key:
+        return jsonify({"error": "not your wallet"}), 403
 
     transactions = get_wallet_transactions(wallet_id=wallet_id)
     return jsonify(agent_response({"wallet_id": wallet_id, "transactions": transactions}, "/wallet/transactions"))
@@ -546,8 +567,15 @@ def wallet_list():
 @seller_bp.route("/escrow/<escrow_id>", methods=["GET"])
 def escrow_status(escrow_id):
     """Check escrow status."""
+    api_key, key_data, err = _auth_or_401()
+    if err:
+        return err
     from seller_marketplace import get_escrow_hold
     hold = get_escrow_hold(escrow_id)
     if not hold:
         return jsonify({"error": "escrow not found"}), 404
+    # Verify caller owns the wallet involved
+    wallet = get_agent_wallet(hold.get("agent_wallet_id", ""))
+    if not wallet or wallet.get("owner_api_key") != api_key:
+        return jsonify({"error": "not authorized"}), 403
     return jsonify(agent_response(hold, f"/escrow/{escrow_id}"))

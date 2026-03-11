@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Crypto Deposits — AiPayGen</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; }
+  .container { max-width: 720px; margin: 0 auto; padding: 2rem 1rem; }
+  h1 { color: #fff; margin-bottom: 0.5rem; }
+  h2 { color: #ccc; margin: 1.5rem 0 0.5rem; font-size: 1.2rem; }
+  .subtitle { color: #888; margin-bottom: 2rem; }
+  .wallet-box { background: #151515; border: 1px solid #333; border-radius: 8px; padding: 1rem; margin: 1rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .wallet-addr { font-family: monospace; font-size: 0.85rem; word-break: break-all; flex: 1; color: #4fc3f7; }
+  .copy-btn { background: #333; color: #fff; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
+  .copy-btn:hover { background: #555; }
+  .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600; margin-right: 0.5rem; }
+  .badge-base { background: #1652f0; color: #fff; }
+  .badge-solana { background: #9945ff; color: #fff; }
+  .qr-wrap { text-align: center; margin: 1.5rem 0; }
+  .qr-wrap img { border-radius: 8px; border: 4px solid #fff; }
+  .steps { list-style: none; counter-reset: step; }
+  .steps li { counter-increment: step; margin: 0.75rem 0; padding-left: 2rem; position: relative; }
+  .steps li::before { content: counter(step); position: absolute; left: 0; background: #333; color: #4fc3f7; width: 1.5rem; height: 1.5rem; border-radius: 50%; text-align: center; line-height: 1.5rem; font-size: 0.8rem; }
+  pre { background: #151515; border: 1px solid #333; border-radius: 6px; padding: 1rem; overflow-x: auto; font-size: 0.8rem; margin: 0.5rem 0; }
+  code { color: #4fc3f7; }
+  .contract { font-family: monospace; font-size: 0.8rem; color: #aaa; word-break: break-all; }
+  nav { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #222; }
+  nav a { color: #4fc3f7; text-decoration: none; margin-right: 1.5rem; }
+  nav a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Crypto Deposits</h1>
+  <p class="subtitle">Fund your AiPayGen account with USDC — no Stripe needed.</p>
+
+  <h2>Wallet Address</h2>
+  <div class="wallet-box">
+    <span class="wallet-addr" id="wallet">{{ wallet }}</span>
+    <button class="copy-btn" onclick="navigator.clipboard.writeText(document.getElementById('wallet').textContent).then(()=>this.textContent='Copied!')">Copy</button>
+  </div>
+
+  <div class="qr-wrap">
+    <img src="data:image/png;base64,{{ qr }}" alt="QR Code" width="200" height="200">
+  </div>
+
+  <h2>Supported Networks</h2>
+  <p>
+    <span class="badge badge-base">Base (Chain 8453)</span>
+    <span class="badge badge-solana">Solana</span>
+  </p>
+
+  <h2>USDC Contract Addresses</h2>
+  <p><strong>Base:</strong> <span class="contract">0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913</span></p>
+  <p><strong>Solana Mint:</strong> <span class="contract">EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v</span></p>
+
+  <h2>How It Works</h2>
+  <ol class="steps">
+    <li>Send USDC to the wallet address above on Base or Solana.</li>
+    <li>Wait for transaction confirmation (5 blocks on Base).</li>
+    <li>Call <code>POST /crypto/claim</code> with your <code>tx_hash</code> and <code>api_key</code>.</li>
+    <li>Your account balance is credited instantly.</li>
+  </ol>
+
+  <h2>Claim Example</h2>
+  <pre>curl -X POST https://api.aipaygen.com/crypto/claim \
+  -H "Content-Type: application/json" \
+  -d '{
+    "api_key": "apk_YOUR_KEY",
+    "tx_hash": "0xYOUR_TX_HASH",
+    "network": "base"
+  }'</pre>
+
+  <nav>
+    <a href="/">Home</a>
+    <a href="/docs">Docs</a>
+    <a href="/buy-credits">Buy Credits</a>
+    <a href="/try">Try</a>
+    <a href="/builder">Build Agent</a>
+  </nav>
+</div>
+</body>
+</html>

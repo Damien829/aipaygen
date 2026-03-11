@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from functools import wraps
 
 import jwt
-from flask import Blueprint, request, jsonify, redirect, make_response
+from flask import Blueprint, request, jsonify, redirect, make_response, render_template
 
 from accounts import (
     create_or_get_account, get_account_by_email, link_key_to_account,
@@ -116,7 +116,7 @@ async function go(){
 
 @accounts_bp.route("/auth/login", methods=["GET"])
 def login_page():
-    return _LOGIN_PAGE, 200, {"Content-Type": "text/html"}
+    return render_template("login.html"), 200, {"Content-Type": "text/html"}
 
 
 # ── Key Recovery ──────────────────────────────────────────────────────────────
@@ -157,7 +157,7 @@ async function go(){
 
 @accounts_bp.route("/my-key", methods=["GET"])
 def key_recovery_page():
-    return _KEY_RECOVERY_PAGE, 200, {"Content-Type": "text/html"}
+    return render_template("key_recovery.html"), 200, {"Content-Type": "text/html"}
 
 
 @accounts_bp.route("/auth/key-lookup", methods=["POST"])

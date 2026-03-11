@@ -14,6 +14,19 @@ _test_db_path = _test_db.name
 _test_db.close()
 sm._DB_PATH = _test_db_path
 
+
+def _reset_seller_db():
+    """Drop all tables and re-create for clean test state."""
+    import sqlite3
+    sm._DB_PATH = _test_db_path
+    c = sqlite3.connect(_test_db_path)
+    for tbl in ["seller_apis", "agent_wallets", "escrow_holds", "wallet_transactions", "seller_payouts"]:
+        c.execute(f"DROP TABLE IF EXISTS {tbl}")
+    c.commit()
+    c.close()
+    sm.init_seller_db()
+
+
 # ---------------------------------------------------------------------------
 # Unit tests — seller_marketplace.py core logic
 # ---------------------------------------------------------------------------
@@ -23,15 +36,7 @@ class TestSellerCRUD:
     """Seller registration, lookup, listing, update, delete."""
 
     def setup_method(self):
-        sm._DB_PATH = _test_db_path
-        # Drop all tables and re-create for clean state
-        import sqlite3
-        c = sqlite3.connect(_test_db_path)
-        for tbl in ["seller_apis", "agent_wallets", "escrow_holds", "wallet_transactions", "seller_payouts"]:
-            c.execute(f"DROP TABLE IF EXISTS {tbl}")
-        c.commit()
-        c.close()
-        sm.init_seller_db()
+        _reset_seller_db()
 
     def test_register_seller_api(self):
         result = sm.register_seller_api(
@@ -557,13 +562,7 @@ class TestSellerRoutes:
     """Integration tests for /sell/* and /wallet/* endpoints."""
 
     def setup_method(self):
-        import sqlite3
-        c = sqlite3.connect(_test_db_path)
-        for tbl in ["seller_apis", "agent_wallets", "escrow_holds", "wallet_transactions", "seller_payouts"]:
-            c.execute(f"DROP TABLE IF EXISTS {tbl}")
-        c.commit()
-        c.close()
-        sm.init_seller_db()
+        _reset_seller_db()
 
     def test_directory_no_auth(self, client):
         """Directory is public."""
@@ -580,7 +579,7 @@ class TestSellerRoutes:
         })
         assert r.status_code == 401
 
-    @patch("routes.seller.validate_key")
+    @patch("api_keys.validate_key")
     def test_register_missing_fields(self, mock_vk, client):
         mock_vk.return_value = {"key": "apk_test_seller_key", "balance_usd": 10, "is_active": 1}
         r = client.post("/sell/register",
@@ -589,7 +588,7 @@ class TestSellerRoutes:
         assert r.status_code == 400
         assert "required" in r.get_json()["error"]
 
-    @patch("routes.seller.validate_key")
+    @patch("api_keys.validate_key")
     @patch("routes.seller.validate_url")
     def test_register_success(self, mock_url, mock_vk, client):
         mock_vk.return_value = {"key": "apk_test_seller_key", "balance_usd": 10, "is_active": 1}
@@ -616,7 +615,7 @@ class TestSellerRoutes:
         r = client.get("/sell/dashboard")
         assert r.status_code == 401
 
-    @patch("routes.seller.validate_key")
+    @patch("api_keys.validate_key")
     def test_dashboard_with_auth(self, mock_vk, client):
         mock_vk.return_value = {"key": "apk_dash_key", "balance_usd": 10, "is_active": 1}
         r = client.get("/sell/dashboard", headers=_auth_header("apk_dash_key"))
@@ -633,27 +632,29 @@ class TestWalletRoutes:
     """Integration tests for /wallet/* endpoints."""
 
     def setup_method(self):
-        import sqlite3
-        c = sqlite3.connect(_test_db_path)
-        for tbl in ["seller_apis", "agent_wallets", "escrow_holds", "wallet_transactions", "seller_payouts"]:
-            c.execute(f"DROP TABLE IF EXISTS {tbl}")
-        c.commit()
-        c.close()
-        sm.init_seller_db()
+        _reset_seller_db()
 
-    def test_wallet_balance_missing_id(self, client):
+    def test_wallet_balance_no_auth(self, client):
         r = client.get("/wallet/balance")
+        assert r.status_code == 401
+
+    @patch("api_keys.validate_key")
+    def test_wallet_balance_missing_id(self, mock_vk, client):
+        mock_vk.return_value = {"key": "apk_bal", "balance_usd": 10, "is_active": 1}
+        r = client.get("/wallet/balance", headers=_auth_header("apk_bal"))
         assert r.status_code == 400
 
-    def test_wallet_balance_not_found(self, client):
-        r = client.get("/wallet/balance?wallet_id=aw_nosuch")
+    @patch("api_keys.validate_key")
+    def test_wallet_balance_not_found(self, mock_vk, client):
+        mock_vk.return_value = {"key": "apk_bal", "balance_usd": 10, "is_active": 1}
+        r = client.get("/wallet/balance?wallet_id=aw_nosuch", headers=_auth_header("apk_bal"))
         assert r.status_code == 404
 
     def test_wallet_create_no_auth(self, client):
         r = client.post("/wallet/create", json={"label": "test"})
         assert r.status_code == 401
 
-    @patch("routes.seller.validate_key")
+    @patch("api_keys.validate_key")
     def test_wallet_create_success(self, mock_vk, client):
         mock_vk.return_value = {"key": "apk_wc_key", "balance_usd": 10, "is_active": 1}
         r = client.post("/wallet/create",
@@ -663,15 +664,21 @@ class TestWalletRoutes:
         data = r.get_json()
         assert "wallet_id" in data
 
-    def test_wallet_transactions_missing_id(self, client):
+    def test_wallet_transactions_no_auth(self, client):
         r = client.get("/wallet/transactions")
+        assert r.status_code == 401
+
+    @patch("api_keys.validate_key")
+    def test_wallet_transactions_missing_id(self, mock_vk, client):
+        mock_vk.return_value = {"key": "apk_tx", "balance_usd": 10, "is_active": 1}
+        r = client.get("/wallet/transactions", headers=_auth_header("apk_tx"))
         assert r.status_code == 400
 
     def test_wallet_list_no_auth(self, client):
         r = client.get("/wallet/list")
         assert r.status_code == 401
 
-    @patch("routes.seller.validate_key")
+    @patch("api_keys.validate_key")
     def test_wallet_list_with_auth(self, mock_vk, client):
         mock_vk.return_value = {"key": "apk_wl_key", "balance_usd": 10, "is_active": 1}
         r = client.get("/wallet/list", headers=_auth_header("apk_wl_key"))
@@ -687,7 +694,7 @@ class TestWalletRoutes:
         r = client.post("/wallet/fund", json={"wallet_id": "aw_x", "amount_usd": 10})
         assert r.status_code == 401
 
-    @patch("routes.seller.validate_key")
+    @patch("api_keys.validate_key")
     def test_wallet_fund_missing_wallet_id(self, mock_vk, client):
         mock_vk.return_value = {"key": "apk_f", "balance_usd": 10, "is_active": 1}
         r = client.post("/wallet/fund",
@@ -695,7 +702,7 @@ class TestWalletRoutes:
                         json={"amount_usd": 10})
         assert r.status_code == 400
 
-    @patch("routes.seller.validate_key")
+    @patch("api_keys.validate_key")
     def test_wallet_fund_below_minimum(self, mock_vk, client):
         mock_vk.return_value = {"key": "apk_f2", "balance_usd": 10, "is_active": 1}
         r = client.post("/wallet/fund",
@@ -709,13 +716,7 @@ class TestProxyRoute:
     """Tests for /sell/<slug>/<path> proxy endpoint."""
 
     def setup_method(self):
-        import sqlite3
-        c = sqlite3.connect(_test_db_path)
-        for tbl in ["seller_apis", "agent_wallets", "escrow_holds", "wallet_transactions", "seller_payouts"]:
-            c.execute(f"DROP TABLE IF EXISTS {tbl}")
-        c.commit()
-        c.close()
-        sm.init_seller_db()
+        _reset_seller_db()
 
     def test_proxy_seller_not_found(self, client):
         r = client.get("/sell/nonexistent-slug-xyz/v1/data")

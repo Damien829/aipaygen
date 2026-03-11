@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AiPayGen — The Most Powerful AI Toolkit You Can Buy Per Call</title>
+<meta name="description" content="155 AI tools, 15 frontier models, one API key. Research, write, code, scrape, analyze — from $0.004/call. No subscriptions.">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e8e8e8; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 32px 16px; }
+  a { color: #818cf8; }
+  .wrapper { max-width: 680px; width: 100%; }
+
+  /* Try it banner */
+  .try-banner { background: linear-gradient(135deg, #1a1a3e, #0d1a2d); border: 1px solid #2d2d5e; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
+  .try-banner .icon { font-size: 1.4rem; }
+  .try-banner .text { flex: 1; font-size: 0.85rem; color: #a0a0c0; }
+  .try-banner .text strong { color: #e0e0ff; }
+  .try-banner a { background: #6366f1; color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 0; margin-bottom: 20px; border-radius: 10px; overflow: hidden; border: 1px solid #2a2a2a; }
+  .tab { flex: 1; padding: 12px; text-align: center; background: #141414; color: #888; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; border: none; }
+  .tab:hover { color: #ccc; }
+  .tab.active { background: #6366f1; color: #fff; }
+
+  /* Main card */
+  .card { background: #141414; border: 1px solid #2a2a2a; border-radius: 16px; padding: 36px; }
+  h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
+  .sub { color: #888; font-size: 0.88rem; margin-bottom: 28px; }
+  .plans { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+  .plan { flex: 1; min-width: 100px; border: 2px solid #2a2a2a; border-radius: 12px; padding: 18px 12px; cursor: pointer; text-align: center; transition: all 0.15s; position: relative; }
+  .plan:hover, .plan.selected { border-color: #6366f1; background: #1a1a2e; }
+  .plan .amount { font-size: 1.5rem; font-weight: 800; color: #fff; }
+  .plan .credits { font-size: 0.78rem; color: #888; margin-top: 4px; }
+  .plan .per-call { font-size: 0.72rem; color: #6366f1; margin-top: 2px; }
+  .plan .badge { display: inline-block; background: #6366f1; color: #fff; font-size: 0.68rem; padding: 2px 8px; border-radius: 20px; margin-top: 8px; }
+  .plan .badge.green { background: #059669; }
+  .plan .badge.starter { background: #f59e0b; }
+
+  /* Specialty packages */
+  .pkg-section { display: none; }
+  .pkg-section.active { display: block; }
+  .pkgs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+  .pkg { border: 2px solid #2a2a2a; border-radius: 12px; padding: 18px; cursor: pointer; transition: all 0.15s; }
+  .pkg:hover, .pkg.selected { border-color: #6366f1; background: #1a1a2e; }
+  .pkg .pkg-name { font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
+  .pkg .pkg-price { font-size: 1.1rem; font-weight: 800; color: #6366f1; }
+  .pkg .pkg-desc { font-size: 0.75rem; color: #888; margin-top: 6px; line-height: 1.4; }
+  .pkg .pkg-tools { font-size: 0.7rem; color: #555; margin-top: 6px; }
+  .pkg .pkg-tag { display: inline-block; background: #059669; color: #fff; font-size: 0.65rem; padding: 2px 6px; border-radius: 10px; margin-top: 6px; }
+
+  .field { margin-bottom: 16px; }
+  label { display: block; font-size: 0.82rem; color: #888; margin-bottom: 5px; }
+  input { width: 100%; background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 14px; color: #e8e8e8; font-size: 0.9rem; outline: none; transition: border-color 0.15s; }
+  input:focus { border-color: #6366f1; }
+  input::placeholder { color: #555; }
+  .btn { width: 100%; background: #6366f1; color: #fff; border: none; border-radius: 10px; padding: 14px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  .btn:hover { background: #4f52d0; }
+  .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+  .error { color: #f87171; font-size: 0.85rem; margin-top: 10px; display: none; }
+
+  /* What you get */
+  .features { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 24px; padding-top: 24px; border-top: 1px solid #222; }
+  .feat { font-size: 0.78rem; color: #888; padding: 6px 0; }
+  .feat span { color: #34d399; margin-right: 6px; }
+
+  /* Trust */
+  .trust { margin-top: 20px; padding: 14px; background: #1a1a1a; border-radius: 8px; font-size: 0.78rem; color: #666; line-height: 1.6; text-align: center; }
+  .trust strong { color: #888; }
+
+  /* How it works */
+  .how { margin-top: 20px; padding: 14px; background: #1a1a1a; border-radius: 8px; font-size: 0.8rem; color: #888; line-height: 1.7; }
+  .how code { background: #2a2a2a; padding: 1px 5px; border-radius: 4px; color: #a78bfa; font-size: 0.78rem; }
+  .how .step { color: #6366f1; font-weight: 700; margin-right: 4px; }
+
+  @media (max-width: 500px) {
+    .plans { flex-direction: column; }
+    .pkgs { grid-template-columns: 1fr; }
+    .features { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div style="display:flex;gap:16px;margin-bottom:20px;font-size:0.85rem"><a href="/" style="color:#888;text-decoration:none">Home</a><a href="/docs" style="color:#888;text-decoration:none">Docs</a><a href="/try" style="color:#888;text-decoration:none">Try Free</a><a href="/security" style="color:#888;text-decoration:none">Security</a></div>
+  <div class="try-banner">
+    <div class="icon">&#9889;</div>
+    <div class="text"><strong>Try before you buy</strong> — test any tool free, no key needed</div>
+    <a href="/try">Try it free</a>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('credits')">Credits</button>
+    <button class="tab" onclick="showTab('packages')">Specialty Packages</button>
+  </div>
+
+  <!-- Credits Tab -->
+  <div class="card pkg-section active" id="tab-credits">
+    <h1>Get Your API Key</h1>
+    <p class="sub">155 tools. 15 frontier models. Pay per call, not per month.</p>
+
+    <div class="plans">
+      <div class="plan" data-amount="1" onclick="selectPlan(this)">
+        <div class="amount">$1</div>
+        <div class="credits">~160 calls</div>
+        <div class="per-call">$0.006/call</div>
+        <div class="badge starter">Starter</div>
+      </div>
+      <div class="plan" data-amount="5" onclick="selectPlan(this)">
+        <div class="amount">$5</div>
+        <div class="credits">~830 calls</div>
+        <div class="per-call">$0.006/call</div>
+      </div>
+      <div class="plan selected" data-amount="20" onclick="selectPlan(this)">
+        <div class="amount">$20</div>
+        <div class="credits">~4,000 calls</div>
+        <div class="per-call">$0.005/call</div>
+        <div class="badge">Popular</div>
+      </div>
+      <div class="plan" data-amount="50" onclick="selectPlan(this)">
+        <div class="amount">$50</div>
+        <div class="credits">~12,500 calls</div>
+        <div class="per-call">$0.004/call</div>
+        <div class="badge green">Best value</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Label (optional)</label>
+      <input type="text" id="label" placeholder="e.g. my-agent, production" maxlength="60">
+    </div>
+
+    <div class="field">
+      <label>Top up existing key (optional)</label>
+      <input type="text" id="existing_key" placeholder="apk_xxx — leave blank for a new key">
+    </div>
+
+    <button class="btn" id="pay-btn" onclick="checkout()">&#128274; Pay with Card</button>
+    <p class="error" id="err"></p>
+
+    <div class="features">
+      <div class="feat"><span>&#10003;</span> Research &amp; summarize</div>
+      <div class="feat"><span>&#10003;</span> Write &amp; translate</div>
+      <div class="feat"><span>&#10003;</span> Code generation</div>
+      <div class="feat"><span>&#10003;</span> Web scraping (6 sites)</div>
+      <div class="feat"><span>&#10003;</span> Sentiment &amp; analysis</div>
+      <div class="feat"><span>&#10003;</span> Agent memory</div>
+      <div class="feat"><span>&#10003;</span> 4,100+ API catalog</div>
+      <div class="feat"><span>&#10003;</span> 15 AI models</div>
+    </div>
+  </div>
+
+  <!-- Specialty Packages Tab -->
+  <div class="card pkg-section" id="tab-packages">
+    <h1>Specialty Packages</h1>
+    <p class="sub">Curated tool bundles for your workflow. All credits work across any tool.</p>
+
+    <div class="pkgs">
+      <div class="pkg" data-amount="10" data-label="content-creator" onclick="selectPkg(this)">
+        <div class="pkg-name">Content Creator</div>
+        <div class="pkg-price">$10</div>
+        <div class="pkg-desc">Write articles, social posts, headlines, translations, and proofread — all AI-powered.</div>
+        <div class="pkg-tools">write &middot; summarize &middot; translate &middot; social &middot; headline &middot; proofread &middot; rewrite &middot; outline</div>
+        <div class="pkg-tag">~1,600 calls</div>
+      </div>
+
+      <div class="pkg" data-amount="10" data-label="developer" onclick="selectPkg(this)">
+        <div class="pkg-name">Developer</div>
+        <div class="pkg-price">$10</div>
+        <div class="pkg-desc">Generate code, write tests, explain concepts, create SQL queries, regex, and diagrams.</div>
+        <div class="pkg-tools">code &middot; explain &middot; test_cases &middot; sql &middot; regex &middot; diagram &middot; json_schema &middot; mock</div>
+        <div class="pkg-tag">~1,600 calls</div>
+      </div>
+
+      <div class="pkg" data-amount="10" data-label="data-analyst" onclick="selectPkg(this)">
+        <div class="pkg-name">Data Analyst</div>
+        <div class="pkg-price">$10</div>
+        <div class="pkg-desc">Analyze data, extract insights, classify content, run sentiment analysis, and compare documents.</div>
+        <div class="pkg-tools">analyze &middot; extract &middot; classify &middot; compare &middot; sentiment &middot; keywords &middot; score &middot; questions</div>
+        <div class="pkg-tag">~1,600 calls</div>
+      </div>
+
+      <div class="pkg" data-amount="15" data-label="scraping-pro" onclick="selectPkg(this)">
+        <div class="pkg-name">Scraping Pro</div>
+        <div class="pkg-price">$15</div>
+        <div class="pkg-desc">Scrape Google Maps, Twitter/X, Instagram, TikTok, YouTube, and any website. Plus web search.</div>
+        <div class="pkg-tools">scrape/web &middot; scrape/tweets &middot; scrape/instagram &middot; scrape/tiktok &middot; scrape/youtube &middot; scrape/google-maps &middot; web/search</div>
+        <div class="pkg-tag">~2,500 calls</div>
+      </div>
+
+      <div class="pkg" data-amount="10" data-label="ai-researcher" onclick="selectPkg(this)">
+        <div class="pkg-name">AI Researcher</div>
+        <div class="pkg-price">$10</div>
+        <div class="pkg-desc">Deep research, RAG over documents, fact-checking, debates, decision analysis, and planning.</div>
+        <div class="pkg-tools">research &middot; rag &middot; fact &middot; debate &middot; decide &middot; plan &middot; qa &middot; compare</div>
+        <div class="pkg-tag">~1,600 calls</div>
+      </div>
+
+      <div class="pkg selected" data-amount="25" data-label="full-access" onclick="selectPkg(this)">
+        <div class="pkg-name">Full Access</div>
+        <div class="pkg-price">$25</div>
+        <div class="pkg-desc">Every tool, every model, every endpoint. The complete AI toolkit — nothing held back.</div>
+        <div class="pkg-tools">All 155 tools &middot; 15 models &middot; scraping &middot; memory &middot; workflows &middot; agent network</div>
+        <div class="pkg-tag">~5,000 calls</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Top up existing key (optional)</label>
+      <input type="text" id="pkg_existing_key" placeholder="apk_xxx — leave blank for a new key">
+    </div>
+
+    <button class="btn" id="pkg-pay-btn" onclick="pkgCheckout()">&#128274; Pay with Card</button>
+    <p class="error" id="pkg-err"></p>
+  </div>
+
+  <!-- Shared bottom section -->
+  <div class="trust">
+    <strong>The most powerful AI toolkit you can buy per call</strong><br>
+    155 tools &middot; 15 frontier models &middot; 4100+ APIs &middot; Published on <strong>PyPI</strong> &amp; <strong>MCP Registry</strong><br>
+    Credits never expire &middot; 20% bulk discount at $20+ &middot; Secure checkout via Stripe &middot; <a href="/security">Security</a>
+  </div>
+
+  <div class="how">
+    <span class="step">1.</span> Pick a plan or package &rarr; get your <code>apk_xxx</code> key instantly<br>
+    <span class="step">2.</span> Add <code>Authorization: Bearer apk_xxx</code> to any request<br>
+    <span class="step">3.</span> Call any of 153 endpoints &mdash; credits deducted per call
+  </div>
+</div>
+<script>
+let selectedAmount = 20;
+let pkgAmount = 25;
+let pkgLabel = 'full-access';
+
+function showTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.pkg-section').forEach(s => s.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+}
+
+function selectPlan(el) {
+  document.querySelectorAll('.plan').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedAmount = parseInt(el.dataset.amount);
+}
+
+function selectPkg(el) {
+  document.querySelectorAll('.pkg').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  pkgAmount = parseInt(el.dataset.amount);
+  pkgLabel = el.dataset.label;
+}
+
+async function checkout() {
+  const btn = document.getElementById('pay-btn');
+  const err = document.getElementById('err');
+  btn.disabled = true; btn.textContent = 'Redirecting to Stripe...'; err.style.display = 'none';
+  try {
+    const res = await fetch('/stripe/create-checkout', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        amount: selectedAmount,
+        label: document.getElementById('label').value.trim(),
+        existing_key: document.getElementById('existing_key').value.trim(),
+      })
+    });
+    const data = await res.json();
+    if (data.url) { window.location.href = data.url; }
+    else { err.textContent = data.error || 'Something went wrong'; err.style.display = 'block'; btn.disabled = false; btn.textContent = '\u{1F512} Pay with Card'; }
+  } catch(e) { err.textContent = 'Network error — please try again'; err.style.display = 'block'; btn.disabled = false; btn.textContent = '\u{1F512} Pay with Card'; }
+}
+
+async function pkgCheckout() {
+  const btn = document.getElementById('pkg-pay-btn');
+  const err = document.getElementById('pkg-err');
+  btn.disabled = true; btn.textContent = 'Redirecting to Stripe...'; err.style.display = 'none';
+  try {
+    const res = await fetch('/stripe/create-checkout', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        amount: pkgAmount,
+        label: pkgLabel,
+        existing_key: document.getElementById('pkg_existing_key').value.trim(),
+      })
+    });
+    const data = await res.json();
+    if (data.url) { window.location.href = data.url; }
+    else { err.textContent = data.error || 'Something went wrong'; err.style.display = 'block'; btn.disabled = false; btn.textContent = '\u{1F512} Pay with Card'; }
+  } catch(e) { err.textContent = 'Network error — please try again'; err.style.display = 'block'; btn.disabled = false; btn.textContent = '\u{1F512} Pay with Card'; }
+}
+</script>
+</body>
+</html>

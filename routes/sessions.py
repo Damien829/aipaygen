@@ -1,9 +1,11 @@
 from flask import Blueprint, request, jsonify
 from sessions import create_session, get_session, update_session_context
+from helpers import require_api_key
 
 sessions_bp = Blueprint("sessions", __name__)
 
 @sessions_bp.route("/session/start", methods=["POST"])
+@require_api_key
 def start_session():
     data = request.get_json(silent=True) or {}
     agent_id = data.get("agent_id", "anonymous")
@@ -13,6 +15,7 @@ def start_session():
     return jsonify({"session_id": sid, "ttl_hours": ttl})
 
 @sessions_bp.route("/session/<session_id>", methods=["GET"])
+@require_api_key
 def resume_session(session_id):
     s = get_session(session_id)
     if not s:
@@ -20,6 +23,7 @@ def resume_session(session_id):
     return jsonify(s)
 
 @sessions_bp.route("/session/<session_id>/context", methods=["PUT"])
+@require_api_key
 def update_context(session_id):
     s = get_session(session_id)
     if not s:

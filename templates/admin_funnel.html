@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Funnel Dashboard — AiPayGen</title>
+<link rel="manifest" href="/admin/manifest.json">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AiPayGen">
+<link rel="apple-touch-icon" href="/admin/icon-192.png">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e8e8e8; padding: 32px 16px; }
+  .wrap { max-width: 800px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin-bottom: 4px; }
+  .sub { color: #888; font-size: 0.85rem; margin-bottom: 24px; }
+  .period { display: flex; gap: 8px; margin-bottom: 24px; }
+  .period a { padding: 6px 14px; border-radius: 6px; background: #1e1e1e; color: #888; text-decoration: none; font-size: 0.82rem; border: 1px solid #2a2a2a; }
+  .period a.active { background: #6366f1; color: #fff; border-color: #6366f1; }
+  .card { background: #141414; border: 1px solid #2a2a2a; border-radius: 14px; padding: 28px; margin-bottom: 20px; }
+  .funnel-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .funnel-label { min-width: 160px; font-size: 0.82rem; color: #aaa; text-align: right; }
+  .funnel-bar-wrap { flex: 1; background: #1a1a1a; border-radius: 6px; height: 32px; overflow: hidden; }
+  .funnel-bar { height: 100%; border-radius: 6px; display: flex; align-items: center; padding: 0 10px; font-size: 0.8rem; font-weight: 700; color: #fff; min-width: 30px; transition: width 0.4s; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat { background: #1a1a1a; border-radius: 10px; padding: 16px; text-align: center; }
+  .stat .num { font-size: 1.6rem; font-weight: 800; color: #6366f1; }
+  .stat .lbl { font-size: 0.75rem; color: #666; margin-top: 4px; }
+  h2 { font-size: 1.1rem; margin: 24px 0 12px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+  th, td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #222; }
+  th { color: #888; font-weight: 600; }
+  .other-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
+  .other-card { background: #1a1a1a; border-radius: 8px; padding: 12px; text-align: center; }
+  .other-count { font-size: 1.2rem; font-weight: 700; color: #818cf8; }
+  .other-label { font-size: 0.72rem; color: #666; margin-top: 4px; word-break: break-all; }
+  .alert-row { background: #1a1a1a; border-radius: 6px; padding: 10px 14px; margin-bottom: 6px; font-size: 0.8rem; font-family: monospace; color: #ccc; display: flex; align-items: center; gap: 8px; }
+  .alerts-wrap { max-height: 300px; overflow-y: auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Conversion Funnel</h1>
+  <p class="sub">Last {{ days }} days &middot; {{ total_events }} total events</p>
+
+  <div class="period">
+    <a href="?days=1" class="{{ 'active' if days == 1 }}">24h</a>
+    <a href="?days=7" class="{{ 'active' if days == 7 }}">7d</a>
+    <a href="?days=30" class="{{ 'active' if days == 30 }}">30d</a>
+    <a href="?days=90" class="{{ 'active' if days == 90 }}">90d</a>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat"><div class="num">{{ discover_hits }}</div><div class="lbl">Discover Hits</div></div>
+    <div class="stat"><div class="num">{{ demos_used }}</div><div class="lbl">Demos Used</div></div>
+    <div class="stat"><div class="num">{{ four02_shown }}</div><div class="lbl">402s Shown</div></div>
+    <div class="stat"><div class="num">{{ checkouts }}</div><div class="lbl">Checkouts</div></div>
+    <div class="stat"><div class="num">{{ purchases }}</div><div class="lbl">Purchases</div></div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Checkout Alerts</h2>
+    <div class="alerts-wrap">{{ alerts_html|safe }}</div>
+  </div>
+
+  <div class="card">
+    <h2 style="margin-top:0">Funnel</h2>
+    {{ bars_html|safe }}
+  </div>
+
+  {{ other_html|safe }}
+
+  <div class="card">
+    <h2 style="margin-top:0">Daily Breakdown</h2>
+    <table>
+      <thead><tr><th>Date</th><th>Event</th><th>Count</th></tr></thead>
+      <tbody>
+        {% if daily %}
+        {% for d in daily %}
+        <tr><td>{{ d.day }}</td><td>{{ d.event_type }}</td><td>{{ d.count }}</td></tr>
+        {% endfor %}
+        {% else %}
+        <tr><td colspan="3" style="color:#555">No events yet</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <p style="text-align:center;margin-top:20px;font-size:0.75rem;color:#444"><a href="/stats" style="color:#555">Payment stats</a> &middot; Auto-refreshes every 5m</p>
+</div>
+<script>
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/admin/sw.js');
+setTimeout(() => location.reload(), 300000);
+</script>
+</body>
+</html>

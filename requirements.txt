@@ -31,9 +31,13 @@ lxml==6.0.2
 feedparser==6.0.12
 youtube-transcript-api==1.2.4
 markdownify==1.2.2
+PyYAML==6.0.3
+Markdown==3.10.2
+yfinance==1.2.0
 
 # Security & auth
 cryptography==46.0.5
+pyOpenSSL==25.3.0
 PyJWT==2.11.0
 pycryptodome==3.23.0
 

@@ -163,6 +163,28 @@ def require_admin(f):
     return wrapper
 
 
+def require_api_key(f):
+    """Decorator to require a valid API key via Bearer token."""
+    @functools.wraps(f)
+    def wrapper(*args, **kwargs):
+        from api_keys import validate_key
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer apk_"):
+            key_data = validate_key(auth[7:])
+            if key_data:
+                request.api_key = auth[7:]
+                request.key_data = key_data
+                return f(*args, **kwargs)
+        # Also allow admin key
+        admin_secret = os.getenv("ADMIN_SECRET", "")
+        if admin_secret and auth == f"Bearer {admin_secret}":
+            request.api_key = None
+            request.key_data = {"admin": True}
+            return f(*args, **kwargs)
+        return jsonify({"error": "API key required", "hint": "Pass Authorization: Bearer apk_..."}), 401
+    return wrapper
+
+
 def require_verified_agent(f):
     """Decorator: require JWT from a verified agent wallet."""
     @functools.wraps(f)
