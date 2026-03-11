@@ -755,12 +755,12 @@ class TestListTemplates:
 class TestBuilderPage:
 
     def test_builder_page_renders(self, client):
-        with patch("routes.builder.render_template_string", return_value="<html>builder</html>"):
+        with patch("routes.builder.render_template", return_value="<html>builder</html>"):
             r = client.get("/builder")
         assert r.status_code == 200
 
     def test_builder_page_no_auth_required(self, client):
         """Builder page should be publicly accessible."""
-        with patch("routes.builder.render_template_string", return_value="<html>ok</html>"):
+        with patch("routes.builder.render_template", return_value="<html>ok</html>"):
             r = client.get("/builder")
         assert r.status_code == 200
