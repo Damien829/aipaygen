@@ -104,45 +104,85 @@ def process_solana_transfers(transfers: list, wallet_address: str):
 # ---------------------------------------------------------------------------
 # Polling functions
 # ---------------------------------------------------------------------------
+def _batch_rpc(from_block: int, wallet_address: str, usdc_address: str) -> tuple:
+    """Batch eth_blockNumber + eth_getLogs into a single JSON-RPC request.
+
+    Returns (current_block, logs_list) or raises on failure.
+    """
+    import requests as _req
+
+    wallet_topic = "0x" + wallet_address.lower().replace("0x", "").zfill(64)
+    batch = [
+        {"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": []},
+        {
+            "jsonrpc": "2.0", "id": 2, "method": "eth_getLogs",
+            "params": [{
+                "fromBlock": hex(from_block + 1),
+                "toBlock": "latest",
+                "address": usdc_address,
+                "topics": [_ERC20_TRANSFER_TOPIC, None, wallet_topic],
+            }],
+        },
+    ]
+    resp = _req.post(BASE_RPC, json=batch, timeout=15)
+    resp.raise_for_status()
+    results = {r["id"]: r for r in resp.json()}
+
+    if "error" in results.get(1, {}):
+        raise RuntimeError(f"eth_blockNumber error: {results[1]['error']}")
+    if "error" in results.get(2, {}):
+        raise RuntimeError(f"eth_getLogs error: {results[2]['error']}")
+
+    current_block = int(results[1]["result"], 16)
+    raw_logs = results[2]["result"]
+    return current_block, raw_logs
+
+
 def _poll_base(wallet_address: str):
-    """Poll Base chain for USDC Transfer events to wallet_address."""
+    """Poll Base chain for USDC Transfer events to wallet_address.
+
+    Uses a single batched JSON-RPC request for eth_blockNumber + eth_getLogs.
+    """
     try:
-        w3 = _get_w3()
-        current_block = w3.eth.block_number
+        from web3 import Web3
+        usdc_addr = Web3.to_checksum_address(USDC_BASE)
 
         with _lock:
             from_block = _state["base_last_block"]
-            if from_block is None:
+
+        if from_block is None:
+            # First run: just set current block, don't scan history
+            w3 = _get_w3()
+            current_block = w3.eth.block_number
+            with _lock:
                 _state["base_last_block"] = current_block
-                return
+            return
+
+        current_block, raw_logs = _batch_rpc(from_block, wallet_address, usdc_addr)
 
         if current_block <= from_block:
             return
 
-        wallet_topic = "0x" + wallet_address.lower().replace("0x", "").zfill(64)
-
-        logs = w3.eth.get_logs({
-            "fromBlock": from_block + 1,
-            "toBlock": current_block,
-            "address": w3.to_checksum_address(USDC_BASE),
-            "topics": [
-                _ERC20_TRANSFER_TOPIC,
-                None,
-                wallet_topic,
-            ],
-        })
-
         transfers = []
-        for entry in logs:
-            amount_raw = int(entry["data"].hex(), 16) if isinstance(entry["data"], bytes) else int(entry["data"], 16)
+        for entry in raw_logs:
+            data_hex = entry["data"]
+            if data_hex.startswith("0x"):
+                data_hex = data_hex[2:]
+            amount_raw = int(data_hex, 16)
             amount_token = amount_raw / 1e6
-            sender = "0x" + entry["topics"][1].hex()[-40:]
+            sender_topic = entry["topics"][1]
+            sender = "0x" + sender_topic[-40:] if isinstance(sender_topic, str) else "0x" + sender_topic.hex()[-40:]
+            tx_hash = entry["transactionHash"]
+            if isinstance(tx_hash, bytes):
+                tx_hash = tx_hash.hex()
+            elif tx_hash.startswith("0x"):
+                tx_hash = tx_hash[2:]
             transfers.append({
-                "tx_hash": entry["transactionHash"].hex(),
+                "tx_hash": tx_hash,
                 "sender": sender,
                 "amount_token": amount_token,
                 "amount_usd": amount_token,
-                "block_number": entry["blockNumber"],
+                "block_number": int(entry["blockNumber"], 16) if isinstance(entry["blockNumber"], str) else entry["blockNumber"],
             })
 
         with _lock:

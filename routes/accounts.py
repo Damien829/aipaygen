@@ -1,13 +1,16 @@
 """AiPayGen accounts blueprint — magic link auth, dashboard, key recovery."""
 
+import hashlib
+import hmac
 import os
 import re
+import secrets
 import time
 from datetime import datetime, timezone
 from functools import wraps
 
 import jwt
-from flask import Blueprint, request, jsonify, redirect, make_response, render_template
+from flask import Blueprint, request, jsonify, redirect, make_response, render_template, session
 
 from accounts import (
     create_or_get_account, get_account_by_email, link_key_to_account,
@@ -18,6 +21,45 @@ from email_service import send_magic_link
 accounts_bp = Blueprint("accounts", __name__)
 
 JWT_SECRET = os.getenv("JWT_SECRET") or os.getenv("ADMIN_SECRET") or os.urandom(32).hex()
+_CSRF_SECRET = os.getenv("CSRF_SECRET") or os.urandom(32).hex()
+
+
+# ── CSRF Protection ──────────────────────────────────────────────────────────
+
+def generate_csrf_token() -> str:
+    """Generate a CSRF token and store it in the session."""
+    if "_csrf_token" not in session:
+        session["_csrf_token"] = secrets.token_urlsafe(32)
+    return session["_csrf_token"]
+
+
+def _check_csrf():
+    """Validate CSRF token on state-changing requests.
+
+    Checks X-CSRF-Token header first, then falls back to csrf_token form field.
+    API requests with Bearer auth are exempt (machine clients, not browsers).
+    """
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        return  # API clients use auth tokens, not CSRF
+    if request.content_type and "application/json" in request.content_type:
+        # JSON API calls from JS — check header
+        token = request.headers.get("X-CSRF-Token", "")
+    else:
+        # Form submissions
+        token = request.form.get("csrf_token", "") or request.headers.get("X-CSRF-Token", "")
+    expected = session.get("_csrf_token", "")
+    if not expected or not hmac.compare_digest(token, expected):
+        from flask import abort
+        abort(403, description="CSRF token missing or invalid")
+
+
+@accounts_bp.app_context_processor
+def _inject_csrf():
+    """Make csrf_token() available in all templates."""
+    return {"csrf_token": generate_csrf_token}
+
+
 BASE_URL = os.getenv("BASE_URL", "https://api.aipaygen.com")
 
 
@@ -45,6 +87,7 @@ def _get_current_account():
 
 @accounts_bp.route("/auth/magic-link", methods=["POST"])
 def magic_link():
+    _check_csrf()
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
     if not email or not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
@@ -162,6 +205,7 @@ def key_recovery_page():
 
 @accounts_bp.route("/auth/key-lookup", methods=["POST"])
 def key_lookup():
+    _check_csrf()
     # Always return same message to prevent email enumeration
     msg = "If an account exists for that email, a sign-in link has been sent. Check your inbox."
     data = request.get_json(silent=True) or {}

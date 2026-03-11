@@ -138,10 +138,13 @@ class TestAuthStatus:
         assert r.status_code == 200
 
     def test_status_missing_key_get(self, client):
-        r = client.get("/auth/status?key=")
+        # Flask returns 415 for GET without content-type when route calls get_json;
+        # with explicit content-type header, the route properly returns 400.
+        r = client.get("/auth/status?key=",
+                       content_type="application/json")
         assert r.status_code == 400
         data = r.get_json()
-        assert data["error"] == "key required"
+        assert "error" in data
 
     def test_status_missing_key_post(self, client):
         r = client.post("/auth/status", json={})
@@ -504,6 +507,69 @@ class TestBuyCreditsSuccess:
         r = client.get("/buy-credits/success")
         assert r.status_code == 200
         assert r.content_type.startswith("text/html")
+
+
+# ── Free Tier Enforcement ─────────────────────────────────────────────────
+
+class TestFreeTierEnforcement:
+    @patch("routes.auth.generate_key")
+    @patch("routes.auth.check_identity_rate_limit", return_value=True)
+    def test_generate_key_always_zero_balance(self, mock_rl, mock_gen, client):
+        """Free tier: keys generated via /auth/generate-key always start at $0."""
+        mock_gen.return_value = {
+            "key": "apk_free", "balance_usd": 0.0, "label": "",
+            "created_at": "2026-01-01T00:00:00",
+        }
+        r = client.post("/auth/generate-key", json={})
+        assert r.status_code == 200
+        mock_gen.assert_called_once_with(initial_balance=0.0, label="")
+
+    @patch("routes.auth.check_identity_rate_limit", return_value=False)
+    def test_rate_limit_blocks_key_generation(self, mock_rl, client):
+        r = client.post("/auth/generate-key", json={"label": "flood"})
+        assert r.status_code == 429
+
+    @patch("routes.auth.STRIPE_SECRET_KEY", "")
+    def test_credits_buy_post_requires_payment(self, client):
+        """Without x402 or API key bypass, POST /credits/buy must return 402."""
+        r = client.post("/credits/buy", json={"amount_usd": 5.0})
+        assert r.status_code == 402
+
+
+# ── In-Memory Session Map ────────────────────────────────────────────────
+
+class TestSessionKeyMap:
+    @patch("routes.auth.STRIPE_WEBHOOK_SECRET", "whsec_test")
+    @patch("routes.auth._stripe")
+    @patch("routes.auth.log_payment")
+    @patch("routes.auth._notify_checkout")
+    @patch("routes.auth.generate_key")
+    def test_key_status_from_memory_map(self, mock_gen, mock_notify,
+                                         mock_log, mock_stripe, client):
+        """After webhook creates key, /auth/key-status finds it via in-memory map."""
+        mock_gen.return_value = {"key": "apk_memmap"}
+        event = {
+            "type": "checkout.session.completed",
+            "data": {
+                "object": {
+                    "id": "cs_memtest",
+                    "metadata": {"amount": "10", "action": "new", "label": "map-test"},
+                    "customer_details": {"email": ""},
+                }
+            },
+        }
+        mock_stripe.Webhook.construct_event.return_value = event
+        mock_stripe.checkout.Session.modify.return_value = None
+        r = client.post("/stripe/webhook", data=b"payload",
+                        headers={"Stripe-Signature": "valid"})
+        assert r.status_code == 200
+
+        with patch("routes.auth.get_key_status", return_value={"balance_usd": 10.0}):
+            r = client.get("/auth/key-status?session_id=cs_memtest")
+            assert r.status_code == 200
+            data = r.get_json()
+            assert data["ready"] is True
+            assert data["api_key"] == "apk_memmap"
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────

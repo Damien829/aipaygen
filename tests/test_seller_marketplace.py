@@ -579,7 +579,7 @@ class TestSellerRoutes:
         })
         assert r.status_code == 401
 
-    @patch("api_keys.validate_key")
+    @patch("routes.seller.validate_key")
     def test_register_missing_fields(self, mock_vk, client):
         mock_vk.return_value = {"key": "apk_test_seller_key", "balance_usd": 10, "is_active": 1}
         r = client.post("/sell/register",
@@ -588,7 +588,7 @@ class TestSellerRoutes:
         assert r.status_code == 400
         assert "required" in r.get_json()["error"]
 
-    @patch("api_keys.validate_key")
+    @patch("routes.seller.validate_key")
     @patch("routes.seller.validate_url")
     def test_register_success(self, mock_url, mock_vk, client):
         mock_vk.return_value = {"key": "apk_test_seller_key", "balance_usd": 10, "is_active": 1}
@@ -615,7 +615,7 @@ class TestSellerRoutes:
         r = client.get("/sell/dashboard")
         assert r.status_code == 401
 
-    @patch("api_keys.validate_key")
+    @patch("routes.seller.validate_key")
     def test_dashboard_with_auth(self, mock_vk, client):
         mock_vk.return_value = {"key": "apk_dash_key", "balance_usd": 10, "is_active": 1}
         r = client.get("/sell/dashboard", headers=_auth_header("apk_dash_key"))
@@ -638,13 +638,13 @@ class TestWalletRoutes:
         r = client.get("/wallet/balance")
         assert r.status_code == 401
 
-    @patch("api_keys.validate_key")
+    @patch("routes.seller.validate_key")
     def test_wallet_balance_missing_id(self, mock_vk, client):
         mock_vk.return_value = {"key": "apk_bal", "balance_usd": 10, "is_active": 1}
         r = client.get("/wallet/balance", headers=_auth_header("apk_bal"))
         assert r.status_code == 400
 
-    @patch("api_keys.validate_key")
+    @patch("routes.seller.validate_key")
     def test_wallet_balance_not_found(self, mock_vk, client):
         mock_vk.return_value = {"key": "apk_bal", "balance_usd": 10, "is_active": 1}
         r = client.get("/wallet/balance?wallet_id=aw_nosuch", headers=_auth_header("apk_bal"))
@@ -654,7 +654,7 @@ class TestWalletRoutes:
         r = client.post("/wallet/create", json={"label": "test"})
         assert r.status_code == 401
 
-    @patch("api_keys.validate_key")
+    @patch("routes.seller.validate_key")
     def test_wallet_create_success(self, mock_vk, client):
         mock_vk.return_value = {"key": "apk_wc_key", "balance_usd": 10, "is_active": 1}
         r = client.post("/wallet/create",
@@ -668,7 +668,7 @@ class TestWalletRoutes:
         r = client.get("/wallet/transactions")
         assert r.status_code == 401
 
-    @patch("api_keys.validate_key")
+    @patch("routes.seller.validate_key")
     def test_wallet_transactions_missing_id(self, mock_vk, client):
         mock_vk.return_value = {"key": "apk_tx", "balance_usd": 10, "is_active": 1}
         r = client.get("/wallet/transactions", headers=_auth_header("apk_tx"))
@@ -678,7 +678,7 @@ class TestWalletRoutes:
         r = client.get("/wallet/list")
         assert r.status_code == 401
 
-    @patch("api_keys.validate_key")
+    @patch("routes.seller.validate_key")
     def test_wallet_list_with_auth(self, mock_vk, client):
         mock_vk.return_value = {"key": "apk_wl_key", "balance_usd": 10, "is_active": 1}
         r = client.get("/wallet/list", headers=_auth_header("apk_wl_key"))
@@ -694,7 +694,7 @@ class TestWalletRoutes:
         r = client.post("/wallet/fund", json={"wallet_id": "aw_x", "amount_usd": 10})
         assert r.status_code == 401
 
-    @patch("api_keys.validate_key")
+    @patch("routes.seller.validate_key")
     def test_wallet_fund_missing_wallet_id(self, mock_vk, client):
         mock_vk.return_value = {"key": "apk_f", "balance_usd": 10, "is_active": 1}
         r = client.post("/wallet/fund",
@@ -702,7 +702,7 @@ class TestWalletRoutes:
                         json={"amount_usd": 10})
         assert r.status_code == 400
 
-    @patch("api_keys.validate_key")
+    @patch("routes.seller.validate_key")
     def test_wallet_fund_below_minimum(self, mock_vk, client):
         mock_vk.return_value = {"key": "apk_f2", "balance_usd": 10, "is_active": 1}
         r = client.post("/wallet/fund",
