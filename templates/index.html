@@ -263,6 +263,21 @@
   </div>
 </section>
 
+<!-- Cost Calculator -->
+<div style="max-width:480px;margin:0 auto 48px;background:var(--card-bg,#141414);border:1px solid var(--border,#2a2a2a);border-radius:14px;padding:28px;">
+  <div style="font-weight:600;font-size:1rem;margin-bottom:16px;text-align:center">Estimate your monthly cost</div>
+  <label for="calc-slider" style="font-size:0.82rem;color:var(--text-secondary,#888);display:block;margin-bottom:8px">API calls per day: <strong id="calc-calls" style="color:var(--text,#e8e8e8)">50</strong></label>
+  <input type="range" id="calc-slider" min="1" max="1000" value="50" style="width:100%;accent-color:#6366f1;margin-bottom:16px" oninput="updateCalc()">
+  <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-secondary,#888);margin-top:-10px;margin-bottom:18px"><span>1</span><span>250</span><span>500</span><span>1,000</span></div>
+  <div style="text-align:center">
+    <div style="font-size:2rem;font-weight:800;color:var(--accent,#6366f1)" id="calc-cost">$9.00</div>
+    <div style="font-size:0.82rem;color:var(--text-secondary,#888)">estimated per month at $0.006/call avg</div>
+  </div>
+</div>
+<script>
+function updateCalc(){var s=document.getElementById('calc-slider'),n=parseInt(s.value);document.getElementById('calc-calls').textContent=n;var monthly=(n*30*0.006);document.getElementById('calc-cost').textContent='$'+monthly.toFixed(2);}
+</script>
+
 <!-- Social Proof / Badges -->
 <section class="section fade-in" style="padding-top:0">
   <div class="badges-row">

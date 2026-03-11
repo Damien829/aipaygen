@@ -13,6 +13,17 @@ from funnel_tracker import log_event as funnel_log_event
 
 WALLET_ADDRESS = os.getenv("WALLET_ADDRESS", "0x366D488a48de1B2773F3a21F1A6972715056Cb30")
 EVM_NETWORK = os.getenv("EVM_NETWORK", "eip155:8453")
+
+# Pre-compute MCP tool count at import time (avoid reading file on every /api/stats call)
+_MCP_TOOL_COUNT = 161  # fallback
+try:
+    _mcp_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "mcp_server.py")
+    with open(_mcp_path) as _f:
+        _mcp_src = _f.read()
+    _MCP_TOOL_COUNT = _mcp_src.count("@metered_tool") + _mcp_src.count("@mcp.tool()")
+    del _mcp_src, _f
+except Exception:
+    pass
 FACILITATOR_URL = os.getenv("FACILITATOR_URL", "https://api.cdp.coinbase.com/platform/v2/x402")
 
 meta_bp = Blueprint("meta", __name__)
@@ -944,41 +955,21 @@ def live_stats():
 
     import sqlite3 as _sq
     _root = os.path.dirname(os.path.dirname(__file__))
-    # Count MCP tools dynamically from mcp_server.py decorators
-    _mcp_file = os.path.join(_root, "mcp_server.py")
-    try:
-        with open(_mcp_file) as f:
-            _mcp_src = f.read()
-        mcp_count = _mcp_src.count("@metered_tool") + _mcp_src.count("@mcp.tool()")
-    except Exception:
-        mcp_count = 161
-    stats = {"mcp_tools": mcp_count}
+    stats = {"mcp_tools": _MCP_TOOL_COUNT}
 
     def _count(db, query):
-        c = _sq.connect(os.path.join(_root, db), timeout=2)
-        val = c.execute(query).fetchone()[0]
-        c.close()
-        return val
+        try:
+            c = _sq.connect(os.path.join(_root, db), timeout=2)
+            val = c.execute(query).fetchone()[0]
+            c.close()
+            return val
+        except Exception:
+            return 0
 
-    # Skills
-    try:
-        stats["skills"] = _count("skills.db", "SELECT COUNT(*) FROM skills")
-    except Exception:
-        stats["skills"] = 0
+    stats["skills"] = _count("skills.db", "SELECT COUNT(*) FROM skills")
+    stats["apis"] = _count("api_catalog.db", "SELECT COUNT(*) FROM discovered_apis")
+    stats["agents"] = _count("agent_memory.db", "SELECT COUNT(*) FROM agent_registry")
 
-    # Discovered APIs
-    try:
-        stats["apis"] = _count("api_catalog.db", "SELECT COUNT(*) FROM discovered_apis")
-    except Exception:
-        stats["apis"] = 0
-
-    # Registered agents
-    try:
-        stats["agents"] = _count("agent_memory.db", "SELECT COUNT(*) FROM agent_registry")
-    except Exception:
-        stats["agents"] = 0
-
-    # API keys issued + total calls
     try:
         c = _sq.connect(os.path.join(_root, "api_keys.db"), timeout=2)
         stats["api_keys"] = c.execute("SELECT COUNT(*) FROM api_keys").fetchone()[0]

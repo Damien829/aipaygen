@@ -24,6 +24,11 @@ if STRIPE_SECRET_KEY:
 
 _NOTIFY_LOG = os.path.join(os.path.dirname(os.path.dirname(__file__)), "checkout_alerts.log")
 
+# In-memory mapping of Stripe session_id -> api_key for race-condition-free key retrieval.
+# Written AFTER DB insert but BEFORE Stripe metadata update, so /auth/key-status
+# can always find the key even if Stripe metadata update hasn't completed yet.
+_session_key_map = {}
+
 
 def _notify_checkout(amount, action, api_key):
     """Log checkout and broadcast wall notification."""
@@ -558,10 +563,12 @@ def register_user_webhook():
     events = data.get("events", [])
     if not url or not events:
         return jsonify({"error": "url and events required"}), 400
+    if not url.startswith("https://"):
+        return jsonify({"error": "Invalid URL — must be HTTPS"}), 400
     from webhook_dispatch import register_webhook
     wh_id = register_webhook(api_key, url, events)
     if wh_id is None:
-        return jsonify({"error": "Invalid URL — must be HTTPS"}), 400
+        return jsonify({"error": "Failed to register webhook"}), 400
     return jsonify({"webhook_id": wh_id, "url": url, "events": events})
 
 
@@ -667,10 +674,16 @@ def stripe_webhook():
             if action == "topup" and api_key and api_key.startswith("apk_"):
                 topup_key(api_key, amount)
             else:
-                # Generate new key with full balance on confirmed payment
+                # Generate new key with full balance on confirmed payment.
+                # DB write happens inside generate_key() FIRST, then we store
+                # in the in-memory map, then update Stripe metadata last.
+                # This ordering prevents the race where /auth/key-status polls
+                # before the Stripe metadata update completes.
                 new_key = generate_key(initial_balance=amount, label=label)
                 api_key = new_key["key"]
-                # Store key in session metadata so success page can retrieve it
+                _session_key_map[session["id"]] = api_key
+
+                # Also store in Stripe session metadata for the success page
                 try:
                     _stripe.checkout.Session.modify(session["id"], metadata={**meta, "api_key": api_key})
                 except Exception:
@@ -708,6 +721,12 @@ def key_status():
     session_id = request.args.get("session_id", "")
     if not session_id:
         return jsonify({"ready": False})
+    # Check in-memory map first (populated before Stripe metadata update)
+    key = _session_key_map.get(session_id)
+    if key:
+        status = get_key_status(key)
+        return jsonify({"ready": True, "api_key": key, "balance": str(status.get("balance_usd", "0") if status else "0")})
+    # Fall back to Stripe metadata
     try:
         session = _stripe.checkout.Session.retrieve(session_id)
         key = session.metadata.get("api_key")
