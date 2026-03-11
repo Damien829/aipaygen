@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AiPayGen — The Most Powerful AI Toolkit</title>
+<link rel="alternate" type="text/plain" href="/llms.txt" title="LLMs.txt">
+<meta name="description" content="155 AI tools in one API key. Research, write, code, translate, analyze, scrape — from $0.004/call. Install via pip or use remotely.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta property="og:type" content="website">
+<meta property="og:title" content="AiPayGen — The Most Powerful AI Toolkit">
+<meta property="og:description" content="Research, write, code, translate, analyze, scrape — 155 AI tools from $0.004/call. MCP compatible.">
+<meta property="og:url" content="https://api.aipaygen.com">
+<meta property="og:image" content="https://api.aipaygen.com/og-image.png">
+<meta property="og:site_name" content="AiPayGen">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AiPayGen — The Most Powerful AI Toolkit">
+<meta name="twitter:description" content="Research, write, code, translate, analyze, scrape — 155 AI tools from $0.004/call. Try free.">
+<meta name="twitter:image" content="https://api.aipaygen.com/og-image.png">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"AiPayGen","url":"https://api.aipaygen.com","description":"Pay-per-use AI endpoints for autonomous agents via x402 micropayments on Base.","applicationCategory":"DeveloperApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0.01","priceCurrency":"USD","description":"Per API call, paid in USDC on Base"},"provider":{"@type":"Organization","name":"AiPayGen","url":"https://api.aipaygen.com"}}
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020408;
+    --bg2: #070d14;
+    --green: #00ff9d;
+    --blue: #0088ff;
+    --cyan: #00d4ff;
+    --text: #c8d8e8;
+    --muted: #4a6070;
+    --border: #0d2030;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    overflow-x: hidden;
+    padding-top: 70px;
+  }
+
+  /* Grid texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,136,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,136,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Scanline effect */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0,0,0,0.08) 2px,
+      rgba(0,0,0,0.08) 4px
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .noise {
+    position: fixed;
+    inset: -200%;
+    width: 400%;
+    height: 400%;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.4;
+    pointer-events: none;
+    z-index: 0;
+    animation: noise 0.5s steps(1) infinite;
+  }
+  @keyframes noise {
+    0%,100% { transform: translate(0,0); }
+    10% { transform: translate(-2%,-2%); }
+    20% { transform: translate(2%,2%); }
+    30% { transform: translate(-1%,1%); }
+    40% { transform: translate(1%,-1%); }
+    50% { transform: translate(-2%,1%); }
+    60% { transform: translate(2%,-1%); }
+    70% { transform: translate(-1%,2%); }
+    80% { transform: translate(1%,1%); }
+    90% { transform: translate(-1%,-2%); }
+  }
+
+  .content { position: relative; z-index: 2; }
+
+  /* HERO */
+  .hero {
+    min-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 80px 24px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .hero h1 {
+    font-size: clamp(2.2rem, 5.5vw, 4.2rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 24px;
+    color: #fff;
+  }
+  .hero h1 .accent { color: var(--green); }
+  .hero-sub {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 1.15rem;
+    color: var(--muted);
+    max-width: 600px;
+    line-height: 1.7;
+    margin-bottom: 40px;
+    font-weight: 300;
+  }
+  .hero-sub code {
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--cyan);
+    font-size: 0.95rem;
+  }
+  .btn-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 36px;
+    background: var(--green);
+    color: #000;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-decoration: none;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+  }
+  .btn-cta:hover {
+    background: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,255,157,0.3);
+  }
+
+  /* VALUE PROP CARDS */
+  .value-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    max-width: 1200px;
+    margin: 0 auto 80px;
+  }
+  .value-card {
+    background: var(--bg);
+    padding: 40px 32px;
+    transition: all 0.25s;
+    position: relative;
+  }
+  .value-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--green);
+    transform: scaleX(0);
+    transition: transform 0.3s;
+  }
+  .value-card:hover { background: var(--bg2); }
+  .value-card:hover::after { transform: scaleX(1); }
+  .value-card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 12px;
+    letter-spacing: 0.03em;
+  }
+  .value-card p {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+  .value-icon {
+    font-size: 1.6rem;
+    margin-bottom: 16px;
+    display: block;
+    color: var(--green);
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 700;
+  }
+
+  /* HOW IT WORKS */
+  .how-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 80px 24px;
+  }
+  .how-header {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    margin-bottom: 48px;
+  }
+  .how-header span {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .how-header-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+  .step-card {
+    background: var(--bg);
+    padding: 36px 28px;
+    position: relative;
+  }
+  .step-card:hover { background: var(--bg2); }
+  .step-num {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--green);
+    opacity: 0.3;
+    margin-bottom: 16px;
+    display: block;
+  }
+  .step-card h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 8px;
+    letter-spacing: 0.03em;
+  }
+  .step-card p {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.6;
+    font-weight: 300;
+  }
+  .step-card code {
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--cyan);
+    font-size: 0.82rem;
+  }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-up { animation: fadeUp 0.6s ease both; }
+  .delay-1 { animation-delay: 0.1s; }
+  .delay-2 { animation-delay: 0.2s; }
+  .delay-3 { animation-delay: 0.3s; }
+
+  @media (max-width: 768px) {
+    .hero { padding: 60px 20px; min-height: 60vh; }
+    .value-grid { grid-template-columns: 1fr; margin: 0 16px 60px; }
+    .steps-grid { grid-template-columns: 1fr; }
+    .how-section { padding: 60px 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+{{ nav|safe }}
+<div class="content">
+
+<section class="hero">
+  <h1 class="fade-up">
+    The Most Powerful AI Toolkit.<br><span class="accent">155 tools. One API.</span>
+  </h1>
+  <p class="hero-sub fade-up delay-1">
+    Build custom AI agents in minutes. 15 frontier models, 155 tools, scheduling &amp; automation &mdash; from <code>$0.004/call</code>.
+  </p>
+  <div class="fade-up delay-2" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+    <a href="/builder" class="btn-cta">Build Your Agent &rarr;</a>
+    <a href="/try" class="btn-cta" style="background:transparent;border:1px solid #00ff9d">Try Free</a>
+    <a href="/buy-credits" class="btn-cta" style="background:transparent;border:1px solid #4a6070">Get API Key</a>
+  </div>
+  <p class="fade-up delay-2" style="color:#8b949e;font-size:0.85rem;margin-top:14px;font-family:'IBM Plex Sans',sans-serif">
+    <span style="color:#00ff9d;font-weight:600">10 free calls/day</span> &nbsp;&middot;&nbsp; No sign-up required &nbsp;&middot;&nbsp; <code style="color:#00d4ff">pip install aipaygen-mcp</code>
+  </p>
+</section>
+
+<div class="stats-bar fade-up delay-3" style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap;padding:0 24px 48px;max-width:900px;margin:0 auto">
+  <div style="text-align:center">
+    <div id="stat-skills" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">&mdash;</div>
+    <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">AI Skills</div>
+  </div>
+  <div style="text-align:center">
+    <div id="stat-apis" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">&mdash;</div>
+    <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">APIs Indexed</div>
+  </div>
+  <div style="text-align:center">
+    <div id="stat-tools" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">161</div>
+    <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">MCP Tools</div>
+  </div>
+  <div style="text-align:center">
+    <div id="stat-agents" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">&mdash;</div>
+    <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">Agents</div>
+  </div>
+  <div style="text-align:center">
+    <div id="stat-keys" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">&mdash;</div>
+    <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">API Keys</div>
+  </div>
+</div>
+
+<div class="value-grid">
+  <div class="value-card fade-up">
+    <span class="value-icon">&gt;_</span>
+    <h3>155 AI tools</h3>
+    <p>Research, write, code, analyze, translate, scrape &mdash; powered by Claude, GPT-4o, Gemini, DeepSeek.</p>
+  </div>
+  <div class="value-card fade-up delay-1">
+    <span class="value-icon">&#9889;</span>
+    <h3>MCP Compatible</h3>
+    <p>One install for Claude Code, Cursor, Windsurf. Also available as REST API and remote MCP server.</p>
+  </div>
+  <div class="value-card fade-up delay-2">
+    <span class="value-icon">{&thinsp;}</span>
+    <h3>Build Your Own Agent</h3>
+    <p>Create custom AI agents with their own tools, personality, memory &amp; scheduling. Use templates or build from scratch.</p>
+  </div>
+</div>
+
+<section class="how-section">
+  <div class="how-header">
+    <span>// How It Works</span>
+    <div class="how-header-line"></div>
+  </div>
+  <div class="steps-grid">
+    <div class="step-card fade-up">
+      <span class="step-num">01</span>
+      <h3>Call any endpoint</h3>
+      <p><code>POST</code> your request to any AI endpoint. No authentication required.</p>
+    </div>
+    <div class="step-card fade-up delay-1">
+      <span class="step-num">02</span>
+      <h3>Receive 402 response</h3>
+      <p>Get payment instructions with <code>wallet</code>, <code>amount</code>, <code>network</code>.</p>
+    </div>
+    <div class="step-card fade-up delay-2">
+      <span class="step-num">03</span>
+      <h3>Pay &amp; receive results</h3>
+      <p>Attach <code>X-Payment</code> header with signed USDC tx. Get your results instantly.</p>
+    </div>
+  </div>
+</section>
+
+</div>
+{{ footer|safe }}
+<script>
+fetch('/api/stats').then(r=>r.json()).then(d=>{
+  if(d.skills) document.getElementById('stat-skills').textContent=d.skills.toLocaleString();
+  if(d.apis) document.getElementById('stat-apis').textContent=d.apis.toLocaleString();
+  if(d.mcp_tools) document.getElementById('stat-tools').textContent=d.mcp_tools.toLocaleString();
+  if(d.agents) document.getElementById('stat-agents').textContent=d.agents.toLocaleString();
+  if(d.api_keys) document.getElementById('stat-keys').textContent=d.api_keys.toLocaleString();
+}).catch(()=>{});
+</script>
+</body>
+</html>

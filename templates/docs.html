@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AiPayGen — Documentation</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#020408;--bg2:#070d14;--bg3:#0d1a24;--green:#00ff9d;--cyan:#00d4ff;--dim:#8b949e;--border:#1a2332}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:#e1e4e8;font-family:'IBM Plex Sans',sans-serif;line-height:1.7;padding-top:70px}
+.layout{display:flex;max-width:1200px;margin:0 auto;min-height:calc(100vh - 70px)}
+.sidebar{width:240px;position:sticky;top:70px;height:calc(100vh - 70px);overflow-y:auto;padding:32px 16px;border-right:1px solid var(--border);flex-shrink:0}
+.sidebar a{display:block;color:var(--dim);text-decoration:none;padding:6px 12px;font-size:0.85rem;border-radius:6px;margin-bottom:2px;transition:all .15s}
+.sidebar a:hover,.sidebar a.active{color:#fff;background:var(--bg3)}
+.sidebar .section-title{color:#4a5568;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;padding:16px 12px 4px;font-weight:600}
+.content{flex:1;padding:40px 48px 80px;max-width:860px}
+h1{font-family:'IBM Plex Mono',monospace;font-size:2rem;color:#fff;margin-bottom:8px}
+.subtitle{color:var(--dim);font-size:1.05rem;margin-bottom:40px}
+h2{font-family:'IBM Plex Mono',monospace;font-size:1.3rem;color:var(--green);margin:48px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+h3{font-size:1rem;color:#fff;margin:24px 0 8px}
+p{color:var(--dim);margin-bottom:16px}
+code{font-family:'IBM Plex Mono',monospace;background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:0.85em;color:var(--green)}
+pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:20px;overflow-x:auto;margin:16px 0;font-size:0.85rem;line-height:1.5}
+pre code{background:none;padding:0;color:#e1e4e8}
+ol,ul{margin:0 0 16px 24px;color:var(--dim)}
+li{margin-bottom:8px}
+a{color:var(--green);text-decoration:none}
+a:hover{text-decoration:underline}
+.step{display:flex;gap:16px;margin:16px 0;padding:16px;background:var(--bg2);border:1px solid var(--border);border-radius:8px}
+.step-num{font-family:'IBM Plex Mono',monospace;font-size:1.5rem;font-weight:700;color:var(--green);min-width:40px}
+.step-content{flex:1}
+.step-content strong{color:#fff}
+.endpoint{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin:12px 0}
+.endpoint .method{font-family:'IBM Plex Mono',monospace;font-size:0.8rem;font-weight:600;padding:3px 8px;border-radius:4px;margin-right:8px}
+.endpoint .method.post{background:rgba(0,255,157,0.15);color:var(--green)}
+.endpoint .method.get{background:rgba(0,212,255,0.15);color:var(--cyan)}
+.endpoint .method.put{background:rgba(255,165,0,0.15);color:#ffa500}
+.endpoint .method.delete{background:rgba(255,80,80,0.15);color:#ff5050}
+.endpoint .path{font-family:'IBM Plex Mono',monospace;font-size:0.9rem;color:#fff}
+.endpoint .desc{color:var(--dim);font-size:0.85rem;margin-top:6px}
+.pricing-table{width:100%;border-collapse:collapse;margin:16px 0}
+.pricing-table th{text-align:left;color:var(--green);font-family:'IBM Plex Mono',monospace;font-size:0.8rem;padding:8px 12px;border-bottom:1px solid var(--border)}
+.pricing-table td{padding:8px 12px;color:var(--dim);font-size:0.85rem;border-bottom:1px solid rgba(26,35,50,0.5)}
+.pricing-table td:first-child{font-family:'IBM Plex Mono',monospace;color:#fff}
+.badge{display:inline-block;font-size:0.7rem;padding:2px 8px;border-radius:10px;font-weight:600;margin-left:8px}
+.badge-new{background:rgba(0,212,255,0.2);color:var(--cyan)}
+.badge-free{background:rgba(0,255,157,0.2);color:var(--green)}
+.cta-box{background:linear-gradient(135deg,rgba(0,255,157,0.08),rgba(0,212,255,0.08));border:1px solid rgba(0,255,157,0.2);border-radius:12px;padding:24px;margin:24px 0;text-align:center}
+.cta-box a{display:inline-block;background:linear-gradient(135deg,#00ff9d,#00d4ff);color:#000;font-weight:700;padding:10px 24px;border-radius:6px;margin-top:12px;text-decoration:none;font-family:'IBM Plex Mono',monospace}
+@media(max-width:768px){.sidebar{display:none}.content{padding:24px 16px}}
+</style>
+</head>
+<body>
+<nav style="position:fixed;top:0;width:100%;z-index:100;background:rgba(2,4,8,0.95);backdrop-filter:blur(16px) saturate(180%);border-bottom:1px solid rgba(0,255,157,0.1);padding:14px 0">
+  <div style="max-width:1200px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between">
+    <a href="/" style="font-family:'IBM Plex Mono',monospace;font-size:1.3rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px">
+      <span style="display:inline-block;width:8px;height:8px;background:#00ff9d;border-radius:50%;box-shadow:0 0 8px #00ff9d,0 0 16px rgba(0,255,157,0.4);animation:pulse-dot 2s ease-in-out infinite"></span>
+      Ai<span style="color:#00ff9d">Pay</span>Gen
+    </a>
+    <div style="display:flex;gap:24px;align-items:center">
+      <a href="/builder" style="color:#00d4ff;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600;transition:color .2s">Build Agent</a>
+      <a href="/discover" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Discover</a>
+      <a href="/docs" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Docs</a>
+      <a href="/sdk" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">SDK</a>
+      <a href="/security" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Security</a>
+      <a href="/try" style="color:#00ff9d;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600">Try Free</a>
+      <a href="/buy-credits" style="color:#000;text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:700;background:linear-gradient(135deg,#00ff9d,#00d4ff);padding:7px 16px;border-radius:4px;margin-left:8px;letter-spacing:0.03em;transition:all .2s;box-shadow:0 0 12px rgba(0,255,157,0.2)">GET API KEY</a>
+    </div>
+  </div>
+</nav>
+<style>
+@keyframes pulse-dot{0%,100%{opacity:1;box-shadow:0 0 8px #00ff9d,0 0 16px rgba(0,255,157,0.4)}50%{opacity:0.6;box-shadow:0 0 4px #00ff9d,0 0 8px rgba(0,255,157,0.2)}}
+</style>
+<div class="layout">
+<nav class="sidebar">
+  <div class="section-title">Getting Started</div>
+  <a href="#overview">Overview</a>
+  <a href="#quickstart">Quick Start</a>
+  <a href="#payment">Payment Options</a>
+  <div class="section-title">Agent Builder</div>
+  <a href="#builder">Build Your Agent</a>
+  <a href="#templates">Templates</a>
+  <a href="#scheduling">Scheduling</a>
+  <div class="section-title">API Reference</div>
+  <a href="#ai-tools">AI Tools (40+)</a>
+  <a href="#data">Data Lookups</a>
+  <a href="#scraping">Web Scraping</a>
+  <a href="#agents">Agent System</a>
+  <a href="#memory">Agent Memory</a>
+  <a href="#skills">Skills Library</a>
+  <a href="#catalog">API Catalog</a>
+  <div class="section-title">Integration</div>
+  <a href="#mcp">MCP Setup</a>
+  <a href="#models">Models</a>
+  <a href="#discovery">Discovery</a>
+  <a href="#free">Free Endpoints</a>
+</nav>
+<div class="content">
+
+<h1>Documentation</h1>
+<p class="subtitle">155 AI tools, custom agent builder, scheduling, and 15 AI models — all in one API.</p>
+
+<h2 id="overview">Overview</h2>
+<p>AiPayGen is the most comprehensive AI toolkit for developers and agents. Build custom AI agents, access 155 tools, 1500+ skills, and 4000+ APIs — all through a single API key or MCP connection.</p>
+
+<div class="cta-box">
+  <strong style="color:#fff">Start building in 30 seconds</strong><br>
+  <span style="color:var(--dim)">Get an API key and start making calls immediately.</span>
+  <br><a href="/buy-credits">Get API Key ($1)</a>
+</div>
+
+<h2 id="quickstart">Quick Start</h2>
+
+<h3>Option 1: API Key (Recommended)</h3>
+<pre><code>import httpx
+
+BASE = "https://api.aipaygen.com"
+
+# 1. Buy an API key
+key = httpx.post(f"{BASE}/credits/buy",
+    json={"amount_usd": 5.0}).json()["key"]  # apk_xxx
+
+# 2. Use it on any endpoint
+result = httpx.post(f"{BASE}/research",
+    json={"topic": "quantum computing"},
+    headers={"Authorization": f"Bearer {key}"}
+).json()
+print(result)</code></pre>
+
+<h3>Option 2: MCP (Claude / Cursor)</h3>
+<pre><code># Install
+pip install aipaygen-mcp
+
+# Add to Claude Code
+claude mcp add aipaygen -- aipaygen-mcp
+
+# Or connect remotely (no install needed)
+# URL: https://mcp.aipaygen.com/mcp</code></pre>
+
+<h3>Option 3: Free Preview</h3>
+<pre><code># No payment or key needed
+curl -X POST https://api.aipaygen.com/preview \
+  -H "Content-Type: application/json" \
+  -d '{"topic": "AI agents"}'</code></pre>
+
+<h2 id="payment">Payment Options</h2>
+<table class="pricing-table">
+<tr><th>Method</th><th>How</th><th>Best For</th></tr>
+<tr><td>API Key</td><td>POST /credits/buy with Stripe</td><td>Most users — simple, prepaid credits</td></tr>
+<tr><td>x402 USDC</td><td>HTTP 402 + X-Payment header</td><td>Crypto-native agents, no accounts</td></tr>
+<tr><td>MCP</td><td>pip install aipaygen-mcp</td><td>Claude/Cursor — 10 free/day, unlimited with key</td></tr>
+</table>
+
+<h2 id="builder">Build Your Own Agent <span class="badge badge-new">NEW</span></h2>
+<p>Create custom AI agents with their own personality, tools, model, memory, and scheduling — all through the API or the <a href="/builder">visual builder</a>.</p>
+
+<div class="endpoint">
+  <span class="method post">POST</span><span class="path">/agents/build</span>
+  <div class="desc">Create a custom agent with name, personality, tools, model, memory, and optional schedule.</div>
+</div>
+
+<pre><code># Create a crypto monitoring agent
+agent = httpx.post(f"{BASE}/agents/build",
+    json={
+        "name": "Crypto Watcher",
+        "system_prompt": "Monitor crypto prices and alert on big moves",
+        "tools": ["get_crypto_prices", "analyze", "memory_store"],
+        "model": "claude-haiku",
+        "schedule": {"type": "loop", "config": {"minutes": 30}}
+    },
+    headers={"Authorization": f"Bearer {key}"}
+).json()
+
+agent_id = agent["agent_id"]
+
+# Run the agent
+result = httpx.post(f"{BASE}/agents/custom/{agent_id}/run",
+    json={"task": "Check BTC and ETH prices, analyze trends"},
+    headers={"Authorization": f"Bearer {key}"}
+).json()</code></pre>
+
+<div class="endpoint">
+  <span class="method get">GET</span><span class="path">/agents/custom</span>
+  <div class="desc">List your custom agents.</div>
+</div>
+<div class="endpoint">
+  <span class="method get">GET</span><span class="path">/agents/custom/{id}</span>
+  <div class="desc">Get agent details and config.</div>
+</div>
+<div class="endpoint">
+  <span class="method put">PUT</span><span class="path">/agents/custom/{id}</span>
+  <div class="desc">Update agent config (name, tools, prompt, model, schedule, etc.).</div>
+</div>
+<div class="endpoint">
+  <span class="method post">POST</span><span class="path">/agents/custom/{id}/run</span>
+  <div class="desc">Execute a task with the agent.</div>
+</div>
+<div class="endpoint">
+  <span class="method delete">DELETE</span><span class="path">/agents/custom/{id}</span>
+  <div class="desc">Archive an agent.</div>
+</div>
+
+<h2 id="templates">Agent Templates</h2>
+<p>Start from a pre-built template and customize. 10 templates available:</p>
+<ul>
+  <li><strong>Research Agent</strong> — web search + summarize + scraping</li>
+  <li><strong>Crypto Tracker</strong> — price monitoring on a 30-min loop</li>
+  <li><strong>Content Writer</strong> — blog posts, social media, copywriting</li>
+  <li><strong>Customer Support</strong> — Q&amp;A with sentiment detection</li>
+  <li><strong>Social Media Manager</strong> — daily posts + platform monitoring</li>
+  <li><strong>Code Helper</strong> — code generation + testing</li>
+  <li><strong>Data Analyst</strong> — data analysis + SQL + charts</li>
+  <li><strong>News Monitor</strong> — hourly news briefings</li>
+  <li><strong>Personal Assistant</strong> — planning + email + memory</li>
+  <li><strong>Sales Bot</strong> — lead scoring + outreach</li>
+</ul>
+<div class="endpoint">
+  <span class="method get">GET</span><span class="path">/builder/templates</span>
+  <div class="desc">List all available templates (JSON).</div>
+</div>
+
+<h2 id="scheduling">Scheduling &amp; Automation</h2>
+<p>Agents can run automatically on three trigger types:</p>
+<h3>Loop (Interval)</h3>
+<pre><code>httpx.post(f"{BASE}/agents/custom/{agent_id}/schedule",
+    json={"type": "loop", "config": {"minutes": 30}},
+    headers={"Authorization": f"Bearer {key}"})</code></pre>
+<h3>Cron (Schedule)</h3>
+<pre><code>httpx.post(f"{BASE}/agents/custom/{agent_id}/schedule",
+    json={"type": "cron", "config": {"hour": 9, "minute": 0, "day_of_week": "mon-fri"}},
+    headers={"Authorization": f"Bearer {key}"})</code></pre>
+<h3>Event (Trigger)</h3>
+<pre><code>httpx.post(f"{BASE}/agents/custom/{agent_id}/schedule",
+    json={"type": "event", "config": {"trigger": "message"}},
+    headers={"Authorization": f"Bearer {key}"})</code></pre>
+<div class="endpoint">
+  <span class="method get">GET</span><span class="path">/agents/custom/{id}/runs</span>
+  <div class="desc">View execution history for an agent.</div>
+</div>
+
+<h2 id="ai-tools">AI Tools</h2>
+<p>40+ AI-powered endpoints. All accept an optional <code>model</code> parameter.</p>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/research</span><div class="desc">Deep research on any topic with web sources.</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/summarize</span><div class="desc">Summarize text into bullets, paragraph, or TL;DR.</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/analyze</span><div class="desc">Analyze text with a specific question.</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/write</span><div class="desc">Generate written content (blog, email, copy).</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/code</span><div class="desc">Generate, explain, or debug code.</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/translate</span><div class="desc">Translate text to any language.</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/sentiment</span><div class="desc">Detect sentiment (positive/negative/neutral).</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/classify</span><div class="desc">Classify text into custom categories.</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/vision</span><div class="desc">Analyze images with AI.</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/rag</span><div class="desc">Retrieval-augmented generation over documents.</div></div>
+<p style="margin-top:8px">Plus: <code>/rewrite</code>, <code>/extract</code>, <code>/qa</code>, <code>/compare</code>, <code>/outline</code>, <code>/explain</code>, <code>/proofread</code>, <code>/keywords</code>, <code>/headline</code>, <code>/social</code>, <code>/pitch</code>, <code>/diagram</code>, <code>/json_schema</code>, <code>/workflow</code>, <code>/pipeline</code>, <code>/batch</code>, <code>/chain</code>, <code>/test_cases</code>, <code>/sql</code>, <code>/regex</code>, <code>/mock</code>, <code>/debate</code>, <code>/decide</code>, <code>/plan</code>, <code>/score</code>, <code>/tag</code>, <code>/fact</code>, <code>/questions</code>, <code>/email</code>, <code>/enrich</code></p>
+
+<h2 id="data">Data Lookups</h2>
+<div class="endpoint"><span class="method get">GET</span><span class="path">/data/weather?city=London</span><div class="desc">Current weather for any city.</div></div>
+<div class="endpoint"><span class="method get">GET</span><span class="path">/data/crypto?symbols=BTC,ETH</span><div class="desc">Live crypto prices.</div></div>
+<div class="endpoint"><span class="method get">GET</span><span class="path">/data/exchange?from=USD&amp;to=EUR</span><div class="desc">Currency exchange rates.</div></div>
+<div class="endpoint"><span class="method get">GET</span><span class="path">/data/holidays?country=US</span><div class="desc">Public holidays by country.</div></div>
+<div class="endpoint"><span class="method get">GET</span><span class="path">/data/joke</span><div class="desc">Random joke. <span class="badge badge-free">FREE</span></div></div>
+<div class="endpoint"><span class="method get">GET</span><span class="path">/data/quote</span><div class="desc">Random inspirational quote. <span class="badge badge-free">FREE</span></div></div>
+
+<h2 id="scraping">Web Scraping</h2>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/scrape/website</span><div class="desc">Scrape any website URL.</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/scrape/google-maps</span><div class="desc">Scrape Google Maps business listings.</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/scrape/tweets</span><div class="desc">Scrape tweets by keyword or user.</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/scrape/youtube</span><div class="desc">Scrape YouTube video data and transcripts.</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/scrape/instagram</span><div class="desc">Scrape Instagram profiles and posts.</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/scrape/tiktok</span><div class="desc">Scrape TikTok videos and profiles.</div></div>
+
+<h2 id="agents">Agent System</h2>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/agent</span><div class="desc">Autonomous ReAct agent — give it a task, it reasons through it using tools.</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/agent/stream</span><div class="desc">Streaming agent with SSE events.</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/agents/register</span><div class="desc">Register an agent in the network.</div></div>
+<div class="endpoint"><span class="method get">GET</span><span class="path">/agents</span><div class="desc">List all registered agents.</div></div>
+<div class="endpoint"><span class="method get">GET</span><span class="path">/agents/search?q=keyword</span><div class="desc">Search agents by capability.</div></div>
+
+<h2 id="memory">Agent Memory</h2>
+<p>Persistent key-value memory for agents across conversations.</p>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/memory/set</span><div class="desc">Store a value in agent memory.</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/memory/get</span><div class="desc">Retrieve a value from agent memory.</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/memory/search</span><div class="desc">Search agent memory by keyword.</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/memory/list</span><div class="desc">List all memory keys for an agent.</div></div>
+
+<h2 id="skills">Skills Library</h2>
+<p>1500+ searchable, executable skills. Create your own or use community skills.</p>
+<div class="endpoint"><span class="method get">GET</span><span class="path">/skills/search?q=keyword</span><div class="desc">Search skills by keyword (TF-IDF ranked).</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/skills/execute</span><div class="desc">Execute a skill by name with input.</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/skills/create</span><div class="desc">Create a new reusable skill.</div></div>
+
+<h2 id="catalog">API Catalog</h2>
+<p>4000+ indexed APIs — search, discover, and invoke third-party APIs through AiPayGen.</p>
+<div class="endpoint"><span class="method get">GET</span><span class="path">/catalog</span><div class="desc">Browse the full API catalog.</div></div>
+<div class="endpoint"><span class="method get">GET</span><span class="path">/catalog/{id}</span><div class="desc">Get details for a specific API.</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/catalog/{id}/invoke</span><div class="desc">Invoke a cataloged API through AiPayGen.</div></div>
+
+<h2 id="mcp">MCP Integration</h2>
+<p>All 155 tools are available as MCP tools. Three ways to connect:</p>
+
+<h3>1. PyPI Package (Recommended)</h3>
+<pre><code># Install
+pip install aipaygen-mcp
+
+# Add to Claude Code
+claude mcp add aipaygen -- aipaygen-mcp
+
+# Add to Claude Desktop (claude_desktop_config.json)
+{
+  "mcpServers": {
+    "aipaygen": {
+      "command": "aipaygen-mcp",
+      "env": { "AIPAYGEN_API_KEY": "apk_xxx" }
+    }
+  }
+}</code></pre>
+
+<h3>2. Remote SSE (No Install)</h3>
+<pre><code># Connect directly — works in any MCP client
+URL: https://mcp.aipaygen.com/mcp</code></pre>
+
+<h3>3. MCP Registry</h3>
+<pre><code># Listed on registry.modelcontextprotocol.io
+# ID: io.github.Damien829/aipaygen</code></pre>
+
+<h2 id="models">Available Models</h2>
+<table class="pricing-table">
+<tr><th>Model</th><th>Provider</th><th>Best For</th></tr>
+<tr><td>auto</td><td>AiPayGen</td><td>Automatic — picks best model for the task</td></tr>
+<tr><td>claude-sonnet</td><td>Anthropic</td><td>Complex reasoning, analysis</td></tr>
+<tr><td>claude-haiku</td><td>Anthropic</td><td>Fast, cheap, good enough for most tasks</td></tr>
+<tr><td>gpt-4o</td><td>OpenAI</td><td>General purpose, strong coding</td></tr>
+<tr><td>gpt-4o-mini</td><td>OpenAI</td><td>Fast and cheap</td></tr>
+<tr><td>deepseek-chat</td><td>DeepSeek</td><td>Coding, technical tasks</td></tr>
+<tr><td>deepseek-reasoner</td><td>DeepSeek</td><td>Complex reasoning chains</td></tr>
+<tr><td>gemini-2.0-flash</td><td>Google</td><td>Fast, multimodal</td></tr>
+<tr><td>grok-3-mini</td><td>xAI</td><td>Real-time knowledge</td></tr>
+<tr><td>mistral-small</td><td>Mistral</td><td>Efficient, multilingual</td></tr>
+<tr><td>llama-4-scout</td><td>Meta</td><td>Open-weight, fast</td></tr>
+</table>
+<pre><code># Use any model on any endpoint
+httpx.post(f"{BASE}/research",
+    json={"topic": "AI", "model": "deepseek-chat"},
+    headers={"Authorization": f"Bearer {key}"})</code></pre>
+
+<h2 id="discovery">Discovery Endpoints</h2>
+<ul>
+  <li><a href="/discover"><code>/discover</code></a> — machine-readable service catalog (JSON)</li>
+  <li><a href="/.well-known/agent.json"><code>/.well-known/agent.json</code></a> — A2A Agent Card</li>
+  <li><a href="/openapi.json"><code>/openapi.json</code></a> — OpenAPI 3.1 spec</li>
+  <li><a href="/llms.txt"><code>/llms.txt</code></a> — LLMs.txt format</li>
+  <li><a href="/builder/templates"><code>/builder/templates</code></a> — Agent templates</li>
+</ul>
+
+<h2 id="free">Free Endpoints</h2>
+<p>No payment or API key needed:</p>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/preview</span><div class="desc">Free Claude demo — try before you buy. <span class="badge badge-free">FREE</span></div></div>
+<div class="endpoint"><span class="method get">GET</span><span class="path">/free/time</span><div class="desc">Current UTC time. <span class="badge badge-free">FREE</span></div></div>
+<div class="endpoint"><span class="method get">GET</span><span class="path">/free/uuid</span><div class="desc">Generate a UUID. <span class="badge badge-free">FREE</span></div></div>
+<div class="endpoint"><span class="method get">GET</span><span class="path">/free/ip</span><div class="desc">Your IP address info. <span class="badge badge-free">FREE</span></div></div>
+<div class="endpoint"><span class="method get">GET</span><span class="path">/free/hash</span><div class="desc">Hash text (SHA256, MD5, etc.). <span class="badge badge-free">FREE</span></div></div>
+<div class="endpoint"><span class="method get">GET</span><span class="path">/free/base64</span><div class="desc">Base64 encode/decode. <span class="badge badge-free">FREE</span></div></div>
+<div class="endpoint"><span class="method get">GET</span><span class="path">/free/random</span><div class="desc">Random numbers/strings. <span class="badge badge-free">FREE</span></div></div>
+<div class="endpoint"><span class="method get">GET</span><span class="path">/health</span><div class="desc">Service health check. <span class="badge badge-free">FREE</span></div></div>
+<div class="endpoint"><span class="method get">GET</span><span class="path">/discover</span><div class="desc">Full service catalog. <span class="badge badge-free">FREE</span></div></div>
+
+<h2>Payment Details</h2>
+<ul>
+  <li><strong>Protocol:</strong> <a href="https://x402.org">x402</a> (HTTP 402 Payment Required)</li>
+  <li><strong>Network:</strong> Base Mainnet (eip155:8453)</li>
+  <li><strong>Token:</strong> USDC (6 decimals)</li>
+  <li><strong>Wallet:</strong> <code>0x366D488a48de1B2773F3a21F1A6972715056Cb30</code></li>
+  <li><strong>Bulk discount:</strong> 20% when balance &gt;= $2.00</li>
+</ul>
+
+</div>
+</div>
+<footer style="border-top:1px solid rgba(0,255,157,0.08);padding:40px 24px;text-align:center;background:#020408">
+  <div style="max-width:1200px;margin:0 auto">
+    <div style="margin-bottom:16px">
+      <a href="/discover" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Discover</a>
+      <a href="/docs" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Docs</a>
+      <a href="/llms.txt" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">llms.txt</a>
+      <a href="/.well-known/agent.json" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">agent.json</a>
+      <a href="/health" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Health</a>
+    </div>
+    <div style="color:#4a5568;font-size:0.8rem;font-family:'IBM Plex Mono',monospace">
+      Powered by x402 &middot; USDC on Base &middot; Built for autonomous agents
+    </div>
+  </div>
+</footer>
+</body>
+</html>

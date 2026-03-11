@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Try AiPayGen — Free Interactive Demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e8e8e8; min-height: 100vh; padding: 32px 16px; }
+  .wrap { max-width: 680px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin-bottom: 4px; }
+  .sub { color: #888; font-size: 0.88rem; margin-bottom: 24px; }
+  .sub a { color: #818cf8; }
+
+  .demo-card { background: #141414; border: 1px solid #2a2a2a; border-radius: 14px; padding: 28px; margin-bottom: 16px; }
+  .tool-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .tool-btn { background: #1e1e1e; border: 1px solid #333; border-radius: 8px; padding: 8px 14px; color: #aaa; font-size: 0.82rem; cursor: pointer; transition: all 0.15s; }
+  .tool-btn:hover, .tool-btn.active { background: #1a1a3e; border-color: #6366f1; color: #c4b5fd; }
+  .tool-desc { font-size: 0.8rem; color: #666; margin-bottom: 14px; min-height: 20px; }
+
+  textarea { width: 100%; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 14px; color: #e8e8e8; font-size: 0.9rem; resize: vertical; min-height: 80px; outline: none; font-family: inherit; }
+  textarea:focus { border-color: #6366f1; }
+  textarea::placeholder { color: #444; }
+
+  .run-btn { margin-top: 14px; background: #059669; color: #fff; border: none; border-radius: 10px; padding: 12px 28px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  .run-btn:hover { background: #047857; }
+  .run-btn:disabled { background: #333; color: #666; cursor: wait; }
+
+  .result-box { margin-top: 16px; background: #0d0d0d; border: 1px solid #222; border-radius: 10px; padding: 16px; font-size: 0.85rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; display: none; max-height: 400px; overflow-y: auto; }
+  .result-box.show { display: block; }
+
+  .curl-wrap { margin-top: 12px; display: none; }
+  .curl-wrap.show { display: block; }
+  .curl-box { background: #111; border: 1px solid #2a2a2a; border-radius: 8px; padding: 12px; font-size: 0.75rem; font-family: 'SF Mono', 'Fira Code', monospace; color: #8b8; white-space: pre-wrap; word-break: break-all; max-height: 160px; overflow-y: auto; }
+  .copy-curl-btn { margin-top: 6px; background: #1e1e1e; border: 1px solid #333; border-radius: 6px; padding: 6px 14px; color: #aaa; font-size: 0.75rem; cursor: pointer; transition: all 0.15s; }
+  .copy-curl-btn:hover { background: #1a1a3e; border-color: #6366f1; color: #c4b5fd; }
+
+  .cta { text-align: center; margin-top: 24px; }
+  .cta a { display: inline-block; background: #6366f1; color: #fff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 0.95rem; }
+  .cta p { color: #555; font-size: 0.78rem; margin-top: 8px; }
+
+  .free-note { text-align: center; color: #555; font-size: 0.75rem; margin-top: 12px; }
+
+  /* Upsell modal */
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: #141414; border: 1px solid #2a2a2a; border-radius: 16px; padding: 32px; max-width: 480px; width: 100%; position: relative; }
+  .modal-close { position: absolute; top: 12px; right: 16px; background: none; border: none; color: #666; font-size: 1.4rem; cursor: pointer; }
+  .modal-close:hover { color: #fff; }
+  .modal h2 { font-size: 1.3rem; margin-bottom: 6px; }
+  .modal .modal-sub { color: #888; font-size: 0.85rem; margin-bottom: 20px; }
+  .modal-plans { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+  .modal-plan { display: flex; align-items: center; justify-content: space-between; background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 10px; padding: 14px 16px; cursor: pointer; transition: all 0.15s; }
+  .modal-plan:hover, .modal-plan.selected { border-color: #6366f1; background: #1a1a2e; }
+  .modal-plan .mp-left { display: flex; align-items: center; gap: 12px; }
+  .modal-plan .mp-amount { font-size: 1.3rem; font-weight: 800; color: #fff; min-width: 40px; }
+  .modal-plan .mp-detail { font-size: 0.8rem; color: #888; }
+  .modal-plan .mp-tag { font-size: 0.7rem; background: #6366f1; color: #fff; padding: 2px 8px; border-radius: 12px; }
+  .modal-plan .mp-tag.gold { background: #f59e0b; }
+  .modal-plan .mp-tag.green { background: #059669; }
+  .modal-btn { width: 100%; background: #6366f1; color: #fff; border: none; border-radius: 10px; padding: 14px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  .modal-btn:hover { background: #4f52d0; }
+  .modal-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+  .modal-or { text-align: center; color: #555; font-size: 0.78rem; margin-top: 12px; }
+  .modal-or a { color: #818cf8; }
+  @media (max-width: 500px) { .modal { padding: 24px 18px; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div style="display:flex;gap:16px;margin-bottom:20px;font-size:0.85rem"><a href="/" style="color:#888;text-decoration:none">Home</a><a href="/docs" style="color:#888;text-decoration:none">Docs</a><a href="/buy-credits" style="color:#818cf8;text-decoration:none;font-weight:600">Get API Key</a></div>
+  <h1>Try AiPayGen</h1>
+  <p class="sub">Test any tool below — completely free, no sign-up. <a href="/discover">See all 155 tools &rarr;</a></p>
+
+  <div class="demo-card">
+    <div class="tool-row">
+      <div class="tool-btn active" data-tool="sentiment" data-placeholder="Type any text to analyze sentiment..." data-desc="Detects polarity, emotions, confidence, and key phrases">Sentiment</div>
+      <div class="tool-btn" data-tool="summarize" data-placeholder="Paste text to summarize..." data-desc="Condenses long text into key bullet points">Summarize</div>
+      <div class="tool-btn" data-tool="translate" data-placeholder="Text to translate..." data-desc="Translates text to any language (add target language on second line)">Translate</div>
+      <div class="tool-btn" data-tool="keywords" data-placeholder="Paste text to extract keywords..." data-desc="Extracts topics, entities, and key phrases">Keywords</div>
+      <div class="tool-btn" data-tool="explain" data-placeholder="Enter a concept to explain..." data-desc="Explains any concept in simple terms with analogies">Explain</div>
+      <div class="tool-btn" data-tool="code" data-placeholder="Describe what code to generate..." data-desc="Generates code in any language from a description">Code</div>
+      <div class="tool-btn" data-tool="research" data-placeholder="Enter a topic to research..." data-desc="Researches any topic with key points and sources">Research</div>
+      <div class="tool-btn" data-tool="analyze" data-placeholder="Paste content to analyze (add question on second line)..." data-desc="Analyzes content with findings, sentiment, and confidence">Analyze</div>
+      <div class="tool-btn" data-tool="compare" data-placeholder="Enter two items separated by a blank line..." data-desc="Compares two texts with similarities, differences, and scores">Compare</div>
+      <div class="tool-btn" data-tool="extract" data-placeholder="Paste text, then what to extract on second line..." data-desc="Extracts structured data, entities, and facts from text">Extract</div>
+      <div class="tool-btn" data-tool="questions" data-placeholder="Enter a topic to generate questions about..." data-desc="Generates FAQ, interview, or quiz questions from content">Questions</div>
+      <div class="tool-btn" data-tool="decide" data-placeholder="Describe a decision (options on second line, comma-separated)..." data-desc="Analyzes decisions with pros, cons, risks, and recommendations">Decide</div>
+      <div class="tool-btn" data-tool="classify" data-placeholder="Text to classify (categories on second line, comma-separated)..." data-desc="Classifies text into custom categories with confidence scores">Classify</div>
+      <div class="tool-btn" data-tool="rewrite" data-placeholder="Text to rewrite (style/audience on second line)..." data-desc="Rewrites text for a different audience or tone">Rewrite</div>
+      <div class="tool-btn" data-tool="headline" data-placeholder="Enter content to generate headlines for..." data-desc="Generates engaging headlines and titles for any content">Headline</div>
+      <div class="tool-btn" data-tool="geocode" data-placeholder="Enter an address or place name..." data-desc="Geocodes addresses to lat/lon coordinates via OpenStreetMap">Geocode</div>
+      <div class="tool-btn" data-tool="math-eval" data-placeholder="Enter a math expression (e.g. 2^10 + sqrt(144))..." data-desc="Evaluates math expressions safely using AST parsing">Math Eval</div>
+      <div class="tool-btn" data-tool="unit-convert" data-placeholder="Enter: value, from_unit, to_unit (e.g. 100, km, mi)..." data-desc="Converts units — length, weight, volume, speed, data, temperature">Unit Convert</div>
+      <div class="tool-btn" data-tool="readability" data-placeholder="Paste text to score readability..." data-desc="Flesch-Kincaid readability score with grade level and difficulty">Readability</div>
+      <div class="tool-btn" data-tool="language-detect" data-placeholder="Type or paste text in any language..." data-desc="Detects language and script from text using character analysis">Language</div>
+      <div class="tool-btn" data-tool="whois" data-placeholder="Enter a domain name (e.g. example.com)..." data-desc="WHOIS/RDAP lookup — registrar, nameservers, status, dates">WHOIS</div>
+      <div class="tool-btn" data-tool="security-headers" data-placeholder="Enter a URL to audit (e.g. https://example.com)..." data-desc="Audits security headers and assigns A+ to F grade">Sec Headers</div>
+      <div class="tool-btn" data-tool="currency-convert" data-placeholder="Enter: amount, from, to (e.g. 100, USD, EUR)..." data-desc="Converts currencies using live exchange rates (150+ currencies)">Currency</div>
+      <div class="tool-btn" data-tool="stats" data-placeholder="Enter numbers separated by commas (e.g. 10, 20, 30, 40, 50)..." data-desc="Statistical analysis — mean, median, std dev, quartiles">Stats</div>
+    </div>
+    <p class="tool-desc" id="desc">Detects polarity, emotions, confidence, and key phrases</p>
+    <textarea id="input" placeholder="Type any text to analyze sentiment..."></textarea>
+    <button class="run-btn" id="run" onclick="runTool()">&#9654; Run</button>
+    <div class="result-box" id="result"></div>
+    <div class="curl-wrap" id="curl-wrap">
+      <div class="curl-box" id="curl-cmd"></div>
+      <button class="copy-curl-btn" id="copy-curl" onclick="copyCurl()">Copy as curl</button>
+    </div>
+  </div>
+
+  <div class="cta">
+    <a href="/buy-credits">Get API Key — From $1</a>
+    <p>155 tools &middot; 15 AI models &middot; Credits never expire</p>
+  </div>
+  <p class="free-note">Free demo uses the same AI models as paid API. Limited to 10 demos per session.</p>
+</div>
+
+<!-- Upsell modal -->
+<div class="modal-overlay" id="upsell-modal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <h2>You've used all 10 free demos</h2>
+    <p class="modal-sub">Pick a plan to unlock unlimited access to all 155 tools.</p>
+    <div class="modal-plans">
+      <div class="modal-plan" data-amt="1" onclick="selectModalPlan(this)">
+        <div class="mp-left"><span class="mp-amount">$1</span><span class="mp-detail">~160 calls</span></div>
+        <span class="mp-tag gold">Starter</span>
+      </div>
+      <div class="modal-plan selected" data-amt="5" onclick="selectModalPlan(this)">
+        <div class="mp-left"><span class="mp-amount">$5</span><span class="mp-detail">~830 calls</span></div>
+      </div>
+      <div class="modal-plan" data-amt="20" onclick="selectModalPlan(this)">
+        <div class="mp-left"><span class="mp-amount">$20</span><span class="mp-detail">~4,000 calls</span></div>
+        <span class="mp-tag">Popular</span>
+      </div>
+      <div class="modal-plan" data-amt="50" onclick="selectModalPlan(this)">
+        <div class="mp-left"><span class="mp-amount">$50</span><span class="mp-detail">~12,500 calls</span></div>
+        <span class="mp-tag green">Best value</span>
+      </div>
+    </div>
+    <button class="modal-btn" id="modal-buy" onclick="modalCheckout()">Get API Key</button>
+    <p class="modal-or">or <a href="/buy-credits">view full pricing page</a></p>
+  </div>
+</div>
+<script>
+let currentTool = 'sentiment';
+let demoCount = 0;
+const MAX_DEMOS = 10;
+let lastCurl = '';
+
+document.querySelectorAll('.tool-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTool = btn.dataset.tool;
+    document.getElementById('input').placeholder = btn.dataset.placeholder;
+    document.getElementById('desc').textContent = btn.dataset.desc;
+  });
+});
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.textContent;
+}
+
+let modalAmount = 5;
+function selectModalPlan(el) {
+  document.querySelectorAll('.modal-plan').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  modalAmount = parseInt(el.dataset.amt);
+}
+function showModal() { document.getElementById('upsell-modal').classList.add('show'); }
+function closeModal() { document.getElementById('upsell-modal').classList.remove('show'); }
+async function modalCheckout() {
+  const btn = document.getElementById('modal-buy');
+  btn.disabled = true; btn.textContent = 'Redirecting to Stripe...';
+  try {
+    const res = await fetch('/stripe/create-checkout', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ amount: modalAmount })
+    });
+    const data = await res.json();
+    if (data.url) { window.location.href = data.url; }
+    else { btn.disabled = false; btn.textContent = 'Get API Key'; alert(data.error || 'Something went wrong'); }
+  } catch(e) { btn.disabled = false; btn.textContent = 'Get API Key'; alert('Network error — try again'); }
+}
+document.getElementById('upsell-modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
+async function runTool() {
+  const input = document.getElementById('input').value.trim();
+  if (!input) return;
+  const box = document.getElementById('result');
+  if (demoCount >= MAX_DEMOS) {
+    showModal();
+    return;
+  }
+  const btn = document.getElementById('run');
+  btn.disabled = true; btn.textContent = 'Running...';
+  box.className = 'result-box'; box.textContent = '';
+  try {
+    const body = {};
+    if (currentTool === 'sentiment') body.text = input;
+    else if (currentTool === 'summarize') { body.text = input; body.format = 'bullets'; }
+    else if (currentTool === 'translate') {
+      const lines = input.split('\n');
+      body.text = lines[0]; body.language = lines[1] || 'Spanish';
+    }
+    else if (currentTool === 'keywords') body.text = input;
+    else if (currentTool === 'explain') { body.concept = input; body.level = 'beginner'; }
+    else if (currentTool === 'code') { body.description = input; body.language = 'python'; }
+    else if (currentTool === 'research') body.topic = input;
+    else if (currentTool === 'analyze') {
+      const lines = input.split('\n');
+      body.content = lines[0]; body.question = lines.slice(1).join(' ') || 'general analysis';
+    }
+    else if (currentTool === 'compare') {
+      const parts = input.split('\n\n');
+      body.text_a = parts[0] || ''; body.text_b = parts.slice(1).join('\n\n') || '';
+    }
+    else if (currentTool === 'extract') {
+      const lines = input.split('\n');
+      body.text = lines[0]; body.schema_desc = lines.slice(1).join(' ') || '';
+    }
+    else if (currentTool === 'questions') body.content = input;
+    else if (currentTool === 'decide') {
+      const lines = input.split('\n');
+      body.decision = lines[0]; if (lines[1]) body.options = lines[1].split(',').map(s => s.trim());
+    }
+    else if (currentTool === 'classify') {
+      const lines = input.split('\n');
+      body.text = lines[0]; body.categories = (lines[1] || 'positive,negative,neutral').split(',').map(s => s.trim());
+    }
+    else if (currentTool === 'rewrite') {
+      const lines = input.split('\n');
+      body.text = lines[0]; body.audience = lines[1] || 'general';
+    }
+    else if (currentTool === 'headline') body.content = input;
+    else if (currentTool === 'geocode') body.q = input;
+    else if (currentTool === 'math-eval') body.expression = input;
+    else if (currentTool === 'unit-convert') {
+      const p = input.split(',').map(s => s.trim());
+      body.value = parseFloat(p[0]) || 0; body.from_unit = p[1] || ''; body.to_unit = p[2] || '';
+    }
+    else if (currentTool === 'readability') body.text = input;
+    else if (currentTool === 'language-detect') body.text = input;
+    else if (currentTool === 'whois') body.domain = input;
+    else if (currentTool === 'security-headers') body.url = input;
+    else if (currentTool === 'currency-convert') {
+      const p = input.split(',').map(s => s.trim());
+      body.amount = parseFloat(p[0]) || 1; body.from = p[1] || 'USD'; body.to = p[2] || 'EUR';
+    }
+    else if (currentTool === 'stats') body.numbers = input.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+
+    const res = await fetch('/try/' + currentTool, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (res.status === 429) { showModal(); btn.disabled = false; btn.textContent = '\u25B6 Run'; return; }
+    demoCount++;
+    const output = typeof data.result === 'string' ? data.result : JSON.stringify(data.result || data, null, 2);
+    const remaining = MAX_DEMOS - demoCount;
+    if (remaining === 0) {
+      box.textContent = output;
+      box.className = 'result-box show';
+      setTimeout(showModal, 1500);
+    } else {
+      box.textContent = output + '\n\n--- ' + remaining + ' free demo' + (remaining !== 1 ? 's' : '') + ' remaining';
+      box.className = 'result-box show';
+    }
+    // Build curl command
+    const curlBody = JSON.stringify(body);
+    lastCurl = "curl -X POST https://api.aipaygen.com/" + currentTool + " \\\n  -H 'Content-Type: application/json' \\\n  -H 'Authorization: Bearer YOUR_API_KEY' \\\n  -d '" + curlBody.replace(/'/g, "'\\''") + "'";
+    const curlEl = document.getElementById('curl-cmd');
+    curlEl.textContent = lastCurl;
+    document.getElementById('curl-wrap').className = 'curl-wrap show';
+    document.getElementById('copy-curl').textContent = 'Copy as curl';
+  } catch(e) {
+    box.textContent = 'Error: ' + e.message;
+    box.className = 'result-box show';
+    document.getElementById('curl-wrap').className = 'curl-wrap';
+  }
+  btn.disabled = false; btn.textContent = '\u25B6 Run';
+}
+
+function copyCurl() {
+  navigator.clipboard.writeText(lastCurl).then(() => {
+    document.getElementById('copy-curl').textContent = 'Copied!';
+    setTimeout(() => { document.getElementById('copy-curl').textContent = 'Copy as curl'; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

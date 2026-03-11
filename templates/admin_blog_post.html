@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ safe_title }} — AiPayGen</title>
+<meta name="description" content="{{ desc }}">
+<link rel="canonical" href="{{ canonical }}">
+<meta property="og:type" content="article">
+<meta property="og:title" content="{{ safe_title }}">
+<meta property="og:description" content="{{ desc }}">
+<meta property="og:url" content="{{ canonical }}">
+<meta property="og:image" content="https://api.aipaygen.com/og-image.png">
+<meta property="og:site_name" content="AiPayGen">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ safe_title }}">
+<meta name="twitter:description" content="{{ desc }}">
+<meta name="twitter:image" content="https://api.aipaygen.com/og-image.png">
+<script type="application/ld+json">{{ jsonld|safe }}</script>
+<style>
+body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.7;color:#1a1a1a}
+code,pre{background:#f1f5f9;padding:2px 6px;border-radius:4px;font-size:0.9em;font-family:monospace}
+pre{padding:16px;overflow-x:auto;display:block}a{color:#6366f1}h1{color:#1e1b4b;font-size:1.9rem}
+.nav{color:#888;margin-bottom:2rem;font-size:0.9rem}.cta{background:#f8f7ff;border:1px solid #e0e0ff;border-radius:8px;padding:16px;margin:2rem 0}
+</style>
+</head>
+<body>
+<div class="nav"><a href="/blog">&larr; All posts</a> &middot; <a href="https://api.aipaygen.com">AiPayGen API</a> &middot; <a href="/discover">155 tools</a></div>
+<h1>{{ safe_title }}</h1>
+{{ content|safe }}
+<div class="cta">
+  <strong>Try it free &rarr;</strong> First 10 calls/day free, no credit card. <a href="https://api.aipaygen.com/discover">Browse all 155 tools and 140+ endpoints</a> or <a href="https://api.aipaygen.com/buy-credits">buy credits ($5+)</a>.
+</div>
+<p style="color:#888;font-size:0.85rem">Published: {{ published_date }} &middot; <a href="/feed.xml">RSS feed</a></p>
+</body>
+</html>
