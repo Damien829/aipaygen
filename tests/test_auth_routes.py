@@ -508,6 +508,12 @@ class TestBuyCreditsSuccess:
         assert r.status_code == 200
         assert r.content_type.startswith("text/html")
 
+    def test_success_page_with_session_id(self, client):
+        """Query params are ignored server-side; page always renders."""
+        r = client.get("/buy-credits/success?session_id=cs_test_123")
+        assert r.status_code == 200
+        assert r.content_type.startswith("text/html")
+
 
 # ── Free Tier Enforcement ─────────────────────────────────────────────────
 
@@ -534,6 +540,285 @@ class TestFreeTierEnforcement:
         """Without x402 or API key bypass, POST /credits/buy must return 402."""
         r = client.post("/credits/buy", json={"amount_usd": 5.0})
         assert r.status_code == 402
+
+
+# ── Credits Buy with API Key Bypass ──────────────────────────────────────
+
+class TestCreditsBuyWithBypass:
+    @patch("routes.auth.generate_key")
+    @patch("routes.auth.funnel_log_event")
+    def test_credits_buy_with_apikey_bypass(self, mock_funnel, mock_gen, client):
+        """X_APIKEY_BYPASS environ triggers key generation without Stripe."""
+        mock_gen.return_value = {
+            "key": "apk_bypass", "balance_usd": 20.0, "label": "credit-pack",
+            "created_at": "2026-01-01",
+        }
+        # Simulate WSGI middleware setting X_APIKEY_BYPASS
+        from app import app
+        with app.test_request_context():
+            with app.test_client() as c:
+                # We need to set environ; use a custom approach
+                r = c.post("/credits/buy",
+                           json={"amount_usd": 20.0, "label": "bypass-test"},
+                           environ_base={"X_APIKEY_BYPASS": "1"})
+                assert r.status_code == 200
+                data = r.get_json()
+                assert data["key"] == "apk_bypass"
+                assert data["balance_usd"] == 20.0
+
+
+# ── Stripe Create-Checkout Edge Cases ───────────────────────────────────
+
+class TestStripeCreateCheckoutEdgeCases:
+    @patch("routes.auth.STRIPE_SECRET_KEY", "sk_test_xxx")
+    @patch("routes.auth._stripe")
+    @patch("routes.auth.funnel_log_event")
+    def test_all_valid_amounts(self, mock_funnel, mock_stripe, client):
+        """All 7 valid amounts should succeed."""
+        mock_session = MagicMock()
+        mock_session.url = "https://checkout.stripe.com/s"
+        mock_session.id = "cs_valid"
+        mock_stripe.checkout.Session.create.return_value = mock_session
+        for amt in (1, 5, 10, 15, 20, 25, 50):
+            r = client.post("/stripe/create-checkout", json={"amount": amt})
+            assert r.status_code == 200, f"amount={amt} failed"
+
+    @patch("routes.auth.STRIPE_SECRET_KEY", "sk_test_xxx")
+    def test_non_apk_existing_key_treated_as_new(self, client):
+        """existing_key that doesn't start with 'apk_' is treated as new."""
+        with patch("routes.auth._stripe") as mock_stripe, \
+             patch("routes.auth.funnel_log_event"):
+            mock_session = MagicMock()
+            mock_session.url = "https://checkout.stripe.com/s"
+            mock_session.id = "cs_nonapk"
+            mock_stripe.checkout.Session.create.return_value = mock_session
+            r = client.post("/stripe/create-checkout",
+                            json={"amount": 5, "existing_key": "not_an_apk_key"})
+            assert r.status_code == 200
+            call_kwargs = mock_stripe.checkout.Session.create.call_args
+            assert call_kwargs[1]["client_reference_id"] == "new"
+            assert call_kwargs[1]["metadata"]["action"] == "new"
+
+    @patch("routes.auth.STRIPE_SECRET_KEY", "sk_test_xxx")
+    @patch("routes.auth._stripe")
+    @patch("routes.auth.funnel_log_event")
+    def test_label_truncated_at_60_chars(self, mock_funnel, mock_stripe, client):
+        """Labels longer than 60 chars should be truncated."""
+        mock_session = MagicMock()
+        mock_session.url = "https://checkout.stripe.com/s"
+        mock_session.id = "cs_long"
+        mock_stripe.checkout.Session.create.return_value = mock_session
+        long_label = "x" * 100
+        r = client.post("/stripe/create-checkout",
+                        json={"amount": 5, "label": long_label})
+        assert r.status_code == 200
+        call_kwargs = mock_stripe.checkout.Session.create.call_args
+        assert len(call_kwargs[1]["metadata"]["label"]) == 60
+
+    @patch("routes.auth.STRIPE_SECRET_KEY", "sk_test_xxx")
+    @patch("routes.auth._stripe")
+    @patch("routes.auth.funnel_log_event")
+    def test_default_amount_is_20(self, mock_funnel, mock_stripe, client):
+        """If no amount is provided, default to 20."""
+        mock_session = MagicMock()
+        mock_session.url = "https://checkout.stripe.com/s"
+        mock_session.id = "cs_default"
+        mock_stripe.checkout.Session.create.return_value = mock_session
+        r = client.post("/stripe/create-checkout", json={})
+        assert r.status_code == 200
+        call_kwargs = mock_stripe.checkout.Session.create.call_args
+        assert call_kwargs[1]["line_items"][0]["price_data"]["unit_amount"] == 2000
+
+
+# ── Stripe Webhook Extended ──────────────────────────────────────────────
+
+class TestStripeWebhookExtended:
+    @patch("routes.auth.STRIPE_WEBHOOK_SECRET", "whsec_test")
+    @patch("routes.auth._stripe")
+    @patch("routes.auth.log_payment")
+    @patch("routes.auth._notify_checkout")
+    @patch("routes.auth.generate_key")
+    def test_webhook_sends_email_on_new_key(self, mock_gen, mock_notify,
+                                             mock_log, mock_stripe, client):
+        """When customer_email is present, email and account linking are attempted."""
+        mock_gen.return_value = {"key": "apk_emailtest"}
+        event = {
+            "type": "checkout.session.completed",
+            "data": {
+                "object": {
+                    "id": "cs_email",
+                    "metadata": {"amount": "10", "action": "new", "label": "email-test"},
+                    "customer_details": {"email": "buyer@example.com"},
+                }
+            },
+        }
+        mock_stripe.Webhook.construct_event.return_value = event
+        mock_stripe.checkout.Session.modify.return_value = None
+        with patch("email_service.send_api_key_email") as mock_send_key, \
+             patch("email_service.send_welcome_email") as mock_welcome, \
+             patch("accounts.create_or_get_account", return_value={"id": "acct_1"}) as mock_acct, \
+             patch("accounts.link_key_to_account") as mock_link:
+            r = client.post("/stripe/webhook", data=b"payload",
+                            headers={"Stripe-Signature": "valid"})
+            assert r.status_code == 200
+            mock_send_key.assert_called_once_with("buyer@example.com", "apk_emailtest", 10.0)
+            mock_welcome.assert_called_once_with("buyer@example.com", "apk_emailtest")
+            mock_acct.assert_called_once_with("buyer@example.com")
+            mock_link.assert_called_once_with("acct_1", "apk_emailtest")
+
+    @patch("routes.auth.STRIPE_WEBHOOK_SECRET", "whsec_test")
+    @patch("routes.auth._stripe")
+    @patch("routes.auth.log_payment")
+    @patch("routes.auth._notify_checkout")
+    @patch("routes.auth.generate_key")
+    def test_webhook_referral_conversion(self, mock_gen, mock_notify,
+                                          mock_log, mock_stripe, client):
+        """When ref_agent is in metadata, record_conversion is called."""
+        mock_gen.return_value = {"key": "apk_ref"}
+        event = {
+            "type": "checkout.session.completed",
+            "data": {
+                "object": {
+                    "id": "cs_ref",
+                    "metadata": {"amount": "25", "action": "new", "label": "",
+                                 "ref_agent": "agent-abc"},
+                    "customer_details": {"email": ""},
+                }
+            },
+        }
+        mock_stripe.Webhook.construct_event.return_value = event
+        mock_stripe.checkout.Session.modify.return_value = None
+        with patch("routes.auth.record_conversion") as mock_conv:
+            r = client.post("/stripe/webhook", data=b"payload",
+                            headers={"Stripe-Signature": "valid"})
+            assert r.status_code == 200
+            mock_conv.assert_called_once_with("agent-abc", "stripe_purchase", 25.0)
+
+    @patch("routes.auth.STRIPE_WEBHOOK_SECRET", "whsec_test")
+    @patch("routes.auth._stripe")
+    @patch("routes.auth.log_payment")
+    @patch("routes.auth._notify_checkout")
+    @patch("routes.auth.generate_key")
+    def test_webhook_email_failure_doesnt_break(self, mock_gen, mock_notify,
+                                                  mock_log, mock_stripe, client):
+        """If email sending fails, webhook still returns 200."""
+        mock_gen.return_value = {"key": "apk_emailfail"}
+        event = {
+            "type": "checkout.session.completed",
+            "data": {
+                "object": {
+                    "id": "cs_emailfail",
+                    "metadata": {"amount": "5", "action": "new", "label": ""},
+                    "customer_details": {"email": "fail@example.com"},
+                }
+            },
+        }
+        mock_stripe.Webhook.construct_event.return_value = event
+        mock_stripe.checkout.Session.modify.return_value = None
+        with patch("email_service.send_api_key_email", side_effect=Exception("SMTP error")):
+            r = client.post("/stripe/webhook", data=b"payload",
+                            headers={"Stripe-Signature": "valid"})
+            assert r.status_code == 200
+            assert r.get_json()["received"] is True
+
+    @patch("routes.auth.STRIPE_WEBHOOK_SECRET", "whsec_test")
+    @patch("routes.auth._stripe")
+    @patch("routes.auth.log_payment")
+    @patch("routes.auth._notify_checkout")
+    @patch("routes.auth.generate_key")
+    def test_webhook_stripe_metadata_update_failure(self, mock_gen, mock_notify,
+                                                      mock_log, mock_stripe, client):
+        """If Stripe metadata update fails, webhook still returns 200."""
+        mock_gen.return_value = {"key": "apk_metafail"}
+        event = {
+            "type": "checkout.session.completed",
+            "data": {
+                "object": {
+                    "id": "cs_metafail",
+                    "metadata": {"amount": "10", "action": "new", "label": ""},
+                    "customer_details": {"email": ""},
+                }
+            },
+        }
+        mock_stripe.Webhook.construct_event.return_value = event
+        mock_stripe.checkout.Session.modify.side_effect = Exception("Stripe API down")
+        r = client.post("/stripe/webhook", data=b"payload",
+                        headers={"Stripe-Signature": "valid"})
+        assert r.status_code == 200
+
+
+# ── Key Status Extended ──────────────────────────────────────────────────
+
+class TestKeyStatusExtended:
+    @patch("routes.auth._stripe")
+    def test_key_status_balance_usd_in_metadata(self, mock_stripe, client):
+        """When balance_usd is in Stripe metadata, it's returned."""
+        mock_session = MagicMock()
+        mock_session.metadata = {"api_key": "apk_bal", "balance_usd": "50.0"}
+        mock_stripe.checkout.Session.retrieve.return_value = mock_session
+        r = client.get("/auth/key-status?session_id=cs_bal")
+        assert r.status_code == 200
+        data = r.get_json()
+        assert data["ready"] is True
+        assert data["balance"] == "50.0"
+
+    @patch("routes.auth._stripe")
+    def test_key_status_falls_back_to_amount(self, mock_stripe, client):
+        """When balance_usd is missing, falls back to amount field."""
+        mock_session = MagicMock()
+        mock_session.metadata = {"api_key": "apk_fb", "amount": "20"}
+        mock_stripe.checkout.Session.retrieve.return_value = mock_session
+        r = client.get("/auth/key-status?session_id=cs_fb")
+        assert r.status_code == 200
+        data = r.get_json()
+        assert data["balance"] == "20"
+
+
+# ── Webhook Registration Edge Cases ─────────────────────────────────────
+
+class TestWebhookEdgeCases:
+    @patch("webhook_dispatch.register_webhook", return_value=None)
+    def test_register_webhook_returns_none(self, mock_reg, client):
+        """When register_webhook returns None (e.g., DB error), return 400."""
+        r = client.post("/webhooks/register",
+                        json={"url": "https://valid.com/hook", "events": ["balance_low"]},
+                        headers={"Authorization": "Bearer apk_testkey"})
+        assert r.status_code == 400
+        assert "Failed" in r.get_json()["error"]
+
+    def test_register_webhook_empty_events(self, client):
+        """Empty events list should return 400."""
+        r = client.post("/webhooks/register",
+                        json={"url": "https://valid.com/hook", "events": []},
+                        headers={"Authorization": "Bearer apk_testkey"})
+        assert r.status_code == 400
+
+    def test_register_webhook_non_bearer_auth(self, client):
+        """Auth header that doesn't start with 'Bearer apk_' is rejected."""
+        r = client.post("/webhooks/register",
+                        json={"url": "https://valid.com/hook", "events": ["a"]},
+                        headers={"Authorization": "Bearer sk_not_apk"})
+        assert r.status_code == 401
+
+    def test_register_webhook_no_url(self, client):
+        """Missing url should return 400."""
+        r = client.post("/webhooks/register",
+                        json={"events": ["balance_low"]},
+                        headers={"Authorization": "Bearer apk_testkey"})
+        assert r.status_code == 400
+
+    @patch("webhook_dispatch.list_webhooks")
+    def test_list_webhooks_returns_data(self, mock_list, client):
+        """list_webhooks returns non-empty list."""
+        mock_list.return_value = [
+            {"id": 1, "url": "https://example.com/hook", "events": ["balance_low"]},
+        ]
+        r = client.get("/webhooks",
+                       headers={"Authorization": "Bearer apk_testkey"})
+        assert r.status_code == 200
+        data = r.get_json()
+        assert len(data["webhooks"]) == 1
+        assert data["webhooks"][0]["id"] == 1
 
 
 # ── In-Memory Session Map ────────────────────────────────────────────────
