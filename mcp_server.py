@@ -1,5 +1,5 @@
 """
-AiPayGen MCP Server — 155 tools (148 metered + 7 free)
+AiPayGen MCP Server — 155 tools (153 metered + 8 free)
 
 Exposes all AiPayGen capabilities as MCP tools with usage metering.
 10 free calls/day without an API key. Unlimited with a prepaid key.
@@ -192,205 +192,205 @@ def metered_tool(tier: str = "standard"):
 # ── AI Processing Tools (34 core + 6 advanced) ───────────────────────────────
 
 @metered_tool("ai")
-def research(topic: str) -> dict:
+def research(topic: Annotated[str, Field(description="The topic to research")]) -> dict:
     """Research a topic. Returns structured summary, key points, and sources to check."""
     return research_inner(topic)
 
 
 @metered_tool("ai")
-def summarize(text: str, length: str = "short") -> dict:
+def summarize(text: Annotated[str, Field(description="The text to summarize")], length: Annotated[str, Field(description="Summary length: short, medium, or detailed")] = "short") -> dict:
     """Summarize long text. length: short | medium | detailed"""
     return summarize_inner(text, length)
 
 
 @metered_tool("ai")
-def analyze(content: str, question: str = "Provide a structured analysis") -> dict:
+def analyze(content: Annotated[str, Field(description="Content to analyze")], question: Annotated[str, Field(description="Specific analysis question or focus area")] = "Provide a structured analysis") -> dict:
     """Deep structured analysis of content. Returns conclusion, findings, sentiment, confidence."""
     return analyze_inner(content, question)
 
 
 @metered_tool("ai")
-def translate(text: str, language: str = "Spanish") -> dict:
+def translate(text: Annotated[str, Field(description="Text to translate")], language: Annotated[str, Field(description="Target language for translation")] = "Spanish") -> dict:
     """Translate text to any language."""
     return translate_inner(text, language)
 
 
 @metered_tool("ai")
-def social(topic: str, platforms: list[str] = None, tone: str = "engaging") -> dict:
+def social(topic: Annotated[str, Field(description="Topic or content for social media posts")], platforms: Annotated[list[str], Field(description="Target platforms: twitter, linkedin, instagram, etc.")] = None, tone: Annotated[str, Field(description="Post tone: engaging, professional, casual, humorous")] = "engaging") -> dict:
     """Generate platform-optimized social media posts for Twitter, LinkedIn, Instagram, etc."""
     return social_inner(topic, platforms or ["twitter", "linkedin", "instagram"], tone)
 
 
 @metered_tool("ai")
-def write(spec: str, type: str = "article") -> dict:
+def write(spec: Annotated[str, Field(description="Writing specification or prompt")], type: Annotated[str, Field(description="Content type: article, post, or copy")] = "article") -> dict:
     """Write articles, copy, or content to your specification. type: article | post | copy"""
     return write_inner(spec, type)
 
 
 @metered_tool("ai")
-def code(description: str, language: str = "Python") -> dict:
+def code(description: Annotated[str, Field(description="Plain-English description of the code to generate")], language: Annotated[str, Field(description="Programming language for the generated code")] = "Python") -> dict:
     """Generate production-ready code in any language from a plain-English description."""
     return code_inner(description, language)
 
 
 @metered_tool("ai")
-def extract(text: str, fields: list[str] = None, schema: str = "") -> dict:
+def extract(text: Annotated[str, Field(description="Unstructured text to extract data from")], fields: Annotated[list[str], Field(description="List of field names to extract")] = None, schema: Annotated[str, Field(description="Schema description for extraction format")] = "") -> dict:
     """Extract structured data from unstructured text. Define fields or a schema."""
     return extract_inner(text, schema, fields or [])
 
 
 @metered_tool("ai")
-def qa(context: str, question: str) -> dict:
+def qa(context: Annotated[str, Field(description="Document or context to answer from")], question: Annotated[str, Field(description="Question to answer based on the context")]) -> dict:
     """Q&A over a document. Returns answer, confidence score, and source quote."""
     return qa_inner(context, question)
 
 
 @metered_tool("ai")
-def classify(text: str, categories: list[str]) -> dict:
+def classify(text: Annotated[str, Field(description="Text to classify")], categories: Annotated[list[str], Field(description="List of categories to classify into")]) -> dict:
     """Classify text into your defined categories with per-category confidence scores."""
     return classify_inner(text, categories)
 
 
 @metered_tool("ai")
-def sentiment(text: str) -> dict:
+def sentiment(text: Annotated[str, Field(description="Text to analyze sentiment of")]) -> dict:
     """Deep sentiment analysis: polarity, score, emotions, confidence, key phrases."""
     return sentiment_inner(text)
 
 
 @metered_tool("ai")
-def keywords(text: str, max_keywords: int = 10) -> dict:
+def keywords(text: Annotated[str, Field(description="Text to extract keywords from")], max_keywords: Annotated[int, Field(description="Maximum number of keywords to return")] = 10) -> dict:
     """Extract keywords, topics, and tags from any text."""
     return keywords_inner(text, max_keywords)
 
 
 @metered_tool("ai")
-def compare(text_a: str, text_b: str, focus: str = "") -> dict:
+def compare(text_a: Annotated[str, Field(description="First text to compare")], text_b: Annotated[str, Field(description="Second text to compare")], focus: Annotated[str, Field(description="Specific aspect to focus comparison on")] = "") -> dict:
     """Compare two texts: similarities, differences, similarity score, recommendation."""
     return compare_inner(text_a, text_b, focus)
 
 
 @metered_tool("ai")
-def transform(text: str, instruction: str) -> dict:
+def transform(text: Annotated[str, Field(description="Text to transform")], instruction: Annotated[str, Field(description="Transformation instruction: rewrite, reformat, expand, etc.")]) -> dict:
     """Transform text with any instruction: rewrite, reformat, expand, condense, change tone."""
     return transform_inner(text, instruction)
 
 
 @metered_tool("ai")
-def chat(messages: list[dict], system: str = "") -> dict:
+def chat(messages: Annotated[list[dict], Field(description="Message history as list of {role, content} dicts")], system: Annotated[str, Field(description="System prompt to set behavior")] = "") -> dict:
     """Stateless multi-turn chat. Send full message history, get Claude reply."""
     return chat_inner(messages, system)
 
 
 @metered_tool("ai")
-def plan(goal: str, context: str = "", steps: int = 7) -> dict:
+def plan(goal: Annotated[str, Field(description="Goal to create a plan for")], context: Annotated[str, Field(description="Background context or constraints")] = "", steps: Annotated[int, Field(description="Number of steps in the plan")] = 7) -> dict:
     """Step-by-step action plan for any goal with effort estimate and first action."""
     return plan_inner(goal, context, steps)
 
 
 @metered_tool("ai")
-def decide(decision: str, options: list[str] = None, criteria: str = "") -> dict:
+def decide(decision: Annotated[str, Field(description="Decision or question to evaluate")], options: Annotated[list[str], Field(description="List of options to consider")] = None, criteria: Annotated[str, Field(description="Evaluation criteria or priorities")] = "") -> dict:
     """Decision framework: pros, cons, risks, recommendation, and confidence score."""
     return decide_inner(decision, options, criteria)
 
 
 @metered_tool("ai")
-def proofread(text: str, style: str = "professional") -> dict:
+def proofread(text: Annotated[str, Field(description="Text to proofread")], style: Annotated[str, Field(description="Writing style: professional, casual, academic")] = "professional") -> dict:
     """Grammar and clarity corrections with tracked changes and writing quality score."""
     return proofread_inner(text, style)
 
 
 @metered_tool("ai")
-def explain(concept: str, level: str = "beginner", analogy: bool = True) -> dict:
+def explain(concept: Annotated[str, Field(description="Concept or topic to explain")], level: Annotated[str, Field(description="Explanation level: beginner, intermediate, or expert")] = "beginner", analogy: Annotated[bool, Field(description="Whether to include an analogy")] = True) -> dict:
     """Explain any concept at beginner, intermediate, or expert level with analogy."""
     return explain_inner(concept, level, analogy)
 
 
 @metered_tool("ai")
-def questions(content: str, type: str = "faq", count: int = 5) -> dict:
+def questions(content: Annotated[str, Field(description="Content to generate questions from")], type: Annotated[str, Field(description="Question type: faq, interview, quiz, or comprehension")] = "faq", count: Annotated[int, Field(description="Number of questions to generate")] = 5) -> dict:
     """Generate questions + answers from any content. type: faq | interview | quiz | comprehension"""
     return questions_inner(content, type, count)
 
 
 @metered_tool("ai")
-def outline(topic: str, depth: int = 2, sections: int = 6) -> dict:
+def outline(topic: Annotated[str, Field(description="Topic to create an outline for")], depth: Annotated[int, Field(description="Nesting depth of the outline")] = 2, sections: Annotated[int, Field(description="Number of top-level sections")] = 6) -> dict:
     """Generate a hierarchical outline with headings, summaries, and subsections."""
     return outline_inner(topic, depth, sections)
 
 
 @metered_tool("ai")
-def email(purpose: str, tone: str = "professional", context: str = "", recipient: str = "", length: str = "medium") -> dict:
+def email(purpose: Annotated[str, Field(description="Purpose or goal of the email")], tone: Annotated[str, Field(description="Email tone: professional, friendly, formal, casual")] = "professional", context: Annotated[str, Field(description="Background context for the email")] = "", recipient: Annotated[str, Field(description="Who the email is for")] = "", length: Annotated[str, Field(description="Email length: short, medium, or long")] = "medium") -> dict:
     """Compose a professional email. Returns subject line and body."""
     return email_inner(purpose, tone, context, recipient, length)
 
 
 @metered_tool("ai")
-def sql(description: str, dialect: str = "postgresql", schema: str = "") -> dict:
+def sql(description: Annotated[str, Field(description="Natural language description of the SQL query")], dialect: Annotated[str, Field(description="SQL dialect: postgresql, mysql, sqlite, etc.")] = "postgresql", schema: Annotated[str, Field(description="Database schema description for context")] = "") -> dict:
     """Natural language to SQL. Returns query, explanation, and notes."""
     return sql_inner(description, dialect, schema)
 
 
 @metered_tool("ai")
-def regex(description: str, language: str = "python", flags: str = "") -> dict:
+def regex(description: Annotated[str, Field(description="Plain-English description of the pattern to match")], language: Annotated[str, Field(description="Target programming language for the regex")] = "python", flags: Annotated[str, Field(description="Regex flags like i, m, s")] = "") -> dict:
     """Generate a regex pattern from a plain-English description with examples."""
     return regex_inner(description, language, flags)
 
 
 @metered_tool("ai")
-def mock(description: str, count: int = 5, format: str = "json") -> dict:
+def mock(description: Annotated[str, Field(description="Description of the mock data to generate")], count: Annotated[int, Field(description="Number of mock records to generate")] = 5, format: Annotated[str, Field(description="Output format: json, csv, or list")] = "json") -> dict:
     """Generate realistic mock data records. format: json | csv | list"""
     return mock_inner(description, min(count, 50), format)
 
 
 @metered_tool("ai")
-def score(content: str, criteria: list[str] = None, scale: int = 10) -> dict:
+def score(content: Annotated[str, Field(description="Content to score")], criteria: Annotated[list[str], Field(description="Scoring criteria like clarity, accuracy, engagement")] = None, scale: Annotated[int, Field(description="Maximum score value")] = 10) -> dict:
     """Score content on a custom rubric. Returns per-criterion scores, strengths, and weaknesses."""
     return score_inner(content, criteria or ["clarity", "accuracy", "engagement"], scale)
 
 
 @metered_tool("ai")
-def timeline(text: str, direction: str = "chronological") -> dict:
+def timeline(text: Annotated[str, Field(description="Text containing events to extract a timeline from")], direction: Annotated[str, Field(description="Sort order: chronological or reverse")] = "chronological") -> dict:
     """Extract or reconstruct a timeline from text. Returns dated events with significance."""
     return timeline_inner(text, direction)
 
 
 @metered_tool("ai")
-def action(text: str) -> dict:
+def action(text: Annotated[str, Field(description="Meeting notes or text to extract action items from")]) -> dict:
     """Extract action items, tasks, owners, and due dates from meeting notes or any text."""
     return action_inner(text)
 
 
 @metered_tool("ai")
-def pitch(product: str, audience: str = "general", length: str = "30s") -> dict:
+def pitch(product: Annotated[str, Field(description="Product or service to pitch")], audience: Annotated[str, Field(description="Target audience for the pitch")] = "general", length: Annotated[str, Field(description="Pitch duration: 15s, 30s, or 60s")] = "30s") -> dict:
     """Generate an elevator pitch: hook, value prop, call to action, full script. length: 15s | 30s | 60s"""
     return pitch_inner(product, audience, length)
 
 
 @metered_tool("ai")
-def debate(topic: str, perspective: str = "balanced") -> dict:
+def debate(topic: Annotated[str, Field(description="Topic or position to debate")], perspective: Annotated[str, Field(description="Perspective: balanced, for, or against")] = "balanced") -> dict:
     """Arguments for and against any position with strength ratings and verdict."""
     return debate_inner(topic, perspective)
 
 
 @metered_tool("ai")
-def headline(content: str, count: int = 5, style: str = "engaging") -> dict:
+def headline(content: Annotated[str, Field(description="Content to generate headlines for")], count: Annotated[int, Field(description="Number of headline variations")] = 5, style: Annotated[str, Field(description="Headline style: engaging, clickbait, seo, news")] = "engaging") -> dict:
     """Generate headline variations with type labels and a best pick."""
     return headline_inner(content, count, style)
 
 
 @metered_tool("ai")
-def fact(text: str, count: int = 10) -> dict:
+def fact(text: Annotated[str, Field(description="Text to extract factual claims from")], count: Annotated[int, Field(description="Maximum number of facts to extract")] = 10) -> dict:
     """Extract factual claims with verifiability scores and source hints."""
     return fact_inner(text, count)
 
 
 @metered_tool("ai")
-def rewrite(text: str, audience: str = "general audience", tone: str = "neutral") -> dict:
+def rewrite(text: Annotated[str, Field(description="Text to rewrite")], audience: Annotated[str, Field(description="Target audience for the rewrite")] = "general audience", tone: Annotated[str, Field(description="Desired tone: neutral, formal, casual, enthusiastic")] = "neutral") -> dict:
     """Rewrite text for a specific audience, reading level, or brand voice."""
     return rewrite_inner(text, audience, tone)
 
 
 @metered_tool("ai")
-def tag(text: str, taxonomy: list[str] = None, max_tags: int = 10) -> dict:
+def tag(text: Annotated[str, Field(description="Text to auto-tag")], taxonomy: Annotated[list[str], Field(description="Predefined taxonomy of valid tags")] = None, max_tags: Annotated[int, Field(description="Maximum number of tags to return")] = 10) -> dict:
     """Auto-tag content using a taxonomy or free-form. Returns tags, primary tag, categories."""
     return tag_inner(text, taxonomy, max_tags)
 
@@ -398,67 +398,67 @@ def tag(text: str, taxonomy: list[str] = None, max_tags: int = 10) -> dict:
 # ── Heavy AI Tools (multi-step) ──────────────────────────────────────────────
 
 @metered_tool("ai")
-def review_code(code: str, language: str = "auto", focus: str = "quality") -> dict:
+def review_code(code: Annotated[str, Field(description="Source code to review")], language: Annotated[str, Field(description="Programming language, or auto to detect")] = "auto", focus: Annotated[str, Field(description="Review focus: quality, security, or performance")] = "quality") -> dict:
     """Review code for quality, security, and performance issues. Returns issues, score, and summary."""
     return review_code_inner(code, language, focus)
 
 
 @metered_tool("ai")
-def generate_docs(code: str, style: str = "jsdoc") -> dict:
+def generate_docs(code: Annotated[str, Field(description="Source code to generate documentation for")], style: Annotated[str, Field(description="Doc style: jsdoc, docstring, rustdoc, etc.")] = "jsdoc") -> dict:
     """Generate documentation for code. Supports jsdoc, docstring, rustdoc, etc."""
     return generate_docs_inner(code, style)
 
 
 @metered_tool("ai")
-def convert_code(code: str, from_lang: str = "auto", to_lang: str = "python") -> dict:
+def convert_code(code: Annotated[str, Field(description="Source code to convert")], from_lang: Annotated[str, Field(description="Source language, or auto to detect")] = "auto", to_lang: Annotated[str, Field(description="Target programming language")] = "python") -> dict:
     """Convert code from one programming language to another."""
     return convert_code_inner(code, from_lang, to_lang)
 
 
 @metered_tool("ai")
-def generate_api_spec(description: str, format: str = "openapi") -> dict:
+def generate_api_spec(description: Annotated[str, Field(description="Natural language description of the API")], format: Annotated[str, Field(description="Spec format: openapi or asyncapi")] = "openapi") -> dict:
     """Generate an OpenAPI/AsyncAPI specification from a natural language description."""
     return generate_api_spec_inner(description, format)
 
 
 @metered_tool("ai")
-def diff(text_a: str, text_b: str) -> dict:
+def diff(text_a: Annotated[str, Field(description="First text or code snippet")], text_b: Annotated[str, Field(description="Second text or code snippet")]) -> dict:
     """Analyze differences between two texts or code snippets. Returns changes, summary, and similarity."""
     return diff_inner(text_a, text_b)
 
 
 @metered_tool("ai")
-def parse_csv(csv_text: str, question: str = "") -> dict:
+def parse_csv(csv_text: Annotated[str, Field(description="CSV data as a string")], question: Annotated[str, Field(description="Question to answer about the data")] = "") -> dict:
     """Analyze CSV data and optionally answer questions about it. Returns columns, row count, and insights."""
     return parse_csv_inner(csv_text, question)
 
 
 @metered_tool("ai")
-def cron_expression(description: str) -> dict:
+def cron_expression(description: Annotated[str, Field(description="Natural language description of the schedule")]) -> dict:
     """Generate or explain cron expressions from natural language. Returns cron string and next 5 runs."""
     return cron_expr_inner(description)
 
 
 @metered_tool("ai")
-def changelog(commits: str, version: str = "") -> dict:
+def changelog(commits: Annotated[str, Field(description="Commit messages to generate changelog from")], version: Annotated[str, Field(description="Version number for the changelog header")] = "") -> dict:
     """Generate a professional changelog from commit messages. Groups by Added/Changed/Fixed/Removed."""
     return changelog_inner(commits, version)
 
 
 @metered_tool("ai")
-def name_generator(description: str, count: int = 10, style: str = "startup") -> dict:
+def name_generator(description: Annotated[str, Field(description="Description of the product, company, or feature to name")], count: Annotated[int, Field(description="Number of name suggestions")] = 10, style: Annotated[str, Field(description="Naming style: startup, corporate, playful, technical")] = "startup") -> dict:
     """Generate names for products, companies, or features with taglines and domain suggestions."""
     return name_generator_inner(description, count, style)
 
 
 @metered_tool("ai")
-def privacy_check(text: str) -> dict:
+def privacy_check(text: Annotated[str, Field(description="Text to scan for PII and sensitive data")]) -> dict:
     """Scan text for PII, secrets, and sensitive data. Returns found items, risk level, and recommendations."""
     return privacy_check_inner(text)
 
 
 @metered_tool("ai_heavy")
-def think(problem: str, context: str = "", max_steps: int = 5) -> dict:
+def think(problem: Annotated[str, Field(description="The problem or question to solve")], context: Annotated[str, Field(description="Optional background information")] = "", max_steps: Annotated[int, Field(description="Maximum reasoning steps (1-10)")] = 5) -> dict:
     """
     Autonomous chain-of-thought reasoning. Breaks down a problem, reasons
     step-by-step, optionally calls internal tools, and returns a structured
@@ -472,7 +472,7 @@ def think(problem: str, context: str = "", max_steps: int = 5) -> dict:
 
 
 @metered_tool("ai_heavy")
-def pipeline(steps: list[dict]) -> dict:
+def pipeline(steps: Annotated[list[dict], Field(description="Sequential operations, each with endpoint and input keys")]) -> dict:
     """
     Chain up to 5 operations sequentially. Each step can reference the previous
     output using the string '{{prev}}' as a field value in its input.
@@ -488,7 +488,7 @@ def pipeline(steps: list[dict]) -> dict:
 
 
 @metered_tool("ai_heavy")
-def batch(operations: list[dict]) -> dict:
+def batch(operations: Annotated[list[dict], Field(description="Independent operations, each with endpoint and input keys")]) -> dict:
     """
     Run up to 5 independent operations in one call.
 
@@ -520,13 +520,13 @@ def batch(operations: list[dict]) -> dict:
 # ── Vision & Advanced AI Tools ───────────────────────────────────────────────
 
 @metered_tool("ai")
-def vision(image_url: str, question: str = "Describe this image in detail") -> dict:
+def vision(image_url: Annotated[str, Field(description="URL of the image to analyze")], question: Annotated[str, Field(description="Question to ask about the image")] = "Describe this image in detail") -> dict:
     """Analyze any image URL using Claude Vision. Ask specific questions or get a full description."""
     return vision_inner(image_url, question)
 
 
 @metered_tool("ai")
-def rag(documents: str, query: str) -> dict:
+def rag(documents: Annotated[str, Field(description="Documents to query, separated by '---' for multiple")], query: Annotated[str, Field(description="Question to answer from the documents")]) -> dict:
     """
     Grounded Q&A using only your documents. Separate multiple documents with '---'.
     Returns answer, confidence, citations, and a cannot_answer flag.
@@ -535,7 +535,7 @@ def rag(documents: str, query: str) -> dict:
 
 
 @metered_tool("ai")
-def diagram(description: str, diagram_type: str = "flowchart") -> dict:
+def diagram(description: Annotated[str, Field(description="Plain English description of the diagram")], diagram_type: Annotated[str, Field(description="Diagram type: flowchart, sequence, erd, gantt, mindmap")] = "flowchart") -> dict:
     """
     Generate a Mermaid diagram from a plain English description.
     Types: flowchart, sequence, erd, gantt, mindmap
@@ -544,19 +544,19 @@ def diagram(description: str, diagram_type: str = "flowchart") -> dict:
 
 
 @metered_tool("ai")
-def json_schema(description: str, example: str = "") -> dict:
+def json_schema(description: Annotated[str, Field(description="Plain English description of the data structure")], example: Annotated[str, Field(description="Example data to help infer the schema")] = "") -> dict:
     """Generate a JSON Schema (draft-07) from a plain English description of your data structure."""
     return json_schema_inner(description, example)
 
 
 @metered_tool("ai")
-def test_cases(code_or_description: str, language: str = "python") -> dict:
+def test_cases(code_or_description: Annotated[str, Field(description="Code or feature description to generate tests for")], language: Annotated[str, Field(description="Programming language for the test cases")] = "python") -> dict:
     """Generate comprehensive test cases with edge cases for code or a feature description."""
     return test_cases_inner(code_or_description, language)
 
 
 @metered_tool("ai_heavy")
-def workflow(goal: str, context: str = "") -> dict:
+def workflow(goal: Annotated[str, Field(description="Complex goal requiring multi-step reasoning")], context: Annotated[str, Field(description="Background context or constraints")] = "") -> dict:
     """
     Multi-step agentic reasoning using Claude Sonnet. Breaks down complex goals,
     reasons through each sub-task, and produces a comprehensive result.
@@ -568,7 +568,7 @@ def workflow(goal: str, context: str = "") -> dict:
 # ── Agent Memory Tools ───────────────────────────────────────────────────────
 
 @metered_tool("standard")
-def memory_store(agent_id: str, key: str, value: str, tags: str = "") -> dict:
+def memory_store(agent_id: Annotated[str, Field(description="Stable agent identifier (UUID, DID, or name)")], key: Annotated[str, Field(description="Memory key to store under")], value: Annotated[str, Field(description="Value to store")], tags: Annotated[str, Field(description="Comma-separated tags for organization")] = "") -> dict:
     """
     Store a persistent memory for an agent. Survives across sessions.
     agent_id: stable identifier for your agent (UUID, DID, or name).
@@ -579,21 +579,21 @@ def memory_store(agent_id: str, key: str, value: str, tags: str = "") -> dict:
 
 
 @metered_tool("standard")
-def memory_recall(agent_id: str, key: str) -> dict:
+def memory_recall(agent_id: Annotated[str, Field(description="Agent identifier to recall memory for")], key: Annotated[str, Field(description="Memory key to retrieve")]) -> dict:
     """Retrieve a stored memory by agent_id and key. Returns value, tags, and timestamps."""
     result = memory_get(agent_id, key)
     return result or {"error": "not_found", "agent_id": agent_id, "key": key}
 
 
 @metered_tool("standard")
-def memory_find(agent_id: str, query: str) -> dict:
+def memory_find(agent_id: Annotated[str, Field(description="Agent identifier to search memories for")], query: Annotated[str, Field(description="Keyword to search across memories")]) -> dict:
     """Search all memories for an agent by keyword. Returns ranked matching key-value pairs."""
     results = memory_search(agent_id, query)
     return {"agent_id": agent_id, "query": query, "results": results, "count": len(results)}
 
 
 @metered_tool("standard")
-def memory_keys(agent_id: str) -> dict:
+def memory_keys(agent_id: Annotated[str, Field(description="Agent identifier to list memory keys for")]) -> dict:
     """List all memory keys stored for an agent, with tags and last-updated timestamps."""
     return {"agent_id": agent_id, "keys": memory_list(agent_id)}
 
@@ -601,7 +601,7 @@ def memory_keys(agent_id: str) -> dict:
 # ── API Catalog Tools ────────────────────────────────────────────────────────
 
 @metered_tool("standard")
-def browse_catalog(category: str = "", min_score: float = 0.0, free_only: bool = False, page: int = 1) -> dict:
+def browse_catalog(category: Annotated[str, Field(description="Filter by category: geo, finance, weather, social_media, etc.")] = "", min_score: Annotated[float, Field(description="Minimum quality score (0-10)")] = 0.0, free_only: Annotated[bool, Field(description="Show only APIs that don't require auth")] = False, page: Annotated[int, Field(description="Page number for pagination")] = 1) -> dict:
     """
     Browse the AiPayGen catalog of 4100+ APIs.
     Filter by category (geo, finance, weather, social_media, developer, news, health, science, scraping),
@@ -617,14 +617,14 @@ def browse_catalog(category: str = "", min_score: float = 0.0, free_only: bool =
 
 
 @metered_tool("standard")
-def get_catalog_api(api_id: int) -> dict:
+def get_catalog_api(api_id: Annotated[int, Field(description="Numeric ID of the API to retrieve")]) -> dict:
     """Get full details for a specific API in the catalog by its numeric ID."""
     result = get_api(api_id)
     return result or {"error": "not_found", "api_id": api_id}
 
 
 @metered_tool("ai")
-def invoke_catalog_api(api_id: int, endpoint: str = "/", params: str = "{}") -> dict:
+def invoke_catalog_api(api_id: Annotated[int, Field(description="API ID from browse_catalog")], endpoint: Annotated[str, Field(description="API endpoint path to call")] = "/", params: Annotated[str, Field(description="JSON string of query parameters")] = "{}") -> dict:
     """
     Actually call a catalog API and return its response.
     Get api_id from browse_catalog first. endpoint is the path to hit.
@@ -659,8 +659,8 @@ def invoke_catalog_api(api_id: int, endpoint: str = "/", params: str = "{}") -> 
 # ── Agent Registry Tools ─────────────────────────────────────────────────────
 
 @metered_tool("standard")
-def register_my_agent(agent_id: str, name: str, description: str,
-                      capabilities: str, endpoint: str = "") -> dict:
+def register_my_agent(agent_id: Annotated[str, Field(description="Unique agent identifier")], name: Annotated[str, Field(description="Display name for the agent")], description: Annotated[str, Field(description="What the agent does")],
+                      capabilities: Annotated[str, Field(description="Comma-separated list of capabilities")], endpoint: Annotated[str, Field(description="URL where other agents can reach you")] = "") -> dict:
     """
     Register your agent in the AiPayGen agent registry.
     capabilities: comma-separated list of what your agent can do.
@@ -687,7 +687,7 @@ def _apify_run(actor_id: str, run_input: dict, max_items: int = 10) -> list:
 
 
 @metered_tool("scraping")
-def scrape_google_maps(query: str, max_results: int = 5) -> dict:
+def scrape_google_maps(query: Annotated[str, Field(description="Search query for businesses on Google Maps")], max_results: Annotated[int, Field(description="Maximum number of results to return")] = 5) -> dict:
     """Scrape Google Maps for businesses matching a query. Returns name, address, rating, phone, website."""
     results = _apify_run("nwua9Gu5YrADL7ZDj",
                          {"searchStringsArray": [query], "maxCrawledPlacesPerSearch": max_results},
@@ -696,7 +696,7 @@ def scrape_google_maps(query: str, max_results: int = 5) -> dict:
 
 
 @metered_tool("scraping")
-def scrape_tweets(query: str, max_results: int = 20) -> dict:
+def scrape_tweets(query: Annotated[str, Field(description="Search query or hashtag for tweets")], max_results: Annotated[int, Field(description="Maximum number of tweets to return")] = 20) -> dict:
     """Scrape Twitter/X tweets by search query or hashtag. Returns text, author, likes, retweets, date."""
     results = _apify_run("61RPP7dywgiy0JPD0",
                          {"searchTerms": [query], "maxItems": max_results},
@@ -705,7 +705,7 @@ def scrape_tweets(query: str, max_results: int = 20) -> dict:
 
 
 @metered_tool("scraping")
-def scrape_website(url: str, max_pages: int = 3) -> dict:
+def scrape_website(url: Annotated[str, Field(description="Website URL to crawl")], max_pages: Annotated[int, Field(description="Maximum number of pages to crawl")] = 3) -> dict:
     """Crawl any website and extract text content. Returns page URL, title, and text per page."""
     results = _apify_run("aYG0l9s7dbB7j3gbS",
                          {"startUrls": [{"url": url}], "maxCrawlPages": max_pages},
@@ -714,7 +714,7 @@ def scrape_website(url: str, max_pages: int = 3) -> dict:
 
 
 @metered_tool("scraping")
-def scrape_youtube(query: str, max_results: int = 5) -> dict:
+def scrape_youtube(query: Annotated[str, Field(description="YouTube search keywords")], max_results: Annotated[int, Field(description="Maximum number of videos to return")] = 5) -> dict:
     """Search YouTube and return video metadata — title, channel, views, duration, description, URL."""
     results = _apify_run("h7sDV53CddomktSi5",
                          {"searchKeywords": query, "maxResults": max_results},
@@ -723,7 +723,7 @@ def scrape_youtube(query: str, max_results: int = 5) -> dict:
 
 
 @metered_tool("scraping")
-def scrape_instagram(username: str, max_posts: int = 5) -> dict:
+def scrape_instagram(username: Annotated[str, Field(description="Instagram username to scrape posts from")], max_posts: Annotated[int, Field(description="Maximum number of posts to return")] = 5) -> dict:
     """Scrape Instagram profile posts. Returns caption, likes, comments, date, media URL."""
     results = _apify_run("shu8hvrXbJbY3Eb9W",
                          {"username": [username], "resultsLimit": max_posts},
@@ -732,7 +732,7 @@ def scrape_instagram(username: str, max_posts: int = 5) -> dict:
 
 
 @metered_tool("scraping")
-def scrape_tiktok(username: str, max_videos: int = 5) -> dict:
+def scrape_tiktok(username: Annotated[str, Field(description="TikTok username to scrape videos from")], max_videos: Annotated[int, Field(description="Maximum number of videos to return")] = 5) -> dict:
     """Scrape TikTok profile videos. Returns caption, views, likes, shares, date."""
     results = _apify_run("GdWCkxBtKWOsKjdch",
                          {"profiles": [username], "resultsPerPage": max_videos},
@@ -741,7 +741,7 @@ def scrape_tiktok(username: str, max_videos: int = 5) -> dict:
 
 
 @metered_tool("ai_heavy")
-def chain_operations(steps: list) -> dict:
+def chain_operations(steps: Annotated[list, Field(description="List of {action, params} dicts to chain sequentially")]) -> dict:
     """
     Chain multiple AI operations in sequence. Output of each step is available to the next.
     steps: list of {action: str, params: dict}
@@ -791,7 +791,7 @@ def chain_operations(steps: list) -> dict:
 # ── Marketplace ──────────────────────────────────────────────────────────────
 
 @metered_tool("standard")
-def list_marketplace(category: str = None, max_price: float = None) -> dict:
+def list_marketplace(category: Annotated[str, Field(description="Filter by service category")] = None, max_price: Annotated[float, Field(description="Maximum price in USD")] = None) -> dict:
     """
     Browse the agent marketplace — services offered by other AI agents.
     Args:
@@ -804,10 +804,10 @@ def list_marketplace(category: str = None, max_price: float = None) -> dict:
 
 
 @metered_tool("standard")
-def post_to_marketplace(agent_id: str, name: str, description: str,
-                         endpoint: str, price_usd: float,
-                         category: str = "general",
-                         capabilities: list = None) -> dict:
+def post_to_marketplace(agent_id: Annotated[str, Field(description="Your unique agent identifier")], name: Annotated[str, Field(description="Short name for your service")], description: Annotated[str, Field(description="What your service does and returns")],
+                         endpoint: Annotated[str, Field(description="Full URL where your service can be called")], price_usd: Annotated[float, Field(description="Price in USD per call")],
+                         category: Annotated[str, Field(description="Service category: general, ai, data, scraping, finance")] = "general",
+                         capabilities: Annotated[list, Field(description="List of capability strings")] = None) -> dict:
     """
     List your agent's service in the marketplace so other agents can discover and hire you.
     Args:
@@ -844,7 +844,7 @@ def get_current_time() -> dict:
 
 
 @metered_tool("free")
-def generate_uuid(count: int = 1) -> dict:
+def generate_uuid(count: Annotated[int, Field(description="Number of UUIDs to generate (max 50)")] = 1) -> dict:
     """Generate one or more UUID4 values. Free, no payment needed."""
     import uuid
     if count == 1:
@@ -875,7 +875,7 @@ def get_quote() -> dict:
 
 
 @metered_tool("free")
-def get_holidays(country: str = "US", year: str = "") -> dict:
+def get_holidays(country: Annotated[str, Field(description="ISO 2-letter country code (e.g. US, GB, DE)")] = "US", year: Annotated[str, Field(description="Year to get holidays for (default: current year)")] = "") -> dict:
     """Get public holidays for a country. country: ISO 2-letter code (US, GB, DE). Free."""
     from datetime import datetime
     yr = year or str(datetime.utcnow().year)
@@ -893,13 +893,13 @@ def get_holidays(country: str = "US", year: str = "") -> dict:
 # ── Agent Messaging ──────────────────────────────────────────────────────────
 
 @metered_tool("standard")
-def send_agent_message(from_agent: str, to_agent: str, subject: str, body: str) -> dict:
+def send_agent_message(from_agent: Annotated[str, Field(description="Sender agent ID")], to_agent: Annotated[str, Field(description="Recipient agent ID")], subject: Annotated[str, Field(description="Message subject line")], body: Annotated[str, Field(description="Message body text")]) -> dict:
     """Send a direct message from one agent to another via the agent network."""
     return send_message(from_agent, to_agent, subject, body)
 
 
 @metered_tool("standard")
-def read_agent_inbox(agent_id: str, unread_only: bool = False) -> dict:
+def read_agent_inbox(agent_id: Annotated[str, Field(description="Agent ID to read inbox for")], unread_only: Annotated[bool, Field(description="Only return unread messages")] = False) -> dict:
     """Read messages from an agent's inbox. Set unread_only=True to filter."""
     messages = get_inbox(agent_id, unread_only=unread_only)
     return {"agent_id": agent_id, "messages": messages, "count": len(messages)}
@@ -908,14 +908,14 @@ def read_agent_inbox(agent_id: str, unread_only: bool = False) -> dict:
 # ── Knowledge Base ───────────────────────────────────────────────────────────
 
 @metered_tool("standard")
-def add_to_knowledge_base(topic: str, content: str, author_agent: str,
-                          tags: list = None) -> dict:
+def add_to_knowledge_base(topic: Annotated[str, Field(description="Topic or title for the knowledge entry")], content: Annotated[str, Field(description="Knowledge content to store")], author_agent: Annotated[str, Field(description="Agent ID of the author")],
+                          tags: Annotated[list, Field(description="Tags for categorization")] = None) -> dict:
     """Add an entry to the shared agent knowledge base."""
     return add_knowledge(topic, content, author_agent, tags or [])
 
 
 @metered_tool("standard")
-def search_knowledge_base(query: str, limit: int = 10) -> dict:
+def search_knowledge_base(query: Annotated[str, Field(description="Search keyword for the knowledge base")], limit: Annotated[int, Field(description="Maximum number of results")] = 10) -> dict:
     """Search the shared agent knowledge base by keyword."""
     results = search_knowledge(query, limit=limit)
     return {"query": query, "results": results, "count": len(results)}
@@ -931,15 +931,15 @@ def get_trending_knowledge() -> dict:
 # ── Task Board ───────────────────────────────────────────────────────────────
 
 @metered_tool("standard")
-def submit_agent_task(posted_by: str, title: str, description: str,
-                      skills_needed: list = None, reward_usd: float = 0.0) -> dict:
+def submit_agent_task(posted_by: Annotated[str, Field(description="Agent ID posting the task")], title: Annotated[str, Field(description="Task title")], description: Annotated[str, Field(description="Detailed task description")],
+                      skills_needed: Annotated[list, Field(description="List of skills required for the task")] = None, reward_usd: Annotated[float, Field(description="Reward amount in USD")] = 0.0) -> dict:
     """Post a task to the agent task board for other agents to claim and complete."""
     from agent_network import submit_task as _submit_task
     return _submit_task(posted_by, title, description, skills_needed or [], reward_usd)
 
 
 @metered_tool("standard")
-def browse_agent_tasks(status: str = "open", skill: str = None) -> dict:
+def browse_agent_tasks(status: Annotated[str, Field(description="Task status filter: open, claimed, completed")] = "open", skill: Annotated[str, Field(description="Filter by required skill")] = None) -> dict:
     """Browse tasks on the agent task board, optionally filtered by skill or status."""
     tasks = browse_tasks(status=status, skill=skill)
     return {"tasks": tasks, "count": len(tasks)}
@@ -948,7 +948,7 @@ def browse_agent_tasks(status: str = "open", skill: str = None) -> dict:
 # ── Code Execution ───────────────────────────────────────────────────────────
 
 @metered_tool("standard")
-def run_python_code(code: str, timeout: int = 10) -> dict:
+def run_python_code(code: Annotated[str, Field(description="Python code to execute in sandbox")], timeout: Annotated[int, Field(description="Execution timeout in seconds (max 15)")] = 10) -> dict:
     """Execute Python code in a sandboxed subprocess. Returns stdout, stderr, returncode.
     Imports, file I/O, network access, and OS commands are blocked."""
     import subprocess
@@ -984,7 +984,7 @@ def run_python_code(code: str, timeout: int = 10) -> dict:
 # ── Web Search ───────────────────────────────────────────────────────────────
 
 @metered_tool("standard")
-def web_search(query: str, n_results: int = 10) -> dict:
+def web_search(query: Annotated[str, Field(description="Search query for DuckDuckGo")], n_results: Annotated[int, Field(description="Maximum number of results (max 25)")] = 10) -> dict:
     """Search the web via DuckDuckGo. Returns instant answer and related results."""
     n = min(n_results, 25)
     try:
@@ -1012,7 +1012,7 @@ def web_search(query: str, n_results: int = 10) -> dict:
 # ── Real-Time Data ───────────────────────────────────────────────────────────
 
 @metered_tool("standard")
-def get_weather(city: str) -> dict:
+def get_weather(city: Annotated[str, Field(description="City name to get weather for")]) -> dict:
     """Get current weather for any city using Open-Meteo (free, no key needed)."""
     try:
         geo = _mcp_requests.get(
@@ -1043,7 +1043,7 @@ def get_weather(city: str) -> dict:
 
 
 @metered_tool("standard")
-def get_crypto_prices(symbols: str = "bitcoin,ethereum") -> dict:
+def get_crypto_prices(symbols: Annotated[str, Field(description="Comma-separated CoinGecko IDs (e.g. bitcoin,ethereum)")] = "bitcoin,ethereum") -> dict:
     """Get real-time crypto prices from CoinGecko. symbols: comma-separated CoinGecko IDs."""
     try:
         data = _mcp_requests.get(
@@ -1057,7 +1057,7 @@ def get_crypto_prices(symbols: str = "bitcoin,ethereum") -> dict:
 
 
 @metered_tool("standard")
-def get_exchange_rates(base_currency: str = "USD") -> dict:
+def get_exchange_rates(base_currency: Annotated[str, Field(description="Base currency code (e.g. USD, EUR, GBP)")] = "USD") -> dict:
     """Get live exchange rates for 160+ currencies. base_currency: e.g. USD, EUR, GBP."""
     try:
         data = _mcp_requests.get(
@@ -1070,7 +1070,7 @@ def get_exchange_rates(base_currency: str = "USD") -> dict:
 
 
 @metered_tool("standard")
-def enrich_entity(entity: str, entity_type: str) -> dict:
+def enrich_entity(entity: Annotated[str, Field(description="Entity value to enrich (IP, ticker, country code, etc.)")], entity_type: Annotated[str, Field(description="Entity type: ip, crypto, country, or company")]) -> dict:
     """Aggregate data about an entity. entity_type: ip | crypto | country | company."""
     try:
         resp = _mcp_requests.post(
@@ -1086,7 +1086,7 @@ def enrich_entity(entity: str, entity_type: str) -> dict:
 # ── API Key Management ───────────────────────────────────────────────────────
 
 @metered_tool("free")
-def generate_api_key(label: str = "") -> dict:
+def generate_api_key(label: Annotated[str, Field(description="Optional label for the API key")] = "") -> dict:
     """Generate a prepaid AiPayGen API key. Use with Bearer auth to bypass x402 per-call payment."""
     try:
         resp = _mcp_requests.post(
@@ -1100,7 +1100,7 @@ def generate_api_key(label: str = "") -> dict:
 
 
 @metered_tool("free")
-def check_api_key_balance(key: str) -> dict:
+def check_api_key_balance(key: Annotated[str, Field(description="API key to check balance for")]) -> dict:
     """Check balance and usage stats for a prepaid AiPayGen API key."""
     try:
         resp = _mcp_requests.get(f"http://localhost:5001/auth/status?key={key}", timeout=5)
@@ -1112,7 +1112,7 @@ def check_api_key_balance(key: str) -> dict:
 # ── Skills System (Skill Harvester MCP Tools) ────────────────────────────────
 
 @metered_tool("standard")
-def search_skills(query: str, top_n: int = 10) -> dict:
+def search_skills(query: Annotated[str, Field(description="Search query to find relevant skills")], top_n: Annotated[int, Field(description="Maximum number of results (max 50)")] = 10) -> dict:
     """Search 646+ skills using TF-IDF semantic search. Returns ranked skills with scores.
     Use this to discover capabilities before calling execute_skill."""
     _skills_engine.build_index()
@@ -1135,7 +1135,7 @@ def search_skills(query: str, top_n: int = 10) -> dict:
 
 
 @metered_tool("standard")
-def list_skills(category: str = "") -> dict:
+def list_skills(category: Annotated[str, Field(description="Filter by skill category")] = "") -> dict:
     """List available skills, optionally filtered by category. Shows name, description, and usage count."""
     _skills_engine.build_index()
     skills = list(_skills_engine.skills.values())
@@ -1163,7 +1163,7 @@ def list_skills(category: str = "") -> dict:
 
 
 @metered_tool("ai")
-def execute_skill(skill_name: str, input_text: str) -> dict:
+def execute_skill(skill_name: Annotated[str, Field(description="Name of the skill to execute")], input_text: Annotated[str, Field(description="Input text to pass to the skill")]) -> dict:
     """Execute a specific skill by name. Use search_skills or list_skills to discover available skills."""
     try:
         resp = _mcp_requests.post("http://localhost:5001/skills/execute",
@@ -1174,7 +1174,7 @@ def execute_skill(skill_name: str, input_text: str) -> dict:
 
 
 @metered_tool("ai")
-def ask(question: str) -> dict:
+def ask(question: Annotated[str, Field(description="Question or prompt to answer")]) -> dict:
     """Universal endpoint — ask anything. AiPayGen picks the best skill and model automatically."""
     try:
         resp = _mcp_requests.post("http://localhost:5001/ask",
@@ -1185,7 +1185,7 @@ def ask(question: str) -> dict:
 
 
 @metered_tool("standard")
-def create_skill(name: str, description: str, prompt_template: str, category: str = "general") -> dict:
+def create_skill(name: Annotated[str, Field(description="Unique name for the skill")], description: Annotated[str, Field(description="What the skill does")], prompt_template: Annotated[str, Field(description="Prompt template with {{input}} placeholder")], category: Annotated[str, Field(description="Skill category")] = "general") -> dict:
     """Create a new reusable skill. prompt_template must contain {{input}} placeholder."""
     try:
         resp = _mcp_requests.post("http://localhost:5001/skills/create",
@@ -1197,7 +1197,7 @@ def create_skill(name: str, description: str, prompt_template: str, category: st
 
 
 @metered_tool("standard")
-def absorb_skill(url: str = "", text: str = "") -> dict:
+def absorb_skill(url: Annotated[str, Field(description="URL to absorb a skill from")] = "", text: Annotated[str, Field(description="Raw text to create a skill from")] = "") -> dict:
     """Absorb a new skill from a URL or text. AiPayGen reads and creates a callable skill."""
     try:
         resp = _mcp_requests.post("http://localhost:5001/skills/absorb",
@@ -1234,8 +1234,8 @@ def list_models() -> dict:
 
 
 @metered_tool("standard")
-def create_agent(name: str, description: str, tools: list = None,
-                 template: str = "", model: str = "auto") -> dict:
+def create_agent(name: Annotated[str, Field(description="Name for the custom agent")], description: Annotated[str, Field(description="What the agent does")], tools: Annotated[list, Field(description="List of tool names the agent can use")] = None,
+                 template: Annotated[str, Field(description="Agent template: research, monitor, content, sales, etc.")] = "", model: Annotated[str, Field(description="AI model to use, or auto for best fit")] = "auto") -> dict:
     """Create a custom AI agent with selected tools and configuration."""
     try:
         resp = _mcp_requests.post("http://localhost:5001/agents/build",
@@ -1261,7 +1261,7 @@ def list_my_agents() -> dict:
 
 
 @metered_tool("ai")
-def run_agent(agent_id: str, input_text: str = "") -> dict:
+def run_agent(agent_id: Annotated[str, Field(description="ID of the agent to run")], input_text: Annotated[str, Field(description="Input text or prompt for the agent")] = "") -> dict:
     """Run a custom agent by ID with optional input text."""
     try:
         resp = _mcp_requests.post(f"http://localhost:5001/agents/{agent_id}/run",
@@ -1272,8 +1272,8 @@ def run_agent(agent_id: str, input_text: str = "") -> dict:
 
 
 @metered_tool("standard")
-def schedule_agent(agent_id: str, schedule_type: str = "cron",
-                   schedule_value: str = "") -> dict:
+def schedule_agent(agent_id: Annotated[str, Field(description="ID of the agent to schedule")], schedule_type: Annotated[str, Field(description="Schedule type: cron, loop, or event")] = "cron",
+                   schedule_value: Annotated[str, Field(description="Schedule value (cron expression, interval, or event name)")] = "") -> dict:
     """Schedule an agent to run automatically. schedule_type: cron | loop | event."""
     try:
         resp = _mcp_requests.post(f"http://localhost:5001/agents/{agent_id}/schedule",
@@ -1285,7 +1285,7 @@ def schedule_agent(agent_id: str, schedule_type: str = "cron",
 
 
 @metered_tool("standard")
-def pause_agent(agent_id: str) -> dict:
+def pause_agent(agent_id: Annotated[str, Field(description="ID of the agent to pause")]) -> dict:
     """Pause a scheduled agent."""
     try:
         resp = _mcp_requests.post(f"http://localhost:5001/agents/{agent_id}/pause",
@@ -1296,7 +1296,7 @@ def pause_agent(agent_id: str) -> dict:
 
 
 @metered_tool("standard")
-def get_agent_runs(agent_id: str) -> dict:
+def get_agent_runs(agent_id: Annotated[str, Field(description="ID of the agent to get run history for")]) -> dict:
     """Get execution history for an agent."""
     try:
         resp = _mcp_requests.get(f"http://localhost:5001/agents/{agent_id}/runs",
@@ -1307,7 +1307,7 @@ def get_agent_runs(agent_id: str) -> dict:
 
 
 @metered_tool("standard")
-def delete_agent(agent_id: str) -> dict:
+def delete_agent(agent_id: Annotated[str, Field(description="ID of the agent to delete")]) -> dict:
     """Delete a custom agent by ID."""
     try:
         resp = _mcp_requests.delete(f"http://localhost:5001/agents/{agent_id}",
@@ -1955,6 +1955,46 @@ def compare_platforms() -> dict:
         return {"error": str(e)}
 
 
+@mcp.tool()
+def buyer_sdk_install() -> dict:
+    """Get the pip install command for the AiPayGen Buyer SDK — auto-402 payment handling for x402 APIs."""
+    return {
+        "install": "pip install aipaygen-buyer",
+        "pypi": "https://pypi.org/project/aipaygen-buyer/",
+        "requires": "Python 3.10+",
+        "dependencies": ["httpx", "pydantic", "eth-account", "eth-abi"],
+        "source": "https://github.com/Damien829/aipaygen",
+    }
+
+
+@mcp.tool()
+def buyer_sdk_example() -> dict:
+    """Get a usage example for the AiPayGen Buyer SDK — shows auto-402 payment, policy engine, and tracking."""
+    return {
+        "description": "AiPayGen Buyer SDK — auto-402 payment handling with policy engine",
+        "sync_example": 'from aipaygen_buyer import AiPayGenBuyer\n\nclient = AiPayGenBuyer(\n    private_key="0xYOUR_PRIVATE_KEY",\n    max_price=0.05,\n    daily_budget=5.0,\n)\n\nresult = client.call("/ask", prompt="What is x402?")\nprint(result.data)\nprint(f"Paid: {result.paid}, Receipt: {result.receipt}")\nprint(f"Budget remaining: ${client.budget_remaining:.2f}")',
+        "async_example": 'import asyncio\nfrom aipaygen_buyer import AsyncAiPayGenBuyer\n\nasync def main():\n    async with AsyncAiPayGenBuyer(private_key="0x...") as client:\n        result = await client.call("/ask", prompt="Hello!")\n        print(result.data)\n\nasyncio.run(main())',
+        "policy_example": 'from aipaygen_buyer import AiPayGenBuyer, SpendingPolicy\n\npolicy = SpendingPolicy(\n    max_price_per_call=0.02,\n    daily_budget=2.0,\n    monthly_budget=50.0,\n    vendor_allowlist={"0x366D488a48de1B2773F3a21F1A6972715056Cb30"},\n)\nclient = AiPayGenBuyer(private_key="0x...", policy=policy)',
+    }
+
+
+@mcp.tool()
+def buyer_sdk_quickstart() -> dict:
+    """Get the quickstart guide for the AiPayGen Buyer SDK — install to first paid API call in 60 seconds."""
+    return {
+        "title": "AiPayGen Buyer SDK Quickstart",
+        "steps": [
+            {"step": 1, "title": "Install", "command": "pip install aipaygen-buyer"},
+            {"step": 2, "title": "Set private key", "command": "export AIPAYGEN_PRIVATE_KEY=0xYOUR_KEY", "note": "Use a dedicated wallet with small USDC balance."},
+            {"step": 3, "title": "Fund wallet", "note": "Send USDC on Base Mainnet. Most calls cost $0.001-$0.02."},
+            {"step": 4, "title": "First call", "code": 'from aipaygen_buyer import AiPayGenBuyer\nclient = AiPayGenBuyer(max_price=0.05, daily_budget=5.0)\nresult = client.call("/ask", prompt="What is x402?")\nprint(result.data)'},
+            {"step": 5, "title": "Browse APIs", "code": 'catalog = client.catalog(search="translate")\nprint(catalog)'},
+        ],
+        "api_key_alternative": "Prepaid credits: client = AiPayGenBuyer(api_key='apk_YOUR_KEY')",
+        "docs": "https://api.aipaygen.com/docs",
+    }
+
+
 def main():
     import sys
     if "--http" in sys.argv:
@@ -1966,7 +2006,7 @@ def main():
 
         async def health(request):
             tool_count = len([m for m in dir() if callable(getattr(__import__(__name__), m, None)) and hasattr(getattr(__import__(__name__), m, None), '__wrapped__')])
-            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 155, "version": "1.7.0"})
+            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 161, "version": "1.7.1"})
 
         starlette_app.routes.insert(0, Route("/health", health))
         uvicorn.run(starlette_app, host="0.0.0.0", port=5002)

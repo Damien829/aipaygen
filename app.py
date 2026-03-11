@@ -20,7 +20,7 @@ from helpers import (
     check_identity_rate_limit as _check_identity_rate_limit,
     get_client_ip as _get_client_ip,
     log_payment, parse_json_from_claude, agent_response,
-    api_error as _api_error, require_admin,
+    api_error as _api_error, require_admin, call_llm,
 )
 
 from x402.http import FacilitatorConfig, HTTPFacilitatorClientSync, PaymentOption
@@ -952,41 +952,6 @@ def require_verified_agent(f):
                 pass
         return jsonify({"error": "Verified agent required. See /agents/challenge"}), 401
     return decorated
-
-
-def _call_llm(messages, system="", max_tokens=1024, endpoint="unknown", model_override=None):
-    """Route LLM call through model_router. Reads 'model' from request JSON if not overridden."""
-    model_name = model_override or (request.get_json(silent=True) or {}).get("model", "claude-haiku")
-    try:
-        result = call_model(model_name, messages, system=system, max_tokens=max_tokens)
-    except ModelNotFoundError as e:
-        return None, str(e)
-    # Track cost via discovery engine
-    try:
-        track_cost(endpoint, result["model_id"], result["input_tokens"], result["output_tokens"])
-    except Exception:
-        pass
-    # Metered deduction if applicable
-    api_key = request.environ.get("X_APIKEY_BYPASS", "")
-    pricing_mode = request.environ.get("X_PRICING_MODE", "flat")
-    if api_key and pricing_mode == "metered":
-        cfg = get_model_config(model_name)
-        # Per-request spend cap: reject if single call would cost > $1.00
-        estimated_cost = (result["input_tokens"] * cfg["input_cost_per_m"] + result["output_tokens"] * cfg["output_cost_per_m"]) / 1_000_000
-        if estimated_cost > 1.00:
-            result["metered_warning"] = f"Request cost ${estimated_cost:.4f} exceeds $1.00 cap — deduction skipped"
-        else:
-            deduction = deduct_metered(
-                api_key, result["input_tokens"], result["output_tokens"],
-                cfg["input_cost_per_m"], cfg["output_cost_per_m"],
-            )
-            if deduction:
-                result["metered_cost"] = deduction["cost"]
-                result["balance_remaining"] = deduction["balance_remaining"]
-                # Low balance warning
-                if deduction["balance_remaining"] < 0.10:
-                    result["metered_warning"] = f"Low balance: ${deduction['balance_remaining']:.4f} remaining"
-    return result, None
 
 
 init_db()

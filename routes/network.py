@@ -5,7 +5,7 @@ from agent_network import (
     add_knowledge, search_knowledge, get_trending_topics, vote_knowledge,
     submit_task, browse_tasks, claim_task, complete_task, get_task,
 )
-from helpers import log_payment, agent_response
+from helpers import log_payment, agent_response, require_api_key
 from agent_identity import verify_jwt
 
 network_bp = Blueprint("network", __name__)
@@ -34,6 +34,7 @@ def _verify_agent_access(agent_id):
 # -- Messaging ----------------------------------------------------------------
 
 @network_bp.route("/message/send", methods=["POST"])
+@require_api_key
 def message_send():
     data = request.get_json() or {}
     from_agent = data.get("from_agent", "")
@@ -47,6 +48,7 @@ def message_send():
 
 
 @network_bp.route("/message/inbox/<agent_id>", methods=["GET"])
+@require_api_key
 def message_inbox(agent_id):
     if not _verify_agent_access(agent_id):
         return jsonify({"error": "unauthorized", "message": "JWT required. Use /agents/challenge + /agents/verify to get a token for this agent_id."}), 401
@@ -56,6 +58,7 @@ def message_inbox(agent_id):
 
 
 @network_bp.route("/message/reply", methods=["POST"])
+@require_api_key
 def message_reply():
     data = request.get_json() or {}
     msg_id = data.get("msg_id", "")
@@ -71,6 +74,7 @@ def message_reply():
 
 
 @network_bp.route("/message/broadcast", methods=["POST"])
+@require_api_key
 def message_broadcast():
     data = request.get_json() or {}
     from_agent = data.get("from_agent", "")
@@ -83,6 +87,7 @@ def message_broadcast():
 
 
 @network_bp.route("/message/mark-read", methods=["POST"])
+@require_api_key
 def message_mark_read():
     data = request.get_json() or {}
     msg_id = data.get("msg_id", "")
@@ -98,6 +103,7 @@ def message_mark_read():
 # -- Shared Knowledge Base -----------------------------------------------------
 
 @network_bp.route("/knowledge/add", methods=["POST"])
+@require_api_key
 def knowledge_add():
     data = request.get_json() or {}
     topic = data.get("topic", "")
@@ -114,6 +120,7 @@ def knowledge_add():
 
 
 @network_bp.route("/knowledge/search", methods=["GET"])
+@require_api_key
 def knowledge_search():
     q = request.args.get("q", "")
     limit = min(int(request.args.get("limit", 10)), 50)
@@ -131,6 +138,7 @@ def knowledge_trending():
 
 
 @network_bp.route("/knowledge/vote", methods=["POST"])
+@require_api_key
 def knowledge_vote():
     data = request.get_json() or {}
     entry_id = data.get("entry_id", "")
@@ -144,6 +152,7 @@ def knowledge_vote():
 # -- Task Broker ---------------------------------------------------------------
 
 @network_bp.route("/task/submit", methods=["POST"])
+@require_api_key
 def task_submit():
     data = request.get_json() or {}
     posted_by = data.get("posted_by", "")
@@ -161,6 +170,7 @@ def task_submit():
 
 
 @network_bp.route("/task/browse", methods=["GET"])
+@require_api_key
 def task_browse():
     status = request.args.get("status", "open")
     skill = request.args.get("skill")
@@ -170,6 +180,7 @@ def task_browse():
 
 
 @network_bp.route("/task/claim", methods=["POST"])
+@require_api_key
 def task_claim():
     data = request.get_json() or {}
     task_id = data.get("task_id", "")
@@ -181,6 +192,7 @@ def task_claim():
 
 
 @network_bp.route("/task/complete", methods=["POST"])
+@require_api_key
 def task_complete():
     data = request.get_json() or {}
     task_id = data.get("task_id", "")

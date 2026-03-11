@@ -4,45 +4,14 @@ import json
 import requests as _requests
 from flask import Blueprint, request, jsonify, Response
 from model_router import call_model, get_model_config, ModelNotFoundError
-from helpers import parse_json_from_claude, agent_response, log_payment
+from helpers import parse_json_from_claude, agent_response, log_payment, call_llm
 from web import scrape_url, search_web
 
 ai_tools_bp = Blueprint("ai_tools", __name__)
 
 
-# ── Helper: routed LLM call ────────────────────────────────────────────────────
-
-def _call_llm(messages, system="", max_tokens=1024, endpoint="unknown", model_override=None):
-    """Route LLM call through model_router. Reads 'model' from request JSON if not overridden."""
-    from discovery_engine import track_cost
-    from api_keys import deduct_metered
-    model_name = model_override or (request.get_json(silent=True) or {}).get("model", "claude-haiku")
-    try:
-        result = call_model(model_name, messages, system=system, max_tokens=max_tokens)
-    except ModelNotFoundError as e:
-        return None, str(e)
-    # Track cost via discovery engine
-    try:
-        track_cost(endpoint, result["model_id"], result["input_tokens"], result["output_tokens"])
-    except Exception:
-        pass
-    # Metered deduction if applicable
-    api_key = request.environ.get("X_APIKEY_BYPASS", "")
-    pricing_mode = request.environ.get("X_PRICING_MODE", "flat")
-    if api_key and pricing_mode == "metered":
-        cfg = get_model_config(model_name)
-        estimated_cost = (result["input_tokens"] * cfg["input_cost_per_m"] + result["output_tokens"] * cfg["output_cost_per_m"]) / 1_000_000
-        if estimated_cost > 1.00:
-            result["metered_warning"] = f"Request cost ${estimated_cost:.4f} exceeds $1.00 cap — deduction skipped"
-        else:
-            deduction = deduct_metered(
-                api_key, result["input_tokens"], result["output_tokens"],
-                cfg["input_cost_per_m"], cfg["output_cost_per_m"],
-            )
-            if deduction:
-                result["metered_cost"] = deduction["cost"]
-                result["balance_remaining"] = deduction["balance_remaining"]
-    return result, None
+# Alias for backward compat within this module
+_call_llm = call_llm
 
 
 # ── Inner Functions ─────────────────────────────────────────────────────────────

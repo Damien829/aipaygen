@@ -9,7 +9,8 @@ from datetime import datetime
 from flask import Blueprint, request, jsonify, render_template_string
 
 from model_router import call_model
-from helpers import log_payment, agent_response
+from helpers import log_payment, agent_response, require_api_key
+from api_keys import validate_key
 from agent_memory import memory_search, memory_set
 
 builder_bp = Blueprint("builder", __name__)
@@ -398,10 +399,13 @@ def _execute_agent_run(agent_config, task, triggered_by="manual"):
 # ─── Endpoints ─────────────────────────────────────────────────────────────────
 
 @builder_bp.route("/agents/build", methods=["POST"])
+@require_api_key
 def create_agent():
     """Create a custom AI agent."""
     data = request.get_json() or {}
-    api_key = _get_api_key()
+    api_key = request.api_key
+    if not api_key or not validate_key(api_key):
+        return jsonify({"error": "Valid API key required (Bearer apk_xxx)"}), 401
 
     name = data.get("name", "").strip()
     system_prompt = data.get("system_prompt", "").strip()
@@ -479,11 +483,10 @@ def create_agent():
 
 
 @builder_bp.route("/agents/custom", methods=["GET"])
+@require_api_key
 def list_custom_agents():
     """List the caller's custom agents."""
-    api_key = _get_api_key()
-    if not api_key:
-        return jsonify({"error": "Authorization header required"}), 401
+    api_key = request.api_key
 
     conn = _get_db()
     rows = conn.execute(
@@ -497,6 +500,7 @@ def list_custom_agents():
 
 
 @builder_bp.route("/agents/custom/<agent_id>", methods=["GET"])
+@require_api_key
 def get_custom_agent(agent_id):
     """Get details of a custom agent."""
     conn = _get_db()
@@ -507,7 +511,7 @@ def get_custom_agent(agent_id):
         return jsonify({"error": "agent not found"}), 404
 
     agent = _row_to_dict(row)
-    api_key = _get_api_key()
+    api_key = request.api_key
     if agent["status"] == "archived":
         return jsonify({"error": "agent not found"}), 404
     if not agent.get("is_public") and agent.get("creator_key") != api_key:
@@ -517,11 +521,10 @@ def get_custom_agent(agent_id):
 
 
 @builder_bp.route("/agents/custom/<agent_id>", methods=["PUT"])
+@require_api_key
 def update_custom_agent(agent_id):
     """Update a custom agent's configuration."""
-    api_key = _get_api_key()
-    if not api_key:
-        return jsonify({"error": "Authorization header required"}), 401
+    api_key = request.api_key
 
     conn = _get_db()
     row = conn.execute("SELECT * FROM agents_custom WHERE id = ? AND creator_key = ?",
@@ -589,11 +592,10 @@ def update_custom_agent(agent_id):
 
 
 @builder_bp.route("/agents/custom/<agent_id>", methods=["DELETE"])
+@require_api_key
 def delete_custom_agent(agent_id):
     """Archive a custom agent."""
-    api_key = _get_api_key()
-    if not api_key:
-        return jsonify({"error": "Authorization header required"}), 401
+    api_key = request.api_key
 
     conn = _get_db()
     row = conn.execute("SELECT * FROM agents_custom WHERE id = ? AND creator_key = ?",
@@ -614,6 +616,7 @@ def delete_custom_agent(agent_id):
 
 
 @builder_bp.route("/agents/custom/<agent_id>/run", methods=["POST"])
+@require_api_key
 def run_custom_agent(agent_id):
     """Run a custom agent with a task."""
     conn = _get_db()
@@ -625,7 +628,7 @@ def run_custom_agent(agent_id):
         return jsonify({"error": "agent not found or inactive"}), 404
 
     agent_config = _row_to_dict(row)
-    api_key = _get_api_key()
+    api_key = request.api_key
     if not agent_config.get("is_public") and agent_config.get("creator_key") != api_key:
         return jsonify({"error": "unauthorized"}), 403
 
@@ -645,11 +648,10 @@ def run_custom_agent(agent_id):
 
 
 @builder_bp.route("/agents/custom/<agent_id>/schedule", methods=["POST"])
+@require_api_key
 def set_agent_schedule(agent_id):
     """Set or update agent schedule."""
-    api_key = _get_api_key()
-    if not api_key:
-        return jsonify({"error": "Authorization header required"}), 401
+    api_key = request.api_key
 
     conn = _get_db()
     row = conn.execute("SELECT * FROM agents_custom WHERE id = ? AND creator_key = ?",
@@ -698,11 +700,10 @@ def set_agent_schedule(agent_id):
 
 
 @builder_bp.route("/agents/custom/<agent_id>/schedule", methods=["DELETE"])
+@require_api_key
 def remove_agent_schedule(agent_id):
     """Remove agent schedule."""
-    api_key = _get_api_key()
-    if not api_key:
-        return jsonify({"error": "Authorization header required"}), 401
+    api_key = request.api_key
 
     conn = _get_db()
     row = conn.execute("SELECT * FROM agents_custom WHERE id = ? AND creator_key = ?",
@@ -723,6 +724,7 @@ def remove_agent_schedule(agent_id):
 
 
 @builder_bp.route("/agents/custom/<agent_id>/runs", methods=["GET"])
+@require_api_key
 def list_agent_runs(agent_id):
     """Get execution history for a custom agent."""
     conn = _get_db()
@@ -732,7 +734,7 @@ def list_agent_runs(agent_id):
         return jsonify({"error": "agent not found"}), 404
 
     agent = _row_to_dict(row)
-    api_key = _get_api_key()
+    api_key = request.api_key
     if not agent.get("is_public") and agent.get("creator_key") != api_key:
         conn.close()
         return jsonify({"error": "unauthorized"}), 403

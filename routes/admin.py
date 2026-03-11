@@ -19,6 +19,7 @@ from helpers import (
     parse_json_from_claude,
     agent_response,
     require_admin,
+    require_api_key,
 )
 from discovery_engine import (
     get_blog_post, list_blog_posts,
@@ -673,6 +674,7 @@ def agent_reputation_route(agent_id):
 # ══════════════════════════════════════════════════════════════════════════════
 
 @admin_bp.route("/task/subscribe", methods=["POST"])
+@require_api_key
 def task_subscribe():
     data = request.get_json() or {}
     agent_id = data.get("agent_id", "")
@@ -685,6 +687,7 @@ def task_subscribe():
 
 
 @admin_bp.route("/task/subscription/<agent_id>", methods=["GET"])
+@require_api_key
 def task_subscription_status(agent_id):
     sub = get_task_subscribers(agent_id)
     if not sub:
@@ -701,6 +704,7 @@ _ASYNC_HANDLERS = {}  # populated after route definitions (see bottom of routes 
 
 
 @admin_bp.route("/async/submit", methods=["POST"])
+@require_admin
 def async_submit():
     data = request.get_json() or {}
     endpoint = data.get("endpoint", "").lstrip("/")
@@ -723,6 +727,7 @@ def async_submit():
 
 
 @admin_bp.route("/async/status/<job_id>", methods=["GET"])
+@require_admin
 def async_status(job_id):
     job = get_job(job_id)
     if not job:
@@ -749,6 +754,7 @@ _BLOCKED_UPLOAD_EXTS = {
 }
 
 @admin_bp.route("/files/upload", methods=["POST"])
+@require_api_key
 def files_upload():
     agent_id = request.args.get("agent_id") or (request.get_json() or {}).get("agent_id", "anonymous")
     if "file" in request.files:
@@ -778,6 +784,7 @@ def files_upload():
 
 
 @admin_bp.route("/files/<file_id>", methods=["GET"])
+@require_api_key
 def files_get(file_id):
     meta, data = get_file(file_id)
     if meta is None:
@@ -788,6 +795,7 @@ def files_get(file_id):
 
 
 @admin_bp.route("/files/<file_id>", methods=["DELETE"])
+@require_api_key
 def files_delete(file_id):
     agent_id = (request.get_json() or {}).get("agent_id", "")
     if not agent_id:
@@ -797,6 +805,7 @@ def files_delete(file_id):
 
 
 @admin_bp.route("/files/list/<agent_id>", methods=["GET"])
+@require_api_key
 def files_list(agent_id):
     files = list_files(agent_id)
     return jsonify({"files": files, "count": len(files), "agent_id": agent_id})
@@ -807,6 +816,7 @@ def files_list(agent_id):
 # ══════════════════════════════════════════════════════════════════════════════
 
 @admin_bp.route("/webhooks/create", methods=["POST"])
+@require_api_key
 def webhooks_create():
     data = request.get_json() or {}
     agent_id = data.get("agent_id", "anonymous")
@@ -827,6 +837,7 @@ def webhooks_receive(webhook_id):
 
 
 @admin_bp.route("/webhooks/<webhook_id>/events", methods=["GET"])
+@require_api_key
 def webhooks_events(webhook_id):
     hook = get_webhook(webhook_id)
     if not hook:
@@ -842,6 +853,7 @@ def webhooks_events(webhook_id):
 
 
 @admin_bp.route("/webhooks/list/<agent_id>", methods=["GET"])
+@require_api_key
 def webhooks_list(agent_id):
     hooks = list_webhooks(agent_id)
     return jsonify({"webhooks": hooks, "count": len(hooks)})
@@ -1228,7 +1240,7 @@ a{{color:#6366f1}}h1,h2{{color:#1e1b4b}}.stat{{display:inline-block;background:#
 <div>
   <div class="stat"><div class="n">{total_calls:,}</div><div class="l">Total API calls</div></div>
   <div class="stat"><div class="n">${total_earned:.2f}</div><div class="l">Revenue logged</div></div>
-  <div class="stat"><div class="n">155</div><div class="l">MCP Tools</div></div>
+  <div class="stat"><div class="n">161</div><div class="l">MCP Tools</div></div>
   <div class="stat"><div class="n">3</div><div class="l">Free calls/day</div></div>
   <div class="stat"><div class="n">${cost['total_cost_usd']:.4f}</div><div class="l">Claude cost today</div></div>
 </div>
@@ -1334,7 +1346,7 @@ def reddit_posts():
     subreddits = [
         {
             "subreddit": "r/MachineLearning",
-            "title": "[P] AiPayGen — Pay-per-use Claude API with 155 tools and 140+ endpoints. Free tier (3/day), x402 crypto payments, MCP tools.",
+            "title": "[P] AiPayGen — Pay-per-use Claude API with 155 tools and 140+ endpoints. Free tier (10/day), x402 crypto payments, MCP tools.",
             "body": f"""I built a pay-per-use AI API on top of Claude with 155 tools and 140+ endpoints — research, write, code, analyze, scrape, RAG, vision, diagrams, and more.
 
 **Key features:**

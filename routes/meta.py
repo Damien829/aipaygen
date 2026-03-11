@@ -5,7 +5,7 @@ import os
 import requests as _requests
 import time as _time
 from datetime import datetime
-from flask import Blueprint, request, jsonify, Response, render_template_string, make_response
+from flask import Blueprint, request, jsonify, Response, render_template_string, render_template, make_response
 from helpers import require_admin, agent_response, get_client_ip, call_llm as _call_llm, cache_get as _cache_get, cache_set as _cache_set
 from model_router import call_model, list_models, get_all_perf
 from discovery_engine import get_blog_post, list_blog_posts, get_health_history, get_daily_cost
@@ -70,17 +70,17 @@ LANDING_HTML = '''<!DOCTYPE html>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AiPayGen — The Most Powerful AI Toolkit</title>
 <link rel="alternate" type="text/plain" href="/llms.txt" title="LLMs.txt">
-<meta name="description" content="161 AI tools in one API key. Research, write, code, translate, analyze, scrape — from $0.004/call. Install via pip or use remotely.">
+<meta name="description" content="155 AI tools in one API key. Research, write, code, translate, analyze, scrape — from $0.004/call. Install via pip or use remotely.">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta property="og:type" content="website">
 <meta property="og:title" content="AiPayGen — The Most Powerful AI Toolkit">
-<meta property="og:description" content="Research, write, code, translate, analyze, scrape — 161 AI tools from $0.004/call. MCP compatible.">
+<meta property="og:description" content="Research, write, code, translate, analyze, scrape — 155 AI tools from $0.004/call. MCP compatible.">
 <meta property="og:url" content="https://api.aipaygen.com">
 <meta property="og:image" content="https://api.aipaygen.com/og-image.png">
 <meta property="og:site_name" content="AiPayGen">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="AiPayGen — The Most Powerful AI Toolkit">
-<meta name="twitter:description" content="Research, write, code, translate, analyze, scrape — 161 AI tools from $0.004/call. Try free.">
+<meta name="twitter:description" content="Research, write, code, translate, analyze, scrape — 155 AI tools from $0.004/call. Try free.">
 <meta name="twitter:image" content="https://api.aipaygen.com/og-image.png">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"AiPayGen","url":"https://api.aipaygen.com","description":"Pay-per-use AI endpoints for autonomous agents via x402 micropayments on Base.","applicationCategory":"DeveloperApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0.01","priceCurrency":"USD","description":"Per API call, paid in USDC on Base"},"provider":{"@type":"Organization","name":"AiPayGen","url":"https://api.aipaygen.com"}}
@@ -357,10 +357,10 @@ LANDING_HTML = '''<!DOCTYPE html>
 
 <section class="hero">
   <h1 class="fade-up">
-    The Most Powerful AI Toolkit.<br><span class="accent">161 Tools. One API.</span>
+    The Most Powerful AI Toolkit.<br><span class="accent">155 tools. One API.</span>
   </h1>
   <p class="hero-sub fade-up delay-1">
-    Build custom AI agents in minutes. 15 frontier models, 161 tools, scheduling &amp; automation &mdash; from <code>$0.004/call</code>.
+    Build custom AI agents in minutes. 15 frontier models, 155 tools, scheduling &amp; automation &mdash; from <code>$0.004/call</code>.
   </p>
   <div class="fade-up delay-2" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
     <a href="/builder" class="btn-cta">Build Your Agent &rarr;</a>
@@ -398,7 +398,7 @@ LANDING_HTML = '''<!DOCTYPE html>
 <div class="value-grid">
   <div class="value-card fade-up">
     <span class="value-icon">&gt;_</span>
-    <h3>161 AI tools</h3>
+    <h3>155 AI tools</h3>
     <p>Research, write, code, analyze, translate, scrape &mdash; powered by Claude, GPT-4o, Gemini, DeepSeek.</p>
   </div>
   <div class="value-card fade-up delay-1">
@@ -638,12 +638,11 @@ def _build_discover_services():
 
 @meta_bp.route("/")
 def landing():
-    from flask import make_response, render_template
     try:
         resp = make_response(render_template("index.html"))
     except Exception:
-        # Fallback to legacy inline HTML if template fails
-        resp = make_response(render_template_string(LANDING_HTML, nav=NAV_HTML, footer=FOOTER_HTML))
+        # Fallback to legacy inline landing template
+        resp = make_response(render_template("landing.html", nav=NAV_HTML, footer=FOOTER_HTML))
     resp.headers["Link"] = '</llms.txt>; rel="llms-txt"'
     return resp
 
@@ -796,8 +795,8 @@ def discover():
                 }
                 for s in services
             ]
-        return render_template_string(
-            DISCOVER_HTML,
+        return render_template(
+            "discover.html",
             categories=display_categories,
             nav=NAV_HTML,
             footer=FOOTER_HTML,
@@ -819,7 +818,7 @@ def discover():
     return jsonify({
         "meta": {
             "name": "AiPayGen",
-            "description": "AI agent API marketplace with 161 tools and 1500+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day).",
+            "description": "AI agent API marketplace with 155 tools and 1500+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day).",
             "categories": list(categories.keys()),
         },
         "payment": {
@@ -1056,380 +1055,16 @@ def robots_txt():
     return Response(body, mimetype="text/plain")
 
 
-DOCS_HTML = '''<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AiPayGen — Documentation</title>
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
-<style>
-:root{--bg:#020408;--bg2:#070d14;--bg3:#0d1a24;--green:#00ff9d;--cyan:#00d4ff;--dim:#8b949e;--border:#1a2332}
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:#e1e4e8;font-family:'IBM Plex Sans',sans-serif;line-height:1.7;padding-top:70px}
-.layout{display:flex;max-width:1200px;margin:0 auto;min-height:calc(100vh - 70px)}
-.sidebar{width:240px;position:sticky;top:70px;height:calc(100vh - 70px);overflow-y:auto;padding:32px 16px;border-right:1px solid var(--border);flex-shrink:0}
-.sidebar a{display:block;color:var(--dim);text-decoration:none;padding:6px 12px;font-size:0.85rem;border-radius:6px;margin-bottom:2px;transition:all .15s}
-.sidebar a:hover,.sidebar a.active{color:#fff;background:var(--bg3)}
-.sidebar .section-title{color:#4a5568;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;padding:16px 12px 4px;font-weight:600}
-.content{flex:1;padding:40px 48px 80px;max-width:860px}
-h1{font-family:'IBM Plex Mono',monospace;font-size:2rem;color:#fff;margin-bottom:8px}
-.subtitle{color:var(--dim);font-size:1.05rem;margin-bottom:40px}
-h2{font-family:'IBM Plex Mono',monospace;font-size:1.3rem;color:var(--green);margin:48px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
-h3{font-size:1rem;color:#fff;margin:24px 0 8px}
-p{color:var(--dim);margin-bottom:16px}
-code{font-family:'IBM Plex Mono',monospace;background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:0.85em;color:var(--green)}
-pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:20px;overflow-x:auto;margin:16px 0;font-size:0.85rem;line-height:1.5}
-pre code{background:none;padding:0;color:#e1e4e8}
-ol,ul{margin:0 0 16px 24px;color:var(--dim)}
-li{margin-bottom:8px}
-a{color:var(--green);text-decoration:none}
-a:hover{text-decoration:underline}
-.step{display:flex;gap:16px;margin:16px 0;padding:16px;background:var(--bg2);border:1px solid var(--border);border-radius:8px}
-.step-num{font-family:'IBM Plex Mono',monospace;font-size:1.5rem;font-weight:700;color:var(--green);min-width:40px}
-.step-content{flex:1}
-.step-content strong{color:#fff}
-.endpoint{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin:12px 0}
-.endpoint .method{font-family:'IBM Plex Mono',monospace;font-size:0.8rem;font-weight:600;padding:3px 8px;border-radius:4px;margin-right:8px}
-.endpoint .method.post{background:rgba(0,255,157,0.15);color:var(--green)}
-.endpoint .method.get{background:rgba(0,212,255,0.15);color:var(--cyan)}
-.endpoint .method.put{background:rgba(255,165,0,0.15);color:#ffa500}
-.endpoint .method.delete{background:rgba(255,80,80,0.15);color:#ff5050}
-.endpoint .path{font-family:'IBM Plex Mono',monospace;font-size:0.9rem;color:#fff}
-.endpoint .desc{color:var(--dim);font-size:0.85rem;margin-top:6px}
-.pricing-table{width:100%;border-collapse:collapse;margin:16px 0}
-.pricing-table th{text-align:left;color:var(--green);font-family:'IBM Plex Mono',monospace;font-size:0.8rem;padding:8px 12px;border-bottom:1px solid var(--border)}
-.pricing-table td{padding:8px 12px;color:var(--dim);font-size:0.85rem;border-bottom:1px solid rgba(26,35,50,0.5)}
-.pricing-table td:first-child{font-family:'IBM Plex Mono',monospace;color:#fff}
-.badge{display:inline-block;font-size:0.7rem;padding:2px 8px;border-radius:10px;font-weight:600;margin-left:8px}
-.badge-new{background:rgba(0,212,255,0.2);color:var(--cyan)}
-.badge-free{background:rgba(0,255,157,0.2);color:var(--green)}
-.cta-box{background:linear-gradient(135deg,rgba(0,255,157,0.08),rgba(0,212,255,0.08));border:1px solid rgba(0,255,157,0.2);border-radius:12px;padding:24px;margin:24px 0;text-align:center}
-.cta-box a{display:inline-block;background:linear-gradient(135deg,#00ff9d,#00d4ff);color:#000;font-weight:700;padding:10px 24px;border-radius:6px;margin-top:12px;text-decoration:none;font-family:'IBM Plex Mono',monospace}
-@media(max-width:768px){.sidebar{display:none}.content{padding:24px 16px}}
-</style>
-</head>
-<body>
-{{ nav|safe }}
-<div class="layout">
-<nav class="sidebar">
-  <div class="section-title">Getting Started</div>
-  <a href="#overview">Overview</a>
-  <a href="#quickstart">Quick Start</a>
-  <a href="#payment">Payment Options</a>
-  <div class="section-title">Agent Builder</div>
-  <a href="#builder">Build Your Agent</a>
-  <a href="#templates">Templates</a>
-  <a href="#scheduling">Scheduling</a>
-  <div class="section-title">API Reference</div>
-  <a href="#ai-tools">AI Tools (40+)</a>
-  <a href="#data">Data Lookups</a>
-  <a href="#scraping">Web Scraping</a>
-  <a href="#agents">Agent System</a>
-  <a href="#memory">Agent Memory</a>
-  <a href="#skills">Skills Library</a>
-  <a href="#catalog">API Catalog</a>
-  <div class="section-title">Integration</div>
-  <a href="#mcp">MCP Setup</a>
-  <a href="#models">Models</a>
-  <a href="#discovery">Discovery</a>
-  <a href="#free">Free Endpoints</a>
-</nav>
-<div class="content">
-
-<h1>Documentation</h1>
-<p class="subtitle">161 AI tools, custom agent builder, scheduling, and 15 AI models — all in one API.</p>
-
-<h2 id="overview">Overview</h2>
-<p>AiPayGen is the most comprehensive AI toolkit for developers and agents. Build custom AI agents, access 161 tools, 1500+ skills, and 4000+ APIs — all through a single API key or MCP connection.</p>
-
-<div class="cta-box">
-  <strong style="color:#fff">Start building in 30 seconds</strong><br>
-  <span style="color:var(--dim)">Get an API key and start making calls immediately.</span>
-  <br><a href="/buy-credits">Get API Key ($1)</a>
-</div>
-
-<h2 id="quickstart">Quick Start</h2>
-
-<h3>Option 1: API Key (Recommended)</h3>
-<pre><code>import httpx
-
-BASE = "https://api.aipaygen.com"
-
-# 1. Buy an API key
-key = httpx.post(f"{BASE}/credits/buy",
-    json={"amount_usd": 5.0}).json()["key"]  # apk_xxx
-
-# 2. Use it on any endpoint
-result = httpx.post(f"{BASE}/research",
-    json={"topic": "quantum computing"},
-    headers={"Authorization": f"Bearer {key}"}
-).json()
-print(result)</code></pre>
-
-<h3>Option 2: MCP (Claude / Cursor)</h3>
-<pre><code># Install
-pip install aipaygen-mcp
-
-# Add to Claude Code
-claude mcp add aipaygen -- aipaygen-mcp
-
-# Or connect remotely (no install needed)
-# URL: https://mcp.aipaygen.com/mcp</code></pre>
-
-<h3>Option 3: Free Preview</h3>
-<pre><code># No payment or key needed
-curl -X POST https://api.aipaygen.com/preview \\
-  -H "Content-Type: application/json" \\
-  -d '{"topic": "AI agents"}'</code></pre>
-
-<h2 id="payment">Payment Options</h2>
-<table class="pricing-table">
-<tr><th>Method</th><th>How</th><th>Best For</th></tr>
-<tr><td>API Key</td><td>POST /credits/buy with Stripe</td><td>Most users — simple, prepaid credits</td></tr>
-<tr><td>x402 USDC</td><td>HTTP 402 + X-Payment header</td><td>Crypto-native agents, no accounts</td></tr>
-<tr><td>MCP</td><td>pip install aipaygen-mcp</td><td>Claude/Cursor — 10 free/day, unlimited with key</td></tr>
-</table>
-
-<h2 id="builder">Build Your Own Agent <span class="badge badge-new">NEW</span></h2>
-<p>Create custom AI agents with their own personality, tools, model, memory, and scheduling — all through the API or the <a href="/builder">visual builder</a>.</p>
-
-<div class="endpoint">
-  <span class="method post">POST</span><span class="path">/agents/build</span>
-  <div class="desc">Create a custom agent with name, personality, tools, model, memory, and optional schedule.</div>
-</div>
-
-<pre><code># Create a crypto monitoring agent
-agent = httpx.post(f"{BASE}/agents/build",
-    json={
-        "name": "Crypto Watcher",
-        "system_prompt": "Monitor crypto prices and alert on big moves",
-        "tools": ["get_crypto_prices", "analyze", "memory_store"],
-        "model": "claude-haiku",
-        "schedule": {"type": "loop", "config": {"minutes": 30}}
-    },
-    headers={"Authorization": f"Bearer {key}"}
-).json()
-
-agent_id = agent["agent_id"]
-
-# Run the agent
-result = httpx.post(f"{BASE}/agents/custom/{agent_id}/run",
-    json={"task": "Check BTC and ETH prices, analyze trends"},
-    headers={"Authorization": f"Bearer {key}"}
-).json()</code></pre>
-
-<div class="endpoint">
-  <span class="method get">GET</span><span class="path">/agents/custom</span>
-  <div class="desc">List your custom agents.</div>
-</div>
-<div class="endpoint">
-  <span class="method get">GET</span><span class="path">/agents/custom/{id}</span>
-  <div class="desc">Get agent details and config.</div>
-</div>
-<div class="endpoint">
-  <span class="method put">PUT</span><span class="path">/agents/custom/{id}</span>
-  <div class="desc">Update agent config (name, tools, prompt, model, schedule, etc.).</div>
-</div>
-<div class="endpoint">
-  <span class="method post">POST</span><span class="path">/agents/custom/{id}/run</span>
-  <div class="desc">Execute a task with the agent.</div>
-</div>
-<div class="endpoint">
-  <span class="method delete">DELETE</span><span class="path">/agents/custom/{id}</span>
-  <div class="desc">Archive an agent.</div>
-</div>
-
-<h2 id="templates">Agent Templates</h2>
-<p>Start from a pre-built template and customize. 10 templates available:</p>
-<ul>
-  <li><strong>Research Agent</strong> — web search + summarize + scraping</li>
-  <li><strong>Crypto Tracker</strong> — price monitoring on a 30-min loop</li>
-  <li><strong>Content Writer</strong> — blog posts, social media, copywriting</li>
-  <li><strong>Customer Support</strong> — Q&amp;A with sentiment detection</li>
-  <li><strong>Social Media Manager</strong> — daily posts + platform monitoring</li>
-  <li><strong>Code Helper</strong> — code generation + testing</li>
-  <li><strong>Data Analyst</strong> — data analysis + SQL + charts</li>
-  <li><strong>News Monitor</strong> — hourly news briefings</li>
-  <li><strong>Personal Assistant</strong> — planning + email + memory</li>
-  <li><strong>Sales Bot</strong> — lead scoring + outreach</li>
-</ul>
-<div class="endpoint">
-  <span class="method get">GET</span><span class="path">/builder/templates</span>
-  <div class="desc">List all available templates (JSON).</div>
-</div>
-
-<h2 id="scheduling">Scheduling &amp; Automation</h2>
-<p>Agents can run automatically on three trigger types:</p>
-<h3>Loop (Interval)</h3>
-<pre><code>httpx.post(f"{BASE}/agents/custom/{agent_id}/schedule",
-    json={"type": "loop", "config": {"minutes": 30}},
-    headers={"Authorization": f"Bearer {key}"})</code></pre>
-<h3>Cron (Schedule)</h3>
-<pre><code>httpx.post(f"{BASE}/agents/custom/{agent_id}/schedule",
-    json={"type": "cron", "config": {"hour": 9, "minute": 0, "day_of_week": "mon-fri"}},
-    headers={"Authorization": f"Bearer {key}"})</code></pre>
-<h3>Event (Trigger)</h3>
-<pre><code>httpx.post(f"{BASE}/agents/custom/{agent_id}/schedule",
-    json={"type": "event", "config": {"trigger": "message"}},
-    headers={"Authorization": f"Bearer {key}"})</code></pre>
-<div class="endpoint">
-  <span class="method get">GET</span><span class="path">/agents/custom/{id}/runs</span>
-  <div class="desc">View execution history for an agent.</div>
-</div>
-
-<h2 id="ai-tools">AI Tools</h2>
-<p>40+ AI-powered endpoints. All accept an optional <code>model</code> parameter.</p>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/research</span><div class="desc">Deep research on any topic with web sources.</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/summarize</span><div class="desc">Summarize text into bullets, paragraph, or TL;DR.</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/analyze</span><div class="desc">Analyze text with a specific question.</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/write</span><div class="desc">Generate written content (blog, email, copy).</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/code</span><div class="desc">Generate, explain, or debug code.</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/translate</span><div class="desc">Translate text to any language.</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/sentiment</span><div class="desc">Detect sentiment (positive/negative/neutral).</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/classify</span><div class="desc">Classify text into custom categories.</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/vision</span><div class="desc">Analyze images with AI.</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/rag</span><div class="desc">Retrieval-augmented generation over documents.</div></div>
-<p style="margin-top:8px">Plus: <code>/rewrite</code>, <code>/extract</code>, <code>/qa</code>, <code>/compare</code>, <code>/outline</code>, <code>/explain</code>, <code>/proofread</code>, <code>/keywords</code>, <code>/headline</code>, <code>/social</code>, <code>/pitch</code>, <code>/diagram</code>, <code>/json_schema</code>, <code>/workflow</code>, <code>/pipeline</code>, <code>/batch</code>, <code>/chain</code>, <code>/test_cases</code>, <code>/sql</code>, <code>/regex</code>, <code>/mock</code>, <code>/debate</code>, <code>/decide</code>, <code>/plan</code>, <code>/score</code>, <code>/tag</code>, <code>/fact</code>, <code>/questions</code>, <code>/email</code>, <code>/enrich</code></p>
-
-<h2 id="data">Data Lookups</h2>
-<div class="endpoint"><span class="method get">GET</span><span class="path">/data/weather?city=London</span><div class="desc">Current weather for any city.</div></div>
-<div class="endpoint"><span class="method get">GET</span><span class="path">/data/crypto?symbols=BTC,ETH</span><div class="desc">Live crypto prices.</div></div>
-<div class="endpoint"><span class="method get">GET</span><span class="path">/data/exchange?from=USD&amp;to=EUR</span><div class="desc">Currency exchange rates.</div></div>
-<div class="endpoint"><span class="method get">GET</span><span class="path">/data/holidays?country=US</span><div class="desc">Public holidays by country.</div></div>
-<div class="endpoint"><span class="method get">GET</span><span class="path">/data/joke</span><div class="desc">Random joke. <span class="badge badge-free">FREE</span></div></div>
-<div class="endpoint"><span class="method get">GET</span><span class="path">/data/quote</span><div class="desc">Random inspirational quote. <span class="badge badge-free">FREE</span></div></div>
-
-<h2 id="scraping">Web Scraping</h2>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/scrape/website</span><div class="desc">Scrape any website URL.</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/scrape/google-maps</span><div class="desc">Scrape Google Maps business listings.</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/scrape/tweets</span><div class="desc">Scrape tweets by keyword or user.</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/scrape/youtube</span><div class="desc">Scrape YouTube video data and transcripts.</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/scrape/instagram</span><div class="desc">Scrape Instagram profiles and posts.</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/scrape/tiktok</span><div class="desc">Scrape TikTok videos and profiles.</div></div>
-
-<h2 id="agents">Agent System</h2>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/agent</span><div class="desc">Autonomous ReAct agent — give it a task, it reasons through it using tools.</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/agent/stream</span><div class="desc">Streaming agent with SSE events.</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/agents/register</span><div class="desc">Register an agent in the network.</div></div>
-<div class="endpoint"><span class="method get">GET</span><span class="path">/agents</span><div class="desc">List all registered agents.</div></div>
-<div class="endpoint"><span class="method get">GET</span><span class="path">/agents/search?q=keyword</span><div class="desc">Search agents by capability.</div></div>
-
-<h2 id="memory">Agent Memory</h2>
-<p>Persistent key-value memory for agents across conversations.</p>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/memory/set</span><div class="desc">Store a value in agent memory.</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/memory/get</span><div class="desc">Retrieve a value from agent memory.</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/memory/search</span><div class="desc">Search agent memory by keyword.</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/memory/list</span><div class="desc">List all memory keys for an agent.</div></div>
-
-<h2 id="skills">Skills Library</h2>
-<p>1500+ searchable, executable skills. Create your own or use community skills.</p>
-<div class="endpoint"><span class="method get">GET</span><span class="path">/skills/search?q=keyword</span><div class="desc">Search skills by keyword (TF-IDF ranked).</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/skills/execute</span><div class="desc">Execute a skill by name with input.</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/skills/create</span><div class="desc">Create a new reusable skill.</div></div>
-
-<h2 id="catalog">API Catalog</h2>
-<p>4000+ indexed APIs — search, discover, and invoke third-party APIs through AiPayGen.</p>
-<div class="endpoint"><span class="method get">GET</span><span class="path">/catalog</span><div class="desc">Browse the full API catalog.</div></div>
-<div class="endpoint"><span class="method get">GET</span><span class="path">/catalog/{id}</span><div class="desc">Get details for a specific API.</div></div>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/catalog/{id}/invoke</span><div class="desc">Invoke a cataloged API through AiPayGen.</div></div>
-
-<h2 id="mcp">MCP Integration</h2>
-<p>All 161 tools are available as MCP tools. Three ways to connect:</p>
-
-<h3>1. PyPI Package (Recommended)</h3>
-<pre><code># Install
-pip install aipaygen-mcp
-
-# Add to Claude Code
-claude mcp add aipaygen -- aipaygen-mcp
-
-# Add to Claude Desktop (claude_desktop_config.json)
-{
-  "mcpServers": {
-    "aipaygen": {
-      "command": "aipaygen-mcp",
-      "env": { "AIPAYGEN_API_KEY": "apk_xxx" }
-    }
-  }
-}</code></pre>
-
-<h3>2. Remote SSE (No Install)</h3>
-<pre><code># Connect directly — works in any MCP client
-URL: https://mcp.aipaygen.com/mcp</code></pre>
-
-<h3>3. MCP Registry</h3>
-<pre><code># Listed on registry.modelcontextprotocol.io
-# ID: io.github.Damien829/aipaygen</code></pre>
-
-<h2 id="models">Available Models</h2>
-<table class="pricing-table">
-<tr><th>Model</th><th>Provider</th><th>Best For</th></tr>
-<tr><td>auto</td><td>AiPayGen</td><td>Automatic — picks best model for the task</td></tr>
-<tr><td>claude-sonnet</td><td>Anthropic</td><td>Complex reasoning, analysis</td></tr>
-<tr><td>claude-haiku</td><td>Anthropic</td><td>Fast, cheap, good enough for most tasks</td></tr>
-<tr><td>gpt-4o</td><td>OpenAI</td><td>General purpose, strong coding</td></tr>
-<tr><td>gpt-4o-mini</td><td>OpenAI</td><td>Fast and cheap</td></tr>
-<tr><td>deepseek-chat</td><td>DeepSeek</td><td>Coding, technical tasks</td></tr>
-<tr><td>deepseek-reasoner</td><td>DeepSeek</td><td>Complex reasoning chains</td></tr>
-<tr><td>gemini-2.0-flash</td><td>Google</td><td>Fast, multimodal</td></tr>
-<tr><td>grok-3-mini</td><td>xAI</td><td>Real-time knowledge</td></tr>
-<tr><td>mistral-small</td><td>Mistral</td><td>Efficient, multilingual</td></tr>
-<tr><td>llama-4-scout</td><td>Meta</td><td>Open-weight, fast</td></tr>
-</table>
-<pre><code># Use any model on any endpoint
-httpx.post(f"{BASE}/research",
-    json={"topic": "AI", "model": "deepseek-chat"},
-    headers={"Authorization": f"Bearer {key}"})</code></pre>
-
-<h2 id="discovery">Discovery Endpoints</h2>
-<ul>
-  <li><a href="/discover"><code>/discover</code></a> — machine-readable service catalog (JSON)</li>
-  <li><a href="/.well-known/agent.json"><code>/.well-known/agent.json</code></a> — A2A Agent Card</li>
-  <li><a href="/openapi.json"><code>/openapi.json</code></a> — OpenAPI 3.1 spec</li>
-  <li><a href="/llms.txt"><code>/llms.txt</code></a> — LLMs.txt format</li>
-  <li><a href="/builder/templates"><code>/builder/templates</code></a> — Agent templates</li>
-</ul>
-
-<h2 id="free">Free Endpoints</h2>
-<p>No payment or API key needed:</p>
-<div class="endpoint"><span class="method post">POST</span><span class="path">/preview</span><div class="desc">Free Claude demo — try before you buy. <span class="badge badge-free">FREE</span></div></div>
-<div class="endpoint"><span class="method get">GET</span><span class="path">/free/time</span><div class="desc">Current UTC time. <span class="badge badge-free">FREE</span></div></div>
-<div class="endpoint"><span class="method get">GET</span><span class="path">/free/uuid</span><div class="desc">Generate a UUID. <span class="badge badge-free">FREE</span></div></div>
-<div class="endpoint"><span class="method get">GET</span><span class="path">/free/ip</span><div class="desc">Your IP address info. <span class="badge badge-free">FREE</span></div></div>
-<div class="endpoint"><span class="method get">GET</span><span class="path">/free/hash</span><div class="desc">Hash text (SHA256, MD5, etc.). <span class="badge badge-free">FREE</span></div></div>
-<div class="endpoint"><span class="method get">GET</span><span class="path">/free/base64</span><div class="desc">Base64 encode/decode. <span class="badge badge-free">FREE</span></div></div>
-<div class="endpoint"><span class="method get">GET</span><span class="path">/free/random</span><div class="desc">Random numbers/strings. <span class="badge badge-free">FREE</span></div></div>
-<div class="endpoint"><span class="method get">GET</span><span class="path">/health</span><div class="desc">Service health check. <span class="badge badge-free">FREE</span></div></div>
-<div class="endpoint"><span class="method get">GET</span><span class="path">/discover</span><div class="desc">Full service catalog. <span class="badge badge-free">FREE</span></div></div>
-
-<h2>Payment Details</h2>
-<ul>
-  <li><strong>Protocol:</strong> <a href="https://x402.org">x402</a> (HTTP 402 Payment Required)</li>
-  <li><strong>Network:</strong> Base Mainnet (eip155:8453)</li>
-  <li><strong>Token:</strong> USDC (6 decimals)</li>
-  <li><strong>Wallet:</strong> <code>0x366D488a48de1B2773F3a21F1A6972715056Cb30</code></li>
-  <li><strong>Bulk discount:</strong> 20% when balance &gt;= $2.00</li>
-</ul>
-
-</div>
-</div>
-{{ footer|safe }}
-</body>
-</html>'''
-
 
 @meta_bp.route("/docs")
 def docs_page():
-    return render_template_string(DOCS_HTML, nav=NAV_HTML, footer=FOOTER_HTML)
+    return render_template("docs.html", nav=NAV_HTML, footer=FOOTER_HTML)
 
 
 LLMS_TXT = """\
 # AiPayGen
 
-> 161 AI tools in one API. Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (10 free/day).
+> 155 AI tools in one API. Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (10 free/day).
 
 ## What This Service Does
 
@@ -1608,9 +1243,9 @@ def ai_plugin():
         "schema_version": "v1",
         "name_for_human": "AiPayGen",
         "name_for_model": "aipaygen",
-        "description_for_human": "161 AI tools — research, write, code, translate, scrape, and more. 10 free calls/day.",
+        "description_for_human": "155 AI tools — research, write, code, translate, scrape, and more. 10 free calls/day.",
         "description_for_model": (
-            "AiPayGen provides 161 AI-powered tools accessible via a single API. "
+            "AiPayGen provides 155 AI-powered tools accessible via a single API. "
             "Use for research, writing, code generation, translation, sentiment analysis, "
             "web scraping, data extraction, content comparison, fact-checking, and more. "
             "Free tier: 10 calls/day per IP. Paid: prepaid API key (Bearer apk_xxx) or "
@@ -1642,7 +1277,7 @@ def agent_manifest():
     return jsonify({
         "name": "AiPayGen",
         "description": (
-            "AI agent API marketplace with 161 tools and 1500+ searchable skills. "
+            "AI agent API marketplace with 155 tools and 1500+ searchable skills. "
             "Research, writing, coding, analysis, web scraping, real-time data, agent memory, "
             "and multi-model AI (Claude, GPT-4o, DeepSeek, Gemini). "
             "Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day)."
@@ -1800,7 +1435,7 @@ def agents_json():
         "agents": [{
             "name": "AiPayGen",
             "description": (
-                "Multi-model AI platform (15 LLMs, 7 providers) with 161 tools and 140+ endpoints + web scrapers + agent memory + "
+                "Multi-model AI platform (15 LLMs, 7 providers) with 155 tools and 140+ endpoints + web scrapers + agent memory + "
                 "wallet-based identity + metered token pricing + agent economy. "
                 "Research, write, code, analyze, vision, RAG, diagrams, test-cases, workflows, "
                 "web scraping (Google Maps, Twitter, LinkedIn, TikTok, YouTube), persistent agent memory, "
@@ -1884,7 +1519,7 @@ def x402_manifest():
         "facilitator": FACILITATOR_URL,
         "name": "AiPayGen",
         "description": (
-            "161 AI tools, 1500+ skills, web scrapers, agent memory, file storage, "
+            "155 AI tools, 1500+ skills, web scrapers, agent memory, file storage, "
             "webhook relay, async jobs, and an API catalog of 4100+ discovered APIs. "
             "No API key required — pay per call in USDC on Base via x402 protocol."
         ),
@@ -2587,311 +2222,10 @@ def sitemap():
     return xml, 200, {"Content-Type": "application/xml"}
 
 
-# ── Interactive Try Page ─────────────────────────────────────────────────────
-
-_TRY_PAGE = """<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Try AiPayGen — Free Interactive Demo</title>
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e8e8e8; min-height: 100vh; padding: 32px 16px; }
-  .wrap { max-width: 680px; margin: 0 auto; }
-  h1 { font-size: 1.5rem; margin-bottom: 4px; }
-  .sub { color: #888; font-size: 0.88rem; margin-bottom: 24px; }
-  .sub a { color: #818cf8; }
-
-  .demo-card { background: #141414; border: 1px solid #2a2a2a; border-radius: 14px; padding: 28px; margin-bottom: 16px; }
-  .tool-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
-  .tool-btn { background: #1e1e1e; border: 1px solid #333; border-radius: 8px; padding: 8px 14px; color: #aaa; font-size: 0.82rem; cursor: pointer; transition: all 0.15s; }
-  .tool-btn:hover, .tool-btn.active { background: #1a1a3e; border-color: #6366f1; color: #c4b5fd; }
-  .tool-desc { font-size: 0.8rem; color: #666; margin-bottom: 14px; min-height: 20px; }
-
-  textarea { width: 100%; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 10px; padding: 14px; color: #e8e8e8; font-size: 0.9rem; resize: vertical; min-height: 80px; outline: none; font-family: inherit; }
-  textarea:focus { border-color: #6366f1; }
-  textarea::placeholder { color: #444; }
-
-  .run-btn { margin-top: 14px; background: #059669; color: #fff; border: none; border-radius: 10px; padding: 12px 28px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
-  .run-btn:hover { background: #047857; }
-  .run-btn:disabled { background: #333; color: #666; cursor: wait; }
-
-  .result-box { margin-top: 16px; background: #0d0d0d; border: 1px solid #222; border-radius: 10px; padding: 16px; font-size: 0.85rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; display: none; max-height: 400px; overflow-y: auto; }
-  .result-box.show { display: block; }
-
-  .curl-wrap { margin-top: 12px; display: none; }
-  .curl-wrap.show { display: block; }
-  .curl-box { background: #111; border: 1px solid #2a2a2a; border-radius: 8px; padding: 12px; font-size: 0.75rem; font-family: 'SF Mono', 'Fira Code', monospace; color: #8b8; white-space: pre-wrap; word-break: break-all; max-height: 160px; overflow-y: auto; }
-  .copy-curl-btn { margin-top: 6px; background: #1e1e1e; border: 1px solid #333; border-radius: 6px; padding: 6px 14px; color: #aaa; font-size: 0.75rem; cursor: pointer; transition: all 0.15s; }
-  .copy-curl-btn:hover { background: #1a1a3e; border-color: #6366f1; color: #c4b5fd; }
-
-  .cta { text-align: center; margin-top: 24px; }
-  .cta a { display: inline-block; background: #6366f1; color: #fff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 0.95rem; }
-  .cta p { color: #555; font-size: 0.78rem; margin-top: 8px; }
-
-  .free-note { text-align: center; color: #555; font-size: 0.75rem; margin-top: 12px; }
-
-  /* Upsell modal */
-  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
-  .modal-overlay.show { display: flex; }
-  .modal { background: #141414; border: 1px solid #2a2a2a; border-radius: 16px; padding: 32px; max-width: 480px; width: 100%; position: relative; }
-  .modal-close { position: absolute; top: 12px; right: 16px; background: none; border: none; color: #666; font-size: 1.4rem; cursor: pointer; }
-  .modal-close:hover { color: #fff; }
-  .modal h2 { font-size: 1.3rem; margin-bottom: 6px; }
-  .modal .modal-sub { color: #888; font-size: 0.85rem; margin-bottom: 20px; }
-  .modal-plans { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-  .modal-plan { display: flex; align-items: center; justify-content: space-between; background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 10px; padding: 14px 16px; cursor: pointer; transition: all 0.15s; }
-  .modal-plan:hover, .modal-plan.selected { border-color: #6366f1; background: #1a1a2e; }
-  .modal-plan .mp-left { display: flex; align-items: center; gap: 12px; }
-  .modal-plan .mp-amount { font-size: 1.3rem; font-weight: 800; color: #fff; min-width: 40px; }
-  .modal-plan .mp-detail { font-size: 0.8rem; color: #888; }
-  .modal-plan .mp-tag { font-size: 0.7rem; background: #6366f1; color: #fff; padding: 2px 8px; border-radius: 12px; }
-  .modal-plan .mp-tag.gold { background: #f59e0b; }
-  .modal-plan .mp-tag.green { background: #059669; }
-  .modal-btn { width: 100%; background: #6366f1; color: #fff; border: none; border-radius: 10px; padding: 14px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
-  .modal-btn:hover { background: #4f52d0; }
-  .modal-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
-  .modal-or { text-align: center; color: #555; font-size: 0.78rem; margin-top: 12px; }
-  .modal-or a { color: #818cf8; }
-  @media (max-width: 500px) { .modal { padding: 24px 18px; } }
-</style>
-</head>
-<body>
-<div class="wrap">
-  <div style="display:flex;gap:16px;margin-bottom:20px;font-size:0.85rem"><a href="/" style="color:#888;text-decoration:none">Home</a><a href="/docs" style="color:#888;text-decoration:none">Docs</a><a href="/buy-credits" style="color:#818cf8;text-decoration:none;font-weight:600">Get API Key</a></div>
-  <h1>Try AiPayGen</h1>
-  <p class="sub">Test any tool below — completely free, no sign-up. <a href="/discover">See all 161 tools &rarr;</a></p>
-
-  <div class="demo-card">
-    <div class="tool-row">
-      <div class="tool-btn active" data-tool="sentiment" data-placeholder="Type any text to analyze sentiment..." data-desc="Detects polarity, emotions, confidence, and key phrases">Sentiment</div>
-      <div class="tool-btn" data-tool="summarize" data-placeholder="Paste text to summarize..." data-desc="Condenses long text into key bullet points">Summarize</div>
-      <div class="tool-btn" data-tool="translate" data-placeholder="Text to translate..." data-desc="Translates text to any language (add target language on second line)">Translate</div>
-      <div class="tool-btn" data-tool="keywords" data-placeholder="Paste text to extract keywords..." data-desc="Extracts topics, entities, and key phrases">Keywords</div>
-      <div class="tool-btn" data-tool="explain" data-placeholder="Enter a concept to explain..." data-desc="Explains any concept in simple terms with analogies">Explain</div>
-      <div class="tool-btn" data-tool="code" data-placeholder="Describe what code to generate..." data-desc="Generates code in any language from a description">Code</div>
-      <div class="tool-btn" data-tool="research" data-placeholder="Enter a topic to research..." data-desc="Researches any topic with key points and sources">Research</div>
-      <div class="tool-btn" data-tool="analyze" data-placeholder="Paste content to analyze (add question on second line)..." data-desc="Analyzes content with findings, sentiment, and confidence">Analyze</div>
-      <div class="tool-btn" data-tool="compare" data-placeholder="Enter two items separated by a blank line..." data-desc="Compares two texts with similarities, differences, and scores">Compare</div>
-      <div class="tool-btn" data-tool="extract" data-placeholder="Paste text, then what to extract on second line..." data-desc="Extracts structured data, entities, and facts from text">Extract</div>
-      <div class="tool-btn" data-tool="questions" data-placeholder="Enter a topic to generate questions about..." data-desc="Generates FAQ, interview, or quiz questions from content">Questions</div>
-      <div class="tool-btn" data-tool="decide" data-placeholder="Describe a decision (options on second line, comma-separated)..." data-desc="Analyzes decisions with pros, cons, risks, and recommendations">Decide</div>
-      <div class="tool-btn" data-tool="classify" data-placeholder="Text to classify (categories on second line, comma-separated)..." data-desc="Classifies text into custom categories with confidence scores">Classify</div>
-      <div class="tool-btn" data-tool="rewrite" data-placeholder="Text to rewrite (style/audience on second line)..." data-desc="Rewrites text for a different audience or tone">Rewrite</div>
-      <div class="tool-btn" data-tool="headline" data-placeholder="Enter content to generate headlines for..." data-desc="Generates engaging headlines and titles for any content">Headline</div>
-      <div class="tool-btn" data-tool="geocode" data-placeholder="Enter an address or place name..." data-desc="Geocodes addresses to lat/lon coordinates via OpenStreetMap">Geocode</div>
-      <div class="tool-btn" data-tool="math-eval" data-placeholder="Enter a math expression (e.g. 2^10 + sqrt(144))..." data-desc="Evaluates math expressions safely using AST parsing">Math Eval</div>
-      <div class="tool-btn" data-tool="unit-convert" data-placeholder="Enter: value, from_unit, to_unit (e.g. 100, km, mi)..." data-desc="Converts units — length, weight, volume, speed, data, temperature">Unit Convert</div>
-      <div class="tool-btn" data-tool="readability" data-placeholder="Paste text to score readability..." data-desc="Flesch-Kincaid readability score with grade level and difficulty">Readability</div>
-      <div class="tool-btn" data-tool="language-detect" data-placeholder="Type or paste text in any language..." data-desc="Detects language and script from text using character analysis">Language</div>
-      <div class="tool-btn" data-tool="whois" data-placeholder="Enter a domain name (e.g. example.com)..." data-desc="WHOIS/RDAP lookup — registrar, nameservers, status, dates">WHOIS</div>
-      <div class="tool-btn" data-tool="security-headers" data-placeholder="Enter a URL to audit (e.g. https://example.com)..." data-desc="Audits security headers and assigns A+ to F grade">Sec Headers</div>
-      <div class="tool-btn" data-tool="currency-convert" data-placeholder="Enter: amount, from, to (e.g. 100, USD, EUR)..." data-desc="Converts currencies using live exchange rates (150+ currencies)">Currency</div>
-      <div class="tool-btn" data-tool="stats" data-placeholder="Enter numbers separated by commas (e.g. 10, 20, 30, 40, 50)..." data-desc="Statistical analysis — mean, median, std dev, quartiles">Stats</div>
-    </div>
-    <p class="tool-desc" id="desc">Detects polarity, emotions, confidence, and key phrases</p>
-    <textarea id="input" placeholder="Type any text to analyze sentiment..."></textarea>
-    <button class="run-btn" id="run" onclick="runTool()">&#9654; Run</button>
-    <div class="result-box" id="result"></div>
-    <div class="curl-wrap" id="curl-wrap">
-      <div class="curl-box" id="curl-cmd"></div>
-      <button class="copy-curl-btn" id="copy-curl" onclick="copyCurl()">Copy as curl</button>
-    </div>
-  </div>
-
-  <div class="cta">
-    <a href="/buy-credits">Get API Key — From $1</a>
-    <p>161 tools &middot; 15 AI models &middot; Credits never expire</p>
-  </div>
-  <p class="free-note">Free demo uses the same AI models as paid API. Limited to 10 demos per session.</p>
-</div>
-
-<!-- Upsell modal -->
-<div class="modal-overlay" id="upsell-modal">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal()">&times;</button>
-    <h2>You've used all 10 free demos</h2>
-    <p class="modal-sub">Pick a plan to unlock unlimited access to all 161 tools.</p>
-    <div class="modal-plans">
-      <div class="modal-plan" data-amt="1" onclick="selectModalPlan(this)">
-        <div class="mp-left"><span class="mp-amount">$1</span><span class="mp-detail">~160 calls</span></div>
-        <span class="mp-tag gold">Starter</span>
-      </div>
-      <div class="modal-plan selected" data-amt="5" onclick="selectModalPlan(this)">
-        <div class="mp-left"><span class="mp-amount">$5</span><span class="mp-detail">~830 calls</span></div>
-      </div>
-      <div class="modal-plan" data-amt="20" onclick="selectModalPlan(this)">
-        <div class="mp-left"><span class="mp-amount">$20</span><span class="mp-detail">~4,000 calls</span></div>
-        <span class="mp-tag">Popular</span>
-      </div>
-      <div class="modal-plan" data-amt="50" onclick="selectModalPlan(this)">
-        <div class="mp-left"><span class="mp-amount">$50</span><span class="mp-detail">~12,500 calls</span></div>
-        <span class="mp-tag green">Best value</span>
-      </div>
-    </div>
-    <button class="modal-btn" id="modal-buy" onclick="modalCheckout()">Get API Key</button>
-    <p class="modal-or">or <a href="/buy-credits">view full pricing page</a></p>
-  </div>
-</div>
-<script>
-let currentTool = 'sentiment';
-let demoCount = 0;
-const MAX_DEMOS = 10;
-let lastCurl = '';
-
-document.querySelectorAll('.tool-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    currentTool = btn.dataset.tool;
-    document.getElementById('input').placeholder = btn.dataset.placeholder;
-    document.getElementById('desc').textContent = btn.dataset.desc;
-  });
-});
-
-function escapeHtml(s) {
-  const d = document.createElement('div');
-  d.textContent = s;
-  return d.textContent;
-}
-
-let modalAmount = 5;
-function selectModalPlan(el) {
-  document.querySelectorAll('.modal-plan').forEach(p => p.classList.remove('selected'));
-  el.classList.add('selected');
-  modalAmount = parseInt(el.dataset.amt);
-}
-function showModal() { document.getElementById('upsell-modal').classList.add('show'); }
-function closeModal() { document.getElementById('upsell-modal').classList.remove('show'); }
-async function modalCheckout() {
-  const btn = document.getElementById('modal-buy');
-  btn.disabled = true; btn.textContent = 'Redirecting to Stripe...';
-  try {
-    const res = await fetch('/stripe/create-checkout', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({ amount: modalAmount })
-    });
-    const data = await res.json();
-    if (data.url) { window.location.href = data.url; }
-    else { btn.disabled = false; btn.textContent = 'Get API Key'; alert(data.error || 'Something went wrong'); }
-  } catch(e) { btn.disabled = false; btn.textContent = 'Get API Key'; alert('Network error — try again'); }
-}
-document.getElementById('upsell-modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
-
-async function runTool() {
-  const input = document.getElementById('input').value.trim();
-  if (!input) return;
-  const box = document.getElementById('result');
-  if (demoCount >= MAX_DEMOS) {
-    showModal();
-    return;
-  }
-  const btn = document.getElementById('run');
-  btn.disabled = true; btn.textContent = 'Running...';
-  box.className = 'result-box'; box.textContent = '';
-  try {
-    const body = {};
-    if (currentTool === 'sentiment') body.text = input;
-    else if (currentTool === 'summarize') { body.text = input; body.format = 'bullets'; }
-    else if (currentTool === 'translate') {
-      const lines = input.split('\\n');
-      body.text = lines[0]; body.language = lines[1] || 'Spanish';
-    }
-    else if (currentTool === 'keywords') body.text = input;
-    else if (currentTool === 'explain') { body.concept = input; body.level = 'beginner'; }
-    else if (currentTool === 'code') { body.description = input; body.language = 'python'; }
-    else if (currentTool === 'research') body.topic = input;
-    else if (currentTool === 'analyze') {
-      const lines = input.split('\\n');
-      body.content = lines[0]; body.question = lines.slice(1).join(' ') || 'general analysis';
-    }
-    else if (currentTool === 'compare') {
-      const parts = input.split('\\n\\n');
-      body.text_a = parts[0] || ''; body.text_b = parts.slice(1).join('\\n\\n') || '';
-    }
-    else if (currentTool === 'extract') {
-      const lines = input.split('\\n');
-      body.text = lines[0]; body.schema_desc = lines.slice(1).join(' ') || '';
-    }
-    else if (currentTool === 'questions') body.content = input;
-    else if (currentTool === 'decide') {
-      const lines = input.split('\\n');
-      body.decision = lines[0]; if (lines[1]) body.options = lines[1].split(',').map(s => s.trim());
-    }
-    else if (currentTool === 'classify') {
-      const lines = input.split('\\n');
-      body.text = lines[0]; body.categories = (lines[1] || 'positive,negative,neutral').split(',').map(s => s.trim());
-    }
-    else if (currentTool === 'rewrite') {
-      const lines = input.split('\\n');
-      body.text = lines[0]; body.audience = lines[1] || 'general';
-    }
-    else if (currentTool === 'headline') body.content = input;
-    else if (currentTool === 'geocode') body.q = input;
-    else if (currentTool === 'math-eval') body.expression = input;
-    else if (currentTool === 'unit-convert') {
-      const p = input.split(',').map(s => s.trim());
-      body.value = parseFloat(p[0]) || 0; body.from_unit = p[1] || ''; body.to_unit = p[2] || '';
-    }
-    else if (currentTool === 'readability') body.text = input;
-    else if (currentTool === 'language-detect') body.text = input;
-    else if (currentTool === 'whois') body.domain = input;
-    else if (currentTool === 'security-headers') body.url = input;
-    else if (currentTool === 'currency-convert') {
-      const p = input.split(',').map(s => s.trim());
-      body.amount = parseFloat(p[0]) || 1; body.from = p[1] || 'USD'; body.to = p[2] || 'EUR';
-    }
-    else if (currentTool === 'stats') body.numbers = input.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
-
-    const res = await fetch('/try/' + currentTool, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(body)
-    });
-    const data = await res.json();
-    if (res.status === 429) { showModal(); btn.disabled = false; btn.textContent = '\\u25B6 Run'; return; }
-    demoCount++;
-    const output = typeof data.result === 'string' ? data.result : JSON.stringify(data.result || data, null, 2);
-    const remaining = MAX_DEMOS - demoCount;
-    if (remaining === 0) {
-      box.textContent = output;
-      box.className = 'result-box show';
-      setTimeout(showModal, 1500);
-    } else {
-      box.textContent = output + '\\n\\n--- ' + remaining + ' free demo' + (remaining !== 1 ? 's' : '') + ' remaining';
-      box.className = 'result-box show';
-    }
-    // Build curl command
-    const curlBody = JSON.stringify(body);
-    lastCurl = "curl -X POST https://api.aipaygen.com/" + currentTool + " \\\\\\n  -H 'Content-Type: application/json' \\\\\\n  -H 'Authorization: Bearer YOUR_API_KEY' \\\\\\n  -d '" + curlBody.replace(/'/g, "'\\\\''") + "'";
-    const curlEl = document.getElementById('curl-cmd');
-    curlEl.textContent = lastCurl;
-    document.getElementById('curl-wrap').className = 'curl-wrap show';
-    document.getElementById('copy-curl').textContent = 'Copy as curl';
-  } catch(e) {
-    box.textContent = 'Error: ' + e.message;
-    box.className = 'result-box show';
-    document.getElementById('curl-wrap').className = 'curl-wrap';
-  }
-  btn.disabled = false; btn.textContent = '\\u25B6 Run';
-}
-
-function copyCurl() {
-  navigator.clipboard.writeText(lastCurl).then(() => {
-    document.getElementById('copy-curl').textContent = 'Copied!';
-    setTimeout(() => { document.getElementById('copy-curl').textContent = 'Copy as curl'; }, 2000);
-  });
-}
-</script>
-</body>
-</html>"""
-
 
 @meta_bp.route("/try", methods=["GET"])
 def try_page():
-    return _TRY_PAGE, 200, {"Content-Type": "text/html"}
+    return render_template("try.html"), 200, {"Content-Type": "text/html"}
 
 
 # Per-IP demo rate limiter (10 per 10 minutes)

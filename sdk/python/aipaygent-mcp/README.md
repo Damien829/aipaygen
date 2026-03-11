@@ -43,7 +43,7 @@ Add to your MCP config:
 }
 ```
 
-## 155 Tools Across 15 Categories
+## 155 tools Across 15 Categories
 
 | Category | Tools | Count |
 |----------|-------|-------|

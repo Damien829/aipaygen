@@ -80,8 +80,8 @@ def test_agent_requires_task(client):
 
 @patch("routes.ai_tools.scrape_url")
 @patch("routes.ai_tools.search_web")
-@patch("routes.ai_tools.call_model")
-def test_research_with_mock(mock_call, mock_search, mock_scrape, client):
+@patch("routes.ai_tools._call_llm")
+def test_research_with_mock(mock_call_llm, mock_search, mock_scrape, client):
     mock_search.return_value = {
         "results": [
             {"title": "Test Result", "url": "https://example.com", "snippet": "A test result"},
@@ -92,16 +92,13 @@ def test_research_with_mock(mock_call, mock_search, mock_scrape, client):
         "text": "This is test content about the topic with enough words to pass the filter threshold for research.",
         "word_count": 100,
     }
-    mock_call.return_value = {
-        "text": "Test research answer with [1] citation.",
-        "model": "claude-haiku",
-        "model_id": "claude-haiku-4-5-20251001",
-        "provider": "anthropic",
-        "input_tokens": 100,
-        "output_tokens": 50,
-        "cost_usd": 0.001,
-        "selected_reason": None,
-    }
+    mock_call_llm.return_value = (
+        {
+            "text": "Test research answer with [1] citation.",
+            "model": "claude-haiku",
+        },
+        None,  # no error
+    )
     r = client.post("/research", json={"question": "test topic"})
     assert r.status_code == 200
     data = r.get_json()

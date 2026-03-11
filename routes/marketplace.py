@@ -13,7 +13,7 @@ from agent_memory import (
 from api_catalog import get_all_apis, get_api, get_recent_runs
 from apify_client import run_actor_sync
 from api_discovery import run_all_hunters
-from helpers import log_payment, agent_response, get_client_ip as _get_client_ip, call_llm, require_admin
+from helpers import log_payment, agent_response, get_client_ip as _get_client_ip, call_llm, require_admin, require_api_key
 from funnel_tracker import log_event as funnel_log_event
 
 marketplace_bp = Blueprint("marketplace", __name__)
@@ -92,6 +92,7 @@ def discovery_status(job_id):
 
 
 @marketplace_bp.route("/api-call", methods=["POST"])
+@require_api_key
 def api_call():
     data = request.get_json() or {}
     api_id = data.get("api_id")
@@ -329,6 +330,7 @@ def marketplace_browse():
 
 
 @marketplace_bp.route("/marketplace/list", methods=["POST"])
+@require_api_key
 def marketplace_list():
     """Register your agent's service in the marketplace — requires JWT ownership proof."""
     from agent_identity import verify_jwt
@@ -377,6 +379,7 @@ def marketplace_delist():
 
 
 @marketplace_bp.route("/marketplace/call", methods=["POST"])
+@require_api_key
 def marketplace_call():
     """Proxy-call an agent marketplace listing. Requires x402 payment."""
     data = request.get_json() or {}

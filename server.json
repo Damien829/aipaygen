@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.Damien829/aipaygen",
-  "title": "AiPayGen — 155 AI Tools for Agents",
+  "title": "AiPayGen — 155 AI tools for Agents",
   "description": "155 AI tools: research, write, code, translate, analyze, scrape, agent memory, utility APIs, seller marketplace.",
   "version": "1.7.1",
   "repository": {
@@ -26,7 +26,7 @@
       "environmentVariables": [
         {
           "name": "AIPAYGEN_API_KEY",
-          "description": "Optional API key for unlimited access. Free tier (3 calls/day) works without it.",
+          "description": "Optional API key for unlimited access. Free tier (10 calls/day) works without it.",
           "isRequired": false,
           "isSecret": true
         }

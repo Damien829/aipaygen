@@ -1,0 +1,18 @@
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    properties:
+      AIPAYGEN_API_KEY:
+        type: string
+        title: API Key
+        description: "API key for unlimited access (optional — 10 free calls/day without key). Get one at https://api.aipaygen.com/buy-credits"
+    required: []
+  commandFunction: |-
+    (config) => ({
+      command: "uvx",
+      args: ["aipaygen-mcp"],
+      env: {
+        AIPAYGEN_API_KEY: config.AIPAYGEN_API_KEY || ""
+      }
+    })
