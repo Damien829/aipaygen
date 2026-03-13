@@ -8,12 +8,15 @@ Runs via APScheduler:
 
 All actions are rate-limited, idempotent, and logged.
 """
+import logging
 import os
 import json
 import sqlite3
 import time
 import requests
 from datetime import datetime, timedelta
+
+logger = logging.getLogger(__name__)
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 BASE_URL = os.getenv("BASE_URL", "https://api.aipaygen.com")
@@ -180,8 +183,9 @@ def _try_pr_awesome_list(repo: str, section: str, entry: str) -> dict:
             _log("github_check", f"github_pr:{repo}", "already_listed")
             return {"status": "already_listed"}
     except Exception as e:
+        logger.error("GitHub check failed for %s: %s", repo, e)
         _log("github_check", f"github_pr:{repo}", "error", str(e))
-        return {"status": "error", "detail": str(e)}
+        return {"status": "error", "detail": "GitHub check failed"}
 
     # 2. Fork the repo
     try:
@@ -197,8 +201,9 @@ def _try_pr_awesome_list(repo: str, section: str, entry: str) -> dict:
         fork_name = fork_data.get("full_name", "")
         time.sleep(5)  # wait for fork to be ready
     except Exception as e:
+        logger.error("GitHub fork failed for %s: %s", repo, e)
         _log("github_fork", f"github_pr:{repo}", "error", str(e))
-        return {"status": "error", "detail": str(e)}
+        return {"status": "error", "detail": "GitHub fork failed"}
 
     # 3. Get default branch + README SHA
     try:
@@ -216,8 +221,9 @@ def _try_pr_awesome_list(repo: str, section: str, entry: str) -> dict:
         readme_content = base64.b64decode(readme_resp.get("content", "")).decode("utf-8", errors="replace")
         readme_sha = readme_resp.get("sha", "")
     except Exception as e:
+        logger.error("GitHub README fetch failed for %s: %s", repo, e)
         _log("github_readme", f"github_pr:{repo}", "error", str(e))
-        return {"status": "error", "detail": str(e)}
+        return {"status": "error", "detail": "GitHub README fetch failed"}
 
     # 4. Add our entry near the relevant section
     if "aipaygen" in readme_content.lower():
@@ -309,11 +315,12 @@ def _try_pr_awesome_list(repo: str, section: str, entry: str) -> dict:
             return {"status": "pr_opened", "pr_url": pr_url}
         else:
             _log("github_pr", f"github_pr:{repo}", "pr_failed", pr_resp.text[:200])
-            return {"status": "pr_failed", "detail": pr_resp.text[:200]}
+            return {"status": "pr_failed", "detail": "Pull request creation failed"}
 
     except Exception as e:
+        logger.error("GitHub PR failed for %s: %s", repo, e)
         _log("github_pr", f"github_pr:{repo}", "error", str(e))
-        return {"status": "error", "detail": str(e)}
+        return {"status": "error", "detail": "GitHub PR operation failed"}
 
 
 # ── Directory Pings ────────────────────────────────────────────────────────────
@@ -338,7 +345,8 @@ def ping_directories():
         _log("directory_ping", "self_registry", "ok", f"{agent_count} agents")
         results.append({"target": "self_registry", "status": "ok", "agents": agent_count})
     except Exception as e:
-        results.append({"target": "self_registry", "status": "error", "detail": str(e)})
+        logger.error("Directory ping failed for self_registry: %s", e)
+        results.append({"target": "self_registry", "status": "error", "detail": "Registry ping failed"})
 
     # Ping our own health to keep Cloudflare tunnel warm
     try:
@@ -429,7 +437,8 @@ def generate_all_blog_posts(claude_client, force: bool = False):
             _log("blog_generated", slug, "ok", title)
             time.sleep(1)  # avoid rate limits
         except Exception as e:
-            results.append({"slug": slug, "status": "error", "detail": str(e)})
+            logger.error("Blog generation failed for %s: %s", slug, e)
+            results.append({"slug": slug, "status": "error", "detail": "Blog generation failed"})
 
     # Ping IndexNow for newly generated posts
     if new_urls:
@@ -661,7 +670,8 @@ Return only clean HTML article body (no doctype/head tags)."""
             _log("trending_blog", slug, "ok", blog_title)
             time.sleep(2)
         except Exception as e:
-            results.append({"slug": slug, "status": "error", "detail": str(e)})
+            logger.error("Trending blog generation failed for %s: %s", slug, e)
+            results.append({"slug": slug, "status": "error", "detail": "Trending blog generation failed"})
 
     if new_urls:
         _ping_indexnow(new_urls)
@@ -732,7 +742,8 @@ def run_maintenance() -> dict:
                 "saved_kb": saved_kb,
             })
         except Exception as e:
-            results.append({"action": "vacuum", "db": os.path.basename(db_path), "error": str(e)})
+            logger.error("VACUUM failed for %s: %s", os.path.basename(db_path), e)
+            results.append({"action": "vacuum", "db": os.path.basename(db_path), "error": "Vacuum failed"})
 
     return {"results": results, "ts": now.isoformat()}
 

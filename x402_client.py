@@ -1,6 +1,9 @@
 """x402 outbound payment client — lets our agent pay other x402 services."""
+import logging
 import os
 from datetime import datetime
+
+logger = logging.getLogger(__name__)
 
 MAX_SPEND_PER_CALL = float(os.getenv("X402_MAX_PER_CALL", "0.10"))
 DAILY_BUDGET = float(os.getenv("X402_DAILY_BUDGET", "1.00"))
@@ -42,7 +45,8 @@ def get_x402_session():
         session = wrapRequestsWithPayment(requests.Session(), client)
         return session, None
     except Exception as e:
-        return None, str(e)
+        logger.error("x402 session creation failed: %s", e)
+        return None, "x402 client initialization failed"
 
 
 def call_x402_api(url: str, method: str = "GET", data: dict = None,
@@ -54,7 +58,7 @@ def call_x402_api(url: str, method: str = "GET", data: dict = None,
 
     session, err = get_x402_session()
     if not session:
-        return {"error": f"x402 client unavailable: {err}"}
+        return {"error": "x402 client unavailable"}
 
     try:
         if method.upper() == "POST":
@@ -77,7 +81,8 @@ def call_x402_api(url: str, method: str = "GET", data: dict = None,
             "daily_spend": _daily_spend["total"],
         }
     except Exception as e:
-        return {"error": str(e)}
+        logger.error("x402 API call failed for %s: %s", url, e)
+        return {"error": "x402 API call failed"}
 
 
 def get_spend_stats() -> dict:

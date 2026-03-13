@@ -10,11 +10,14 @@ import ast
 import html
 import ipaddress
 import json
+import logging
 import re
 import socket
 import urllib.parse
 import urllib.request
 import urllib.error
+
+logger = logging.getLogger(__name__)
 
 # ── Code Sandbox ───────────────────────────────────────────────────────
 
@@ -206,7 +209,8 @@ def safe_fetch(url: str, headers: dict = None, timeout: int = 15,
         return {"error": f"HTTP {e.code}", "status": e.code,
                 "body": e.read().decode("utf-8", errors="replace")[:2000]}
     except Exception as e:
-        return {"error": str(e)}
+        logger.error("Safe fetch failed for %s: %s", url, e)
+        return {"error": "Fetch failed"}
 
 
 # ── Input Sanitization ─────────────────────────────────────────────────
