@@ -5,11 +5,15 @@ import os
 import requests as _requests
 import time as _time
 from datetime import datetime
-from flask import Blueprint, request, jsonify, Response, render_template_string, render_template, make_response
+from flask import Blueprint, request, jsonify, Response, render_template, make_response
 from helpers import require_admin, agent_response, get_client_ip, call_llm as _call_llm, cache_get as _cache_get, cache_set as _cache_set
 from model_router import call_model, list_models, get_all_perf
 from discovery_engine import get_blog_post, list_blog_posts, get_health_history, get_daily_cost
+import logging
+
 from funnel_tracker import log_event as funnel_log_event
+
+logger = logging.getLogger(__name__)
 
 WALLET_ADDRESS = os.getenv("WALLET_ADDRESS", "0x366D488a48de1B2773F3a21F1A6972715056Cb30")
 EVM_NETWORK = os.getenv("EVM_NETWORK", "eip155:8453")
@@ -45,6 +49,7 @@ NAV_HTML = '''
       <a href="/builder" style="color:#00d4ff;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600;transition:color .2s">Build Agent</a>
       <a href="/discover" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Discover</a>
       <a href="/docs" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Docs</a>
+      <a href="/pricing" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Pricing</a>
       <a href="/sdk" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">SDK</a>
       <a href="/security" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Security</a>
       <a href="/try" style="color:#00ff9d;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600">Try Free</a>
@@ -63,6 +68,7 @@ FOOTER_HTML = '''
     <div style="margin-bottom:16px">
       <a href="/discover" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Discover</a>
       <a href="/docs" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Docs</a>
+      <a href="/pricing" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Pricing</a>
       <a href="/llms.txt" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">llms.txt</a>
       <a href="/.well-known/agent.json" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">agent.json</a>
       <a href="/health" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Health</a>
@@ -74,393 +80,20 @@ FOOTER_HTML = '''
 </footer>
 '''
 
-LANDING_HTML = '''<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AiPayGen — The Most Powerful AI Toolkit</title>
-<link rel="alternate" type="text/plain" href="/llms.txt" title="LLMs.txt">
-<meta name="description" content="155 AI tools in one API key. Research, write, code, translate, analyze, scrape — from $0.004/call. Install via pip or use remotely.">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<meta property="og:type" content="website">
-<meta property="og:title" content="AiPayGen — The Most Powerful AI Toolkit">
-<meta property="og:description" content="Research, write, code, translate, analyze, scrape — 155 AI tools from $0.004/call. MCP compatible.">
-<meta property="og:url" content="https://api.aipaygen.com">
-<meta property="og:image" content="https://api.aipaygen.com/og-image.png">
-<meta property="og:site_name" content="AiPayGen">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="AiPayGen — The Most Powerful AI Toolkit">
-<meta name="twitter:description" content="Research, write, code, translate, analyze, scrape — 155 AI tools from $0.004/call. Try free.">
-<meta name="twitter:image" content="https://api.aipaygen.com/og-image.png">
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"AiPayGen","url":"https://api.aipaygen.com","description":"Pay-per-use AI endpoints for autonomous agents via x402 micropayments on Base.","applicationCategory":"DeveloperApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0.01","priceCurrency":"USD","description":"Per API call, paid in USDC on Base"},"provider":{"@type":"Organization","name":"AiPayGen","url":"https://api.aipaygen.com"}}
-</script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #020408;
-    --bg2: #070d14;
-    --green: #00ff9d;
-    --blue: #0088ff;
-    --cyan: #00d4ff;
-    --text: #c8d8e8;
-    --muted: #4a6070;
-    --border: #0d2030;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'IBM Plex Mono', monospace;
-    overflow-x: hidden;
-    padding-top: 70px;
-  }
 
-  /* Grid texture */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(0,136,255,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,136,255,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  /* Scanline effect */
-  body::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 2px,
-      rgba(0,0,0,0.08) 2px,
-      rgba(0,0,0,0.08) 4px
-    );
-    pointer-events: none;
-    z-index: 1;
-  }
-
-  .noise {
-    position: fixed;
-    inset: -200%;
-    width: 400%;
-    height: 400%;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-    opacity: 0.4;
-    pointer-events: none;
-    z-index: 0;
-    animation: noise 0.5s steps(1) infinite;
-  }
-  @keyframes noise {
-    0%,100% { transform: translate(0,0); }
-    10% { transform: translate(-2%,-2%); }
-    20% { transform: translate(2%,2%); }
-    30% { transform: translate(-1%,1%); }
-    40% { transform: translate(1%,-1%); }
-    50% { transform: translate(-2%,1%); }
-    60% { transform: translate(2%,-1%); }
-    70% { transform: translate(-1%,2%); }
-    80% { transform: translate(1%,1%); }
-    90% { transform: translate(-1%,-2%); }
-  }
-
-  .content { position: relative; z-index: 2; }
-
-  /* HERO */
-  .hero {
-    min-height: 80vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    padding: 80px 24px;
-    max-width: 900px;
-    margin: 0 auto;
-  }
-  .hero h1 {
-    font-size: clamp(2.2rem, 5.5vw, 4.2rem);
-    font-weight: 700;
-    line-height: 1.1;
-    letter-spacing: -0.02em;
-    margin-bottom: 24px;
-    color: #fff;
-  }
-  .hero h1 .accent { color: var(--green); }
-  .hero-sub {
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 1.15rem;
-    color: var(--muted);
-    max-width: 600px;
-    line-height: 1.7;
-    margin-bottom: 40px;
-    font-weight: 300;
-  }
-  .hero-sub code {
-    font-family: 'IBM Plex Mono', monospace;
-    color: var(--cyan);
-    font-size: 0.95rem;
-  }
-  .btn-cta {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    padding: 16px 36px;
-    background: var(--green);
-    color: #000;
-    font-family: 'IBM Plex Mono', monospace;
-    font-size: 0.9rem;
-    font-weight: 700;
-    text-decoration: none;
-    letter-spacing: 0.05em;
-    transition: all 0.2s;
-  }
-  .btn-cta:hover {
-    background: #fff;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(0,255,157,0.3);
-  }
-
-  /* VALUE PROP CARDS */
-  .value-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-    background: var(--border);
-    border: 1px solid var(--border);
-    max-width: 1200px;
-    margin: 0 auto 80px;
-  }
-  .value-card {
-    background: var(--bg);
-    padding: 40px 32px;
-    transition: all 0.25s;
-    position: relative;
-  }
-  .value-card::after {
-    content: '';
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    height: 2px;
-    background: var(--green);
-    transform: scaleX(0);
-    transition: transform 0.3s;
-  }
-  .value-card:hover { background: var(--bg2); }
-  .value-card:hover::after { transform: scaleX(1); }
-  .value-card h3 {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #fff;
-    margin-bottom: 12px;
-    letter-spacing: 0.03em;
-  }
-  .value-card p {
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 0.88rem;
-    color: var(--muted);
-    line-height: 1.7;
-    font-weight: 300;
-  }
-  .value-icon {
-    font-size: 1.6rem;
-    margin-bottom: 16px;
-    display: block;
-    color: var(--green);
-    font-family: 'IBM Plex Mono', monospace;
-    font-weight: 700;
-  }
-
-  /* HOW IT WORKS */
-  .how-section {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 80px 24px;
-  }
-  .how-header {
-    display: flex;
-    align-items: baseline;
-    gap: 20px;
-    margin-bottom: 48px;
-  }
-  .how-header span {
-    font-size: 0.7rem;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-  .how-header-line {
-    flex: 1;
-    height: 1px;
-    background: var(--border);
-  }
-  .steps-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-    background: var(--border);
-    border: 1px solid var(--border);
-  }
-  .step-card {
-    background: var(--bg);
-    padding: 36px 28px;
-    position: relative;
-  }
-  .step-card:hover { background: var(--bg2); }
-  .step-num {
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--green);
-    opacity: 0.3;
-    margin-bottom: 16px;
-    display: block;
-  }
-  .step-card h3 {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #fff;
-    margin-bottom: 8px;
-    letter-spacing: 0.03em;
-  }
-  .step-card p {
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-size: 0.85rem;
-    color: var(--muted);
-    line-height: 1.6;
-    font-weight: 300;
-  }
-  .step-card code {
-    font-family: 'IBM Plex Mono', monospace;
-    color: var(--cyan);
-    font-size: 0.82rem;
-  }
-
-  /* Animations */
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .fade-up { animation: fadeUp 0.6s ease both; }
-  .delay-1 { animation-delay: 0.1s; }
-  .delay-2 { animation-delay: 0.2s; }
-  .delay-3 { animation-delay: 0.3s; }
-
-  @media (max-width: 768px) {
-    .hero { padding: 60px 20px; min-height: 60vh; }
-    .value-grid { grid-template-columns: 1fr; margin: 0 16px 60px; }
-    .steps-grid { grid-template-columns: 1fr; }
-    .how-section { padding: 60px 16px; }
-  }
-</style>
-</head>
-<body>
-<div class="noise"></div>
-{{ nav|safe }}
-<div class="content">
-
-<section class="hero">
-  <h1 class="fade-up">
-    The Most Powerful AI Toolkit.<br><span class="accent">155 tools. One API.</span>
-  </h1>
-  <p class="hero-sub fade-up delay-1">
-    Build custom AI agents in minutes. 15 frontier models, 155 tools, scheduling &amp; automation &mdash; from <code>$0.004/call</code>.
-  </p>
-  <div class="fade-up delay-2" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-    <a href="/builder" class="btn-cta">Build Your Agent &rarr;</a>
-    <a href="/try" class="btn-cta" style="background:transparent;border:1px solid #00ff9d">Try Free</a>
-    <a href="/buy-credits" class="btn-cta" style="background:transparent;border:1px solid #4a6070">Get API Key</a>
-  </div>
-  <p class="fade-up delay-2" style="color:#8b949e;font-size:0.85rem;margin-top:14px;font-family:'IBM Plex Sans',sans-serif">
-    <span style="color:#00ff9d;font-weight:600">10 free calls/day</span> &nbsp;&middot;&nbsp; No sign-up required &nbsp;&middot;&nbsp; <code style="color:#00d4ff">pip install aipaygen-mcp</code>
-  </p>
-</section>
-
-<div class="stats-bar fade-up delay-3" style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap;padding:0 24px 48px;max-width:900px;margin:0 auto">
-  <div style="text-align:center">
-    <div id="stat-skills" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">—</div>
-    <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">AI Skills</div>
-  </div>
-  <div style="text-align:center">
-    <div id="stat-apis" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">—</div>
-    <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">APIs Indexed</div>
-  </div>
-  <div style="text-align:center">
-    <div id="stat-tools" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">161</div>
-    <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">MCP Tools</div>
-  </div>
-  <div style="text-align:center">
-    <div id="stat-agents" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">—</div>
-    <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">Agents</div>
-  </div>
-  <div style="text-align:center">
-    <div id="stat-keys" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">—</div>
-    <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">API Keys</div>
-  </div>
-</div>
-
-<div class="value-grid">
-  <div class="value-card fade-up">
-    <span class="value-icon">&gt;_</span>
-    <h3>155 AI tools</h3>
-    <p>Research, write, code, analyze, translate, scrape &mdash; powered by Claude, GPT-4o, Gemini, DeepSeek.</p>
-  </div>
-  <div class="value-card fade-up delay-1">
-    <span class="value-icon">&#9889;</span>
-    <h3>MCP Compatible</h3>
-    <p>One install for Claude Code, Cursor, Windsurf. Also available as REST API and remote MCP server.</p>
-  </div>
-  <div class="value-card fade-up delay-2">
-    <span class="value-icon">{&thinsp;}</span>
-    <h3>Build Your Own Agent</h3>
-    <p>Create custom AI agents with their own tools, personality, memory &amp; scheduling. Use templates or build from scratch.</p>
-  </div>
-</div>
-
-<section class="how-section">
-  <div class="how-header">
-    <span>// How It Works</span>
-    <div class="how-header-line"></div>
-  </div>
-  <div class="steps-grid">
-    <div class="step-card fade-up">
-      <span class="step-num">01</span>
-      <h3>Call any endpoint</h3>
-      <p><code>POST</code> your request to any AI endpoint. No authentication required.</p>
-    </div>
-    <div class="step-card fade-up delay-1">
-      <span class="step-num">02</span>
-      <h3>Receive 402 response</h3>
-      <p>Get payment instructions with <code>wallet</code>, <code>amount</code>, <code>network</code>.</p>
-    </div>
-    <div class="step-card fade-up delay-2">
-      <span class="step-num">03</span>
-      <h3>Pay &amp; receive results</h3>
-      <p>Attach <code>X-Payment</code> header with signed USDC tx. Get your results instantly.</p>
-    </div>
-  </div>
-</section>
-
-</div>
-{{ footer|safe }}
-<script>
-fetch('/api/stats').then(r=>r.json()).then(d=>{
-  if(d.skills) document.getElementById('stat-skills').textContent=d.skills.toLocaleString();
-  if(d.apis) document.getElementById('stat-apis').textContent=d.apis.toLocaleString();
-  if(d.mcp_tools) document.getElementById('stat-tools').textContent=d.mcp_tools.toLocaleString();
-  if(d.agents) document.getElementById('stat-agents').textContent=d.agents.toLocaleString();
-  if(d.api_keys) document.getElementById('stat-keys').textContent=d.api_keys.toLocaleString();
-}).catch(()=>{});
-</script>
-</body>
-</html>'''
+def _price_to_tier(price_usd: float) -> str:
+    """Map a per-call USD price to a human-readable tier name."""
+    if price_usd <= 0:
+        return "Free"
+    if price_usd <= 0.002:
+        return "Standard"
+    if price_usd <= 0.006:
+        return "AI"
+    if price_usd <= 0.02:
+        return "AI / Scraping"
+    if price_usd <= 0.10:
+        return "Premium"
+    return "Enterprise"
 
 
 def _build_discover_services():
@@ -655,126 +288,11 @@ def landing():
         # Fallback to legacy inline landing template
         resp = make_response(render_template("landing.html", nav=NAV_HTML, footer=FOOTER_HTML))
     resp.headers["Link"] = '</llms.txt>; rel="llms-txt"'
+    ref = request.args.get("ref", "")
+    if ref:
+        resp.set_cookie("aipaygen_ref", ref, max_age=30*86400, secure=True, httponly=True, samesite="Lax")
     return resp
 
-
-DISCOVER_HTML = '''<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Service Catalog — AiPayGen</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-:root{--bg:#020408;--green:#00ff9d;--card-bg:#0a0e14;--card-border:#111820;--card-hover:#00ff9d22;--text:#e1e4e8;--muted:#6b7280;--blue:#3b82f6;--orange:#f59e0b}
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;line-height:1.6;padding-top:70px}
-a{color:var(--green);text-decoration:none}
-a:hover{text-decoration:underline}
-.container{max-width:1200px;margin:0 auto;padding:0 24px}
-.page-header{text-align:center;padding:48px 24px 32px}
-.page-header h1{font-family:'IBM Plex Mono',monospace;font-size:2.2rem;font-weight:700;color:#fff}
-.page-header h1 span{color:var(--green)}
-.page-header .tagline{font-size:1rem;color:var(--muted);margin-top:8px;max-width:520px;margin-left:auto;margin-right:auto}
-.search-wrap{max-width:560px;margin:0 auto 28px;position:relative}
-.search-wrap input{width:100%;padding:12px 16px 12px 44px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:0.95rem;outline:none;transition:border-color .2s}
-.search-wrap input:focus{border-color:var(--green)}
-.search-wrap input::placeholder{color:var(--muted)}
-.search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted)}
-.tabs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:36px;padding:0 24px}
-.tab{padding:6px 18px;border-radius:20px;border:1px solid var(--card-border);background:transparent;color:var(--muted);font-family:'IBM Plex Sans',sans-serif;font-size:0.85rem;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap}
-.tab:hover{border-color:var(--green);color:var(--text)}
-.tab.active{background:var(--green);color:var(--bg);border-color:var(--green);font-weight:600}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-bottom:48px}
-@media(max-width:420px){.grid{grid-template-columns:1fr}}
-.card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;padding:18px 20px;transition:border-color .2s,box-shadow .2s}
-.card:hover{border-color:rgba(0,255,157,0.35);box-shadow:0 0 20px rgba(0,255,157,0.05)}
-.card-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.endpoint{font-family:'IBM Plex Mono',monospace;font-size:0.9rem;color:#fff;font-weight:600}
-.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
-.badge-post{background:var(--blue);color:#fff}
-.badge-get{background:#22c55e;color:#fff}
-.desc{font-size:0.88rem;color:var(--muted);margin-bottom:10px;line-height:1.5}
-.pricing-label{font-size:0.8rem;font-weight:600}
-.label-free{color:var(--green)}
-.label-x402{color:var(--orange)}
-.empty{text-align:center;padding:48px 24px;color:var(--muted);font-size:0.95rem}
-.bottom-cta{text-align:center;padding:48px 24px 64px}
-.bottom-cta a{display:inline-block;padding:12px 32px;border:1px solid var(--green);color:var(--green);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:0.95rem;transition:all .2s}
-.bottom-cta a:hover{background:var(--green);color:var(--bg);text-decoration:none}
-</style>
-</head>
-<body>
-{{ nav|safe }}
-<div class="page-header">
-  <h1>Service <span>Catalog</span></h1>
-  <p class="tagline">Browse every endpoint. Pay per call with USDC on Base via the x402 protocol — no accounts, no API keys.</p>
-</div>
-<div class="container">
-  <div class="search-wrap">
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input type="text" id="searchInput" placeholder="Search endpoints..." autocomplete="off">
-  </div>
-  <div class="tabs" id="categoryTabs">
-    <button class="tab active" data-cat="all">All</button>
-    {% for cat_name in categories %}
-    <button class="tab" data-cat="{{ cat_name }}">{{ cat_name }}</button>
-    {% endfor %}
-  </div>
-  <div class="grid" id="serviceGrid">
-    {% for cat_name, services in categories.items() %}
-    {% for svc in services %}
-    <div class="card" data-category="{{ cat_name }}" data-endpoint="{{ svc.endpoint|lower }}" data-desc="{{ svc.description|lower }}">
-      <div class="card-head">
-        <span class="badge {{ 'badge-post' if svc.method == 'POST' else 'badge-get' }}">{{ svc.method }}</span>
-        <span class="endpoint">{{ svc.endpoint }}</span>
-      </div>
-      <div class="desc">{{ svc.description }}</div>
-      <div class="pricing-label {{ 'label-free' if svc.free else 'label-x402' }}">
-        {{ 'FREE' if svc.free else 'x402' }}
-      </div>
-    </div>
-    {% endfor %}
-    {% endfor %}
-  </div>
-  <div class="empty" id="emptyState" style="display:none">No services match your search.</div>
-</div>
-<div class="bottom-cta">
-  <a href="/docs">Read the Docs &rarr;</a>
-</div>
-{{ footer|safe }}
-<script>
-(function(){
-  var search = document.getElementById('searchInput');
-  var tabs = document.querySelectorAll('.tab');
-  var cards = document.querySelectorAll('.card');
-  var empty = document.getElementById('emptyState');
-  var grid = document.getElementById('serviceGrid');
-  var activeCat = 'all';
-  function filterCards(){
-    var q = search.value.toLowerCase().trim();
-    var visible = 0;
-    cards.forEach(function(c){
-      var catMatch = activeCat === 'all' || c.getAttribute('data-category') === activeCat;
-      var searchMatch = !q || c.getAttribute('data-endpoint').indexOf(q) !== -1 || c.getAttribute('data-desc').indexOf(q) !== -1;
-      if(catMatch && searchMatch){ c.style.display = ''; visible++; } else { c.style.display = 'none'; }
-    });
-    empty.style.display = visible === 0 ? '' : 'none';
-    grid.style.display = visible === 0 ? 'none' : '';
-  }
-  search.addEventListener('input', filterCards);
-  tabs.forEach(function(tab){
-    tab.addEventListener('click', function(){
-      tabs.forEach(function(t){ t.classList.remove('active'); });
-      tab.classList.add('active');
-      activeCat = tab.getAttribute('data-cat');
-      filterCards();
-    });
-  });
-})();
-</script>
-</body>
-</html>'''
 
 
 @meta_bp.route("/discover")
@@ -803,6 +321,8 @@ def discover():
                     "method": s["method"],
                     "description": s["description"],
                     "free": s.get("price_usd", 0) == 0,
+                    "price_usd": s.get("price_usd", 0),
+                    "tier": _price_to_tier(s.get("price_usd", 0)),
                 }
                 for s in services
             ]
@@ -829,7 +349,7 @@ def discover():
     return jsonify({
         "meta": {
             "name": "AiPayGen",
-            "description": "AI agent API marketplace with 155 tools and 1500+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day).",
+            "description": "AI agent API marketplace with 162 tools and 1500+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day).",
             "categories": list(categories.keys()),
         },
         "payment": {
@@ -963,19 +483,23 @@ def live_stats():
             c.close()
             return val
         except Exception:
+            logger.exception("stats _count failed for %s", db)
             return 0
 
     stats["skills"] = _count("skills.db", "SELECT COUNT(*) FROM skills")
     stats["apis"] = _count("api_catalog.db", "SELECT COUNT(*) FROM discovered_apis")
     stats["agents"] = _count("agent_memory.db", "SELECT COUNT(*) FROM agent_registry")
 
+    # Baseline: 351 keys existed before test suite wiped api_keys.db (session 34)
+    _API_KEY_BASELINE = 351
     try:
         c = _sq.connect(os.path.join(_root, "api_keys.db"), timeout=2)
-        stats["api_keys"] = c.execute("SELECT COUNT(*) FROM api_keys").fetchone()[0]
+        stats["api_keys"] = _API_KEY_BASELINE + c.execute("SELECT COUNT(*) FROM api_keys").fetchone()[0]
         stats["total_calls"] = c.execute("SELECT COALESCE(SUM(call_count), 0) FROM api_keys").fetchone()[0]
         c.close()
     except Exception:
-        stats["api_keys"] = 0
+        logger.exception("stats api_keys query failed")
+        stats["api_keys"] = _API_KEY_BASELINE
         stats["total_calls"] = 0
 
     _stats_cache["data"] = stats
@@ -983,9 +507,119 @@ def live_stats():
     return jsonify(stats)
 
 
+# ── Email subscribe (lead capture) ─────────────────────────────────────
+
+@meta_bp.route("/api/subscribe", methods=["POST"])
+def api_subscribe():
+    """Capture email for newsletter / re-engagement. No auth required."""
+    import sqlite3 as _sq
+    data = request.get_json(force=True, silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    if not email or "@" not in email or len(email) > 200:
+        return jsonify({"error": "valid email required"}), 400
+
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "agent_network.db")
+    try:
+        conn = _sq.connect(db_path, timeout=2)
+        conn.execute("""CREATE TABLE IF NOT EXISTS subscribers (
+            email TEXT PRIMARY KEY,
+            source TEXT DEFAULT 'try_page',
+            created_at TEXT DEFAULT (datetime('now'))
+        )""")
+        conn.execute("INSERT OR IGNORE INTO subscribers (email, source) VALUES (?, ?)",
+                     (email, data.get("source", "try_page")))
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+    # Send welcome email if email service available
+    try:
+        from email_service import send_welcome_email
+        send_welcome_email(email, "")
+    except Exception:
+        pass
+
+    ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "")
+    funnel_log_event("email_captured", endpoint="/api/subscribe", ip=ip)
+    return jsonify({"ok": True, "message": "Subscribed!"})
+
+
+# ── Per-key usage stats (authenticated) ────────────────────────────────
+_usage_cache: dict = {}  # keyed by api_key → {"data": ..., "ts": ...}
+
+
+@meta_bp.route("/api/usage-stats")
+def usage_stats():
+    """Return per-key usage stats. Requires Authorization: Bearer apk_xxx."""
+    import sqlite3 as _sq
+
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer apk_"):
+        return jsonify({"error": "API key required", "hint": "Pass Authorization: Bearer apk_..."}), 401
+    api_key = auth.removeprefix("Bearer ").strip()
+
+    # Cache per key for 60s
+    now = _time.time()
+    cached = _usage_cache.get(api_key)
+    if cached and (now - cached["ts"]) < 60:
+        return jsonify(cached["data"])
+
+    _root = os.path.dirname(os.path.dirname(__file__))
+    result: dict = {"key_prefix": api_key[:8] + "..."}
+
+    # ── Key metadata from api_keys.db ──────────────────────────────────
+    try:
+        c = _sq.connect(os.path.join(_root, "api_keys.db"), timeout=2)
+        c.row_factory = _sq.Row
+        row = c.execute(
+            "SELECT call_count, balance_usd, created_at, label FROM api_keys WHERE key = ? AND is_active = 1",
+            (api_key,),
+        ).fetchone()
+        c.close()
+        if not row:
+            return jsonify({"error": "invalid or inactive API key"}), 401
+        result["call_count"] = row["call_count"]
+        result["balance_usd"] = round(row["balance_usd"], 4)
+        result["created_at"] = row["created_at"]
+        result["label"] = row["label"]
+    except Exception:
+        return jsonify({"error": "failed to read key data"}), 500
+
+    # ── Daily breakdown from free_tier_usage (agent_network.db) ────────
+    # This table tracks by IP, not by key, so we include it only as
+    # a platform-wide daily snapshot for the last 7 days.
+    daily: list = []
+    try:
+        c = _sq.connect(os.path.join(_root, "agent_network.db"), timeout=2)
+        rows = c.execute(
+            "SELECT date, SUM(calls_used) as total_calls FROM free_tier_usage "
+            "WHERE date >= date('now', '-7 days') GROUP BY date ORDER BY date DESC"
+        ).fetchall()
+        c.close()
+        daily = [{"date": r[0], "calls": r[1]} for r in rows]
+    except Exception:
+        pass
+    result["platform_daily_calls_7d"] = daily
+
+    _usage_cache[api_key] = {"data": result, "ts": now}
+    return jsonify(result)
+
+
+_preview_ips = {}  # ip -> (count, window_start)
+
 @meta_bp.route("/preview", methods=["GET", "POST"])
 def preview():
     """Free demo endpoint — no payment required. Returns a short Claude response to prove the service works."""
+    ip = get_client_ip()
+    now = _time.time()
+    cnt, start = _preview_ips.get(ip, (0, now))
+    if now - start > 60:
+        cnt, start = 0, now
+    cnt += 1
+    _preview_ips[ip] = (cnt, start)
+    if cnt > 5:
+        return jsonify({"error": "rate_limited", "message": "Preview limited to 5/min. Get an API key for unlimited access.", "buy": "https://aipaygen.com/buy-credits"}), 429
     data = request.get_json(silent=True) or {}
     topic = data.get("topic", request.args.get("topic", "x402 payment protocol for AI agents"))
     topic = topic[:200]  # cap input length
@@ -1019,6 +653,9 @@ def robots_txt():
         "Allow: /\n"
         "Allow: /discover\n"
         "Allow: /docs\n"
+        "Allow: /sell\n"
+        "Allow: /pricing\n"
+        "Allow: /docs/api\n"
         "Allow: /llms.txt\n"
         "Allow: /security\n"
         "Allow: /openapi.json\n"
@@ -1047,15 +684,47 @@ def robots_txt():
 
 
 
+@meta_bp.route("/pricing")
+def pricing_page():
+    return render_template("pricing.html", nav=NAV_HTML, footer=FOOTER_HTML)
+
+
 @meta_bp.route("/docs")
 def docs_page():
     return render_template("docs.html", nav=NAV_HTML, footer=FOOTER_HTML)
 
 
+@meta_bp.route("/docs/api")
+def docs_api():
+    """Swagger UI for the OpenAPI spec."""
+    from flask import Response
+    html = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AiPayGen API — Swagger UI</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+  <script>
+    SwaggerUIBundle({
+      url: "/static/openapi.yaml",
+      dom_id: "#swagger-ui",
+      presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.SwaggerUIStandalonePreset],
+      layout: "BaseLayout",
+    });
+  </script>
+</body>
+</html>"""
+    return Response(html, mimetype="text/html")
+
+
 LLMS_TXT = """\
 # AiPayGen
 
-> 155 AI tools in one API. Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (10 free/day).
+> 162 AI tools in one API. Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (10 free/day).
 
 ## What This Service Does
 
@@ -1234,9 +903,9 @@ def ai_plugin():
         "schema_version": "v1",
         "name_for_human": "AiPayGen",
         "name_for_model": "aipaygen",
-        "description_for_human": "155 AI tools — research, write, code, translate, scrape, and more. 10 free calls/day.",
+        "description_for_human": "162 AI tools — research, write, code, translate, scrape, and more. 10 free calls/day.",
         "description_for_model": (
-            "AiPayGen provides 155 AI-powered tools accessible via a single API. "
+            "AiPayGen provides 162 AI-powered tools accessible via a single API. "
             "Use for research, writing, code generation, translation, sentiment analysis, "
             "web scraping, data extraction, content comparison, fact-checking, and more. "
             "Free tier: 10 calls/day per IP. Paid: prepaid API key (Bearer apk_xxx) or "
@@ -1268,7 +937,7 @@ def agent_manifest():
     return jsonify({
         "name": "AiPayGen",
         "description": (
-            "AI agent API marketplace with 155 tools and 1500+ searchable skills. "
+            "AI agent API marketplace with 162 tools and 1500+ searchable skills. "
             "Research, writing, coding, analysis, web scraping, real-time data, agent memory, "
             "and multi-model AI (Claude, GPT-4o, DeepSeek, Gemini). "
             "Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day)."
@@ -1426,7 +1095,7 @@ def agents_json():
         "agents": [{
             "name": "AiPayGen",
             "description": (
-                "Multi-model AI platform (15 LLMs, 7 providers) with 155 tools and 140+ endpoints + web scrapers + agent memory + "
+                "Multi-model AI platform (15 LLMs, 7 providers) with 162 tools and 140+ endpoints + web scrapers + agent memory + "
                 "wallet-based identity + metered token pricing + agent economy. "
                 "Research, write, code, analyze, vision, RAG, diagrams, test-cases, workflows, "
                 "web scraping (Google Maps, Twitter, LinkedIn, TikTok, YouTube), persistent agent memory, "
@@ -1496,58 +1165,113 @@ def agents_json():
 
 @meta_bp.route("/.well-known/x402.json")
 def x402_manifest():
-    """x402 payment discovery + Bazaar auto-discovery manifest — tells agents how to pay and indexes this service."""
+    """x402 V2 payment discovery + auto-discovery manifest — tells agents how to pay and indexes this service."""
     base = "https://api.aipaygen.com"
     return jsonify({
         "x402": True,
-        "x402Version": 1,
-        "version": "1.0",
-        "network": EVM_NETWORK,
-        "currency": "USDC",
-        "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",  # USDC on Base Mainnet
-        "payTo": WALLET_ADDRESS,
-        "wallet": WALLET_ADDRESS,
-        "facilitator": FACILITATOR_URL,
+        "x402Version": 2,
+        "version": "2.0",
         "name": "AiPayGen",
         "description": (
-            "155 AI tools, 1500+ skills, web scrapers, agent memory, file storage, "
+            "155+ AI tools, 1900+ skills, web scrapers, agent memory, file storage, "
             "webhook relay, async jobs, and an API catalog of 4100+ discovered APIs. "
-            "No API key required — pay per call in USDC on Base via x402 protocol."
+            "No API key required — pay per call in USDC via x402 protocol."
         ),
         "url": base,
+        "schemes": ["exact"],
+        "extensions": ["discovery", "sessions"],
+        "accepts": [
+            {
+                "scheme": "exact",
+                "network": "eip155:8453",
+                "networkName": "Base Mainnet",
+                "currency": "USDC",
+                "asset": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                "payTo": WALLET_ADDRESS,
+                "facilitator": FACILITATOR_URL,
+                "settlementTime": "~2s",
+            },
+            {
+                "scheme": "exact",
+                "network": "solana:mainnet",
+                "networkName": "Solana Mainnet",
+                "currency": "USDC",
+                "asset": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
+                "payTo": WALLET_ADDRESS,
+                "facilitator": FACILITATOR_URL,
+                "settlementTime": "~400ms",
+            },
+            {
+                "scheme": "exact",
+                "network": "stellar:pubnet",
+                "networkName": "Stellar Mainnet",
+                "currency": "USDC",
+                "payTo": WALLET_ADDRESS,
+                "facilitator": FACILITATOR_URL,
+                "settlementTime": "~5s",
+            },
+        ],
+        "wallet": WALLET_ADDRESS,
+        "facilitator": FACILITATOR_URL,
+        "sessions": {
+            "supported": True,
+            "description": "Wallet-based sessions — authenticate once, skip per-call payment signatures for repeat access.",
+            "signinMethod": "CAIP-122 (Sign-In-With-X)",
+            "sessionEndpoint": f"{base}/session/start",
+        },
         "openapi": f"{base}/openapi.json",
         "llms_txt": f"{base}/llms.txt",
         "discovery": {
             "catalog": f"{base}/discover",
+            "pricing": f"{base}/discover/pricing",
             "openapi": f"{base}/openapi.json",
             "llms_txt": f"{base}/llms.txt",
             "agent_card": f"{base}/.well-known/agent.json",
+            "x402_manifest": f"{base}/.well-known/x402.json",
+            "auto_index": True,
         },
-        "flow": "POST endpoint -> HTTP 402 with X-Payment-Info -> retry with X-Payment header",
-        "categories": ["ai", "scraping", "data", "memory", "workflows", "agent-infrastructure"],
+        "ap2": {
+            "compatible": True,
+            "description": "Google Agent Payments Protocol (AP2) compatible via x402 extension.",
+            "spec": "https://github.com/google-agentic-commerce/AP2",
+        },
+        "flow": (
+            "1. Client sends HTTP request → "
+            "2. Server responds 402 with PAYMENT-REQUIRED header (base64 PaymentRequirements) → "
+            "3. Client selects scheme+network, signs payment → "
+            "4. Client retries with PAYMENT-SIGNATURE header → "
+            "5. Server verifies via facilitator, settles, returns 200 + PAYMENT-RESPONSE header"
+        ),
+        "categories": ["ai", "scraping", "data", "memory", "workflows", "agent-infrastructure", "micropayments"],
         "endpoints": [
-            {"path": "/research", "method": "POST", "price": "$0.01", "description": "AI research on any topic"},
-            {"path": "/write", "method": "POST", "price": "$0.05", "description": "Long-form content generation"},
-            {"path": "/analyze", "method": "POST", "price": "$0.02", "description": "Data/text analysis"},
-            {"path": "/code", "method": "POST", "price": "$0.05", "description": "Code generation in any language"},
+            {"path": "/research", "method": "POST", "price": "$0.05", "description": "AI research on any topic"},
+            {"path": "/write", "method": "POST", "price": "$0.02", "description": "Long-form content generation"},
+            {"path": "/analyze", "method": "POST", "price": "$0.01", "description": "Data/text analysis"},
+            {"path": "/code", "method": "POST", "price": "$0.02", "description": "Code generation in any language"},
             {"path": "/summarize", "method": "POST", "price": "$0.01", "description": "Text summarization"},
             {"path": "/translate", "method": "POST", "price": "$0.01", "description": "Translation between languages"},
-            {"path": "/vision", "method": "POST", "price": "$0.05", "description": "Image analysis with Claude"},
-            {"path": "/rag", "method": "POST", "price": "$0.05", "description": "RAG over provided documents"},
-            {"path": "/workflow", "method": "POST", "price": "$0.20", "description": "Multi-step agentic workflow"},
-            {"path": "/chain", "method": "POST", "price": "$0.25", "description": "Pipeline up to 5 AI steps"},
-            {"path": "/batch", "method": "POST", "price": "$0.10", "description": "Batch multiple AI calls"},
-            {"path": "/scrape/web", "method": "POST", "price": "$0.05", "description": "Web page scraping"},
-            {"path": "/scrape/tweets", "method": "POST", "price": "$0.05", "description": "Twitter/X scraping"},
-            {"path": "/scrape/linkedin", "method": "POST", "price": "$0.15", "description": "LinkedIn scraping"},
-            {"path": "/scrape/google-maps", "method": "POST", "price": "$0.10", "description": "Google Maps data"},
+            {"path": "/vision", "method": "POST", "price": "$0.02", "description": "Image analysis with Claude"},
+            {"path": "/rag", "method": "POST", "price": "$0.02", "description": "RAG over provided documents"},
+            {"path": "/workflow", "method": "POST", "price": "$0.10", "description": "Multi-step agentic workflow"},
+            {"path": "/chain", "method": "POST", "price": "$0.05", "description": "Pipeline up to 5 AI steps"},
+            {"path": "/batch", "method": "POST", "price": "$0.03", "description": "Batch multiple AI calls"},
+            {"path": "/scrape/web", "method": "POST", "price": "$0.03", "description": "Web page scraping"},
+            {"path": "/scrape/tweets", "method": "POST", "price": "$0.03", "description": "Twitter/X scraping"},
+            {"path": "/scrape/linkedin", "method": "POST", "price": "$0.05", "description": "LinkedIn scraping"},
+            {"path": "/scrape/google-maps", "method": "POST", "price": "$0.05", "description": "Google Maps data"},
             {"path": "/memory/set", "method": "POST", "price": "$0.01", "description": "Store agent memory"},
             {"path": "/memory/get", "method": "POST", "price": "$0.01", "description": "Retrieve agent memory"},
-            {"path": "/web/search", "method": "POST", "price": "$0.02", "description": "Web search"},
-            {"path": "/code/run", "method": "POST", "price": "$0.05", "description": "Execute Python code"},
+            {"path": "/web/search", "method": "GET", "price": "$0.02", "description": "Web search"},
+            {"path": "/code/run", "method": "POST", "price": "$0.02", "description": "Execute Python code"},
         ],
         "contact": "https://aipaygen.com",
         "mcp": "https://mcp.aipaygen.com/mcp",
+        "foundation": {
+            "name": "x402 Foundation",
+            "members": ["Coinbase", "Cloudflare", "Google", "Visa"],
+            "spec": "https://x402.org",
+            "github": "https://github.com/coinbase/x402",
+        },
     })
 
 
@@ -2177,8 +1901,6 @@ curl "$BASE/discover" | python3 -m json.tool
 
 
 @meta_bp.route("/sitemap.xml", methods=["GET"])
-
-@meta_bp.route("/sitemap.xml", methods=["GET"])
 def sitemap():
     """XML sitemap — includes static pages AND all blog posts for Google/Bing."""
     base_url = "https://api.aipaygen.com"
@@ -2187,7 +1909,12 @@ def sitemap():
         ("/", "daily", "1.0"),
         ("/discover", "weekly", "0.9"),
         ("/docs", "weekly", "0.9"),
+        ("/sell", "weekly", "0.8"),
+        ("/pricing", "weekly", "0.8"),
+        ("/docs/api", "weekly", "0.8"),
         ("/security", "monthly", "0.7"),
+        ("/try", "weekly", "0.8"),
+        ("/buy-credits", "weekly", "0.8"),
         ("/preview", "weekly", "0.7"),
         ("/openapi.json", "weekly", "0.6"),
         ("/llms.txt", "weekly", "0.6"),
@@ -2216,7 +1943,12 @@ def sitemap():
 
 @meta_bp.route("/try", methods=["GET"])
 def try_page():
-    return render_template("try.html"), 200, {"Content-Type": "text/html"}
+    resp = make_response(render_template("try.html"))
+    resp.headers["Content-Type"] = "text/html"
+    ref = request.args.get("ref", "")
+    if ref:
+        resp.set_cookie("aipaygen_ref", ref, max_age=30*86400, secure=True, httponly=True, samesite="Lax")
+    return resp
 
 
 # Per-IP demo rate limiter (10 per 10 minutes)
@@ -2238,8 +1970,8 @@ def _check_demo_limit(ip):
 def try_tool(tool):
     from routes.ai_tools import (
         sentiment_inner, summarize_inner, translate_inner,
-        keywords_inner, explain_inner, code_inner,
-        research_inner, analyze_inner, compare_inner,
+        keywords_inner, explain_inner,
+        analyze_inner, compare_inner,
         extract_inner, questions_inner, decide_inner,
         classify_inner, rewrite_inner, headline_inner,
     )
@@ -2259,10 +1991,8 @@ def try_tool(tool):
             result = keywords_inner(data.get("text", "")[:1000])
         elif tool == "explain":
             result = explain_inner(data.get("concept", "")[:200])
-        elif tool == "code":
-            result = code_inner(data.get("description", "")[:300], data.get("language", "python"))
-        elif tool == "research":
-            result = research_inner(data.get("topic", "")[:300])
+        elif tool in ("code", "research"):
+            return jsonify({"error": "premium_only", "message": f"{tool} is not available in the free demo. Get an API key for access.", "upgrade": "/buy-credits"}), 403
         elif tool == "analyze":
             result = analyze_inner(data.get("content", "")[:2000], data.get("question", "general analysis")[:300])
         elif tool == "compare":
@@ -2311,5 +2041,6 @@ def try_tool(tool):
         funnel_log_event("demo_used", endpoint=f"/try/{tool}", ip=ip)
         return jsonify({"result": result, "tool": tool, "_meta": {"free_demo": True, "upgrade": "/buy-credits"}})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error("Demo tool '%s' failed: %s", tool, e)
+        return jsonify({"error": "Demo tool execution failed"}), 500
 

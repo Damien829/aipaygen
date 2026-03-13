@@ -4,10 +4,11 @@ import os
 import re
 import subprocess
 import threading
+import time as _time
 from datetime import datetime
 
 import stripe as _stripe
-from flask import Blueprint, request, jsonify, render_template
+from flask import Blueprint, request, jsonify, render_template, make_response
 
 from api_keys import generate_key, topup_key, get_key_status
 from helpers import log_payment, require_admin, require_api_key, check_identity_rate_limit
@@ -31,7 +32,18 @@ _NOTIFY_LOG = os.path.join(os.path.dirname(os.path.dirname(__file__)), "checkout
 # In-memory mapping of Stripe session_id -> api_key for race-condition-free key retrieval.
 # Written AFTER DB insert but BEFORE Stripe metadata update, so /auth/key-status
 # can always find the key even if Stripe metadata update hasn't completed yet.
+# Bounded: entries older than 24h are evicted to prevent memory growth.
 _session_key_map = {}
+_session_key_ts = {}  # track insertion time
+_SESSION_KEY_TTL = 86400  # 24 hours
+
+
+def _cleanup_session_keys():
+    now = _time.time()
+    stale = [k for k, ts in _session_key_ts.items() if now - ts > _SESSION_KEY_TTL]
+    for k in stale:
+        _session_key_map.pop(k, None)
+        _session_key_ts.pop(k, None)
 
 
 def _notify_checkout(amount, action, api_key):
@@ -242,7 +254,12 @@ def delete_user_webhook(webhook_id):
 def buy_credits_page():
     if not STRIPE_SECRET_KEY:
         return jsonify({"error": "Stripe not configured. Set STRIPE_SECRET_KEY in .env"}), 503
-    return render_template("buy_credits.html"), 200, {"Content-Type": "text/html"}
+    resp = make_response(render_template("buy_credits.html"))
+    resp.headers["Content-Type"] = "text/html"
+    ref = request.args.get("ref", "")
+    if ref:
+        resp.set_cookie("aipaygen_ref", ref, max_age=30*86400, secure=True, httponly=True, samesite="Lax")
+    return resp
 
 
 @auth_bp.route("/stripe/create-checkout", methods=["POST"])
@@ -284,6 +301,7 @@ def stripe_create_checkout():
             mode="payment",
             client_reference_id=existing_key or "new",
             metadata={"amount": str(amount), "action": action, "label": label,
+                       "ref_source": request.cookies.get("aipaygen_ref", "direct"),
                        **({"api_key": existing_key} if existing_key else {})},
             success_url=f"{BASE_URL}/buy-credits/success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{BASE_URL}/buy-credits",
@@ -329,7 +347,9 @@ def stripe_webhook():
                 ref_source = meta.get("ref_source", "stripe")
                 new_key = generate_key(initial_balance=amount, label=label, source=ref_source)
                 api_key = new_key["key"]
+                _cleanup_session_keys()
                 _session_key_map[session["id"]] = api_key
+                _session_key_ts[session["id"]] = _time.time()
 
                 # Also store in Stripe session metadata for the success page
                 try:
