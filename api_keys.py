@@ -9,6 +9,7 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "api_keys.db")
 
 def _conn():
     c = sqlite3.connect(DB_PATH)
+    c.execute("PRAGMA journal_mode=WAL")
     c.row_factory = sqlite3.Row
     return c
 
@@ -29,17 +30,27 @@ def init_keys_db():
             )
         """)
         c.execute("CREATE INDEX IF NOT EXISTS idx_apikey_key ON api_keys(key)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_apikey_balance ON api_keys(balance_usd)")
+        # Migrations
+        try:
+            c.execute("ALTER TABLE api_keys ADD COLUMN source TEXT DEFAULT 'unknown'")
+        except sqlite3.OperationalError:
+            pass
+        try:
+            c.execute("ALTER TABLE api_keys ADD COLUMN first_used_at TEXT")
+        except sqlite3.OperationalError:
+            pass
 
 
-def generate_key(initial_balance: float = 0.0, label: str = "") -> dict:
+def generate_key(initial_balance: float = 0.0, label: str = "", source: str = "unknown") -> dict:
     key = "apk_" + secrets.token_urlsafe(32)
     now = datetime.utcnow().isoformat()
     with _conn() as c:
         c.execute(
-            "INSERT INTO api_keys (key, label, balance_usd, created_at) VALUES (?, ?, ?, ?)",
-            (key, label, initial_balance, now),
+            "INSERT INTO api_keys (key, label, balance_usd, created_at, source) VALUES (?, ?, ?, ?, ?)",
+            (key, label, initial_balance, now, source),
         )
-    return {"key": key, "balance_usd": initial_balance, "label": label, "created_at": now}
+    return {"key": key, "balance_usd": initial_balance, "label": label, "created_at": now, "source": source}
 
 
 def topup_key(key: str, amount: float) -> dict:
@@ -58,7 +69,7 @@ def topup_key(key: str, amount: float) -> dict:
 def get_key_status(key: str) -> dict | None:
     with _conn() as c:
         row = c.execute(
-            "SELECT key, label, balance_usd, total_spent, call_count, is_active, created_at, last_used_at FROM api_keys WHERE key = ?",
+            "SELECT key, label, balance_usd, total_spent, call_count, is_active, created_at, last_used_at, source, first_used_at FROM api_keys WHERE key = ?",
             (key,),
         ).fetchone()
     if not row:
@@ -79,14 +90,24 @@ def validate_key(key: str) -> dict | None:
 def deduct(key: str, amount: float) -> bool:
     """Atomically deduct amount from key balance. Returns False if insufficient funds."""
     now = datetime.utcnow().isoformat()
-    with _conn() as c:
+    c = sqlite3.connect(DB_PATH, isolation_level=None)
+    c.execute("PRAGMA journal_mode=WAL")
+    try:
+        c.execute("BEGIN IMMEDIATE")
         cur = c.execute(
             "UPDATE api_keys SET balance_usd = balance_usd - ?, total_spent = total_spent + ?, "
-            "call_count = call_count + 1, last_used_at = ? "
+            "call_count = call_count + 1, last_used_at = ?, "
+            "first_used_at = CASE WHEN first_used_at IS NULL THEN ? ELSE first_used_at END "
             "WHERE key = ? AND is_active = 1 AND balance_usd >= ?",
-            (amount, amount, now, key, amount),
+            (amount, amount, now, now, key, amount),
         )
-    return cur.rowcount > 0
+        c.execute("COMMIT")
+        return cur.rowcount > 0
+    except Exception:
+        c.execute("ROLLBACK")
+        raise
+    finally:
+        c.close()
 
 
 def deduct_metered(key: str, input_tokens: int, output_tokens: int,
@@ -106,8 +127,10 @@ def deduct_metered(key: str, input_tokens: int, output_tokens: int,
             return None
         c.execute(
             "UPDATE api_keys SET balance_usd = balance_usd - ?, total_spent = total_spent + ?, "
-            "call_count = call_count + 1, last_used_at = ? WHERE key = ?",
-            (cost, cost, now, key),
+            "call_count = call_count + 1, last_used_at = ?, "
+            "first_used_at = CASE WHEN first_used_at IS NULL THEN ? ELSE first_used_at END "
+            "WHERE key = ?",
+            (cost, cost, now, now, key),
         )
         new_balance = c.execute(
             "SELECT balance_usd FROM api_keys WHERE key = ?", (key,),

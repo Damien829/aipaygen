@@ -306,3 +306,51 @@ class TestAdditionalEdgeCases:
             k = api_keys.generate_key()
             keys.add(k["key"])
         assert len(keys) == 50
+
+
+# ── Attribution ───────────────────────────────────────────────────────────
+
+def test_generate_key_default_source():
+    key_data = api_keys.generate_key(initial_balance=0.0)
+    with sqlite3.connect(api_keys.DB_PATH) as c:
+        c.row_factory = sqlite3.Row
+        row = c.execute("SELECT source FROM api_keys WHERE key = ?", (key_data["key"],)).fetchone()
+    assert row["source"] == "unknown"
+
+
+def test_generate_key_with_source():
+    key_data = api_keys.generate_key(initial_balance=0.0, source="hackernews")
+    with sqlite3.connect(api_keys.DB_PATH) as c:
+        c.row_factory = sqlite3.Row
+        row = c.execute("SELECT source FROM api_keys WHERE key = ?", (key_data["key"],)).fetchone()
+    assert row["source"] == "hackernews"
+
+
+def test_first_used_at_set_on_first_deduct():
+    key_data = api_keys.generate_key(initial_balance=10.0)
+    with sqlite3.connect(api_keys.DB_PATH) as c:
+        c.row_factory = sqlite3.Row
+        row = c.execute("SELECT first_used_at FROM api_keys WHERE key = ?", (key_data["key"],)).fetchone()
+    assert row["first_used_at"] is None
+
+    api_keys.deduct(key_data["key"], 1.0)
+    with sqlite3.connect(api_keys.DB_PATH) as c:
+        c.row_factory = sqlite3.Row
+        row = c.execute("SELECT first_used_at FROM api_keys WHERE key = ?", (key_data["key"],)).fetchone()
+    first_time = row["first_used_at"]
+    assert first_time is not None
+
+    api_keys.deduct(key_data["key"], 1.0)
+    with sqlite3.connect(api_keys.DB_PATH) as c:
+        c.row_factory = sqlite3.Row
+        row = c.execute("SELECT first_used_at FROM api_keys WHERE key = ?", (key_data["key"],)).fetchone()
+    assert row["first_used_at"] == first_time
+
+
+def test_first_used_at_set_on_deduct_metered():
+    key_data = api_keys.generate_key(initial_balance=10.0)
+    api_keys.deduct_metered(key_data["key"], 1000, 500, 0.25, 1.25)
+    with sqlite3.connect(api_keys.DB_PATH) as c:
+        c.row_factory = sqlite3.Row
+        row = c.execute("SELECT first_used_at FROM api_keys WHERE key = ?", (key_data["key"],)).fetchone()
+    assert row["first_used_at"] is not None
