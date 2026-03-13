@@ -11,7 +11,13 @@ os.environ.setdefault("WEBHOOKS_DB", ":memory:")
 @pytest.fixture(scope="module")
 def client():
     from app import app
+    from api_keys import init_keys_db
     app.config["TESTING"] = True
+    init_keys_db()
+    # Clear rate limiter state from previous test modules
+    from helpers import _identity_rate, _ip_rate
+    _identity_rate.clear()
+    _ip_rate.clear()
     with app.test_client() as c:
         yield c
 
@@ -36,7 +42,7 @@ class TestGenerateKey:
         assert data["label"] == "my-key"
         assert "_meta" in data
         assert data["_meta"]["free"] is True
-        mock_gen.assert_called_once_with(initial_balance=0.0, label="my-key")
+        mock_gen.assert_called_once_with(initial_balance=0.0, label="my-key", source="api-direct")
 
     @patch("routes.auth.generate_key")
     @patch("routes.auth.check_identity_rate_limit", return_value=True)
@@ -47,7 +53,7 @@ class TestGenerateKey:
         }
         r = client.post("/auth/generate-key", json={})
         assert r.status_code == 200
-        mock_gen.assert_called_once_with(initial_balance=0.0, label="")
+        mock_gen.assert_called_once_with(initial_balance=0.0, label="", source="api-direct")
 
     @patch("routes.auth.generate_key")
     @patch("routes.auth.check_identity_rate_limit", return_value=True)
@@ -65,6 +71,39 @@ class TestGenerateKey:
         assert r.status_code == 429
         data = r.get_json()
         assert data["error"] == "rate_limited"
+
+    @patch("routes.auth.generate_key")
+    @patch("routes.auth.check_identity_rate_limit", return_value=True)
+    def test_generate_key_captures_source(self, mock_rl, mock_gen, client):
+        mock_gen.return_value = {
+            "key": "apk_srctest",
+            "balance_usd": 0.0,
+            "label": "",
+            "created_at": "2026-01-01T00:00:00",
+            "source": "hackernews",
+        }
+        resp = client.post("/auth/generate-key", json={"source": "hackernews"})
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert "quickstart" in data
+        assert "curl_example" in data["quickstart"]
+        assert data["key"] in data["quickstart"]["curl_example"]
+
+    @patch("routes.auth.generate_key")
+    @patch("routes.auth.check_identity_rate_limit", return_value=True)
+    def test_generate_key_default_quickstart(self, mock_rl, mock_gen, client):
+        mock_gen.return_value = {
+            "key": "apk_default",
+            "balance_usd": 0.0,
+            "label": "",
+            "created_at": "2026-01-01T00:00:00",
+            "source": "api-direct",
+        }
+        resp = client.post("/auth/generate-key", json={})
+        assert resp.status_code == 200
+        data = resp.get_json()
+        assert "quickstart" in data
+        assert data["quickstart"]["free_calls"] == 10
 
 
 # ── POST /auth/topup ────────────────────────────────────────────────────────
@@ -118,42 +157,50 @@ class TestAuthTopup:
 # ── GET/POST /auth/status ────────────────────────────────────────────────────
 
 class TestAuthStatus:
+    KEY = "apk_testauthstatus"
+    AUTH = {"Authorization": "Bearer apk_testauthstatus"}
+    VK_RV = {"key": "apk_testauthstatus", "balance_usd": 100.0, "is_active": 1}
+
+    @patch("api_keys.validate_key", return_value=VK_RV)
     @patch("routes.auth.get_key_status")
-    def test_status_get_success(self, mock_status, client):
+    def test_status_get_success(self, mock_status, mock_vk, client):
         mock_status.return_value = {
-            "key": "apk_abc", "balance_usd": 5.0, "call_count": 10,
+            "key": "apk_testauthstatus", "balance_usd": 5.0, "call_count": 10,
             "is_active": 1, "label": "", "total_spent": 1.0,
             "created_at": "2026-01-01", "last_used_at": "2026-01-02",
         }
-        r = client.get("/auth/status?key=apk_abc")
+        r = client.get(f"/auth/status?key={self.KEY}", headers=self.AUTH)
         assert r.status_code == 200
         data = r.get_json()
-        assert data["key"] == "apk_abc"
+        assert data["key"] == self.KEY
         assert data["balance_usd"] == 5.0
 
+    @patch("api_keys.validate_key", return_value=VK_RV)
     @patch("routes.auth.get_key_status")
-    def test_status_post_success(self, mock_status, client):
-        mock_status.return_value = {"key": "apk_abc", "balance_usd": 5.0}
-        r = client.post("/auth/status", json={"key": "apk_abc"})
+    def test_status_post_success(self, mock_status, mock_vk, client):
+        mock_status.return_value = {"key": self.KEY, "balance_usd": 5.0}
+        r = client.post("/auth/status", json={"key": self.KEY}, headers=self.AUTH)
         assert r.status_code == 200
 
-    def test_status_missing_key_get(self, client):
-        # Flask returns 415 for GET without content-type when route calls get_json;
-        # with explicit content-type header, the route properly returns 400.
+    @patch("api_keys.validate_key", return_value=VK_RV)
+    def test_status_missing_key_get(self, mock_vk, client):
         r = client.get("/auth/status?key=",
-                       content_type="application/json")
+                       content_type="application/json",
+                       headers=self.AUTH)
         assert r.status_code == 400
         data = r.get_json()
         assert "error" in data
 
-    def test_status_missing_key_post(self, client):
-        r = client.post("/auth/status", json={})
+    @patch("api_keys.validate_key", return_value=VK_RV)
+    def test_status_missing_key_post(self, mock_vk, client):
+        r = client.post("/auth/status", json={}, headers=self.AUTH)
         assert r.status_code == 400
         assert r.get_json()["error"] == "key required"
 
+    @patch("api_keys.validate_key", return_value=VK_RV)
     @patch("routes.auth.get_key_status", return_value=None)
-    def test_status_key_not_found(self, mock_status, client):
-        r = client.get("/auth/status?key=apk_nonexistent")
+    def test_status_key_not_found(self, mock_status, mock_vk, client):
+        r = client.get(f"/auth/status?key={self.KEY}", headers=self.AUTH)
         assert r.status_code == 404
         assert r.get_json()["error"] == "key_not_found"
 
@@ -333,7 +380,7 @@ class TestStripeWebhook:
                         headers={"Stripe-Signature": "valid"})
         assert r.status_code == 200
         assert r.get_json()["received"] is True
-        mock_gen.assert_called_once_with(initial_balance=10.0, label="test")
+        mock_gen.assert_called_once_with(initial_balance=10.0, label="test", source="stripe")
         mock_log.assert_called_once()
         mock_notify.assert_called_once()
 
@@ -528,7 +575,7 @@ class TestFreeTierEnforcement:
         }
         r = client.post("/auth/generate-key", json={})
         assert r.status_code == 200
-        mock_gen.assert_called_once_with(initial_balance=0.0, label="")
+        mock_gen.assert_called_once_with(initial_balance=0.0, label="", source="api-direct")
 
     @patch("routes.auth.check_identity_rate_limit", return_value=False)
     def test_rate_limit_blocks_key_generation(self, mock_rl, client):

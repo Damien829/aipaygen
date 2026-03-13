@@ -10,9 +10,13 @@ import stripe as _stripe
 from flask import Blueprint, request, jsonify, render_template
 
 from api_keys import generate_key, topup_key, get_key_status
-from helpers import log_payment, require_admin, check_identity_rate_limit
+from helpers import log_payment, require_admin, require_api_key, check_identity_rate_limit
 from funnel_tracker import log_event as funnel_log_event
+import logging
+
 from referral import record_conversion
+
+logger = logging.getLogger(__name__)
 
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
@@ -60,14 +64,29 @@ def auth_generate_key():
         return jsonify({"error": "rate_limited", "message": "Too many key generation requests. Max 10/min."}), 429
     data = request.get_json() or {}
     label = data.get("label", "")
-    key_data = generate_key(initial_balance=0.0, label=label)
+    source = data.get("source", request.cookies.get("aipaygen_ref", "api-direct"))
+    email = (data.get("email") or "").strip().lower()
+    key_data = generate_key(initial_balance=0.0, label=label, source=source)
+    if email:
+        from accounts import create_or_get_account, link_key_to_account
+        acct = create_or_get_account(email)
+        link_key_to_account(acct["id"], key_data["key"])
+    api_key = key_data["key"]
     return jsonify({
-        "key": key_data["key"],
+        "key": api_key,
         "balance_usd": key_data["balance_usd"],
         "label": key_data["label"],
         "created_at": key_data["created_at"],
+        "source": key_data.get("source", source),
         "usage": "Add 'Authorization: Bearer <key>' to your requests. Topup via POST /auth/topup.",
         "_meta": {"free": True},
+        "quickstart": {
+            "curl_example": f"curl -X POST -H 'Authorization: Bearer {api_key}' {BASE_URL}/sentiment -d '{{\"text\": \"hello world\"}}'",
+            "mcp_install": "pip install aipaygen-mcp && claude mcp add aipaygen -- aipaygen-mcp",
+            "docs": f"{BASE_URL}/docs",
+            "free_calls": 10,
+            "note": "You get 10 free calls/day. No payment needed to start.",
+        },
     })
 
 
@@ -84,10 +103,16 @@ def auth_topup():
 
 
 @auth_bp.route("/auth/status", methods=["GET", "POST"])
+@require_api_key
 def auth_status():
     key = request.args.get("key") or (request.get_json() or {}).get("key", "")
     if not key:
         return jsonify({"error": "key required"}), 400
+    # Only allow checking your own key
+    bearer = (request.headers.get("Authorization", "")[7:]
+              if request.headers.get("Authorization", "").startswith("Bearer ") else "")
+    if bearer and key != bearer:
+        return jsonify({"error": "unauthorized", "message": "Can only check your own key status"}), 403
     status = get_key_status(key)
     if not status:
         return jsonify({"error": "key_not_found"}), 404
@@ -141,7 +166,8 @@ def buy_credits():
                                      ip=_ip, metadata=f'{{"amount_usd": {amount}}}')
                 return jsonify({"checkout_url": session.url, "amount_usd": amount})
             except Exception as e:
-                return jsonify({"error": "stripe_error", "message": str(e)}), 500
+                logger.error("Stripe checkout session creation failed: %s", e)
+                return jsonify({"error": "stripe_error", "message": "Payment processing failed"}), 500
         # No Stripe — fall through to x402
         return jsonify({
             "error": "payment_required",
@@ -268,7 +294,8 @@ def stripe_create_checkout():
                              ip=ip, metadata=f'{{"amount_usd": {amount}}}')
         return jsonify({"url": session.url, "session_id": session.id})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        logger.error("Stripe checkout creation failed: %s", e)
+        return jsonify({"error": "Payment processing failed"}), 500
 
 
 @auth_bp.route("/stripe/webhook", methods=["POST"])
@@ -299,7 +326,8 @@ def stripe_webhook():
                 # in the in-memory map, then update Stripe metadata last.
                 # This ordering prevents the race where /auth/key-status polls
                 # before the Stripe metadata update completes.
-                new_key = generate_key(initial_balance=amount, label=label)
+                ref_source = meta.get("ref_source", "stripe")
+                new_key = generate_key(initial_balance=amount, label=label, source=ref_source)
                 api_key = new_key["key"]
                 _session_key_map[session["id"]] = api_key
 
@@ -316,10 +344,11 @@ def stripe_webhook():
             customer_email = session.get("customer_details", {}).get("email", "")
             if customer_email and api_key:
                 try:
-                    from email_service import send_api_key_email
+                    from email_service import send_api_key_email, send_welcome_email
                     from accounts import create_or_get_account, link_key_to_account
                     bal = float(meta.get("amount", 0))
                     send_api_key_email(customer_email, api_key, bal)
+                    send_welcome_email(customer_email, api_key)
                     acct = create_or_get_account(customer_email)
                     link_key_to_account(acct["id"], api_key)
                 except Exception:
