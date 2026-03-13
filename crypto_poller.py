@@ -17,6 +17,20 @@ from api_keys import topup_key
 log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
+# RPC error log throttle — only log same error code once per 5 minutes
+# ---------------------------------------------------------------------------
+_last_rpc_warn: dict = {}  # error_code -> timestamp
+
+
+def _should_log_rpc_error(error_code, interval=300):
+    now = time.time()
+    if now - _last_rpc_warn.get(error_code, 0) > interval:
+        _last_rpc_warn[error_code] = now
+        return True
+    return False
+
+
+# ---------------------------------------------------------------------------
 # Config from env
 # ---------------------------------------------------------------------------
 POLL_INTERVAL = int(os.environ.get("CRYPTO_POLL_INTERVAL", "15"))
@@ -194,7 +208,15 @@ def _poll_base(wallet_address: str):
     except ImportError:
         log.warning("web3 not installed — Base polling disabled")
     except Exception as exc:
-        log.error("Base poll error: %s", exc)
+        # Extract error code for throttling; fall back to exception class name
+        error_code = str(type(exc).__name__)
+        exc_str = str(exc)
+        for code in ("-32011", "-32603", "-32000", "-32005"):
+            if code in exc_str:
+                error_code = code
+                break
+        if _should_log_rpc_error(error_code):
+            log.warning("Base poll: %s (suppressing repeats for 5m)", exc)
 
 
 def _poll_solana(wallet_address: str):
