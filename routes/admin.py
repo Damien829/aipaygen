@@ -7,9 +7,14 @@ import os
 import re as _re
 import json
 import base64
+import hmac
 import requests as _requests
 from datetime import datetime
+import logging
+
 from flask import Blueprint, request, jsonify, Response
+
+logger = logging.getLogger(__name__)
 
 from helpers import (
     cache_get as _cache_get,
@@ -169,18 +174,57 @@ def funnel_dashboard():
     # Check session cookie
     if session.get("admin"):
         pass  # authenticated
+    elif not admin_secret:
+        return redirect("/admin/login")
     # Check query param or header
-    elif request.form.get("key") == admin_secret:
+    elif hmac.compare_digest(request.form.get("key", ""), admin_secret):
         session["admin"] = True  # set cookie for future visits
-    elif request.headers.get("X-Admin-Key") == admin_secret:
+    elif hmac.compare_digest(request.headers.get("X-Admin-Key", ""), admin_secret):
         pass
-    elif request.headers.get("Authorization", "").replace("Bearer ", "") == admin_secret:
+    elif hmac.compare_digest(request.headers.get("Authorization", "").replace("Bearer ", ""), admin_secret):
         pass
     else:
         return redirect("/admin/login")
     days = int(request.args.get("days", 7))
     stats = get_funnel_stats(days)
     by_type = stats.get("by_type", {})
+
+    # Key attribution stats
+    import sqlite3 as _sqlite3
+    import api_keys as _ak
+    key_stats_html = ""
+    median_label = "N/A"
+    try:
+        with _sqlite3.connect(_ak.DB_PATH) as kc:
+            kc.row_factory = _sqlite3.Row
+            rows = kc.execute("""
+                SELECT COALESCE(source, 'unknown') as source,
+                       COUNT(*) as total,
+                       SUM(CASE WHEN call_count = 0 THEN 1 ELSE 0 END) as zero_calls,
+                       SUM(CASE WHEN call_count > 0 THEN 1 ELSE 0 END) as active
+                FROM api_keys WHERE is_active = 1
+                GROUP BY source ORDER BY total DESC
+            """).fetchall()
+            for r in rows:
+                pct = round(100 * r["active"] / r["total"], 1) if r["total"] else 0
+                key_stats_html += (
+                    f'<tr><td>{r["source"]}</td><td>{r["total"]}</td>'
+                    f'<td style="color:#f87171">{r["zero_calls"]}</td><td style="color:#34d399">{r["active"]}</td><td>{pct}%</td></tr>'
+                )
+            median_row = kc.execute("""
+                SELECT first_used_at, created_at FROM api_keys
+                WHERE first_used_at IS NOT NULL ORDER BY
+                (julianday(first_used_at) - julianday(created_at))
+                LIMIT 1 OFFSET (SELECT COUNT(*)/2 FROM api_keys WHERE first_used_at IS NOT NULL)
+            """).fetchone()
+            if median_row:
+                from datetime import datetime as _dt
+                created = _dt.fromisoformat(median_row["created_at"])
+                first = _dt.fromisoformat(median_row["first_used_at"])
+                median_mins = round((first - created).total_seconds() / 60, 1)
+                median_label = f"{median_mins} min" if median_mins < 60 else f"{round(median_mins/60, 1)} hr"
+    except Exception:
+        key_stats_html = '<tr><td colspan="5" style="color:#555">Error loading key stats</td></tr>'
 
     # Read checkout alerts
     alert_log = os.path.join(os.path.dirname(os.path.dirname(__file__)), "checkout_alerts.log")
@@ -321,6 +365,15 @@ def funnel_dashboard():
     </table>
   </div>
 
+  <div class="card" style="margin-top:24px">
+    <h2 style="margin-top:0;margin-bottom:8px">Key Attribution</h2>
+    <p style="color:#888;margin-bottom:12px">Median time to first call: <b style="color:#6366f1">{median_label}</b></p>
+    <table style="width:100%;border-collapse:collapse">
+      <tr style="color:#888;text-align:left;border-bottom:1px solid #2a2a2a"><th style="padding:8px">Source</th><th style="padding:8px">Keys</th><th style="padding:8px">0 Calls</th><th style="padding:8px">Active</th><th style="padding:8px">Activation %</th></tr>
+      {key_stats_html}
+    </table>
+  </div>
+
   <p style="text-align:center;margin-top:20px;font-size:0.75rem;color:#444"><a href="/stats" style="color:#555">Payment stats</a> &middot; Auto-refreshes every 5m</p>
 </div>
 <script>
@@ -349,14 +402,14 @@ def blog_index():
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AiPayGen Blog — AI Agent & API Developer Tutorials</title>
-<meta name="description" content="Developer tutorials for building with AiPayGen — 155 tools and 140+ Claude-powered AI API endpoints. Covers AI agents, scraping, x402 payments, real-time data, and more. First 10 calls/day free.">
+<meta name="description" content="Developer tutorials for building with AiPayGen — 162 tools and 140+ Claude-powered AI API endpoints. Covers AI agents, scraping, x402 payments, real-time data, and more. First 10 calls/day free.">
 <link rel="canonical" href="https://api.aipaygen.com/blog">
 <link rel="alternate" type="application/rss+xml" title="AiPayGen Blog RSS" href="/feed.xml">
 <meta property="og:type" content="website">
 <meta property="og:title" content="AiPayGen Developer Blog">
-<meta property="og:description" content="Tutorials for building AI agents and automations with AiPayGen's 155 tools and 140+ Claude-powered endpoints.">
+<meta property="og:description" content="Tutorials for building AI agents and automations with AiPayGen's 162 tools and 140+ Claude-powered endpoints.">
 <meta property="og:url" content="https://api.aipaygen.com/blog">
-<meta property="og:image" content="https://api.aipaygen.com/og-image.png">
+<meta property="og:image" content="https://api.aipaygen.com/static/og-image.svg">
 <meta name="twitter:card" content="summary_large_image">
 <script type="application/ld+json">{json.dumps({"@context":"https://schema.org","@type":"Blog","name":"AiPayGen Developer Blog","url":"https://api.aipaygen.com/blog","description":"Developer tutorials for AI agent APIs","publisher":{"@type":"Organization","name":"AiPayGen","url":"https://api.aipaygen.com"}})}</script>
 <style>body{{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.6;color:#1a1a1a}}a{{color:#6366f1}}h1{{color:#1e1b4b}}.rss{{float:right;font-size:0.85rem;background:#f4f4f4;padding:4px 10px;border-radius:20px;text-decoration:none;color:#555}}</style>
@@ -364,9 +417,9 @@ def blog_index():
 <body>
 <a class="rss" href="/feed.xml">RSS feed</a>
 <h1>AiPayGen Developer Blog</h1>
-<p>Tutorials for building AI agents with AiPayGen — 155 tools and 140+ Claude-powered endpoints. <strong>First 10 calls/day free.</strong></p>
+<p>Tutorials for building AI agents with AiPayGen — 162 tools and 140+ Claude-powered endpoints. <strong>First 10 calls/day free.</strong></p>
 <ul style="padding-left:1.2rem">{items}</ul>
-<p><a href="https://api.aipaygen.com/discover">Browse all 155 tools and 140+ endpoints →</a> · <a href="https://api.aipaygen.com/buy-credits">Buy credits ($5+) →</a></p>
+<p><a href="https://api.aipaygen.com/discover">Browse all 162 tools and 140+ endpoints →</a> · <a href="https://api.aipaygen.com/buy-credits">Buy credits ($5+) →</a></p>
 </body>
 </html>"""
     resp = Response(html, content_type="text/html")
@@ -383,7 +436,7 @@ def blog_post(slug):
     # Sanitize title for use in HTML attributes and text (content is trusted AI-generated HTML)
     safe_title = sanitize_html(post['title'])
     canonical = f"https://api.aipaygen.com/blog/{sanitize_html(slug)}"
-    desc = f"{safe_title} — Developer tutorial for AiPayGen, the pay-per-use Claude AI API with 155 tools and 140+ endpoints."
+    desc = f"{safe_title} — Developer tutorial for AiPayGen, the pay-per-use Claude AI API with 162 tools and 140+ endpoints."
     jsonld = json.dumps({
         "@context": "https://schema.org",
         "@type": "TechArticle",
@@ -410,12 +463,12 @@ def blog_post(slug):
 <meta property="og:title" content="{safe_title}">
 <meta property="og:description" content="{desc}">
 <meta property="og:url" content="{canonical}">
-<meta property="og:image" content="https://api.aipaygen.com/og-image.png">
+<meta property="og:image" content="https://api.aipaygen.com/static/og-image.svg">
 <meta property="og:site_name" content="AiPayGen">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{safe_title}">
 <meta name="twitter:description" content="{desc}">
-<meta name="twitter:image" content="https://api.aipaygen.com/og-image.png">
+<meta name="twitter:image" content="https://api.aipaygen.com/static/og-image.svg">
 <script type="application/ld+json">{jsonld}</script>
 <style>
 body{{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.7;color:#1a1a1a}}
@@ -425,11 +478,11 @@ pre{{padding:16px;overflow-x:auto;display:block}}a{{color:#6366f1}}h1{{color:#1e
 </style>
 </head>
 <body>
-<div class="nav"><a href="/blog">← All posts</a> · <a href="https://api.aipaygen.com">AiPayGen API</a> · <a href="/discover">155 tools</a></div>
+<div class="nav"><a href="/blog">← All posts</a> · <a href="https://api.aipaygen.com">AiPayGen API</a> · <a href="/discover">162 tools</a></div>
 <h1>{safe_title}</h1>
 {post['content']}
 <div class="cta">
-  <strong>Try it free →</strong> First 10 calls/day free, no credit card. <a href="https://api.aipaygen.com/discover">Browse all 155 tools and 140+ endpoints</a> or <a href="https://api.aipaygen.com/buy-credits">buy credits ($5+)</a>.
+  <strong>Try it free →</strong> First 10 calls/day free, no credit card. <a href="https://api.aipaygen.com/discover">Browse all 162 tools and 140+ endpoints</a> or <a href="https://api.aipaygen.com/buy-credits">buy credits ($5+)</a>.
 </div>
 <p style="color:#888;font-size:0.85rem">Published: {post.get('generated_at','')[:10]} · <a href="/feed.xml">RSS feed</a></p>
 </body>
@@ -639,7 +692,8 @@ def x402_spend():
         from x402_client import get_spend_stats
         return jsonify(get_spend_stats())
     except Exception as e:
-        return jsonify({"error": str(e)})
+        logger.error("x402 spend stats failed: %s", e)
+        return jsonify({"error": "Failed to retrieve spend stats"})
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -780,7 +834,8 @@ def files_upload():
         result = save_file(agent_id, filename, content_type, data)
         return jsonify(result)
     except ValueError as e:
-        return jsonify({"error": str(e)}), 413
+        logger.error("File upload validation error: %s", e)
+        return jsonify({"error": "File upload failed: size or format limit exceeded"}), 413
 
 
 @admin_bp.route("/files/<file_id>", methods=["GET"])
@@ -863,9 +918,9 @@ def webhooks_list(agent_id):
 # ADMIN FUNNEL
 # ══════════════════════════════════════════════════════════════════════════════
 
-@admin_bp.route("/admin/funnel")
+@admin_bp.route("/admin/funnel-data")
 @require_admin
-def admin_funnel():
+def admin_funnel_data():
     """Conversion funnel stats. ?days=7 (default). Protected by ADMIN_SECRET."""
     days = request.args.get("days", 7, type=int)
     days = min(max(days, 1), 365)
@@ -921,7 +976,7 @@ _KNOWLEDGE_SEEDS = [
     {
         "topic": "aipaygen-api-reference",
         "content": (
-            "AiPayGen API (https://api.aipaygen.com) has 155 tools and 140+ endpoints. "
+            "AiPayGen API (https://api.aipaygen.com) has 162 tools and 140+ endpoints. "
             "Key endpoints: /research ($0.01), /write ($0.05), /analyze ($0.02), /code ($0.05), "
             "/scrape/google-maps ($0.10), /chain ($0.25 for 5-step pipelines), /rag ($0.05). "
             "Free tier: 10 calls/day per IP. Prepaid keys: /buy-credits. "
@@ -933,12 +988,13 @@ _KNOWLEDGE_SEEDS = [
     {
         "topic": "x402-payment-protocol",
         "content": (
-            "x402 is a payment protocol for AI agents. HTTP 402 response includes payment details. "
-            "Agents pay USDC on Base Mainnet. AiPayGen wallet: 0x366D488a48de1B2773F3a21F1A6972715056Cb30."
-            "Facilitator: https://x402.org/facilitator. Use x402-python or x402-js SDK."
+            "x402 V2 is the open payment protocol for AI agents. HTTP 402 response includes PAYMENT-REQUIRED header with payment details. "
+            "Agents pay USDC on Base, Solana, or Stellar. AiPayGen wallet: 0x366D488a48de1B2773F3a21F1A6972715056Cb30. "
+            "Facilitator: https://api.cdp.coinbase.com/platform/v2/x402. Use x402 SDK (pip install x402). "
+            "x402 Foundation: Coinbase, Cloudflare, Google, Visa. Google AP2 compatible."
         ),
-        "tags": ["x402", "payment", "usdc", "base"],
-        "entry_id": "kb-x402-protocol-v1",
+        "tags": ["x402", "payment", "usdc", "base", "solana", "stellar", "v2"],
+        "entry_id": "kb-x402-protocol-v2",
     },
     {
         "topic": "ai-agent-best-practices",
@@ -1140,11 +1196,11 @@ def rss_feed():
   <channel>
     <title>AiPayGen Developer Blog</title>
     <link>https://api.aipaygen.com/blog</link>
-    <description>Developer tutorials for building AI agents with AiPayGen — 155 tools and 140+ Claude-powered API endpoints. First 10 calls/day free.</description>
+    <description>Developer tutorials for building AI agents with AiPayGen — 162 tools and 140+ Claude-powered API endpoints. First 10 calls/day free.</description>
     <language>en-us</language>
     <atom:link href="https://api.aipaygen.com/feed.xml" rel="self" type="application/rss+xml"/>
     <image>
-      <url>https://api.aipaygen.com/og-image.png</url>
+      <url>https://api.aipaygen.com/static/og-image.svg</url>
       <title>AiPayGen</title>
       <link>https://api.aipaygen.com</link>
     </image>
@@ -1170,7 +1226,7 @@ def og_image():
   <rect x="60" y="60" width="1080" height="510" rx="20" fill="#141414" opacity="0.8"/>
   <text x="600" y="220" font-family="system-ui,sans-serif" font-size="72" font-weight="800" fill="#ffffff" text-anchor="middle">AiPayGen</text>
   <text x="600" y="310" font-family="system-ui,sans-serif" font-size="32" fill="#a78bfa" text-anchor="middle">Pay-per-use Claude AI API</text>
-  <text x="600" y="390" font-family="system-ui,sans-serif" font-size="26" fill="#888" text-anchor="middle">155 tools · 15 models · 4100+ APIs · No signup</text>
+  <text x="600" y="390" font-family="system-ui,sans-serif" font-size="26" fill="#888" text-anchor="middle">162 tools · 15 models · 4100+ APIs · No signup</text>
   <text x="600" y="460" font-family="system-ui,sans-serif" font-size="22" fill="#6366f1" text-anchor="middle">api.aipaygen.com</text>
   <rect x="440" y="490" width="320" height="48" rx="24" fill="#6366f1"/>
   <text x="600" y="521" font-family="system-ui,sans-serif" font-size="20" font-weight="600" fill="#fff" text-anchor="middle">Try free — no credit card</text>
@@ -1256,7 +1312,7 @@ a{{color:#6366f1}}h1,h2{{color:#1e1b4b}}.stat{{display:inline-block;background:#
   <li><strong>Mar 2026</strong> — Referral system (10% commission), discovery engine (GitHub outreach, sitemap pings)</li>
   <li><strong>Mar 2026</strong> — Async jobs, file storage, webhook relay, free data tier (14+ endpoints)</li>
   <li><strong>Mar 2026</strong> — Prepaid API keys (Stripe), SSE streaming, MCP server (79 tools)</li>
-  <li><strong>Mar 2026</strong> — 155 tools and 140+ endpoints: AI, scraping, code execution, agent messaging, task board, knowledge base</li>
+  <li><strong>Mar 2026</strong> — 162 tools and 140+ endpoints: AI, scraping, code execution, agent messaging, task board, knowledge base</li>
 </ul>
 
 <p style="color:#888;font-size:0.85rem">Auto-updated · <a href="https://api.aipaygen.com/health">Health status</a> · <a href="https://api.aipaygen.com/self-test">Canary test</a></p>
@@ -1330,7 +1386,8 @@ def crosspost_to_devto(title: str, content_html: str, slug: str, tags: list = No
             return {"posted": True, "url": data.get("url", ""), "id": data.get("id")}
         return {"posted": False, "status": resp.status_code, "detail": resp.text[:200]}
     except Exception as e:
-        return {"posted": False, "error": str(e)}
+        logger.error("Reddit post failed: %s", e)
+        return {"posted": False, "error": "Post submission failed"}
 
 
 # ── Reddit Post Generator ─────────────────────────────────────────────────────
@@ -1346,12 +1403,12 @@ def reddit_posts():
     subreddits = [
         {
             "subreddit": "r/MachineLearning",
-            "title": "[P] AiPayGen — Pay-per-use Claude API with 155 tools and 140+ endpoints. Free tier (10/day), x402 crypto payments, MCP tools.",
-            "body": f"""I built a pay-per-use AI API on top of Claude with 155 tools and 140+ endpoints — research, write, code, analyze, scrape, RAG, vision, diagrams, and more.
+            "title": "[P] AiPayGen — Pay-per-use Claude API with 162 tools and 140+ endpoints. Free tier (10/day), x402 crypto payments, MCP tools.",
+            "body": f"""I built a pay-per-use AI API on top of Claude with 162 tools and 140+ endpoints — research, write, code, analyze, scrape, RAG, vision, diagrams, and more.
 
 **Key features:**
 - First 10 calls/day completely free (no signup, no key)
-- Pay per call with Stripe ($5 for ~500 calls) or USDC on Base via x402
+- Pay per call with Stripe ($5 for ~500 calls) or USDC via x402 V2 (Base, Solana, Stellar)
 - 79 MCP tools for Claude Code/Desktop
 - Agent infrastructure: messaging, task board, file storage, webhook relay, async jobs
 - 14+ free real-time data endpoints (weather, crypto, news, Wikipedia, arXiv)
@@ -1368,8 +1425,8 @@ Blog: https://api.aipaygen.com/blog""",
         },
         {
             "subreddit": "r/LocalLLaMA",
-            "title": "AiPayGen — Claude API with x402 micropayments. Agents can pay per call with USDC, 10 free calls/day",
-            "body": f"""Built a micro-payment AI API for agent-to-agent use. Your AI agent can call it autonomously using x402 (HTTP 402 payment protocol) with USDC on Base, or just use the free tier.
+            "title": "AiPayGen — Claude API with x402 V2 micropayments. Agents pay per call with USDC on Base/Solana/Stellar, 10 free calls/day",
+            "body": f"""Built a micro-payment AI API for agent-to-agent use. Your AI agent can call it autonomously using x402 V2 (HTTP 402 payment protocol) with USDC on Base, Solana, or Stellar — or just use the free tier.
 
 **Why this is interesting for agents:**
 - True pay-per-call (not subscription) — agents pay exactly what they use
@@ -1381,12 +1438,12 @@ Try it: https://api.aipaygen.com/preview (no auth needed)""",
         },
         {
             "subreddit": "r/selfhosted",
-            "title": "I built a pay-per-use AI API (Claude-powered) that runs on a Raspberry Pi — x402 payments, 155 tools",
+            "title": "I built a pay-per-use AI API (Claude-powered) that runs on a Raspberry Pi — x402 payments, 162 tools",
             "body": f"""Running on a Raspberry Pi 5 at home behind Cloudflare tunnel.
 
 Stack: Flask + Gunicorn + SQLite + APScheduler + Cloudflare tunnel + systemd
 
-It handles x402 payment verification, API key management, referral tracking, scheduled blog generation, and 155 tools and 140+ Claude-powered endpoints — all on a Pi.
+It handles x402 payment verification, API key management, referral tracking, scheduled blog generation, and 162 tools and 140+ Claude-powered endpoints — all on a Pi.
 
 What surprised me: SQLite handles this fine for the traffic volume a self-hosted project gets.
 
@@ -1414,3 +1471,11 @@ def admin_crypto_deposits():
     limit = int(request.args.get("limit", 100))
     deposits = get_all_deposits(limit=limit)
     return jsonify({"deposits": deposits, "count": len(deposits)})
+
+
+@admin_bp.route("/admin/clear-cache", methods=["POST"])
+@require_admin
+def admin_clear_cache():
+    from model_router import clear_cache
+    clear_cache()
+    return jsonify({"status": "ok", "message": "Response cache cleared"})
