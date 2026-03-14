@@ -1160,17 +1160,22 @@ def not_found(e):
 
 @app.errorhandler(405)
 def method_not_allowed(e):
-    return jsonify({"error": "method_not_allowed", "message": "This HTTP method is not supported for this endpoint."}), 405
+    return jsonify({"error": "method_not_allowed", "message": "This HTTP method is not supported for this endpoint.", "docs": "https://aipaygen.com/docs"}), 405
 
 
 @app.errorhandler(415)
 def unsupported_media_type(e):
-    return jsonify({"error": "unsupported_media_type", "message": "Content-Type must be application/json for POST requests."}), 415
+    return jsonify({"error": "unsupported_media_type", "message": "Content-Type must be application/json for POST requests.", "docs": "https://aipaygen.com/docs#quickstart"}), 415
+
+
+@app.errorhandler(429)
+def rate_limited(e):
+    return jsonify({"error": "rate_limited", "message": "Rate limit exceeded. Upgrade to a paid plan for higher limits.", "pricing": "https://aipaygen.com/pricing", "buy_credits": "https://aipaygen.com/buy-credits"}), 429
 
 
 @app.errorhandler(500)
 def internal_error(e):
-    return jsonify({"error": "internal_server_error", "message": "An unexpected error occurred."}), 500
+    return jsonify({"error": "internal_server_error", "message": "An unexpected error occurred. If this persists, check https://aipaygen.com/health"}), 500
 
 
 @app.before_request

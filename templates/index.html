@@ -1,8 +1,37 @@
 {% extends "base.html" %}
 {% block title %}AiPayGen{% endblock %}
-{% block description %}162 AI tools in one API. Multi-model (Claude, GPT-4o, Gemini, DeepSeek, Grok). Pay per call. 10 free calls/day.{% endblock %}
+{% block description %}165 AI tools in one API. Multi-model (Claude, GPT-4o, Gemini, DeepSeek, Grok). Pay per call. 10 free calls/day. $0.25 trial credits.{% endblock %}
 
 {% block head %}
+<!-- OG Tags -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="AiPayGen — The AI Agent API">
+<meta property="og:description" content="165 AI tools, 15 models, 7 providers. Pay per call. 10 free calls/day. $0.25 trial credits.">
+<meta property="og:url" content="https://aipaygen.com">
+<meta property="og:image" content="https://aipaygen.com/static/og-image.svg">
+<meta property="og:site_name" content="AiPayGen">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AiPayGen — The AI Agent API">
+<meta name="twitter:description" content="165 AI tools, 15 models, 7 providers. Pay per call. 10 free calls/day.">
+<meta name="twitter:image" content="https://aipaygen.com/static/og-image.svg">
+<!-- JSON-LD -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "AiPayGen",
+  "url": "https://aipaygen.com",
+  "description": "165 AI tools in one API. Multi-model. Pay per call with API key, x402 USDC, or MCP.",
+  "applicationCategory": "DeveloperApplication",
+  "operatingSystem": "Any",
+  "offers": [
+    {"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free", "description": "10 API calls per day"},
+    {"@type": "Offer", "price": "5.00", "priceCurrency": "USD", "name": "Starter", "description": "~830 prepaid API calls"},
+    {"@type": "Offer", "price": "20.00", "priceCurrency": "USD", "name": "Pro", "description": "~4,000 prepaid API calls"}
+  ],
+  "provider": {"@type": "Organization", "name": "AiPayGen", "url": "https://aipaygen.com"}
+}
+</script>
 <style>
 /* Hero */
 .hero { position: relative; text-align: center; padding: 100px 24px 60px; overflow: hidden; }
@@ -88,18 +117,18 @@
   <div style="position:relative;z-index:1">
     <div class="hero-badge fade-in">
       <span class="badge">Live on Base Mainnet</span>
-      <span class="badge badge-cyan">162 tools</span>
+      <span class="badge badge-cyan">165 tools</span>
     </div>
     <h1 class="fade-in delay-1">The AI Agent API</h1>
     <p class="hero-sub fade-in delay-2">
-      162 tools across 15 models from 7 providers. Research, write, code, analyze, scrape, translate — pay per call.
+      165 tools across 15 models from 7 providers. Research, write, code, analyze, scrape, translate — pay per call.
     </p>
     <div class="hero-actions fade-in delay-3">
       <a href="/try" class="btn btn-primary">Try Free</a>
       <a href="/buy-credits" class="btn btn-secondary">Get API Key</a>
     </div>
     <p class="hero-tag fade-in delay-3">
-      <span>10 free calls/day</span> &middot; No sign-up required &middot;
+      <span>10 free calls/day</span> &middot; <span style="color:var(--accent2)">$0.25 trial credits</span> &middot; No sign-up required &middot;
       <code>pip install aipaygen-mcp</code>
     </p>
   </div>
@@ -138,7 +167,7 @@
   <div class="section-subtitle">One API key. Every AI tool.</div>
   <div class="bento-grid">
     <div class="card card-lg">
-      <h3>162 AI tools</h3>
+      <h3>165 AI Tools</h3>
       <p>Research, write, code, analyze, extract, translate, scrape, RAG, vision, diagrams, and more — every tool is one POST request away.</p>
       <div class="tag-row">
         <span class="tag">research</span><span class="tag">write</span><span class="tag">code</span>
@@ -228,7 +257,7 @@
       <ul class="pricing-features">
         <li>10 AI calls per day</li>
         <li>No sign-up required</li>
-        <li>All 162 tools</li>
+        <li>All 165 tools</li>
         <li>MCP access</li>
       </ul>
       <a href="/try" class="btn btn-secondary" style="width:100%;justify-content:center">Try Now</a>
@@ -241,7 +270,7 @@
       <ul class="pricing-features">
         <li>Unlimited calls</li>
         <li>Prepaid API key</li>
-        <li>All 162 tools</li>
+        <li>All 165 tools</li>
         <li>Agent Builder</li>
         <li>Priority routing</li>
       </ul>
@@ -284,8 +313,53 @@ function updateCalc(){var s=document.getElementById('calc-slider'),n=parseInt(s.
     <span class="badge">MCP Registry Listed</span>
     <span class="badge">PyPI Published</span>
     <span class="badge badge-cyan">Smithery Listed</span>
+    <span class="badge badge-cyan">Glama Listed</span>
     <span class="badge">1382 Tests Passing</span>
     <span class="badge badge-cyan">Base Mainnet</span>
+  </div>
+</section>
+
+<!-- Use Cases -->
+<section class="section fade-in">
+  <div class="section-title text-center" style="max-width:none">What developers build</div>
+  <div class="section-subtitle text-center" style="max-width:none;margin:0 auto 48px">Real use cases powered by AiPayGen</div>
+  <div class="bento-grid">
+    <div class="card">
+      <h3 style="font-family:var(--font-mono);font-size:var(--text-lg);font-weight:600;margin-bottom:8px">Research Agents</h3>
+      <p style="color:var(--text-secondary);font-size:var(--text-sm)">Autonomous agents that research topics, summarize findings, and store results in memory. Run on a schedule or trigger on demand.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">
+        <span class="tag">research</span><span class="tag">summarize</span><span class="tag">memory</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="font-family:var(--font-mono);font-size:var(--text-lg);font-weight:600;margin-bottom:8px">Content Pipelines</h3>
+      <p style="color:var(--text-secondary);font-size:var(--text-sm)">Generate blog posts, social media content, and newsletters. Chain tools: research &rarr; write &rarr; proofread &rarr; social.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">
+        <span class="tag cyan">write</span><span class="tag cyan">social</span><span class="tag cyan">email</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="font-family:var(--font-mono);font-size:var(--text-lg);font-weight:600;margin-bottom:8px">Data Extraction</h3>
+      <p style="color:var(--text-secondary);font-size:var(--text-sm)">Scrape websites, extract structured data, classify documents, and feed results into your pipeline via webhooks.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">
+        <span class="tag">scrape</span><span class="tag">extract</span><span class="tag">classify</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3 style="font-family:var(--font-mono);font-size:var(--text-lg);font-weight:600;margin-bottom:8px">Crypto Monitoring</h3>
+      <p style="color:var(--text-secondary);font-size:var(--text-sm)">Track prices, analyze trends, and execute alerts. Pay with USDC on Base — no accounts, pure HTTP micropayments.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">
+        <span class="tag cyan">crypto</span><span class="tag cyan">analyze</span><span class="tag cyan">x402</span>
+      </div>
+    </div>
+    <div class="card card-lg">
+      <h3 style="font-family:var(--font-mono);font-size:var(--text-lg);font-weight:600;margin-bottom:8px">Works with your stack</h3>
+      <p style="color:var(--text-secondary);font-size:var(--text-sm)">REST API, MCP protocol, or Python SDK. Drop into Claude Code, Cursor, Cline, LangChain, CrewAI, or any HTTP client in minutes.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">
+        <span class="tag">Claude Code</span><span class="tag">Cursor</span><span class="tag">Cline</span>
+        <span class="tag cyan">LangChain</span><span class="tag cyan">REST</span><span class="tag cyan">Python SDK</span>
+      </div>
+    </div>
   </div>
 </section>
 

@@ -560,9 +560,9 @@ def update_custom_agent(agent_id):
         if not isinstance(tools, list):
             conn.close()
             return jsonify({"error": "tools must be a list"}), 400
-        if len(tools) > 162:
+        if len(tools) > 165:
             conn.close()
-            return jsonify({"error": "maximum 162 tools allowed"}), 400
+            return jsonify({"error": "maximum 165 tools allowed"}), 400
         import re as _re_tools
         for t in tools:
             if not isinstance(t, str) or not _re_tools.match(r'^[a-zA-Z0-9_\-]+$', t):

@@ -19,11 +19,21 @@ def client():
         yield c
 
 
+_CRYPTO_TEST_KEY = "apk_crypto_test_key"
+
+
 def _generate_key(client):
     """Helper: generate an API key via the auth endpoint."""
     from api_keys import generate_key
     result = generate_key(initial_balance=0.0, label="test-crypto")
     return result["key"]
+
+
+def _validate_key_crypto(key):
+    """Mock validate_key that always succeeds for generated keys."""
+    if key and key.startswith("apk_"):
+        return {"key": key, "balance_usd": 100.0, "is_active": 1}
+    return None
 
 
 def test_crypto_deposit_info(client):
@@ -38,7 +48,8 @@ def test_crypto_deposit_info(client):
     assert "qr_code" in data
 
 
-def test_crypto_deposit_post_creates_intent(client):
+@patch("routes.crypto.validate_key", side_effect=_validate_key_crypto)
+def test_crypto_deposit_post_creates_intent(mock_vk, client):
     """POST /crypto/deposit with valid key creates deposit intent."""
     api_key = _generate_key(client)
     resp = client.post("/crypto/deposit", json={
@@ -62,9 +73,10 @@ def test_crypto_claim_missing_fields(client):
     assert "error" in data
 
 
+@patch("routes.crypto.validate_key", side_effect=_validate_key_crypto)
 @patch("routes.crypto.topup_key")
 @patch("routes.crypto.verify_base_tx")
-def test_crypto_claim_valid(mock_verify, mock_topup, client):
+def test_crypto_claim_valid(mock_verify, mock_topup, mock_vk, client):
     """POST /crypto/claim with valid tx returns credited."""
     import uuid
     tx_hash = f"0x{uuid.uuid4().hex}"
@@ -95,8 +107,9 @@ def test_crypto_claim_valid(mock_verify, mock_topup, client):
     mock_topup.assert_called_once()
 
 
+@patch("routes.crypto.validate_key", side_effect=_validate_key_crypto)
 @patch("routes.crypto.verify_base_tx")
-def test_crypto_claim_invalid_tx(mock_verify, client):
+def test_crypto_claim_invalid_tx(mock_verify, mock_vk, client):
     """POST /crypto/claim with invalid tx returns 400."""
     mock_verify.return_value = {
         "valid": False,
@@ -114,7 +127,8 @@ def test_crypto_claim_invalid_tx(mock_verify, client):
     assert data.get("valid") is False
 
 
-def test_crypto_deposits_history(client):
+@patch("routes.crypto.validate_key", side_effect=_validate_key_crypto)
+def test_crypto_deposits_history(mock_vk, client):
     """GET /crypto/deposits returns deposit list."""
     api_key = _generate_key(client)
     resp = client.get(f"/crypto/deposits?api_key={api_key}")

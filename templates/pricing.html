@@ -4,17 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pricing — AiPayGen</title>
-<meta name="description" content="AiPayGen pricing: 10 free calls/day, or prepaid credits from $0.004/call. No subscription, no expiration.">
+<meta name="description" content="AiPayGen pricing: 165 tools, 10 free calls/day, $0.25 trial credits, or prepaid credits from $0.004/call. Pay-per-call, no subscription.">
 <link rel="icon" href="/static/icon.png" type="image/png">
 <link rel="apple-touch-icon" href="/static/icon.png">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Pricing — AiPayGen">
-<meta property="og:description" content="Start free with 10 calls/day. Prepaid credits from $0.004/call. No subscription.">
+<meta property="og:description" content="Start free with 10 calls/day. $0.25 trial credits available. 165 tools from $0.004/call. Pay-per-call, no subscription.">
 <meta property="og:url" content="https://api.aipaygen.com/pricing">
 <meta property="og:image" content="https://api.aipaygen.com/static/og-image.svg">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Pricing — AiPayGen">
-<meta name="twitter:description" content="Start free with 10 calls/day. Prepaid credits from $0.004/call.">
+<meta name="twitter:description" content="165 AI tools. $0.25 trial credits. 10 free calls/day. From $0.004/call. No subscription.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
@@ -481,7 +481,7 @@
     <div class="tier-desc">~830 calls &middot; $0.006/call</div>
     <ul class="tier-features">
       <li>~830 prepaid API calls</li>
-      <li>All 162 tools unlocked</li>
+      <li>All 165 tools unlocked</li>
       <li>15 frontier models</li>
       <li>Personal API key</li>
       <li>MCP &amp; REST access</li>
@@ -499,7 +499,7 @@
     <div class="tier-desc">~4,000 calls &middot; $0.005/call &middot; 20% off</div>
     <ul class="tier-features">
       <li>~4,000 prepaid API calls</li>
-      <li>All 162 tools unlocked</li>
+      <li>All 165 tools unlocked</li>
       <li>15 frontier models</li>
       <li>Personal API key</li>
       <li>MCP &amp; REST access</li>
@@ -516,7 +516,7 @@
     <div class="tier-desc">Volume pricing &middot; SLAs &middot; dedicated support</div>
     <ul class="tier-features">
       <li>Custom call volume</li>
-      <li>All 162 tools unlocked</li>
+      <li>All 165 tools unlocked</li>
       <li>Custom model routing</li>
       <li>Dedicated API key</li>
       <li>Dedicated support channel</li>
@@ -554,9 +554,9 @@
       <tr>
         <td>AI tools available</td>
         <td>Basic set</td>
-        <td class="check">All 161</td>
-        <td class="check">All 161</td>
-        <td class="check">All 161</td>
+        <td class="check">All 165</td>
+        <td class="check">All 165</td>
+        <td class="check">All 165</td>
       </tr>
       <tr>
         <td>Models (Claude, GPT-4o, Gemini, etc.)</td>
@@ -731,5 +731,21 @@
 
 </div>
 {{ footer|safe }}
+
+<!-- FAQ Schema for SEO -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {"@type": "Question", "name": "What is x402?", "acceptedAnswer": {"@type": "Answer", "text": "x402 V2 is an open payment protocol based on HTTP status code 402 (Payment Required). It enables autonomous pay-per-use AI without subscriptions or API keys using USDC on Base, Solana, or Stellar."}},
+    {"@type": "Question", "name": "How does billing work?", "acceptedAnswer": {"@type": "Answer", "text": "AiPayGen uses prepaid credits, not subscriptions. Buy credits with a credit card via Stripe. Each call deducts from your balance. No recurring charges. You also get a 20% bulk discount when your balance is $2 or more."}},
+    {"@type": "Question", "name": "Do credits expire?", "acceptedAnswer": {"@type": "Answer", "text": "No. Prepaid credits never expire. Use them at your own pace."}},
+    {"@type": "Question", "name": "What models are available?", "acceptedAnswer": {"@type": "Answer", "text": "15 frontier models across 7 providers: Claude (Anthropic), GPT-4o (OpenAI), Gemini 2.0 (Google), DeepSeek V3, Llama 3, Mistral, and more."}},
+    {"@type": "Question", "name": "Is there a subscription?", "acceptedAnswer": {"@type": "Answer", "text": "No. AiPayGen uses prepaid credits, not subscriptions. Buy once, use whenever. No recurring charges."}},
+    {"@type": "Question", "name": "How do I get started?", "acceptedAnswer": {"@type": "Answer", "text": "Install with pip install aipaygen-mcp and add to your MCP client. You get 10 free calls per day with no sign-up. For higher volume, buy credits to get an API key."}}
+  ]
+}
+</script>
 </body>
 </html>

@@ -1,5 +1,6 @@
 """Authentication, API-key management, credits, and Stripe checkout routes."""
 
+import json
 import os
 import re
 import subprocess
@@ -10,7 +11,7 @@ from datetime import datetime
 import stripe as _stripe
 from flask import Blueprint, request, jsonify, render_template, make_response
 
-from api_keys import generate_key, topup_key, get_key_status
+from api_keys import generate_key, topup_key, get_key_status, get_key_by_referral_code
 from helpers import log_payment, require_admin, require_api_key, check_identity_rate_limit
 from funnel_tracker import log_event as funnel_log_event
 import logging
@@ -78,18 +79,50 @@ def auth_generate_key():
     label = data.get("label", "")
     source = data.get("source", request.cookies.get("aipaygen_ref", "api-direct"))
     email = (data.get("email") or "").strip().lower()
-    key_data = generate_key(initial_balance=0.0, label=label, source=source)
+    ref_code = data.get("ref", "") or request.args.get("ref", "") or request.cookies.get("aipaygen_ref", "")
+    # MCP tool users get $0.25 trial credits
+    trial_balance = 0.25 if source == "mcp-tool" else 0.0
+    key_data = generate_key(initial_balance=trial_balance, label=label, source=source)
+
+    # ── Referral bonus ────────────────────────────────────────────────────
+    referral_applied = False
+    if ref_code:
+        referrer = get_key_by_referral_code(ref_code)
+        if referrer and referrer["key"] != key_data["key"]:
+            # Credit both parties $0.10
+            topup_key(referrer["key"], 0.10)
+            topup_key(key_data["key"], 0.10)
+            key_data["balance_usd"] = round(key_data["balance_usd"] + 0.10, 2)
+            referral_applied = True
+            try:
+                funnel_log_event("referral_signup", ip=ip,
+                                 metadata=json.dumps({"ref_code": ref_code, "referrer_key": referrer["key"][:12]}))
+            except Exception:
+                pass
+
     if email:
         from accounts import create_or_get_account, link_key_to_account
         acct = create_or_get_account(email)
         link_key_to_account(acct["id"], key_data["key"])
+        try:
+            funnel_log_event("email_captured", ip=ip,
+                             metadata=json.dumps({"source": source}))
+        except Exception:
+            pass
     api_key = key_data["key"]
-    return jsonify({
+    try:
+        funnel_log_event("key_generated", endpoint="/auth/generate-key",
+                         ip=ip, metadata=json.dumps({"source": source}))
+    except Exception:
+        pass
+    resp_data = {
         "key": api_key,
         "balance_usd": key_data["balance_usd"],
         "label": key_data["label"],
         "created_at": key_data["created_at"],
         "source": key_data.get("source", source),
+        "referral_code": key_data.get("referral_code", ""),
+        "referral_link": f"https://aipaygen.com/buy-credits?ref={key_data.get('referral_code', '')}",
         "usage": "Add 'Authorization: Bearer <key>' to your requests. Topup via POST /auth/topup.",
         "_meta": {"free": True},
         "quickstart": {
@@ -99,7 +132,10 @@ def auth_generate_key():
             "free_calls": 10,
             "note": "You get 10 free calls/day. No payment needed to start.",
         },
-    })
+    }
+    if referral_applied:
+        resp_data["referral_bonus"] = "$0.10 credited to you and your referrer!"
+    return jsonify(resp_data)
 
 
 @auth_bp.route("/auth/topup", methods=["POST"])
@@ -272,6 +308,7 @@ def stripe_create_checkout():
         return jsonify({"error": "amount must be 1, 5, 10, 15, 20, 25, or 50"}), 400
     label = str(data.get("label", ""))[:60]
     existing_key = str(data.get("existing_key", "")).strip()
+    email = str(data.get("email", "")).strip().lower()[:120]
 
     # Validate existing key for top-up, but do NOT generate new keys yet.
     # New keys are created in the webhook after payment is confirmed.
@@ -302,7 +339,8 @@ def stripe_create_checkout():
             client_reference_id=existing_key or "new",
             metadata={"amount": str(amount), "action": action, "label": label,
                        "ref_source": request.cookies.get("aipaygen_ref", "direct"),
-                       **({"api_key": existing_key} if existing_key else {})},
+                       **({"api_key": existing_key} if existing_key else {}),
+                       **({"customer_email": email} if email else {})},
             success_url=f"{BASE_URL}/buy-credits/success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{BASE_URL}/buy-credits",
         )
@@ -361,7 +399,8 @@ def stripe_webhook():
             _notify_checkout(amount, "PAID", api_key)
 
             # Send API key email and link to account
-            customer_email = session.get("customer_details", {}).get("email", "")
+            customer_email = (session.get("customer_details", {}).get("email", "")
+                              or meta.get("customer_email", ""))
             if customer_email and api_key:
                 try:
                     from email_service import send_api_key_email, send_welcome_email
@@ -404,6 +443,41 @@ def key_status():
         return jsonify({"ready": False})
     except Exception:
         return jsonify({"ready": False})
+
+
+@auth_bp.route("/auth/usage-digest", methods=["POST"])
+@require_api_key
+def auth_usage_digest():
+    """Send a weekly usage digest email for the authenticated API key."""
+    data = request.get_json() or {}
+    email = (data.get("email") or "").strip().lower()
+    bearer = (request.headers.get("Authorization", "")[7:]
+              if request.headers.get("Authorization", "").startswith("Bearer ") else "")
+    if not bearer:
+        return jsonify({"error": "API key required"}), 401
+    # If no email provided, try to look it up from accounts
+    if not email:
+        try:
+            import sqlite3
+            accounts_db = os.path.join(os.path.dirname(os.path.dirname(__file__)), "accounts.db")
+            conn = sqlite3.connect(accounts_db)
+            conn.row_factory = sqlite3.Row
+            row = conn.execute(
+                "SELECT a.email FROM accounts a JOIN account_keys ak ON a.id = ak.account_id "
+                "WHERE ak.api_key = ?", (bearer,)
+            ).fetchone()
+            conn.close()
+            if row:
+                email = row["email"]
+        except Exception:
+            pass
+    if not email:
+        return jsonify({"error": "email required — provide in body or link your key to an account"}), 400
+    from email_service import send_usage_digest
+    ok = send_usage_digest(email, bearer)
+    if ok:
+        return jsonify({"sent": True, "email": email})
+    return jsonify({"error": "Failed to send digest"}), 500
 
 
 @auth_bp.route("/buy-credits/success", methods=["GET"])

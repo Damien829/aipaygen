@@ -83,7 +83,7 @@ curl "https://api.aipaygen.com/discover"
 - SQLite for all persistence (WAL mode, no external DB dependencies)
 - Multi-step workflows with 15% discount
 - 1382 tests passing (zero failures), 3 cron jobs (auto-update, auto-discover, auto-sweep)
-- Published on PyPI (v1.7.1), MCP Registry, Smithery, and Glama
+- Published on PyPI (v1.8.0), MCP Registry, Smithery, and Glama
 
 GitHub: https://github.com/Damien829/aipaygen
 PyPI: https://pypi.org/project/aipaygen-mcp/

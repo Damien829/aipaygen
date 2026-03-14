@@ -156,6 +156,8 @@ class TestFunnelDashboard:
         assert r.status_code == 200 or r.status_code == 302
 
     def test_funnel_no_auth_redirects(self, client):
+        # Clear any session cookies from prior tests
+        client.cookie_jar.clear()
         r = client.get("/admin/funnel")
         # Should redirect to login or return 401
         assert r.status_code in (302, 401)
@@ -776,7 +778,7 @@ class TestChangelog:
     @patch("routes.admin.list_blog_posts", return_value=[])
     def test_changelog(self, mock_posts, mock_cost, mock_canary, client):
         with patch("routes.admin.os.path.exists", return_value=False):
-            r = client.get("/changelog")
+            r = client.get("/admin/changelog")
             assert r.status_code == 200
             assert b"Changelog" in r.data
             assert b"text/html" in r.content_type.encode()

@@ -1,5 +1,5 @@
 """
-AiPayGen MCP Server — thin client that proxies 155 AI tools via api.aipaygen.com.
+AiPayGen MCP Server — thin client that proxies 165 AI tools via api.aipaygen.com.
 
 Install:
     pip install aipaygen-mcp
@@ -1168,7 +1168,7 @@ def _run_self_test():
             sys.exit(1)
         temp = result.get("temperature_c", "?")
         print(f"  OK: London weather = {temp}°C")
-        print(f"  155 tools ready. Run 'aipaygen-mcp' to start the server.")
+        print(f"  165 tools ready. Run 'aipaygen-mcp' to start the server.")
     except Exception as e:
         print(f"  FAIL: {e}")
         sys.exit(1)

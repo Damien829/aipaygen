@@ -46,6 +46,44 @@ def send_api_key_email(to: str, api_key: str, balance: float) -> bool:
         return False
 
 
+def send_welcome_email(to: str, api_key: str) -> bool:
+    """Send welcome email with API key, quick-start curl, docs and /try links."""
+    if not to or not api_key:
+        return False
+    safe_key = _html.escape(api_key)
+    try:
+        resend.Emails.send({
+            "from": FROM_EMAIL,
+            "to": [to],
+            "subject": "Welcome to AiPayGen — Your API Key",
+            "html": f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#0a0a0a;color:#e8e8e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<div style="max-width:520px;margin:40px auto;background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:40px;">
+  <h1 style="font-size:1.5rem;margin-bottom:8px;">Welcome to AiPayGen</h1>
+  <p style="color:#888;margin-bottom:24px;">Your API key is ready. Here's everything you need to get started.</p>
+  <div style="background:#1e1e1e;border:1px solid #2a2a2a;border-radius:10px;padding:16px;margin-bottom:20px;">
+    <div style="font-size:0.8rem;color:#888;margin-bottom:6px;">YOUR API KEY</div>
+    <div style="font-family:monospace;font-size:0.95rem;color:#a78bfa;word-break:break-all;">{safe_key}</div>
+  </div>
+  <h2 style="font-size:1.1rem;margin-bottom:12px;">Quick Start</h2>
+  <div style="background:#1a1a1a;border-radius:8px;padding:14px;font-size:0.8rem;color:#888;margin-bottom:20px;">
+    <pre style="margin:0;white-space:pre-wrap;">curl https://api.aipaygen.com/summarize \\
+  -H "Authorization: Bearer {safe_key}" \\
+  -H "Content-Type: application/json" \\
+  -d '{{"text": "Your text here"}}'</pre>
+  </div>
+  <a href="https://aipaygen.com/docs" style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;border-radius:10px;padding:12px 24px;font-weight:600;margin-right:12px;">View Docs</a>
+  <a href="https://aipaygen.com/try" style="display:inline-block;background:#2a2a2a;color:#fff;text-decoration:none;border-radius:10px;padding:12px 24px;font-weight:600;">Try It</a>
+</div>
+</body></html>"""
+        })
+        return True
+    except Exception as e:
+        logger.error("send_welcome_email to=%s failed: %s", to, e)
+        return False
+
+
 def send_free_tier_nudge(to: str, tools_used: int = 0, calls_made: int = 0) -> bool:
     try:
         resend.Emails.send({
@@ -114,6 +152,79 @@ def send_deposit_confirmation(api_key: str, amount: float, network: str, tx_hash
         return True
     except Exception as e:
         logger.error("send_deposit_confirmation key=%s...%s failed: %s", api_key[:8], api_key[-4:], e)
+        return False
+
+
+def send_usage_digest(email: str, api_key: str) -> bool:
+    """Gather usage stats for an API key and send a weekly digest email.
+
+    Pulls call_count, balance, and total_spent from the DB.
+    Top tools are read from the funnel/usage log if available, otherwise omitted.
+    Falls back to logging the digest HTML if Resend is not configured.
+    """
+    if not email or not api_key:
+        return False
+    try:
+        from api_keys import get_key_status
+        status = get_key_status(api_key)
+        if not status:
+            logger.warning("send_usage_digest: key not found %s...%s", api_key[:8], api_key[-4:])
+            return False
+
+        calls = status.get("call_count", 0)
+        balance = status.get("balance_usd", 0.0)
+        spent = status.get("total_spent", 0.0)
+
+        # Try to get top tools from usage_log table if it exists
+        top_tools = []
+        try:
+            import sqlite3
+            db_path = os.path.join(os.path.dirname(__file__), "usage_log.db")
+            if os.path.exists(db_path):
+                conn = sqlite3.connect(db_path)
+                rows = conn.execute(
+                    "SELECT endpoint, COUNT(*) as cnt FROM usage_log "
+                    "WHERE api_key = ? AND timestamp > datetime('now', '-7 days') "
+                    "GROUP BY endpoint ORDER BY cnt DESC LIMIT 3",
+                    (api_key,),
+                ).fetchall()
+                top_tools = [r[0] for r in rows]
+                conn.close()
+        except Exception:
+            pass
+
+        tools_html = ", ".join(_html.escape(t) for t in top_tools) if top_tools else "None yet"
+
+        digest_html = f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#0a0a0a;color:#e8e8e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<div style="max-width:520px;margin:40px auto;background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:40px;">
+  <h1 style="font-size:1.5rem;margin-bottom:16px;">Your AiPayGen Weekly Summary</h1>
+  <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+    <tr><td style="padding:8px 0;color:#888;">Calls This Week</td><td style="padding:8px 0;text-align:right;font-weight:700;">{calls}</td></tr>
+    <tr><td style="padding:8px 0;color:#888;">Balance Remaining</td><td style="padding:8px 0;text-align:right;color:#34d399;font-weight:700;">${balance:.2f}</td></tr>
+    <tr><td style="padding:8px 0;color:#888;">Top Tools</td><td style="padding:8px 0;text-align:right;">{tools_html}</td></tr>
+    <tr><td style="padding:8px 0;color:#888;">Total Spent</td><td style="padding:8px 0;text-align:right;">${spent:.2f}</td></tr>
+  </table>
+  <a href="https://aipaygen.com/buy-credits" style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;border-radius:10px;padding:12px 24px;font-weight:600;">Add More Credits</a>
+  <p style="color:#555;font-size:0.75rem;margin-top:24px;"><a href="https://aipaygen.com/unsubscribe?email={_html.escape(email)}" style="color:#555;">Unsubscribe from weekly digests</a></p>
+</div>
+</body></html>"""
+
+        if not resend.api_key:
+            logger.info("send_usage_digest (no Resend key, logging only): to=%s calls=%d balance=%.2f",
+                        email, calls, balance)
+            return True
+
+        resend.Emails.send({
+            "from": FROM_EMAIL,
+            "to": [email],
+            "subject": "Your AiPayGen Weekly Summary",
+            "html": digest_html,
+        })
+        return True
+    except Exception as e:
+        logger.error("send_usage_digest to=%s failed: %s", email, e)
         return False
 
 

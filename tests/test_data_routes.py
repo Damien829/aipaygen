@@ -206,12 +206,11 @@ class TestYoutubeTranscript:
         r = client.get("/data/youtube/transcript")
         assert r.status_code == 400
 
-    @patch("routes.data.YouTubeTranscriptApi.get_transcript")
-    def test_success(self, mock_yt, client):
-        mock_yt.return_value = [
-            {"text": "Hello", "start": 0, "duration": 1},
-            {"text": "World", "start": 1, "duration": 1},
-        ]
+    @patch("routes.data.YouTubeTranscriptApi")
+    def test_success(self, mock_cls, client):
+        mock_seg1 = MagicMock(text="Hello", start=0, duration=1)
+        mock_seg2 = MagicMock(text="World", start=1, duration=1)
+        mock_cls.return_value.fetch.return_value = [mock_seg1, mock_seg2]
         r = client.get("/data/youtube/transcript?video_id=abc123")
         assert r.status_code == 200
         d = r.get_json()
@@ -219,8 +218,9 @@ class TestYoutubeTranscript:
         assert "Hello World" in d["full_text"]
         assert d["word_count"] == 2
 
-    @patch("routes.data.YouTubeTranscriptApi.get_transcript", side_effect=Exception("no captions"))
-    def test_error(self, mock_yt, client):
+    @patch("routes.data.YouTubeTranscriptApi")
+    def test_error(self, mock_cls, client):
+        mock_cls.return_value.fetch.side_effect = Exception("no captions")
         r = client.get("/data/youtube/transcript?video_id=bad")
         assert r.status_code == 502
         assert "hint" in r.get_json()

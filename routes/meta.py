@@ -19,7 +19,7 @@ WALLET_ADDRESS = os.getenv("WALLET_ADDRESS", "0x366D488a48de1B2773F3a21F1A697271
 EVM_NETWORK = os.getenv("EVM_NETWORK", "eip155:8453")
 
 # Pre-compute MCP tool count at import time (avoid reading file on every /api/stats call)
-_MCP_TOOL_COUNT = 162  # fallback
+_MCP_TOOL_COUNT = 165  # fallback
 try:
     _mcp_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "mcp_server.py")
     with open(_mcp_path) as _f:
@@ -52,6 +52,7 @@ NAV_HTML = '''
       <a href="/pricing" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Pricing</a>
       <a href="/sdk" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">SDK</a>
       <a href="/security" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Security</a>
+      <a href="/changelog" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Changelog</a>
       <a href="/try" style="color:#00ff9d;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600">Try Free</a>
       <a href="/buy-credits" style="color:#000;text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:700;background:linear-gradient(135deg,#00ff9d,#00d4ff);padding:7px 16px;border-radius:4px;margin-left:8px;letter-spacing:0.03em;transition:all .2s;box-shadow:0 0 12px rgba(0,255,157,0.2)">GET API KEY</a>
     </div>
@@ -351,7 +352,7 @@ def discover():
     return jsonify({
         "meta": {
             "name": "AiPayGen",
-            "description": "AI agent API marketplace with 162 tools and 2400+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day).",
+            "description": "AI agent API marketplace with 165 tools (v1.8.0) and 2400+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day). $0.25 trial credits available.",
             "categories": list(categories.keys()),
         },
         "payment": {
@@ -733,7 +734,7 @@ def docs_api():
 LLMS_TXT = """\
 # AiPayGen
 
-> 162 AI tools in one API. Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (10 free/day).
+> 165 AI tools in one API (v1.8.0). Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (10 free/day). New: $0.25 trial credits via buy_credits / generate_api_key MCP tools.
 
 ## What This Service Does
 
@@ -833,6 +834,7 @@ curl -X POST https://api.aipaygen.com/scrape/website \\
 
 - 10 free calls/day, no payment needed
 - Unlimited with `AIPAYGEN_API_KEY` env var
+- **New**: Use the `buy_credits` or `generate_api_key` MCP tools to get $0.25 trial credits instantly
 - Install: `pip install aipaygen-mcp && claude mcp add aipaygen -- python -m aipaygen_mcp`
 - Remote SSE: https://mcp.aipaygen.com/mcp
 
@@ -881,6 +883,7 @@ print(httpx.post(f"{BASE}/preview", json={"topic": "AI agents"}).json())
 - USDC precision: 6 decimals. Network: Base Mainnet (eip155:8453).
 - Agent memory persists indefinitely — use a stable `agent_id`.
 - API key is the fastest path — one POST and you're running.
+- MCP users: call `buy_credits` or `generate_api_key` to get $0.25 trial credits and an API key.
 - 402 responses include `Link` headers pointing to /openapi.json and /.well-known/ai-plugin.json.
 """
 
@@ -910,13 +913,14 @@ def ai_plugin():
         "schema_version": "v1",
         "name_for_human": "AiPayGen",
         "name_for_model": "aipaygen",
-        "description_for_human": "162 AI tools — research, write, code, translate, scrape, and more. 10 free calls/day.",
+        "description_for_human": "165 AI tools (v1.8.0) — research, write, code, translate, scrape, and more. $0.25 trial credits. 10 free calls/day.",
         "description_for_model": (
-            "AiPayGen provides 162 AI-powered tools accessible via a single API. "
+            "AiPayGen provides 165 AI-powered tools accessible via a single API (v1.8.0). "
             "Use for research, writing, code generation, translation, sentiment analysis, "
             "web scraping, data extraction, content comparison, fact-checking, and more. "
             "Free tier: 10 calls/day per IP. Paid: prepaid API key (Bearer apk_xxx) or "
-            "x402 USDC micropayment. All tools accept JSON POST requests."
+            "x402 USDC micropayment. New: $0.25 trial credits via buy_credits or generate_api_key. "
+            "All tools accept JSON POST requests."
         ),
         "auth": {"type": "service_http", "authorization_type": "bearer"},
         "api": {
@@ -944,13 +948,14 @@ def agent_manifest():
     return jsonify({
         "name": "AiPayGen",
         "description": (
-            "AI agent API marketplace with 162 tools and 2400+ searchable skills. "
+            "AI agent API marketplace with 165 tools (v1.8.0) and 2400+ searchable skills. "
             "Research, writing, coding, analysis, web scraping, real-time data, agent memory, "
             "and multi-model AI (Claude, GPT-4o, DeepSeek, Gemini). "
-            "Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day)."
+            "Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day). "
+            "$0.25 trial credits available via buy_credits/generate_api_key."
         ),
         "url": base,
-        "version": "3.1.0",
+        "version": "1.8.0",
         "documentationUrl": f"{base}/llms.txt",
         "capabilities": {
             "streaming": True,
@@ -962,6 +967,7 @@ def agent_manifest():
             "description": (
                 "Recommended: Buy API key via POST /credits/buy or /stripe/create-checkout, "
                 "then use 'Authorization: Bearer apk_xxx'. "
+                "New: $0.25 trial credits via buy_credits or generate_api_key MCP tools. "
                 "Alternative: Pay per call with USDC on Base via x402. "
                 "MCP: 10 free calls/day, unlimited with API key."
             ),
@@ -1102,7 +1108,7 @@ def agents_json():
         "agents": [{
             "name": "AiPayGen",
             "description": (
-                "Multi-model AI platform (15 LLMs, 7 providers) with 162 tools and 140+ endpoints + web scrapers + agent memory + "
+                "Multi-model AI platform (15 LLMs, 7 providers) with 165 tools and 140+ endpoints + web scrapers + agent memory + "
                 "wallet-based identity + metered token pricing + agent economy. "
                 "Research, write, code, analyze, vision, RAG, diagrams, test-cases, workflows, "
                 "web scraping (Google Maps, Twitter, LinkedIn, TikTok, YouTube), persistent agent memory, "
@@ -1180,7 +1186,7 @@ def x402_manifest():
         "version": "2.0",
         "name": "AiPayGen",
         "description": (
-            "162 AI tools, 2400+ skills, web scrapers, agent memory, file storage, "
+            "165 AI tools (v1.8.0), 2400+ skills, web scrapers, agent memory, file storage, "
             "webhook relay, async jobs, and an API catalog of 4100+ discovered APIs. "
             "No API key required — pay per call in USDC via x402 protocol."
         ),
@@ -1290,7 +1296,7 @@ def smithery_server_card():
     return jsonify({
         "serverInfo": {
             "name": "AiPayGen",
-            "version": "1.7.1"
+            "version": "1.8.0"
         },
         "authentication": {
             "required": False,
@@ -1918,11 +1924,14 @@ def sitemap():
         ("/pricing", "weekly", "0.8"),
         ("/docs/api", "weekly", "0.8"),
         ("/security", "monthly", "0.7"),
+        ("/changelog", "weekly", "0.8"),
         ("/try", "weekly", "0.8"),
         ("/buy-credits", "weekly", "0.8"),
         ("/preview", "weekly", "0.7"),
         ("/openapi.json", "weekly", "0.6"),
         ("/llms.txt", "weekly", "0.6"),
+        ("/.well-known/agent.json", "weekly", "0.6"),
+        ("/.well-known/ai-plugin.json", "weekly", "0.6"),
         ("/health", "hourly", "0.3"),
     ]
     urls_xml = "\n".join(
@@ -2048,4 +2057,84 @@ def try_tool(tool):
     except Exception as e:
         logger.error("Demo tool '%s' failed: %s", tool, e)
         return jsonify({"error": "Demo tool execution failed"}), 500
+
+
+# ── Public Changelog / Release Notes ──────────────────────────────────────────
+
+CHANGELOG = [
+    {
+        "version": "1.8.0",
+        "date": "2026-03-14",
+        "title": "Monetization + Security Overhaul",
+        "changes": [
+            "165 MCP tools (was 162) — added buy_credits, check_usage, generate_api_key",
+            "$0.25 free trial credits on first API key",
+            "Premium tools (research, vision, scraping) now require API key",
+            "Result previews on free tier with upgrade prompts",
+            "100+ error message leaks fixed — generic errors to clients",
+            "Per-endpoint rate limits on expensive routes",
+            "Domain injection fix on DNS lookup endpoints",
+            "Competitive pricing display in tool responses",
+            "PyPI download tracking in funnel metrics",
+            "MCP connection tracking",
+            "Email capture on key generation + weekly usage digest",
+        ]
+    },
+    {
+        "version": "1.7.1",
+        "date": "2026-03-12",
+        "title": "x402 V2 + Multi-chain",
+        "changes": [
+            "x402 V2 protocol upgrade (was V1)",
+            "Multi-chain payments: Base, Solana, Stellar",
+            "162 MCP tools",
+            "Security audit + hardening",
+            "1382 tests passing",
+        ]
+    },
+]
+
+
+@meta_bp.route("/changelog", methods=["GET"])
+def public_changelog():
+    """Public release notes page."""
+    entries_html = ""
+    for entry in CHANGELOG:
+        items = "".join(f"<li>{ch}</li>" for ch in entry["changes"])
+        entries_html += f"""
+        <div style="margin-bottom:48px">
+          <div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap">
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:1.6rem;font-weight:700;color:#00ff9d">v{entry["version"]}</span>
+            <span style="font-size:0.9rem;color:#8b949e">{entry["date"]}</span>
+          </div>
+          <h2 style="margin:8px 0 16px;font-size:1.2rem;color:#fff;font-weight:600">{entry["title"]}</h2>
+          <ul style="padding-left:20px;color:#c9d1d9;line-height:1.9">{items}</ul>
+        </div>"""
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Changelog — AiPayGen</title>
+<meta name="description" content="AiPayGen release notes and changelog — see what's new in every version.">
+<link rel="canonical" href="https://aipaygen.com/changelog">
+<meta property="og:title" content="AiPayGen Changelog">
+<meta property="og:url" content="https://aipaygen.com/changelog">
+<meta property="og:description" content="Release notes for AiPayGen — AI agent payments platform.">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body style="margin:0;background:#020408;color:#e6edf3;font-family:'IBM Plex Sans',system-ui,sans-serif">
+{NAV_HTML}
+<main style="max-width:760px;margin:0 auto;padding:120px 24px 80px">
+  <h1 style="font-size:2.2rem;font-weight:700;color:#fff;margin-bottom:8px">Changelog</h1>
+  <p style="color:#8b949e;margin-bottom:48px">What's new in AiPayGen — release notes for every version.</p>
+  {entries_html}
+</main>
+{FOOTER_HTML}
+</body>
+</html>"""
+    resp = make_response(html)
+    resp.headers["Content-Type"] = "text/html"
+    return resp
 

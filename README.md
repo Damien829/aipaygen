@@ -2,78 +2,78 @@
 
 <!-- mcp-name: io.github.Damien829/aipaygen -->
 
-**Pay-per-use Claude AI API for autonomous agents.** 155 tools and 140+ endpoints, USDC micropayments on Base via [x402](https://www.x402.org/), no API keys or signups required. Crypto deposits (Base + Solana), seller marketplace, and agent builder included.
+**165 AI tools in one MCP server.** Research, write, code, translate, scrape, analyze, vision, RAG, agent memory, workflows, and more. 15 AI models from 7 providers. Pay per call with credit card or USDC.
 
+[![PyPI](https://img.shields.io/pypi/v/aipaygen-mcp)](https://pypi.org/project/aipaygen-mcp/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![PyPI - MCP](https://img.shields.io/pypi/v/aipaygen-mcp)](https://pypi.org/project/aipaygen-mcp/)
-[![PyPI - langchain](https://img.shields.io/pypi/v/aipaygen-langchain)](https://pypi.org/project/aipaygen-langchain/)
-[![PyPI - llamaindex](https://img.shields.io/pypi/v/aipaygen-llamaindex)](https://pypi.org/project/aipaygen-llamaindex/)
-[![npm](https://img.shields.io/npm/v/aipaygen)](https://www.npmjs.com/package/aipaygen)
 
-## How it works
-
-1. Agent calls any endpoint (e.g. `POST /research`)
-2. First 10 calls/day are **free** — no payment needed
-3. After that, the server returns **HTTP 402** with payment instructions
-4. Agent signs a USDC transaction on Base and retries with an `X-Payment` header
-5. Server verifies payment via [CDP x402](https://docs.cdp.coinbase.com/x402/docs/overview) and returns the result
-
-```
-Agent ──POST /research──▶ AiPayGen ──402 + payment info──▶ Agent
-Agent ──POST /research + X-Payment──▶ AiPayGen ──200 + result──▶ Agent
-```
-
-## Quick start
-
-### Try free (no setup)
-
-```bash
-curl -X POST https://api.aipaygen.com/preview \
-  -H "Content-Type: application/json" \
-  -d '{"query": "What is x402?"}'
-```
-
-### Python
-
-```bash
-pip install aipaygen-langchain
-```
-
-```python
-from aipaygen_langchain import AiPayGenToolkit
-
-tools = AiPayGenToolkit(x402_token="your_token").get_tools()
-# Use with LangChain agents, CrewAI, etc.
-```
-
-### JavaScript / TypeScript
-
-```bash
-npm install aipaygen
-```
-
-```javascript
-import { AiPayGen } from "aipaygen";
-const client = new AiPayGen({ token: "your_token" });
-const result = await client.research("quantum computing trends");
-```
-
-### MCP Server (Claude Desktop, Cursor, etc.)
-
-Connect as a remote MCP server — no local install:
-
-```
-https://mcp.aipaygen.com/mcp
-```
-
-Or run locally:
+## Install (30 seconds)
 
 ```bash
 pip install aipaygen-mcp
-aipaygen-mcp
+claude mcp add aipaygen -- aipaygen-mcp
 ```
 
-Claude Desktop config:
+Or connect to the remote server: `https://mcp.aipaygen.com/mcp`
+
+## What's included (165 tools)
+
+**AI tools (40+):** research, write, summarize, translate, code, analyze, sentiment, classify, extract, compare, explain, plan, decide, debate, proofread, rewrite, pitch, headline, keywords, questions, outline, and more
+
+**Advanced AI:** vision (image analysis), RAG (document Q&A), diagram generation, workflow orchestration, pipelines, batch operations, multi-step chains
+
+**Web scraping (6):** Google Maps, Twitter/X, Instagram, TikTok, YouTube, any website
+
+**Data feeds (free):** weather, crypto prices, exchange rates, holidays, time, UUID, jokes, quotes
+
+**Utility APIs (43):** geocoding, WHOIS, SSL certs, security headers, tech stack detection, PDF extraction, stock history, forex, unit conversion, JSON/CSV/XML transforms, ENS resolution, and more
+
+**Agent infrastructure:** persistent memory, agent-to-agent messaging, task boards, knowledge base, 4183 API catalog, 2200+ skills
+
+**Agent builder:** create custom agents from 10 templates. Schedule on loops, cron, or event triggers.
+
+**Seller marketplace:** register your own APIs, set prices, get paid in USDC with escrow.
+
+**Account tools:** `generate_api_key`, `buy_credits`, `check_usage` — manage your account without leaving your IDE.
+
+## Pricing
+
+- **Free tier:** 10 calls/day, no key needed
+- **API key:** from $1 via credit card (Stripe). ~166 AI calls per dollar.
+- **x402 USDC:** pay per call on Base, Solana, or Stellar — no signup needed
+- **Trial credits:** generate a key via the MCP `generate_api_key` tool and get $0.25 free
+
+| Tier | Price | Examples |
+|------|-------|---------|
+| Free | $0 | weather, crypto, time, jokes, quotes |
+| Standard | $0.002/call | memory, geocoding, WHOIS, transforms |
+| AI | $0.006/call | summarize, sentiment, classify, translate |
+| Scraping | $0.01/call | website, tweets, YouTube |
+| Premium | $0.05/call | vision, Google Maps |
+| Enterprise | $0.15/call | deep research |
+
+## Try it
+
+```bash
+# Free — no key needed
+curl "https://api.aipaygen.com/free/time"
+curl "https://api.aipaygen.com/data/weather?city=London"
+curl "https://api.aipaygen.com/data/crypto?symbols=bitcoin"
+
+# AI (uses free tier, 10/day)
+curl -X POST "https://api.aipaygen.com/summarize" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Your text here", "length": "short"}'
+```
+
+## Configuration
+
+### Claude Code
+```bash
+claude mcp add aipaygen -- aipaygen-mcp
+```
+
+### Claude Desktop / Cursor
 ```json
 {
   "mcpServers": {
@@ -84,80 +84,36 @@ Claude Desktop config:
 }
 ```
 
-## Endpoints
+### With API key (unlimited)
+```bash
+AIPAYGEN_API_KEY=apk_xxx aipaygen-mcp
+```
 
-### AI / NLP
+### Remote (no install)
+```
+https://mcp.aipaygen.com/mcp
+```
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/research` | POST | Deep research on any topic |
-| `/summarize` | POST | Compress text (bullets, paragraph, TLDR) |
-| `/analyze` | POST | Structured analysis with findings |
-| `/translate` | POST | Translate to any language |
-| `/sentiment` | POST | Polarity, score, emotions |
-| `/keywords` | POST | Extract keywords and topics |
-| `/classify` | POST | Classify into custom categories |
-| `/rewrite` | POST | Rewrite for audience or voice |
-| `/extract` | POST | Pull structured JSON from text |
-| `/qa` | POST | Q&A over a document |
-| `/code` | POST | Generate code in any language |
-| `/diagram` | POST | Generate Mermaid diagrams |
-| `/chain` | POST | Multi-step AI pipelines |
+## Technical details
 
-### Web Intelligence
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/scrape` | POST | Scrape any webpage |
-| `/search` | POST | Web search with AI summary |
-| `/research` | POST | Deep multi-source research |
-| `/extract/{url}` | GET | Extract structured data from URL |
-| `/scrape/tweets` | POST | Search and scrape tweets |
-| `/scrape/google-maps` | POST | Google Maps business data |
-
-### Agent Memory
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/memory/set` | POST | Store persistent key-value data |
-| `/memory/get` | POST | Retrieve stored data |
-| `/memory/search` | POST | Search memories by keyword |
-
-### Discovery
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/discover` | GET | Full endpoint catalog |
-| `/catalog` | GET | Browse discovered APIs |
-| `/openapi.json` | GET | OpenAPI 3.0 spec |
-| `/llms.txt` | GET | LLMs.txt for AI agents |
-| `/.well-known/agent.json` | GET | Agent discovery manifest |
-| `/preview` | POST | Free 120-token Claude demo |
-
-Full list: [api.aipaygen.com/discover](https://api.aipaygen.com/discover)
-
-## Architecture
-
-- **Runtime**: Flask + Gunicorn on Raspberry Pi 5
-- **AI**: Claude Haiku 4.5 via Anthropic API
-- **Payments**: x402 protocol, USDC on Base Mainnet, verified via CDP
-- **Tunnel**: Cloudflare Tunnel → `api.aipaygen.com`
-- **Storage**: SQLite (memory, usage tracking, API keys)
-- **Discovery**: OpenAPI, LLMs.txt, MCP, agents.json, ai-plugin.json
+- **15 AI models, 7 providers:** Claude, GPT-4o, Gemini, DeepSeek, Grok, Mistral, Llama — auto-routed by task
+- **x402 V2 micropayments:** Base (~2s), Solana (~400ms), Stellar (~5s) — real USDC settlement
+- **MCP SDK 1.26** with streamable-http transport
+- **1382 tests passing**
+- Published on [MCP Registry](https://registry.modelcontextprotocol.io), [Smithery](https://smithery.ai), and [Glama](https://glama.ai)
 
 ## Links
 
 | Resource | URL |
 |----------|-----|
-| Live API | https://api.aipaygen.com |
-| Discover endpoints | https://api.aipaygen.com/discover |
-| OpenAPI spec | https://api.aipaygen.com/openapi.json |
-| LLMs.txt | https://api.aipaygen.com/llms.txt |
-| MCP server | https://mcp.aipaygen.com/mcp |
-| Blog | https://api.aipaygen.com/blog |
-| npm SDK | https://www.npmjs.com/package/aipaygen |
-| PyPI (LangChain) | https://pypi.org/project/aipaygen-langchain/ |
-| PyPI (LlamaIndex) | https://pypi.org/project/aipaygen-llamaindex/ |
+| Website | https://aipaygen.com |
+| Try free | https://aipaygen.com/try |
+| Docs | https://aipaygen.com/docs |
+| Pricing | https://aipaygen.com/pricing |
+| API | https://api.aipaygen.com |
+| MCP remote | https://mcp.aipaygen.com/mcp |
+| Service catalog | https://aipaygen.com/discover |
+| GitHub | https://github.com/Damien829/aipaygen |
 
 ## License
 

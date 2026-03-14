@@ -1,0 +1,936 @@
+openapi: "3.0.3"
+info:
+  title: AiPayGen API
+  description: |
+    AI-powered API platform with 165+ tools. Pay-per-call with API keys (Bearer apk_xxx),
+    x402 V2 USDC micropayments (multi-chain: Base, Solana, Stellar), or use the free tier (10 calls/day per IP).
+    Supports autonomous agent micropayments — no API key or signup required.
+
+    Base URL: https://api.aipaygen.com
+  version: "1.8.0"
+  contact:
+    email: hello@aipaygen.com
+    url: https://aipaygen.com
+  license:
+    name: Proprietary
+
+servers:
+  - url: https://api.aipaygen.com
+    description: Production
+
+security:
+  - BearerApiKey: []
+  - AgentJWT: []
+  - {}
+
+components:
+  securitySchemes:
+    BearerApiKey:
+      type: http
+      scheme: bearer
+      description: "API key with apk_ prefix. Obtain via POST /auth/generate-key or POST /credits/buy."
+    AgentJWT:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "Agent JWT obtained via /agents/challenge + /agents/verify wallet auth flow."
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required: [error]
+
+    ApiKeyResponse:
+      type: object
+      properties:
+        key:
+          type: string
+          example: "apk_abc123..."
+        balance_usd:
+          type: number
+          example: 0.0
+        label:
+          type: string
+        created_at:
+          type: string
+
+    KeyStatus:
+      type: object
+      properties:
+        key:
+          type: string
+        balance_usd:
+          type: number
+        label:
+          type: string
+        created_at:
+          type: string
+        total_calls:
+          type: integer
+
+    AiToolResponse:
+      type: object
+      properties:
+        result:
+          type: string
+        model:
+          type: string
+        _meta:
+          type: object
+
+    SentimentResponse:
+      type: object
+      properties:
+        sentiment:
+          type: string
+          enum: [positive, negative, neutral, mixed]
+        confidence:
+          type: number
+        model:
+          type: string
+
+    ResearchResponse:
+      type: object
+      properties:
+        question:
+          type: string
+        answer:
+          type: string
+        sources:
+          type: array
+          items:
+            type: object
+            properties:
+              title:
+                type: string
+              url:
+                type: string
+        model:
+          type: string
+
+    SessionResponse:
+      type: object
+      properties:
+        session_id:
+          type: string
+        ttl_hours:
+          type: integer
+
+    MarketplaceListing:
+      type: object
+      properties:
+        listing_id:
+          type: string
+        name:
+          type: string
+        agent_id:
+          type: string
+        description:
+          type: string
+        endpoint:
+          type: string
+        price_usd:
+          type: number
+        category:
+          type: string
+
+paths:
+  # ── Auth ──────────────────────────────────────────────────────────────
+  /auth/generate-key:
+    post:
+      tags: [Auth]
+      summary: Generate a free API key
+      description: Creates a new API key with $0 balance. Rate-limited to 10/min per IP.
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                label:
+                  type: string
+                  description: Optional label for the key
+      responses:
+        "200":
+          description: API key created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKeyResponse"
+        "429":
+          description: Rate limited
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /auth/status:
+    get:
+      tags: [Auth]
+      summary: Check API key status and balance
+      security: []
+      parameters:
+        - name: key
+          in: query
+          required: true
+          schema:
+            type: string
+          description: "API key (apk_xxx)"
+      responses:
+        "200":
+          description: Key status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/KeyStatus"
+        "400":
+          description: Key parameter missing
+        "404":
+          description: Key not found
+
+  /credits/buy:
+    get:
+      tags: [Auth]
+      summary: Get available purchase options
+      security: []
+      responses:
+        "200":
+          description: Purchase options (Stripe and x402)
+    post:
+      tags: [Auth]
+      summary: Buy API credits
+      description: |
+        Purchase credits via x402 USDC payment or Stripe checkout.
+        Returns a Stripe checkout URL or generates a key if payment is provided.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount_usd:
+                  type: number
+                  example: 5.0
+                label:
+                  type: string
+                  default: credit-pack
+      responses:
+        "200":
+          description: Checkout URL or new key
+        "402":
+          description: Payment required
+
+  # ── AI Tools ──────────────────────────────────────────────────────────
+  /ask:
+    post:
+      tags: [AI Tools]
+      summary: Universal agent endpoint
+      description: Describe what you need and AiPayGen picks the best skill and model automatically.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question]
+              properties:
+                question:
+                  type: string
+                  description: "Also accepts 'input' or 'query'"
+      responses:
+        "200":
+          description: AI-selected skill result
+        "400":
+          description: Missing question
+
+  /research:
+    post:
+      tags: [AI Tools]
+      summary: Research a topic with web sources
+      description: Searches the web, scrapes top results, and synthesizes an answer with citations.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [question]
+              properties:
+                question:
+                  type: string
+                  example: "What is x402 protocol?"
+      responses:
+        "200":
+          description: Research answer with sources
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResearchResponse"
+        "400":
+          description: Missing question
+        "422":
+          description: Could not retrieve sources
+
+  /code:
+    post:
+      tags: [AI Tools]
+      summary: Generate code
+      description: Generate code in any language from a natural language description.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [description]
+              properties:
+                description:
+                  type: string
+                  example: "A function that sorts a list of dictionaries by key"
+                language:
+                  type: string
+                  default: Python
+                model:
+                  type: string
+                  description: "Model to use (e.g. claude-haiku, gpt-4o, deepseek)"
+      responses:
+        "200":
+          description: Generated code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiToolResponse"
+        "400":
+          description: Missing description
+
+  /summarize:
+    post:
+      tags: [AI Tools]
+      summary: Summarize text
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  type: string
+                length:
+                  type: string
+                  default: bullets
+                  description: "Format: bullets, paragraph, one-line"
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Summary result
+        "400":
+          description: Missing text
+
+  /translate:
+    post:
+      tags: [AI Tools]
+      summary: Translate text to another language
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  type: string
+                language:
+                  type: string
+                  default: Spanish
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Translated text
+        "400":
+          description: Missing text
+
+  /sentiment:
+    post:
+      tags: [AI Tools]
+      summary: Analyze sentiment of text
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  type: string
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Sentiment analysis
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SentimentResponse"
+        "400":
+          description: Missing text
+
+  /extract:
+    post:
+      tags: [AI Tools]
+      summary: Extract structured data from text or URL
+      description: Extract fields from unstructured text or scrape a URL and extract data.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text:
+                  type: string
+                  description: "Raw text to extract from"
+                url:
+                  type: string
+                  description: "URL to scrape and extract from"
+                schema:
+                  type: string
+                  description: "Description of what to extract"
+                fields:
+                  type: array
+                  items:
+                    type: string
+                  description: "List of field names to extract"
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Extracted data
+        "400":
+          description: Missing text/url or schema/fields
+
+  /classify:
+    post:
+      tags: [AI Tools]
+      summary: Classify text into categories
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text, categories]
+              properties:
+                text:
+                  type: string
+                categories:
+                  type: array
+                  items:
+                    type: string
+                  example: ["positive", "negative", "neutral"]
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Classification result
+        "400":
+          description: Missing text or categories
+
+  /vision:
+    post:
+      tags: [AI Tools]
+      summary: Analyze an image with AI
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  description: "Image URL (also accepts 'image_url')"
+                question:
+                  type: string
+                  default: "Describe this image in detail"
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Image analysis result
+        "400":
+          description: Missing URL
+
+  /rag:
+    post:
+      tags: [AI Tools]
+      summary: Retrieval-augmented generation
+      description: Answer a question using provided documents as context.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [documents, query]
+              properties:
+                documents:
+                  type: string
+                  description: "Document text to use as context"
+                query:
+                  type: string
+                model:
+                  type: string
+      responses:
+        "200":
+          description: RAG answer with citations
+        "400":
+          description: Missing documents or query
+
+  /web/search:
+    get:
+      tags: [AI Tools]
+      summary: Web search
+      description: Search the web via DuckDuckGo and return structured results.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Search query
+        - name: "n"
+          in: query
+          schema:
+            type: integer
+            default: 10
+            maximum: 25
+          description: Number of results
+      responses:
+        "200":
+          description: Search results
+        "400":
+          description: Missing query
+    post:
+      tags: [AI Tools]
+      summary: Web search (POST)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query:
+                  type: string
+                  description: "Also accepts 'q'"
+                "n":
+                  type: integer
+                  default: 10
+                  maximum: 25
+      responses:
+        "200":
+          description: Search results
+        "400":
+          description: Missing query
+
+  # ── Agents ────────────────────────────────────────────────────────────
+  /agents/challenge:
+    post:
+      tags: [Agents]
+      summary: "Step 1: Request wallet auth challenge"
+      description: Request a challenge nonce to prove wallet ownership.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [wallet_address]
+              properties:
+                wallet_address:
+                  type: string
+                  example: "0x..."
+      responses:
+        "200":
+          description: Challenge nonce
+        "429":
+          description: Rate limited
+
+  /agents/verify:
+    post:
+      tags: [Agents]
+      summary: "Step 2: Verify signed challenge to get JWT"
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [nonce, signature]
+              properties:
+                nonce:
+                  type: string
+                signature:
+                  type: string
+                chain:
+                  type: string
+                  default: evm
+                name:
+                  type: string
+                description:
+                  type: string
+                capabilities:
+                  type: string
+                endpoint:
+                  type: string
+      responses:
+        "200":
+          description: JWT token and agent_id
+        "401":
+          description: Invalid signature or expired challenge
+
+  /agents/me:
+    get:
+      tags: [Agents]
+      summary: Get current agent profile
+      security:
+        - AgentJWT: []
+      responses:
+        "200":
+          description: Agent profile from JWT
+        "401":
+          description: JWT required
+
+  # ── Memory ────────────────────────────────────────────────────────────
+  /memory/set:
+    post:
+      tags: [Memory]
+      summary: Store a memory key-value pair
+      description: Requires agent JWT authentication.
+      security:
+        - AgentJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key, value]
+              properties:
+                key:
+                  type: string
+                value: {}
+                tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Memory stored
+        "401":
+          description: JWT required
+
+  /memory/get:
+    post:
+      tags: [Memory]
+      summary: Retrieve a memory value by key
+      security:
+        - AgentJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [key]
+              properties:
+                key:
+                  type: string
+      responses:
+        "200":
+          description: Memory value
+        "401":
+          description: JWT required
+        "404":
+          description: Key not found
+
+  /memory/search:
+    post:
+      tags: [Memory]
+      summary: Search memory by query string
+      security:
+        - AgentJWT: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query:
+                  type: string
+      responses:
+        "200":
+          description: Matching memory entries
+        "401":
+          description: JWT required
+
+  /memory/list:
+    post:
+      tags: [Memory]
+      summary: List all memory keys for the authenticated agent
+      security:
+        - AgentJWT: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+      responses:
+        "200":
+          description: List of keys
+        "401":
+          description: JWT required
+
+  # ── Marketplace ───────────────────────────────────────────────────────
+  /marketplace:
+    get:
+      tags: [Marketplace]
+      summary: Browse the agent marketplace
+      security: []
+      parameters:
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: max_price
+          in: query
+          schema:
+            type: number
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        "200":
+          description: Paginated marketplace listings
+
+  /marketplace/list:
+    post:
+      tags: [Marketplace]
+      summary: List your agent service on the marketplace
+      description: Requires both an API key and agent JWT for ownership verification.
+      security:
+        - AgentJWT: []
+        - BearerApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, endpoint, price_usd]
+              properties:
+                name:
+                  type: string
+                description:
+                  type: string
+                endpoint:
+                  type: string
+                  description: "HTTPS URL of your agent service"
+                price_usd:
+                  type: number
+                category:
+                  type: string
+                  default: general
+                capabilities:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        "200":
+          description: Listing created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarketplaceListing"
+        "401":
+          description: JWT required
+
+  /marketplace/call:
+    post:
+      tags: [Marketplace]
+      summary: Call an agent service from the marketplace
+      description: Proxies request to the seller agent. Requires API key.
+      security:
+        - BearerApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [listing_id]
+              properties:
+                listing_id:
+                  type: string
+                payload:
+                  type: object
+                  description: "Payload to forward to the agent"
+      responses:
+        "200":
+          description: Proxied response from seller agent
+        "400":
+          description: Missing listing_id
+        "404":
+          description: Listing not found
+
+  # ── Seller ────────────────────────────────────────────────────────────
+  /sell:
+    get:
+      tags: [Seller]
+      summary: Seller onboarding page
+      security: []
+      responses:
+        "200":
+          description: HTML onboarding page
+
+  /sell/register:
+    post:
+      tags: [Seller]
+      summary: Register a new seller API
+      security:
+        - BearerApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, slug, base_url]
+              properties:
+                name:
+                  type: string
+                slug:
+                  type: string
+                  description: "URL-safe identifier for your API"
+                description:
+                  type: string
+                base_url:
+                  type: string
+                  description: "HTTPS base URL of your API"
+                routes:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      path:
+                        type: string
+                      method:
+                        type: string
+                      price_usd:
+                        type: number
+                      description:
+                        type: string
+                seller_wallet:
+                  type: string
+                preferred_chain:
+                  type: string
+                  default: base
+                category:
+                  type: string
+                  default: general
+                escrow_enabled:
+                  type: boolean
+                  default: false
+      responses:
+        "201":
+          description: Seller API registered
+        "400":
+          description: Missing required fields
+        "401":
+          description: API key required
+
+  /sell/dashboard:
+    get:
+      tags: [Seller]
+      summary: Seller analytics dashboard
+      security:
+        - BearerApiKey: []
+      responses:
+        "200":
+          description: Dashboard data with revenue and call stats
+        "401":
+          description: API key required
+
+  # ── Sessions ──────────────────────────────────────────────────────────
+  /session/start:
+    post:
+      tags: [Sessions]
+      summary: Start a new session
+      security:
+        - BearerApiKey: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                agent_id:
+                  type: string
+                  default: anonymous
+                context:
+                  type: object
+                ttl_hours:
+                  type: integer
+                  default: 24
+      responses:
+        "200":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionResponse"
+
+  /session/{session_id}:
+    get:
+      tags: [Sessions]
+      summary: Resume / retrieve a session
+      security:
+        - BearerApiKey: []
+      parameters:
+        - name: session_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Session data
+        "404":
+          description: Session not found

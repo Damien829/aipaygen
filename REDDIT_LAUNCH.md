@@ -1,11 +1,11 @@
 # Reddit Launch Post — r/MCP, r/ClaudeAI, r/artificial
 
 ## Title
-AiPayGen: 162+ AI tools as one MCP server — pay-per-call in USDC, runs on a Raspberry Pi 5
+AiPayGen: 165 AI tools as one MCP server — pay-per-call in USDC, runs on a Raspberry Pi 5
 
 ## Body (r/MCP)
 
-I built **AiPayGen** — an MCP server with 162+ tools you can add to Claude, Cursor, or any MCP client in 30 seconds. 15 AI models from 7 providers, 1382 tests passing, runs entirely on a Raspberry Pi 5.
+I built **AiPayGen** — an MCP server with 165 tools you can add to Claude, Cursor, or any MCP client in 30 seconds. 15 AI models from 7 providers, 1382 tests passing, runs entirely on a Raspberry Pi 5.
 
 ### Install:
 ```bash
@@ -15,23 +15,23 @@ claude mcp add aipaygen -- aipaygen-mcp
 
 Or connect to the remote server: `https://mcp.aipaygen.com/mcp`
 
-### What's inside (162+ tools):
+### What's inside (165 tools):
 - **AI tools (40+)**: research, write, summarize, translate, code, analyze, sentiment, classify, compare, debate, proofread, rewrite, vision, RAG, diagrams, workflows
 - **Web scraping (6)**: Google Maps, Twitter/X, Instagram, TikTok, YouTube, any website
 - **Utility APIs (43)**: geocoding, WHOIS, SSL certs, security audits, stock history, forex, PDF extraction, JSON/CSV/XML transforms, ENS resolution, tech stack detection
-- **Agent infra**: persistent memory, agent messaging, knowledge base, 4183 API catalog, 2200 skills
+- **Agent infra**: persistent memory, agent messaging, knowledge base, 4183 API catalog, 2462 skills
 - **Agent builder**: create custom agents from 10 templates, schedule on cron/loops/events
 - **Data feeds** (free): weather, crypto, exchange rates, time, jokes, quotes
 - **Seller marketplace**: register your own APIs, set prices, get paid via escrow. 3% fee.
 - **Buyer SDK**: auto-402 handling + policy engine — your agent pays for calls automatically
 
 ### What makes this different:
-1. **162+ tools, one install** — stop juggling API keys for 12 different services
+1. **165 tools, one install** — stop juggling API keys for 12 different services
 2. **Only x402 V2-native AI marketplace** — AI agents pay for API calls with USDC autonomously across Base, Solana, or Stellar — no signup
 3. **Seller marketplace with escrow** — register your own APIs, set prices, get paid
 4. **Agent-to-agent network** — 287 registered agents, shared task boards, messaging
 5. **15 AI models auto-routed** from 7 providers — Claude, GPT-4o, Gemini, DeepSeek, Grok, Mistral, Llama
-6. **Runs on a Raspberry Pi 5** — the entire platform (4183 APIs, 2200 skills, 162 MCP tools) served from an $80 board
+6. **Runs on a Raspberry Pi 5** — the entire platform (4183 APIs, 2462 skills, 165 MCP tools) served from an $80 board
 7. **Security audited** — SQL injection hardened, auth on all routes, full test coverage
 
 ### Pricing:
@@ -53,7 +53,7 @@ curl -X POST "https://api.aipaygen.com/workflow/run" \
 ### Links:
 - Try it (no install): https://aipaygen.com/try?ref=reddit
 - Docs: https://aipaygen.com/docs?ref=reddit
-- PyPI: https://pypi.org/project/aipaygen-mcp/ (v1.7.1)
+- PyPI: https://pypi.org/project/aipaygen-mcp/ (v1.8.0)
 - MCP Registry: `io.github.Damien829/aipaygen`
 - Smithery & Glama: LIVE
 - GitHub: https://github.com/Damien829/aipaygen
@@ -65,11 +65,11 @@ Happy to answer questions!
 ## Shorter version (r/ClaudeAI)
 
 ### Title
-I built an MCP server with 162+ tools — one install gives you research, code, scraping, vision, RAG, agent memory, and 43 utility APIs
+I built an MCP server with 165 tools — one install gives you research, code, scraping, vision, RAG, agent memory, and 43 utility APIs
 
 Just `pip install aipaygen-mcp` and `claude mcp add aipaygen -- aipaygen-mcp`.
 
-162+ tools including web scraping (Google Maps, Twitter, YouTube), 43 utility APIs (WHOIS, SSL, geocoding, stock data), vision, RAG, diagram generation, a seller marketplace with escrow, and a full agent builder with scheduling.
+165 tools including web scraping (Google Maps, Twitter, YouTube), 43 utility APIs (WHOIS, SSL, geocoding, stock data), vision, RAG, diagram generation, a seller marketplace with escrow, and a full agent builder with scheduling.
 
 Free tier: 10 calls/day. Paid: $0.006/call for AI tools, $0.002 for utilities. Also supports x402 V2 crypto payments (USDC on Base, Solana, or Stellar — multi-chain).
 
@@ -85,9 +85,9 @@ Remote MCP: `https://mcp.aipaygen.com/mcp`
 ## One-liner (r/selfhosted)
 
 ### Title
-I run a 162-tool AI API marketplace on a Raspberry Pi 5 — MCP server, 15 AI models, x402 V2 multi-chain crypto payments (USDC on Base/Solana/Stellar), SQLite, Cloudflare tunnel
+I run a 165-tool AI API marketplace on a Raspberry Pi 5 — MCP server, 15 AI models, x402 V2 multi-chain crypto payments (USDC on Base/Solana/Stellar), SQLite, Cloudflare tunnel
 
-Full write-up in comments. `pip install aipaygen-mcp` to try it. Free tier: 10 calls/day. Serves 224 agents, 4183 APIs, 2200 skills from a Pi behind a Cloudflare tunnel. SQLite WAL mode, Gunicorn with 2 workers, 3 cron jobs for auto-maintenance. 1382 tests passing.
+Full write-up in comments. `pip install aipaygen-mcp` to try it. Free tier: 10 calls/day. Serves 291 agents, 4183 APIs, 2462 skills from a Pi behind a Cloudflare tunnel. SQLite WAL mode, Gunicorn with 2 workers, 3 cron jobs for auto-maintenance. 1382 tests passing.
 
 ---
 

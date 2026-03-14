@@ -70,12 +70,12 @@ class TestMessageInbox:
         assert r.status_code == 401
         assert "JWT" in r.get_json().get("message", "")
 
-    @patch("api_keys.validate_key", side_effect=_validate_key_ok)
-    @patch("routes.network.verify_jwt", return_value={"agent_id": "agent-a"})
     @patch("routes.network.get_inbox", return_value=[{"msg_id": "m1", "body": "hi"}])
-    def test_success_with_jwt(self, mock_inbox, mock_jwt, mock_vk, client):
+    @patch.dict(os.environ, {"ADMIN_SECRET": "test-admin-secret"})
+    def test_success_with_jwt(self, mock_inbox, client):
+        # Use admin key on localhost to bypass both require_api_key and _verify_agent_access
         r = client.get("/message/inbox/agent-a",
-                       headers={"Authorization": "Bearer apk_test_net",
+                       headers={"Authorization": "Bearer test-admin-secret",
                                 "Content-Type": "application/json"})
         assert r.status_code == 200
         data = r.get_json()
@@ -155,12 +155,12 @@ class TestMessageMarkRead:
                         json={"msg_id": "m1", "agent_id": "a"})
         assert r.status_code == 401
 
-    @patch("api_keys.validate_key", side_effect=_validate_key_ok)
-    @patch("routes.network.verify_jwt", return_value={"agent_id": "agent-a"})
     @patch("routes.network.mark_read", return_value=True)
-    def test_success_with_jwt(self, mock_mark, mock_jwt, mock_vk, client):
+    @patch.dict(os.environ, {"ADMIN_SECRET": "test-admin-secret"})
+    def test_success_with_jwt(self, mock_mark, client):
+        # Use admin key on localhost to bypass both require_api_key and _verify_agent_access
         r = client.post("/message/mark-read",
-                        headers={"Authorization": "Bearer apk_test_net",
+                        headers={"Authorization": "Bearer test-admin-secret",
                                  "Content-Type": "application/json"},
                         json={"msg_id": "m1", "agent_id": "agent-a"})
         assert r.status_code == 200

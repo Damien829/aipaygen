@@ -338,7 +338,7 @@ class TestJwtDecode:
         # Create a real JWT for testing
         import jwt as pyjwt
         token = pyjwt.encode({"sub": "1234", "name": "Test", "exp": 9999999999},
-                             "secret", algorithm="HS256")
+                             "a" * 32, algorithm="HS256")
         r = client.post("/data/jwt/decode", json={"token": token},
                         content_type="application/json")
         assert r.status_code == 200
@@ -350,7 +350,7 @@ class TestJwtDecode:
     def test_jwt_decode_expired(self, client):
         import jwt as pyjwt
         token = pyjwt.encode({"sub": "1234", "exp": 1000000000},
-                             "secret", algorithm="HS256")
+                             "a" * 32, algorithm="HS256")
         r = client.post("/data/jwt/decode", json={"token": token},
                         content_type="application/json")
         assert r.status_code == 200

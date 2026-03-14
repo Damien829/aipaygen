@@ -105,10 +105,10 @@ def generate_openapi_spec(routes=None):
         "openapi": "3.1.0",
         "info": {
             "title": "AiPayGen API",
-            "version": "1.0.0",
+            "version": "1.8.0",
             "description": (
-                "155 AI tools in one API. Research, write, code, translate, analyze, scrape — "
-                "pay per call with USDC on Base via x402 or use a prepaid API key."
+                "165 AI tools in one API. Research, write, code, translate, analyze, scrape — "
+                "pay per call with USDC on Base via x402, use a prepaid API key, or get $0.25 trial credits."
             ),
             "contact": {"url": "https://api.aipaygen.com"},
             "license": {"name": "Proprietary"},

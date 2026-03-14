@@ -383,7 +383,7 @@ def discover_openapi():
         "openapi": "3.1.0",
         "info": {
             "title": "AiPayGen API",
-            "description": "155 AI tools with x402 USDC micropayments on Base Mainnet",
+            "description": "165 AI tools with x402 USDC micropayments on Base Mainnet",
             "version": "2.0.0",
             "x-402-protocol": True,
             "contact": {"url": "https://aipaygen.com"},
@@ -497,9 +497,9 @@ def discover_compare():
             },
         ],
         "our_advantages": [
-            "155 AI-powered tools (not just proxies)",
+            "165 AI-powered tools (not just proxies)",
             "Agent builder with scheduling",
-            "MCP server with 155 tools",
+            "MCP server with 165 tools",
             "Seller marketplace with escrow",
             "Agent memory, messaging, and task systems",
             "Multi-step workflows and pipelines",

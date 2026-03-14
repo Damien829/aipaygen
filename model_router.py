@@ -520,7 +520,11 @@ def call_model(
     Returns {text, model, model_id, provider, input_tokens, output_tokens, cost_usd, selected_reason}.
     """
     selected_reason = None
-    if model == "auto":
+    # Free tier always uses cheapest model
+    if os.environ.get("_AIPAYGEN_FREE_TIER"):
+        model = "claude-haiku"
+        selected_reason = "free_tier_degraded"
+    elif model == "auto":
         task_text = ""
         for m in messages:
             if m.get("role") == "user":

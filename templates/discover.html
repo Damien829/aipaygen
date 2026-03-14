@@ -62,7 +62,7 @@ a:hover{text-decoration:underline}
 {{ nav|safe }}
 <div class="page-header">
   <h1>Service <span>Catalog</span></h1>
-  <p class="tagline">162 AI tools. 10 free calls/day. Try any tool below — no sign-up required.</p>
+  <p class="tagline">165 AI tools. 10 free calls/day. Try any tool below — no sign-up required.</p>
 </div>
 <div class="container">
   <div class="search-wrap">
@@ -207,10 +207,18 @@ a:hover{text-decoration:underline}
     demoResult.style.display = 'block';
     demoResult.textContent = 'Processing...';
     demoResult.style.color = 'var(--muted)';
+    var bodyMap = {
+      'geocode':{q:text},'math-eval':{expression:text},'unit-convert':{value:parseFloat(text)||0,from_unit:'km',to_unit:'mi'},
+      'explain':{concept:text},'analyze':{content:text},'compare':{text_a:text.split('vs')[0]||text,text_b:text.split('vs')[1]||''},
+      'extract':{text:text,schema_desc:'key entities'},'decide':{decision:text},'classify':{text:text,categories:['positive','negative','neutral']},
+      'whois':{domain:text},'security-headers':{url:text},'currency-convert':{amount:1,from:text.split(' to ')[0]||'USD',to:text.split(' to ')[1]||'EUR'},
+      'stats':{numbers:text.split(',').map(Number).filter(function(n){return !isNaN(n);})}
+    };
+    var body = bodyMap[currentTool] || {text: text};
     fetch('/try/' + currentTool, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({text: text})
+      body: JSON.stringify(body)
     }).then(function(r){ return r.json(); })
     .then(function(data){
       demoResult.style.color = 'var(--green)';

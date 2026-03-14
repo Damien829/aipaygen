@@ -4,12 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}AiPayGen{% endblock %} — AI Agent API</title>
-<meta name="description" content="{% block description %}162 AI tools in one API. Multi-model. Pay per call with API key, x402 USDC, or MCP. 10 free calls/day.{% endblock %}">
+<meta name="description" content="{% block description %}165 AI tools in one API. Multi-model. Pay per call with API key, x402 USDC, or MCP. 10 free calls/day.{% endblock %}">
+<link rel="canonical" href="https://aipaygen.com{% block canonical %}{{ request.path }}{% endblock %}">
 <link rel="icon" href="/static/icon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="/static/css/main.css" as="style">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/main.css">
+<meta name="theme-color" content="#020408">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
 {% block head %}{% endblock %}
 </head>
@@ -30,6 +33,7 @@
       <li><a href="/sell" style="color:var(--accent2)">Sell API</a></li>
       <li><a href="/try">Try Free</a></li>
       <li><a href="/docs">Docs</a></li>
+      <li><a href="/pricing">Pricing</a></li>
       <li><a href="/discover">API</a></li>
       <li><a href="/blog">Blog</a></li>
       <li><a href="/buy-credits" class="nav-cta">Get API Key</a></li>
@@ -46,7 +50,7 @@
   <div class="footer-inner">
     <div class="footer-brand">
       <div class="logo">AiPayGen</div>
-      <p>The AI agent API marketplace. 162 tools, 15 models, 7 providers. Pay per call.</p>
+      <p>The AI agent API marketplace. 165 tools, 15 models, 7 providers. Pay per call.</p>
       <p class="mt-2" style="color:var(--text-muted)">Base Mainnet &middot; x402 Protocol</p>
     </div>
     <div class="footer-col">

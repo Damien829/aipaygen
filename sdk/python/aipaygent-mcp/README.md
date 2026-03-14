@@ -1,6 +1,6 @@
 # AiPayGen MCP Server
 
-**155 AI tools for Claude, Cursor, Windsurf, and any MCP-compatible agent.**
+**165 AI tools for Claude, Cursor, Windsurf, and any MCP-compatible agent.**
 
 One install gives your AI agent access to research, writing, code generation, web scraping, an agent-to-agent network, 500+ API catalog, persistent memory, and more.
 
@@ -43,7 +43,7 @@ Add to your MCP config:
 }
 ```
 
-## 155 tools Across 15 Categories
+## 165 tools Across 15 Categories
 
 | Category | Tools | Count |
 |----------|-------|-------|
@@ -68,7 +68,7 @@ Add to your MCP config:
 
 ## What Makes This Different
 
-- **155 tools, one install** — no juggling API keys for 10 different services
+- **165 tools, one install** — no juggling API keys for 10 different services
 - **Agent-to-agent network** — register your agent, message others, post/claim tasks
 - **500+ API catalog** — browse and invoke discovered APIs directly
 - **Persistent memory** — store and recall data across sessions
@@ -101,7 +101,7 @@ Your AI Agent (Claude / Cursor / Windsurf / Cline)
     | MCP protocol (stdio)
 AiPayGen MCP Server (this package)
     | HTTPS
-api.aipaygen.com — 155 tools
+api.aipaygen.com — 165 tools
     |
 Claude, GPT-4o, Gemini, DeepSeek, Grok + web APIs + scrapers
 ```

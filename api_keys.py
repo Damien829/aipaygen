@@ -1,4 +1,5 @@
 """Prepaid API key management. Keys funded upfront, deducted per call."""
+import hashlib
 import sqlite3
 import os
 import secrets
@@ -40,17 +41,36 @@ def init_keys_db():
             c.execute("ALTER TABLE api_keys ADD COLUMN first_used_at TEXT")
         except sqlite3.OperationalError:
             pass
+        try:
+            c.execute("ALTER TABLE api_keys ADD COLUMN referral_code TEXT DEFAULT ''")
+        except sqlite3.OperationalError:
+            pass
+        c.execute("CREATE INDEX IF NOT EXISTS idx_apikey_referral ON api_keys(referral_code)")
 
 
 def generate_key(initial_balance: float = 0.0, label: str = "", source: str = "unknown") -> dict:
     key = "apk_" + secrets.token_urlsafe(32)
+    referral_code = hashlib.sha256(key.encode()).hexdigest()[:8]
     now = datetime.utcnow().isoformat()
     with _conn() as c:
         c.execute(
-            "INSERT INTO api_keys (key, label, balance_usd, created_at, source) VALUES (?, ?, ?, ?, ?)",
-            (key, label, initial_balance, now, source),
+            "INSERT INTO api_keys (key, label, balance_usd, created_at, source, referral_code) VALUES (?, ?, ?, ?, ?, ?)",
+            (key, label, initial_balance, now, source, referral_code),
         )
-    return {"key": key, "balance_usd": initial_balance, "label": label, "created_at": now, "source": source}
+    return {"key": key, "balance_usd": initial_balance, "label": label, "created_at": now, "source": source,
+            "referral_code": referral_code}
+
+
+def get_key_by_referral_code(code: str) -> dict | None:
+    """Look up an API key by its referral code."""
+    if not code:
+        return None
+    with _conn() as c:
+        row = c.execute(
+            "SELECT key, label, balance_usd, referral_code FROM api_keys WHERE referral_code = ? AND is_active = 1",
+            (code,),
+        ).fetchone()
+    return dict(row) if row else None
 
 
 def topup_key(key: str, amount: float) -> dict:
@@ -69,7 +89,7 @@ def topup_key(key: str, amount: float) -> dict:
 def get_key_status(key: str) -> dict | None:
     with _conn() as c:
         row = c.execute(
-            "SELECT key, label, balance_usd, total_spent, call_count, is_active, created_at, last_used_at, source, first_used_at FROM api_keys WHERE key = ?",
+            "SELECT key, label, balance_usd, total_spent, call_count, is_active, created_at, last_used_at, source, first_used_at, referral_code FROM api_keys WHERE key = ?",
             (key,),
         ).fetchone()
     if not row:
