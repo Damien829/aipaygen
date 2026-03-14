@@ -45,6 +45,17 @@ a:hover{text-decoration:underline}
 .bottom-cta{text-align:center;padding:48px 24px 64px}
 .bottom-cta a{display:inline-block;padding:12px 32px;border:1px solid var(--green);color:var(--green);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:0.95rem;transition:all .2s}
 .bottom-cta a:hover{background:var(--green);color:var(--bg);text-decoration:none}
+#demoOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center}
+#demoOverlay.open{display:flex}
+#demoPanel{background:var(--card-bg);border:1px solid var(--card-border);border-radius:14px;width:90%;max-width:560px;padding:24px;position:relative;max-height:80vh;overflow-y:auto}
+#demoPanel h3{font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:#fff;margin-bottom:4px}
+#demoPanel .demo-desc{color:var(--muted);font-size:0.85rem;margin-bottom:14px}
+#demoPanel textarea{width:100%;min-height:80px;background:var(--bg);border:1px solid var(--card-border);border-radius:8px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;padding:10px;resize:vertical;outline:none}
+#demoPanel textarea:focus{border-color:var(--green)}
+#demoRun{margin-top:10px;padding:8px 24px;background:var(--green);color:var(--bg);border:none;border-radius:6px;font-family:'IBM Plex Sans',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer}
+#demoRun:disabled{opacity:.5;cursor:wait}
+#demoResult{margin-top:14px;padding:12px;background:var(--bg);border:1px solid var(--card-border);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;white-space:pre-wrap;max-height:240px;overflow-y:auto;display:none;color:var(--green)}
+#demoClose{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer}
 </style>
 </head>
 <body>
@@ -88,6 +99,14 @@ a:hover{text-decoration:underline}
 <div class="bottom-cta">
   <a href="/try">Try Free — 10 calls/day, no sign-up &rarr;</a>
 </div>
+<div id="demoOverlay"><div id="demoPanel">
+<button id="demoClose">&times;</button>
+<h3 id="demoTitle"></h3>
+<p class="demo-desc" id="demoDesc"></p>
+<textarea id="demoInput" placeholder="Enter your text here..."></textarea>
+<button id="demoRun">Run</button>
+<div id="demoResult"></div>
+</div></div>
 {{ footer|safe }}
 <script>
 (function(){
@@ -131,14 +150,82 @@ a:hover{text-decoration:underline}
     'datacurrencyconvert':'currency-convert','datastats':'stats',
     'code':'code','research':'research','preview':'sentiment'
   };
+  // Inline demo
+  var overlay = document.getElementById('demoOverlay');
+  var demoTitle = document.getElementById('demoTitle');
+  var demoDesc = document.getElementById('demoDesc');
+  var demoInput = document.getElementById('demoInput');
+  var demoResult = document.getElementById('demoResult');
+  var demoRun = document.getElementById('demoRun');
+  var demoClose = document.getElementById('demoClose');
+  var currentTool = '';
+
+  var placeholders = {
+    'sentiment':'The new product launch exceeded all expectations!',
+    'summarize':'Paste a paragraph to summarize...',
+    'translate':'Hello, how are you today?',
+    'keywords':'Artificial intelligence is transforming healthcare delivery...',
+    'explain':'What is quantum computing?',
+    'analyze':'Our Q4 revenue grew 23% year-over-year...',
+    'classify':'This email is about scheduling a meeting next Tuesday.',
+    'rewrite':'The thing was really good and I liked it a lot.',
+    'headline':'New study finds remote workers are 13% more productive',
+    'geocode':'1600 Pennsylvania Ave, Washington DC'
+  };
+
   document.querySelectorAll('.try-btn').forEach(function(btn){
     var tool = btn.getAttribute('data-tool');
     var mapped = tryMap[tool] || tryMap[tool.replace(/^data/,'')] || null;
     if(mapped) {
       btn.href = '/try?tool=' + mapped;
+      btn.addEventListener('click', function(e){
+        e.preventDefault();
+        currentTool = mapped;
+        var card = btn.closest('.card');
+        demoTitle.textContent = card.querySelector('.endpoint').textContent;
+        demoDesc.textContent = card.querySelector('.desc').textContent;
+        demoInput.value = '';
+        demoInput.placeholder = placeholders[mapped] || 'Enter your text...';
+        demoResult.style.display = 'none';
+        demoResult.textContent = '';
+        overlay.classList.add('open');
+        demoInput.focus();
+      });
     } else {
       btn.href = '/try';
     }
+  });
+
+  demoClose.addEventListener('click', function(){ overlay.classList.remove('open'); });
+  overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.classList.remove('open'); });
+
+  demoRun.addEventListener('click', function(){
+    var text = demoInput.value.trim();
+    if(!text) return;
+    demoRun.disabled = true;
+    demoRun.textContent = 'Running...';
+    demoResult.style.display = 'block';
+    demoResult.textContent = 'Processing...';
+    demoResult.style.color = 'var(--muted)';
+    fetch('/try/' + currentTool, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({text: text})
+    }).then(function(r){ return r.json(); })
+    .then(function(data){
+      demoResult.style.color = 'var(--green)';
+      demoResult.textContent = JSON.stringify(data, null, 2);
+    }).catch(function(err){
+      demoResult.style.color = '#f87171';
+      demoResult.textContent = 'Error: ' + err.message;
+    }).finally(function(){
+      demoRun.disabled = false;
+      demoRun.textContent = 'Run';
+    });
+  });
+
+  demoInput.addEventListener('keydown', function(e){
+    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); demoRun.click(); }
   });
 })();
 </script>
