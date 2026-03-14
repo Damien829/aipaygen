@@ -210,8 +210,8 @@ def readability_score():
     words_list = text.split()
     word_count = max(1, len(words_list))
     syllable_count = sum(_count_syllables(w) for w in words_list)
-    flesch = 206.835 - 1.015 * (word_count / sentences) - 84.6 * (syllable_count / word_count)
-    grade = 0.39 * (word_count / sentences) + 11.8 * (syllable_count / word_count) - 15.59
+    flesch = 206.835 - 1.015 * (word_count / max(sentences, 1)) - 84.6 * (syllable_count / max(word_count, 1))
+    grade = 0.39 * (word_count / max(sentences, 1)) + 11.8 * (syllable_count / max(word_count, 1)) - 15.59
     levels = {(90, 101): "Very Easy", (80, 90): "Easy", (70, 80): "Fairly Easy",
               (60, 70): "Standard", (50, 60): "Fairly Difficult",
               (30, 50): "Difficult", (-100, 30): "Very Difficult"}
@@ -258,8 +258,8 @@ def language_detect():
         "text_sample": text[:100],
         "detected_language": lang,
         "script": top_script,
-        "confidence": round(scripts.get(top_script, 0) / total, 3),
-        "scripts": {k: round(v / total, 3) for k, v in sorted(scripts.items(), key=lambda x: -x[1])[:5]},
+        "confidence": round(scripts.get(top_script, 0) / max(total, 1), 3),
+        "scripts": {k: round(v / max(total, 1), 3) for k, v in sorted(scripts.items(), key=lambda x: -x[1])[:5]},
     })
 
 
