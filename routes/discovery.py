@@ -131,8 +131,8 @@ def _parse_price(price_str):
 # ── Discovery Endpoints ──────────────────────────────────────────────────────
 
 
-@discovery_bp.route("/discover", methods=["GET"])
-def discover():
+@discovery_bp.route("/discover/catalog", methods=["GET"])
+def discover_catalog():
     """Machine-readable endpoint catalog with pricing, categories, and search."""
     routes = _get_routes_dict()
     if not routes:
@@ -435,7 +435,7 @@ def well_known_x402():
             "total_endpoints": len(prices),
         },
         "discovery_endpoints": {
-            "catalog": "https://api.aipaygen.com/discover",
+            "catalog": "https://api.aipaygen.com/discover/catalog",
             "pricing": "https://api.aipaygen.com/discover/pricing",
             "openapi": "https://api.aipaygen.com/discover/openapi",
             "ai_plugin": "https://api.aipaygen.com/.well-known/ai-plugin.json",

@@ -887,8 +887,6 @@ def openapi_spec():
 
 
 @meta_bp.route("/llms.txt")
-
-@meta_bp.route("/llms.txt")
 def llms_txt():
     try:
         funnel_log_event("llms_txt_hit", endpoint="/llms.txt", ip=request.headers.get("CF-Connecting-IP", request.remote_addr or ""))
@@ -1800,8 +1798,6 @@ def workflow_inner(goal, available_data="", model="claude-sonnet"):
         max_tokens=4096)
     return {"goal": goal, "result": r["text"], "model": r["model"]}
 
-
-@meta_bp.route("/vision", methods=["POST"])
 
 @meta_bp.route("/sdk/code", methods=["GET"])
 def sdk_code():
