@@ -185,7 +185,10 @@ def funnel_dashboard():
         pass
     else:
         return redirect("/admin/login")
-    days = int(request.args.get("days", 7))
+    try:
+        days = max(1, min(365, int(request.args.get("days", 7))))
+    except (ValueError, TypeError):
+        days = 7
     stats = get_funnel_stats(days)
     by_type = stats.get("by_type", {})
 
@@ -942,7 +945,10 @@ def self_test():
 @admin_bp.route("/health/history", methods=["GET"])
 def health_history():
     endpoint = request.args.get("endpoint")
-    limit = int(request.args.get("limit", 100))
+    try:
+        limit = max(1, min(1000, int(request.args.get("limit", 100))))
+    except (ValueError, TypeError):
+        limit = 100
     return jsonify({"history": get_health_history(endpoint, limit)})
 
 
@@ -1468,7 +1474,10 @@ Full Python client example in the blog post above.""",
 @require_admin
 def admin_crypto_deposits():
     from crypto_deposits import get_all_deposits
-    limit = int(request.args.get("limit", 100))
+    try:
+        limit = max(1, min(1000, int(request.args.get("limit", 100))))
+    except (ValueError, TypeError):
+        limit = 100
     deposits = get_all_deposits(limit=limit)
     return jsonify({"deposits": deposits, "count": len(deposits)})
 

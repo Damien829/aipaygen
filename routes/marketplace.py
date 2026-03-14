@@ -13,8 +13,11 @@ from agent_memory import (
 from api_catalog import get_all_apis, get_api, get_recent_runs
 from apify_client import run_actor_sync
 from api_discovery import run_all_hunters
-from helpers import log_payment, agent_response, get_client_ip as _get_client_ip, call_llm, require_admin, require_api_key
+from helpers import log_payment, agent_response, get_client_ip as _get_client_ip, call_llm, require_admin, require_api_key, rate_limit
 from funnel_tracker import log_event as funnel_log_event
+
+import logging
+_log = logging.getLogger(__name__)
 
 marketplace_bp = Blueprint("marketplace", __name__)
 
@@ -33,7 +36,10 @@ def init_marketplace_bp(claude_client, discovery_jobs):
 
 @marketplace_bp.route("/catalog", methods=["GET"])
 def catalog():
-    page = int(request.args.get("page", 1))
+    try:
+        page = max(1, min(1000, int(request.args.get("page", 1))))
+    except (ValueError, TypeError):
+        page = 1
     per_page = min(int(request.args.get("per_page", 20)), 100)
     category = request.args.get("category")
     source = request.args.get("source")
@@ -75,7 +81,8 @@ def run_discovery():
             results = run_all_hunters(_claude)
             _discovery_jobs[job_id].update({"status": "completed", "results": results})
         except Exception as e:
-            _discovery_jobs[job_id].update({"status": "error", "error": str(e)})
+            _log.exception("discovery job %s failed", job_id)
+            _discovery_jobs[job_id].update({"status": "error", "error": "Discovery failed"})
 
     t = threading.Thread(target=_run, daemon=True)
     t.start()
@@ -138,14 +145,16 @@ def api_call():
             "result": result,
             "enrichment": enrichment,
         }, "/api-call"))
-    except Exception as e:
-        return jsonify({"error": "proxy_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("proxy call failed")
+        return jsonify({"error": "proxy_failed", "message": "Request failed"}), 502
 
 
 # ── Scrape (Apify) Routes ───────────────────────────────────────────
 
 
 @marketplace_bp.route("/scrape/google-maps", methods=["POST"])
+@rate_limit(10, bucket="scrape")
 def scrape_google_maps():
     data = request.get_json() or {}
     query = data.get("query") or data.get("location")
@@ -157,11 +166,13 @@ def scrape_google_maps():
         results = run_actor_sync("nwua9Gu5YrADL7ZDj", run_input, max_items=max_items)
         log_payment("/scrape/google-maps", 0.10, request.remote_addr)
         return jsonify(agent_response({"query": query, "results": results, "count": len(results)}, "/scrape/google-maps"))
-    except Exception as e:
-        return jsonify({"error": "scrape_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("scrape failed")
+        return jsonify({"error": "scrape_failed", "message": "Request failed"}), 502
 
 
 @marketplace_bp.route("/scrape/instagram", methods=["POST"])
+@rate_limit(10, bucket="scrape")
 def scrape_instagram():
     data = request.get_json() or {}
     username = data.get("username")
@@ -173,11 +184,13 @@ def scrape_instagram():
         results = run_actor_sync("shu8hvrXbJbY3Eb9W", run_input, max_items=max_items)
         log_payment("/scrape/instagram", 0.05, request.remote_addr)
         return jsonify(agent_response({"username": username, "results": results, "count": len(results)}, "/scrape/instagram"))
-    except Exception as e:
-        return jsonify({"error": "scrape_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("scrape failed")
+        return jsonify({"error": "scrape_failed", "message": "Request failed"}), 502
 
 
 @marketplace_bp.route("/scrape/tweets", methods=["POST"])
+@rate_limit(10, bucket="scrape")
 def scrape_tweets():
     data = request.get_json() or {}
     query = data.get("query")
@@ -189,11 +202,13 @@ def scrape_tweets():
         results = run_actor_sync("61RPP7dywgiy0JPD0", run_input, max_items=max_items)
         log_payment("/scrape/tweets", 0.05, request.remote_addr)
         return jsonify(agent_response({"query": query, "results": results, "count": len(results)}, "/scrape/tweets"))
-    except Exception as e:
-        return jsonify({"error": "scrape_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("scrape failed")
+        return jsonify({"error": "scrape_failed", "message": "Request failed"}), 502
 
 
 @marketplace_bp.route("/scrape/linkedin", methods=["POST"])
+@rate_limit(10, bucket="scrape")
 def scrape_linkedin():
     data = request.get_json() or {}
     url = data.get("url")
@@ -204,11 +219,13 @@ def scrape_linkedin():
         results = run_actor_sync("2SyF0bVxmgGr8IVCZ", run_input, max_items=5)
         log_payment("/scrape/linkedin", 0.15, request.remote_addr)
         return jsonify(agent_response({"url": url, "results": results, "count": len(results)}, "/scrape/linkedin"))
-    except Exception as e:
-        return jsonify({"error": "scrape_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("scrape failed")
+        return jsonify({"error": "scrape_failed", "message": "Request failed"}), 502
 
 
 @marketplace_bp.route("/scrape/youtube", methods=["POST"])
+@rate_limit(10, bucket="scrape")
 def scrape_youtube():
     data = request.get_json() or {}
     query = data.get("query")
@@ -220,11 +237,13 @@ def scrape_youtube():
         results = run_actor_sync("h7sDV53CddomktSi5", run_input, max_items=max_items)
         log_payment("/scrape/youtube", 0.05, request.remote_addr)
         return jsonify(agent_response({"query": query, "results": results, "count": len(results)}, "/scrape/youtube"))
-    except Exception as e:
-        return jsonify({"error": "scrape_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("scrape failed")
+        return jsonify({"error": "scrape_failed", "message": "Request failed"}), 502
 
 
 @marketplace_bp.route("/scrape/web", methods=["POST"])
+@rate_limit(10, bucket="scrape")
 def scrape_web():
     data = request.get_json() or {}
     url = data.get("url")
@@ -236,11 +255,13 @@ def scrape_web():
         results = run_actor_sync("aYG0l9s7dbB7j3gbS", run_input, max_items=max_pages)
         log_payment("/scrape/web", 0.05, request.remote_addr)
         return jsonify(agent_response({"url": url, "results": results, "count": len(results)}, "/scrape/web"))
-    except Exception as e:
-        return jsonify({"error": "scrape_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("scrape failed")
+        return jsonify({"error": "scrape_failed", "message": "Request failed"}), 502
 
 
 @marketplace_bp.route("/scrape/tiktok", methods=["POST"])
+@rate_limit(10, bucket="scrape")
 def scrape_tiktok():
     data = request.get_json() or {}
     username = data.get("username")
@@ -252,11 +273,13 @@ def scrape_tiktok():
         results = run_actor_sync("GdWCkxBtKWOsKjdch", run_input, max_items=max_items)
         log_payment("/scrape/tiktok", 0.05, request.remote_addr)
         return jsonify(agent_response({"username": username, "results": results, "count": len(results)}, "/scrape/tiktok"))
-    except Exception as e:
-        return jsonify({"error": "scrape_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("scrape failed")
+        return jsonify({"error": "scrape_failed", "message": "Request failed"}), 502
 
 
 @marketplace_bp.route("/scrape/facebook-ads", methods=["POST"])
+@rate_limit(10, bucket="scrape")
 def scrape_facebook_ads():
     data = request.get_json() or {}
     url = data.get("url")
@@ -268,8 +291,9 @@ def scrape_facebook_ads():
         results = run_actor_sync("JJghSZmShuco4j9gJ", run_input, max_items=max_items)
         log_payment("/scrape/facebook-ads", 0.10, request.remote_addr)
         return jsonify(agent_response({"url": url, "results": results, "count": len(results)}, "/scrape/facebook-ads"))
-    except Exception as e:
-        return jsonify({"error": "scrape_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("scrape failed")
+        return jsonify({"error": "scrape_failed", "message": "Request failed"}), 502
 
 
 _ALLOWED_ACTORS = {
@@ -285,6 +309,7 @@ _ALLOWED_ACTORS = {
 
 
 @marketplace_bp.route("/scrape/actor", methods=["POST"])
+@rate_limit(10, bucket="scrape")
 def scrape_actor():
     data = request.get_json() or {}
     actor_id = data.get("actor_id")
@@ -298,8 +323,9 @@ def scrape_actor():
         results = run_actor_sync(actor_id, run_input, max_items=max_items)
         log_payment("/scrape/actor", 0.10, request.remote_addr)
         return jsonify(agent_response({"actor_id": actor_id, "results": results, "count": len(results)}, "/scrape/actor"))
-    except Exception as e:
-        return jsonify({"error": "scrape_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("scrape failed")
+        return jsonify({"error": "scrape_failed", "message": "Request failed"}), 502
 
 
 # ── Marketplace Routes ──────────────────────────────────────────────
@@ -311,7 +337,10 @@ def marketplace_browse():
     category = request.args.get("category")
     max_price = float(request.args.get("max_price", 9999))
     min_price = float(request.args.get("min_price", 0))
-    page = int(request.args.get("page", 1))
+    try:
+        page = max(1, min(1000, int(request.args.get("page", 1))))
+    except (ValueError, TypeError):
+        page = 1
     per_page = min(int(request.args.get("per_page", 20)), 50)
     listings, total = marketplace_get_services(
         category=category or None,
@@ -411,5 +440,6 @@ def marketplace_call():
             "status_code": resp.status_code,
             "result": resp.json() if resp.headers.get("Content-Type", "").startswith("application/json") else resp.text[:2000],
         }, "/marketplace/call"))
-    except Exception as e:
-        return jsonify({"error": "proxy_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("proxy call failed")
+        return jsonify({"error": "proxy_failed", "message": "Request failed"}), 502

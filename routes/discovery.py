@@ -144,7 +144,10 @@ def discover():
     chain = request.args.get("chain")
     min_price = float(request.args.get("min_price", 0))
     max_price = float(request.args.get("max_price", 999))
-    page = int(request.args.get("page", 1))
+    try:
+        page = max(1, min(1000, int(request.args.get("page", 1))))
+    except (ValueError, TypeError):
+        page = 1
     per_page = min(int(request.args.get("per_page", 50)), 100)
 
     endpoints = []

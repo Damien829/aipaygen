@@ -13,6 +13,9 @@ from helpers import log_payment, agent_response, require_api_key
 from api_keys import validate_key
 from agent_memory import memory_search, memory_set
 
+import logging
+_log = logging.getLogger(__name__)
+
 builder_bp = Blueprint("builder", __name__)
 
 # Set via init_builder_bp()
@@ -385,15 +388,16 @@ def _execute_agent_run(agent_config, task, triggered_by="manual"):
         return {"run_id": run_id, "status": "completed", "result": result}
 
     except Exception as e:
+        _log.exception("agent run %s failed", run_id)
         completed_at = datetime.utcnow().isoformat() + "Z"
         conn = _get_db()
         conn.execute("""
             UPDATE agent_runs SET result = ?, status = 'failed', completed_at = ?
             WHERE id = ?
-        """, (json.dumps({"error": str(e)}), completed_at, run_id))
+        """, (json.dumps({"error": "Agent execution failed"}), completed_at, run_id))
         conn.commit()
         conn.close()
-        return {"run_id": run_id, "status": "failed", "error": str(e)}
+        return {"run_id": run_id, "status": "failed", "error": "Agent execution failed"}
 
 
 # ─── Endpoints ─────────────────────────────────────────────────────────────────
@@ -551,6 +555,19 @@ def update_custom_agent(agent_id):
         if len(sp) > 5000:
             conn.close()
             return jsonify({"error": "system_prompt must be 5000 characters or less"}), 400
+    if "tools" in data:
+        tools = data["tools"]
+        if not isinstance(tools, list):
+            conn.close()
+            return jsonify({"error": "tools must be a list"}), 400
+        if len(tools) > 162:
+            conn.close()
+            return jsonify({"error": "maximum 162 tools allowed"}), 400
+        import re as _re_tools
+        for t in tools:
+            if not isinstance(t, str) or not _re_tools.match(r'^[a-zA-Z0-9_\-]+$', t):
+                conn.close()
+                return jsonify({"error": f"invalid tool name: {t}"}), 400
 
     now = datetime.utcnow().isoformat() + "Z"
 
@@ -740,7 +757,10 @@ def list_agent_runs(agent_id):
         return jsonify({"error": "unauthorized"}), 403
 
     limit = min(int(request.args.get("limit", 50)), 200)
-    offset = int(request.args.get("offset", 0))
+    try:
+        offset = max(0, min(10000, int(request.args.get("offset", 0))))
+    except (ValueError, TypeError):
+        offset = 0
 
     rows = conn.execute(
         "SELECT * FROM agent_runs WHERE agent_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",

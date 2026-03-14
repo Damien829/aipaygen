@@ -14,6 +14,9 @@ from youtube_transcript_api import YouTubeTranscriptApi
 
 from helpers import cache_get as _cache_get, cache_set as _cache_set, get_client_ip as _get_client_ip
 
+import logging
+_log = logging.getLogger(__name__)
+
 data_bp = Blueprint("data", __name__)
 
 
@@ -63,8 +66,9 @@ def data_wikipedia():
         }
         _cache_set(ck, result, 3600)
         return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": "wikipedia_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("wikipedia fetch failed")
+        return jsonify({"error": "wikipedia_failed", "message": "Request failed"}), 502
 
 
 # ── Data: arXiv ───────────────────────────────────────────────────────────────
@@ -99,8 +103,9 @@ def data_arxiv():
         result = {"query": q, "papers": papers, "count": len(papers)}
         _cache_set(ck, result, 1800)
         return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": "arxiv_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("arxiv fetch failed")
+        return jsonify({"error": "arxiv_failed", "message": "Request failed"}), 502
 
 
 # ── Data: GitHub Trending ─────────────────────────────────────────────────────
@@ -139,8 +144,9 @@ def data_github_trending():
         result = {"language": lang or "all", "since": since, "repos": repos, "count": len(repos)}
         _cache_set(ck, result, 3600)
         return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": "github_trending_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("github trending fetch failed")
+        return jsonify({"error": "github_trending_failed", "message": "Request failed"}), 502
 
 
 # ── Data: Reddit ──────────────────────────────────────────────────────────────
@@ -186,8 +192,9 @@ def data_reddit():
         result = {"query": q, "subreddit": sub, "posts": posts, "count": len(posts)}
         _cache_set(ck, result, 600)
         return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": "reddit_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("reddit fetch failed")
+        return jsonify({"error": "reddit_failed", "message": "Request failed"}), 502
 
 
 # ── Data: YouTube Transcript ──────────────────────────────────────────────────
@@ -203,7 +210,8 @@ def data_youtube_transcript():
     if cached:
         return jsonify(cached)
     try:
-        transcript_list = YouTubeTranscriptApi.get_transcript(video_id, languages=[lang, "en"])
+        fetched = YouTubeTranscriptApi().fetch(video_id, languages=[lang, "en"])
+        transcript_list = [{"text": s.text, "start": s.start, "duration": s.duration} for s in fetched]
         full_text = " ".join(t["text"] for t in transcript_list)
         result = {
             "video_id": video_id,
@@ -215,8 +223,9 @@ def data_youtube_transcript():
         }
         _cache_set(ck, result, 86400)
         return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": "transcript_failed", "message": str(e),
+    except Exception:
+        _log.exception("youtube transcript fetch failed")
+        return jsonify({"error": "transcript_failed", "message": "Request failed",
                        "hint": "Video may have no captions or be age-restricted"}), 502
 
 
@@ -249,8 +258,9 @@ def data_qr():
         }
         _cache_set(ck, result, 86400)
         return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": "qr_failed", "message": str(e)}), 500
+    except Exception:
+        _log.exception("qr generation failed")
+        return jsonify({"error": "qr_failed", "message": "Internal error"}), 500
 
 
 # ── Data: DNS Lookup ──────────────────────────────────────────────────────────
@@ -293,8 +303,9 @@ def data_dns():
         }
         _cache_set(ck, result, 300)
         return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": "dns_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("dns lookup failed")
+        return jsonify({"error": "dns_failed", "message": "Request failed"}), 502
 
 
 # ── Data: Validate Email ──────────────────────────────────────────────────────
@@ -354,8 +365,9 @@ def data_validate_url():
             "redirected": resp.url != url,
             "content_type": resp.headers.get("Content-Type", ""),
         }
-    except Exception as e:
-        result = {"url": url, "reachable": False, "error": str(e)}
+    except Exception:
+        _log.exception("url validation failed")
+        result = {"url": url, "reachable": False, "error": "Request failed"}
     return jsonify(result)
 
 
@@ -383,8 +395,9 @@ def data_random_name():
                 "country": loc.get("country", ""),
             })
         return jsonify({"people": people, "count": len(people)})
-    except Exception as e:
-        return jsonify({"error": "random_name_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("random name fetch failed")
+        return jsonify({"error": "random_name_failed", "message": "Request failed"}), 502
 
 
 # ── Data: Color Info ─────────────────────────────────────────────────────────
@@ -414,8 +427,9 @@ def data_color():
             "css": f"rgb({r}, {g}, {b})",
         }
         return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": "color_failed", "message": str(e)}), 400
+    except Exception:
+        _log.exception("color parsing failed")
+        return jsonify({"error": "color_failed", "message": "Invalid input"}), 400
 
 
 # ── Data: Screenshot ─────────────────────────────────────────────────────────
@@ -441,8 +455,9 @@ def data_screenshot():
         }
         _cache_set(ck, result, 3600)
         return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": "screenshot_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("screenshot failed")
+        return jsonify({"error": "screenshot_failed", "message": "Request failed"}), 502
 
 
 # ── Free: Time ────────────────────────────────────────────────────────────────
@@ -542,8 +557,14 @@ def free_random():
     import random
     import string
     n = min(int(request.args.get("n", 5)), 100)
-    min_val = int(request.args.get("min", 1))
-    max_val = int(request.args.get("max", 100))
+    try:
+        min_val = max(1, min(1000000, int(request.args.get("min", 1))))
+    except (ValueError, TypeError):
+        min_val = 1
+    try:
+        max_val = max(1, min(1000000, int(request.args.get("max", 100))))
+    except (ValueError, TypeError):
+        max_val = 100
     return jsonify({
         "integers": [random.randint(min_val, max_val) for _ in range(n)],
         "float": random.random(),
@@ -599,8 +620,9 @@ def data_weather():
         }
         _cache_set(ck, result, 600)  # 10 min
         return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": "weather_fetch_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("weather fetch failed")
+        return jsonify({"error": "weather_fetch_failed", "message": "Request failed"}), 502
 
 
 # ── Data: Crypto ──────────────────────────────────────────────────────────────
@@ -627,8 +649,9 @@ def data_crypto():
         result = {"prices": data, "symbols": symbol.split(","), "_meta": {"free": True, "source": "coingecko.com"}}
         _cache_set(ck, result, 120)  # 2 min
         return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": "crypto_fetch_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("crypto fetch failed")
+        return jsonify({"error": "crypto_fetch_failed", "message": "Request failed"}), 502
 
 
 # ── Data: Exchange Rates ──────────────────────────────────────────────────────
@@ -654,8 +677,9 @@ def data_exchange_rates():
         }
         _cache_set(ck, result, 3600)  # 1 hr
         return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": "exchange_rate_fetch_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("exchange rate fetch failed")
+        return jsonify({"error": "exchange_rate_fetch_failed", "message": "Request failed"}), 502
 
 
 # ── Data: Country ─────────────────────────────────────────────────────────────
@@ -681,8 +705,9 @@ def data_country():
         result = {"results": countries, "count": len(countries), "_meta": {"free": True, "source": "restcountries.com"}}
         _cache_set(ck, result, 86400)  # 24 hr
         return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": "country_fetch_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("country fetch failed")
+        return jsonify({"error": "country_fetch_failed", "message": "Request failed"}), 502
 
 
 # ── Data: IP Lookup ───────────────────────────────────────────────────────────
@@ -696,8 +721,9 @@ def data_ip():
         data = resp.json()
         data["_meta"] = {"free": True, "source": "ip-api.com"}
         return jsonify(data)
-    except Exception as e:
-        return jsonify({"error": "ip_fetch_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("ip fetch failed")
+        return jsonify({"error": "ip_fetch_failed", "message": "Request failed"}), 502
 
 
 # ── Data: News (Hacker News) ─────────────────────────────────────────────────
@@ -730,8 +756,9 @@ def data_news():
         result = {"stories": stories, "count": len(stories), "_meta": {"free": True, "source": "hacker-news.firebaseio.com"}}
         _cache_set("hn_news", result, 900)  # 15 min
         return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": "news_fetch_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("news fetch failed")
+        return jsonify({"error": "news_fetch_failed", "message": "Request failed"}), 502
 
 
 # ── Data: Stocks ──────────────────────────────────────────────────────────────
@@ -766,12 +793,14 @@ def data_stocks():
         }
         _cache_set(ck, stock_result, 300)  # 5 min
         return jsonify(stock_result)
-    except Exception as e:
-        return jsonify({"error": "stock_fetch_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("stock fetch failed")
+        return jsonify({"error": "stock_fetch_failed", "message": "Request failed"}), 502
 
 
 # ── Data: Joke ────────────────────────────────────────────────────────────────
 
+@data_bp.route("/free/joke", methods=["GET"])
 @data_bp.route("/data/joke", methods=["GET"])
 def data_joke():
     cached = _cache_get("joke")
@@ -802,6 +831,7 @@ def data_joke():
 
 # ── Data: Quote ───────────────────────────────────────────────────────────────
 
+@data_bp.route("/free/quote", methods=["GET"])
 @data_bp.route("/data/quote", methods=["GET"])
 def data_quote():
     category = request.args.get("category", "")
@@ -819,8 +849,9 @@ def data_quote():
         }
         _cache_set("quote", result, 3600)  # 1 hr
         return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": "quote_fetch_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("quote fetch failed")
+        return jsonify({"error": "quote_fetch_failed", "message": "Request failed"}), 502
 
 
 # ── Data: Timezone ────────────────────────────────────────────────────────────
@@ -848,8 +879,9 @@ def data_timezone():
         }
         _cache_set(ck, result, 3600)  # 1 hr
         return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": "timezone_fetch_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("timezone fetch failed")
+        return jsonify({"error": "timezone_fetch_failed", "message": "Request failed"}), 502
 
 
 # ── Data: Holidays ────────────────────────────────────────────────────────────
@@ -879,5 +911,6 @@ def data_holidays():
             _cache_set(ck, result, 86400)  # 24 hr
             return jsonify(result)
         return jsonify({"error": "no_data", "country": country, "year": year}), 404
-    except Exception as e:
-        return jsonify({"error": "holidays_fetch_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("holidays fetch failed")
+        return jsonify({"error": "holidays_fetch_failed", "message": "Request failed"}), 502
