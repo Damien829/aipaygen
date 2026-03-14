@@ -1125,11 +1125,13 @@ def enrich_402_response(response):
             },
             "also_accepted": {
                 "x402_usdc": {"description": "Pay per call with USDC. No signup.", "docs": "https://x402.org"},
+                "mcp": {"description": "Install MCP package for 10 free calls/day.", "install": "pip install aipaygen-mcp"},
             },
+            "try_free": f"https://aipaygen.com/try?tool={request.path.strip('/')}",
             "links": {
                 "buy_credits": "https://aipaygen.com/buy-credits",
-                "docs": "https://aipaygen.com/docs",
                 "pricing": "https://aipaygen.com/pricing",
+                "try_demo": f"https://aipaygen.com/try?tool={request.path.strip('/')}",
             },
         }
         response.set_data(_json.dumps(enriched))
