@@ -102,8 +102,10 @@ _env_enc = os.path.join(os.path.dirname(__file__), ".env.enc")
 _env_plain = os.path.join(os.path.dirname(__file__), ".env")
 
 if os.path.exists(_env_enc) and os.path.exists(_key_path):
-    _key = open(_key_path, "rb").read()
-    _data = Fernet(_key).decrypt(open(_env_enc, "rb").read())
+    with open(_key_path, "rb") as _f:
+        _key = _f.read()
+    with open(_env_enc, "rb") as _f:
+        _data = Fernet(_key).decrypt(_f.read())
     # Parse decrypted env in memory — never write secrets to disk
     for _line in _data.decode("utf-8", errors="replace").splitlines():
         _line = _line.strip()
