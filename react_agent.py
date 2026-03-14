@@ -240,7 +240,8 @@ class ReActAgent:
         try:
             tool_result = self.handle_tool(action, params)
         except Exception as e:
-            tool_result = {"error": str(e)}
+            _log.error("Tool %s failed: %s", action, e)
+            tool_result = {"error": "Tool execution failed"}
 
         # Check for errors — provide recovery guidance
         if isinstance(tool_result, dict) and "error" in tool_result:
@@ -432,7 +433,8 @@ class ReActAgent:
                 try:
                     tool_result = self.handle_tool(action, params)
                 except Exception as e:
-                    tool_result = {"error": str(e)}
+                    _log.error("Tool %s failed: %s", action, e)
+                    tool_result = {"error": "Tool execution failed"}
 
                 # Handle tool chaining in stream mode
                 if "pipe_to" in parsed and tool_result and not (isinstance(tool_result, dict) and "error" in tool_result):

@@ -4,8 +4,11 @@ import json
 import uuid
 import threading
 import os
+import logging
 import requests
 from datetime import datetime
+
+_log = logging.getLogger("async_jobs")
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "async_jobs.db")
 UPLOADS_DIR = os.path.join(os.path.dirname(__file__), "uploads")
@@ -108,13 +111,14 @@ def run_job_async(job_id: str, executor_fn):
                 except Exception:
                     pass
         except Exception as e:
-            _mark_failed(job_id, str(e))
+            _log.error("Async job %s failed: %s", job_id, e)
+            _mark_failed(job_id, "Job execution failed")
             if job.get("callback_url"):
                 try:
                     requests.post(job["callback_url"], json={
                         "job_id": job_id,
                         "status": "failed",
-                        "error": str(e),
+                        "error": "Job execution failed",
                     }, timeout=10)
                 except Exception:
                     pass
