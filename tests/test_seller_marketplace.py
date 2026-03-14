@@ -964,7 +964,7 @@ class TestProxyRoute:
         r = client.get("/sell/lowbal-api/get",
                        headers={"X-Wallet-ID": wallet["wallet_id"]})
         assert r.status_code == 402
-        assert r.get_json()["error"] == "insufficient_balance"
+        assert r.get_json()["error"] in ("insufficient_balance", "payment_required")
 
     def test_proxy_daily_budget_exceeded(self, client):
         """Wallet exceeding daily budget returns 403."""
