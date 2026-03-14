@@ -8,6 +8,7 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "api_catalog.db")
 
 def _conn():
     c = sqlite3.connect(DB_PATH)
+    c.execute("PRAGMA journal_mode=WAL")
     c.row_factory = sqlite3.Row
     return c
 

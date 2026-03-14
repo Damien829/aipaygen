@@ -16,6 +16,7 @@ UPLOADS_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 
 def _conn():
     c = sqlite3.connect(DB_PATH)
+    c.execute("PRAGMA journal_mode=WAL")
     c.row_factory = sqlite3.Row
     return c
 

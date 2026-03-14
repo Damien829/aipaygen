@@ -138,30 +138,28 @@ _refund_db_path = os.path.join(os.path.dirname(__file__), "refunds.db")
 
 def _init_refund_db():
     import sqlite3
-    conn = sqlite3.connect(_refund_db_path)
-    conn.execute("""CREATE TABLE IF NOT EXISTS refund_credits (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        code TEXT UNIQUE NOT NULL,
-        amount_usd REAL NOT NULL,
-        endpoint TEXT,
-        request_id TEXT,
-        redeemed INTEGER DEFAULT 0,
-        created_at TEXT NOT NULL
-    )""")
-    conn.commit()
-    conn.close()
+    with sqlite3.connect(_refund_db_path) as conn:
+        conn.execute("""CREATE TABLE IF NOT EXISTS refund_credits (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            code TEXT UNIQUE NOT NULL,
+            amount_usd REAL NOT NULL,
+            endpoint TEXT,
+            request_id TEXT,
+            redeemed INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL
+        )""")
+        conn.commit()
 
 def _issue_refund_credit(amount_usd: float, endpoint: str = "", request_id: str = "") -> str:
     """Issue a one-time credit code for a refund. Returns the code."""
     import sqlite3
     code = "refund_" + uuid.uuid4().hex[:12]
-    conn = sqlite3.connect(_refund_db_path)
-    conn.execute(
-        "INSERT INTO refund_credits (code, amount_usd, endpoint, request_id, created_at) VALUES (?, ?, ?, ?, ?)",
-        (code, amount_usd, endpoint, request_id, datetime.utcnow().isoformat()),
-    )
-    conn.commit()
-    conn.close()
+    with sqlite3.connect(_refund_db_path) as conn:
+        conn.execute(
+            "INSERT INTO refund_credits (code, amount_usd, endpoint, request_id, created_at) VALUES (?, ?, ?, ?, ?)",
+            (code, amount_usd, endpoint, request_id, datetime.utcnow().isoformat()),
+        )
+        conn.commit()
     return code
 
 # ── Wallet Integrity Protection ──────────────────────────────────────────────
