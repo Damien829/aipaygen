@@ -7,6 +7,8 @@ import json
 import time
 import logging
 import urllib.request
+
+logger = logging.getLogger(__name__)
 from datetime import datetime
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [msg-agent] %(message)s")
@@ -28,7 +30,8 @@ def api_post(endpoint, data):
         with urllib.request.urlopen(req, timeout=30) as r:
             return json.loads(r.read().decode())
     except Exception as e:
-        return {"error": str(e)}
+        logger.error("api_post %s failed: %s", endpoint, e)
+        return {"error": "Request failed"}
 
 
 def api_get(endpoint):
@@ -37,7 +40,8 @@ def api_get(endpoint):
         with urllib.request.urlopen(req, timeout=10) as r:
             return json.loads(r.read().decode())
     except Exception as e:
-        return {"error": str(e)}
+        logger.error("api_get %s failed: %s", endpoint, e)
+        return {"error": "Request failed"}
 
 
 def process_message(msg):

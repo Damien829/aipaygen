@@ -29,7 +29,7 @@ def _cache_cleanup():
     expired = [k for k, v in _ttl_cache.items() if now >= v[1]]
     for k in expired:
         del _ttl_cache[k]
-    for d in (_ip_rate, _identity_rate):
+    for d in (_ip_rate, _identity_rate, _endpoint_rate):
         stale = [k for k, v in d.items() if not v or max(v) < now - 120]
         for k in stale:
             del d[k]
@@ -37,6 +37,7 @@ def _cache_cleanup():
 
 # ── Per-IP Rate Limiter ──────────────────────────────────────────────────────
 _ip_rate: dict = {}
+_endpoint_rate: dict = {}
 _RATE_LIMIT = 60
 _RATE_WINDOW = 60
 
@@ -67,6 +68,36 @@ def check_identity_rate_limit(ip: str) -> bool:
     times.append(now)
     _identity_rate[ip] = times
     return True
+
+
+# ── Per-Endpoint Rate Limiter ────────────────────────────────────────────────
+
+
+def _check_endpoint_rate(ip: str, bucket: str, limit: int, window: int = 60) -> bool:
+    """Generic per-endpoint rate limiter. Returns True if allowed."""
+    now = _time.time()
+    key = f"{bucket}:{ip}"
+    times = [t for t in _endpoint_rate.get(key, []) if t > now - window]
+    if len(times) >= limit:
+        _endpoint_rate[key] = times
+        return False
+    times.append(now)
+    _endpoint_rate[key] = times
+    return True
+
+
+def rate_limit(limit: int, window: int = 60, bucket: str = None):
+    """Decorator: per-endpoint rate limit. Usage: @rate_limit(5) on a route."""
+    def decorator(f):
+        _bucket = bucket or f.__name__
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            ip = get_client_ip()
+            if not _check_endpoint_rate(ip, _bucket, limit, window):
+                return jsonify({"error": "rate_limited", "message": f"Limit: {limit} req/{window}s"}), 429
+            return f(*args, **kwargs)
+        return wrapper
+    return decorator
 
 
 # ── Client IP ────────────────────────────────────────────────────────────────
@@ -211,8 +242,8 @@ def call_llm(messages, system="", max_tokens=1024, endpoint="unknown", model_ove
     model_name = model_override or (request.get_json(silent=True) or {}).get("model", "claude-haiku")
     try:
         result = call_model(model_name, messages, system=system, max_tokens=max_tokens)
-    except ModelNotFoundError as e:
-        return None, str(e)
+    except ModelNotFoundError:
+        return None, "Model not found"
     try:
         track_cost(endpoint, result["model_id"], result["input_tokens"], result["output_tokens"])
     except Exception:

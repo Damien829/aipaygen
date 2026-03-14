@@ -594,7 +594,8 @@ def make_tool_handler(batch_handlers: dict, memory_search_fn, memory_set_fn,
                 conn.close()
                 return {"skills": [dict(r) for r in rows], "count": len(rows)}
             except Exception as e:
-                return {"error": str(e)}
+                _log.error("search_skills failed: %s", e)
+                return {"error": "Skill search failed"}
 
         if tool_name == "search_catalog":
             from api_catalog import get_all_apis
@@ -680,13 +681,15 @@ def make_tool_handler(batch_handlers: dict, memory_search_fn, memory_set_fn,
                 return {"skill": skill_name, "description": skill["description"],
                         "template": skill["prompt_template"][:200], "status": "loaded"}
             except Exception as e:
-                return {"error": str(e)}
+                _log.error("get_skill '%s' failed: %s", skill_name, e)
+                return {"error": "Failed to load skill"}
 
         if tool_name in batch_handlers:
             try:
                 return batch_handlers[tool_name](params)
             except Exception as e:
-                return {"error": f"Tool '{tool_name}' failed: {str(e)}"}
+                _log.error("Tool '%s' failed: %s", tool_name, e)
+                return {"error": f"Tool '{tool_name}' failed"}
 
         return {"error": f"Unknown tool: {tool_name}"}
 

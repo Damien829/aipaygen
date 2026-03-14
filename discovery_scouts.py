@@ -7,12 +7,15 @@ in discovery_engine.db with dedup/cooldown.
 """
 import os
 import json
+import logging
 import sqlite3
 import time
 import hashlib
 import urllib.request
 import urllib.error
 import urllib.parse
+
+logger = logging.getLogger(__name__)
 from datetime import datetime, timedelta
 
 BASE_URL = os.getenv("BASE_URL", "https://api.aipaygen.com")
@@ -115,7 +118,8 @@ def _fetch(url, headers=None, timeout=FETCH_TIMEOUT, method="GET", data=None):
             "body": e.read().decode("utf-8", errors="replace")[:2000],
         }
     except Exception as e:
-        return {"error": str(e)}
+        logger.error("Scout fetch failed: %s", e)
+        return {"error": "Request failed"}
 
 
 def _ref_code(scout, target_id):
