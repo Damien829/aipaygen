@@ -22,6 +22,9 @@ from seller_marketplace import (
     request_withdrawal,
 )
 
+import logging
+_log = logging.getLogger(__name__)
+
 seller_bp = Blueprint("seller", __name__)
 
 stripe.api_key = os.environ.get("STRIPE_SECRET_KEY", "")
@@ -407,10 +410,11 @@ def sell_proxy(slug, subpath):
         if escrow_enabled and payment.get("escrow_id"):
             resolve_escrow(payment["escrow_id"], action="refund")
         return jsonify({"error": "seller_timeout", "message": "Seller API did not respond in time"}), 504
-    except Exception as e:
+    except Exception:
+        _log.exception("seller proxy call failed")
         if escrow_enabled and payment.get("escrow_id"):
             resolve_escrow(payment["escrow_id"], action="refund")
-        return jsonify({"error": "proxy_failed", "message": str(e)}), 502
+        return jsonify({"error": "proxy_failed", "message": "Request failed"}), 502
 
 
 # ── Agent Wallet Endpoints ────────────────────────────────────────────────────
@@ -500,8 +504,9 @@ def wallet_fund():
             "amount_usd": amount_usd,
             "wallet_id": wallet_id,
         }, "/wallet/fund"))
-    except Exception as e:
-        return jsonify({"error": "stripe_error", "message": str(e)}), 500
+    except Exception:
+        _log.exception("stripe error")
+        return jsonify({"error": "stripe_error", "message": "Payment processing failed"}), 500
 
 
 @seller_bp.route("/wallet/policy", methods=["PATCH"])

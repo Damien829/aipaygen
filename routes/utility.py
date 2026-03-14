@@ -28,6 +28,12 @@ from flask import Blueprint, request, jsonify, send_file
 
 from helpers import cache_get as _cache_get, cache_set as _cache_set, get_client_ip as _get_client_ip
 
+import logging
+_log = logging.getLogger(__name__)
+
+# Domain validation regex — prevents command injection via dig subprocess calls
+DOMAIN_RE = re.compile(r'^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$')
+
 utility_bp = Blueprint("utility", __name__)
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -54,8 +60,9 @@ def geocode():
         out = {"query": q, "results": results}
         _cache_set(cache_key, out, ttl=3600)
         return jsonify(out)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
 
 
 @utility_bp.route("/data/geocode/reverse", methods=["GET"])
@@ -79,8 +86,9 @@ def geocode_reverse():
                "details": data.get("address", {})}
         _cache_set(cache_key, out, ttl=3600)
         return jsonify(out)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -111,8 +119,9 @@ def company_search():
         }
         _cache_set(cache_key, out, ttl=3600)
         return jsonify(out)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -144,16 +153,17 @@ def whois_lookup():
         }
         _cache_set(cache_key, out, ttl=3600)
         return jsonify(out)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
 
 
 @utility_bp.route("/data/domain", methods=["GET"])
 def domain_profile():
     """Full domain profile (DNS + WHOIS combined)."""
     domain = request.args.get("domain", "").strip()
-    if not domain:
-        return jsonify({"error": "domain parameter required"}), 400
+    if not domain or not DOMAIN_RE.match(domain) or len(domain) > 253:
+        return jsonify({"error": "Invalid domain"}), 400
     cache_key = f"domain_profile:{domain}"
     cached = _cache_get(cache_key)
     if cached:
@@ -302,8 +312,9 @@ def url_meta():
             "og": {k.replace("og:", ""): v for k, v in meta.items() if k.startswith("og:")},
             "twitter": {k.replace("twitter:", ""): v for k, v in meta.items() if k.startswith("twitter:")},
         })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
 
 
 @utility_bp.route("/data/links", methods=["GET"])
@@ -326,8 +337,9 @@ def extract_links():
             "total_links": len(absolute),
             "links": list(dict.fromkeys(absolute))[:200],
         })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
 
 
 @utility_bp.route("/data/sitemap", methods=["GET"])
@@ -347,8 +359,9 @@ def parse_sitemap():
             "url_count": len(urls),
             "urls": urls[:200],
         })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
 
 
 @utility_bp.route("/data/robots", methods=["GET"])
@@ -380,8 +393,9 @@ def parse_robots():
             "sitemaps": sitemaps,
             "raw": r.text[:5000],
         })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
 
 
 @utility_bp.route("/data/headers", methods=["GET"])
@@ -398,8 +412,9 @@ def http_headers():
             "status_code": r.status_code,
             "headers": dict(r.headers),
         })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
 
 
 @utility_bp.route("/data/ssl", methods=["GET"])
@@ -425,8 +440,9 @@ def ssl_info():
             "has_expired": x509.has_expired(),
             "version": x509.get_version(),
         })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -451,8 +467,9 @@ def jwt_decode():
             "expired": expired,
             "expiry": datetime.utcfromtimestamp(exp).isoformat() if exp else None,
         })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+    except Exception:
+        _log.exception("Invalid input")
+        return jsonify({"error": "Invalid input"}), 400
 
 
 @utility_bp.route("/data/markdown", methods=["POST"])
@@ -505,8 +522,9 @@ def favicon_extract():
         if not icons:
             icons.append(urljoin(domain, "/favicon.ico"))
         return jsonify({"domain": domain, "icons": icons})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
 
 
 @utility_bp.route("/data/avatar", methods=["GET"])
@@ -565,8 +583,9 @@ def ens_resolve():
             return jsonify({"error": "Provide .eth name or 0x address"}), 400
         _cache_set(cache_key, out, ttl=300)
         return jsonify(out)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -577,8 +596,8 @@ def ens_resolve():
 def enrich_domain():
     """Domain enrichment — tech stack, socials, DNS."""
     domain = request.args.get("domain", "").strip()
-    if not domain:
-        return jsonify({"error": "domain parameter required"}), 400
+    if not domain or not DOMAIN_RE.match(domain) or len(domain) > 253:
+        return jsonify({"error": "Invalid domain"}), 400
     cache_key = f"enrich_domain:{domain}"
     cached = _cache_get(cache_key)
     if cached:
@@ -665,8 +684,9 @@ def enrich_github():
         }
         _cache_set(cache_key, out, ttl=1800)
         return jsonify(out)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -693,8 +713,9 @@ def email_send():
             "text": body,
         }, headers={"Authorization": f"Bearer {resend_key}"}, timeout=10)
         return jsonify({"sent": r.status_code == 200, "response": r.json()})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -711,8 +732,9 @@ def extract_text():
         try:
             r = _requests.get(url, timeout=10, headers={"User-Agent": "AiPayGen/1.0"})
             html = r.text
-        except Exception as e:
-            return jsonify({"error": str(e)}), 502
+        except Exception:
+            _log.exception("URL fetch failed")
+            return jsonify({"error": "Request failed"}), 502
     if not html:
         return jsonify({"error": "html or url field required"}), 400
     text = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.S | re.I)
@@ -742,8 +764,9 @@ def extract_pdf():
             "page_texts": pages,
             "word_count": len(full_text.split()),
         })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+    except Exception:
+        _log.exception("Invalid input")
+        return jsonify({"error": "Invalid input"}), 400
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -777,8 +800,9 @@ def finance_history():
         out = {"symbol": symbol, "period": "1mo", "candles": candles}
         _cache_set(cache_key, out, ttl=3600)
         return jsonify(out)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
 
 
 @utility_bp.route("/data/finance/forex", methods=["GET"])
@@ -799,8 +823,9 @@ def finance_forex():
         }
         _cache_set(cache_key, out, ttl=3600)
         return jsonify(out)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
 
 
 @utility_bp.route("/data/finance/convert", methods=["GET"])
@@ -819,8 +844,9 @@ def finance_convert():
             "from": from_cur, "to": to_cur, "amount": amount,
             "result": result, "rate": rates[to_cur],
         })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -922,8 +948,9 @@ def xml_to_json():
             return result
         tag = root.tag.split("}")[-1] if "}" in root.tag else root.tag
         return jsonify({"json": {tag: elem_to_dict(root)}})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+    except Exception:
+        _log.exception("Invalid input")
+        return jsonify({"error": "Invalid input"}), 400
 
 
 @utility_bp.route("/data/transform/yaml", methods=["POST"])
@@ -936,8 +963,9 @@ def yaml_to_json():
     try:
         result = yaml.safe_load(yaml_str)
         return jsonify({"json": result})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+    except Exception:
+        _log.exception("Invalid input")
+        return jsonify({"error": "Invalid input"}), 400
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1060,8 +1088,9 @@ def security_headers_audit():
             "present_headers": {k: v for k, v in headers.items()
                                if k in [h.lower() for h in checks]},
         })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
 
 
 @utility_bp.route("/data/security/techstack", methods=["GET"])
@@ -1115,8 +1144,9 @@ def techstack_detect():
             "server": headers_dict.get("server", "Unknown"),
             "powered_by": headers_dict.get("x-powered-by", "Unknown"),
         })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
 
 
 @utility_bp.route("/data/security/uptime", methods=["GET"])
@@ -1140,8 +1170,9 @@ def uptime_check():
         })
     except _requests.exceptions.Timeout:
         return jsonify({"url": url, "status": "timeout", "response_time_ms": 15000})
-    except Exception as e:
-        return jsonify({"url": url, "status": "down", "error": str(e)})
+    except Exception:
+        _log.exception("Uptime check failed")
+        return jsonify({"url": url, "status": "down", "error": "Request failed"})
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1207,8 +1238,9 @@ def math_eval_endpoint():
         tree = ast.parse(safe_expr, mode="eval")
         result = _safe_eval_node(tree)
         return jsonify({"expression": expr, "result": result})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+    except Exception:
+        _log.exception("Invalid input")
+        return jsonify({"error": "Invalid input"}), 400
 
 
 _UNIT_CONVERSIONS = {
@@ -1297,8 +1329,9 @@ def math_stats():
         result["q1"] = round(statistics.median(q[:mid]), 6) if len(q) > 1 else nums[0]
         result["q3"] = round(statistics.median(q[mid + (len(q) % 2):]), 6) if len(q) > 1 else nums[0]
         return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
+    except Exception:
+        _log.exception("Invalid input")
+        return jsonify({"error": "Invalid input"}), 400
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1322,5 +1355,6 @@ def crypto_trending():
         out = {"trending_coins": coins, "source": "coingecko"}
         _cache_set(cache_key, out, ttl=300)
         return jsonify(out)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 502
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502

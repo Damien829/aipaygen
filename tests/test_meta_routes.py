@@ -259,8 +259,9 @@ def test_x402_json(client):
     assert r.status_code == 200
     data = r.get_json()
     assert data["x402"] is True
-    assert "payTo" in data
-    assert "network" in data
+    assert "accepts" in data
+    assert data["accepts"][0]["payTo"]
+    assert data["accepts"][0]["network"]
     assert "endpoints" in data
     assert isinstance(data["endpoints"], list)
 
@@ -450,7 +451,7 @@ def test_try_tool_exception(mock_limit, client):
     with patch("routes.ai_tools.sentiment_inner", side_effect=Exception("boom")):
         r = client.post("/try/sentiment", json={"text": "test"})
         assert r.status_code == 500
-        assert "boom" in r.get_json()["error"]
+        assert "failed" in r.get_json()["error"].lower()
 
 
 # ── _check_demo_limit ────────────────────────────────────────────────────────

@@ -2,13 +2,14 @@
 
 from flask import Blueprint, request, jsonify
 from workflow_engine import validate_workflow, execute_workflow
-from helpers import require_api_key
+from helpers import require_api_key, rate_limit
 
 workflow_bp = Blueprint("workflow_engine", __name__)
 
 
 @workflow_bp.route("/workflow/run", methods=["POST"])
 @require_api_key
+@rate_limit(10, bucket="workflow")
 def run_workflow():
     data = request.get_json(silent=True) or {}
     steps = data.get("steps", [])

@@ -11,6 +11,7 @@ def test_free_tier_only_honeypots():
     FREE_ALLOWED = {
         "/preview", "/free/time", "/free/uuid", "/free/ip",
         "/free/hash", "/free/base64", "/free/random",
+        "/free/joke", "/free/quote",
         "/health", "/.well-known/agent.json", "/llms.txt",
     }
 

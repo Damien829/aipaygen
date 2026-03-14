@@ -1,5 +1,5 @@
 """
-AiPayGen MCP Server — 155 tools (153 metered + 8 free)
+AiPayGen MCP Server — 162 tools (metered + free)
 
 Exposes all AiPayGen capabilities as MCP tools with usage metering.
 10 free calls/day without an API key. Unlimited with a prepaid key.
@@ -22,8 +22,12 @@ import sys
 import os
 import functools
 import hashlib
+import json as _json
+import logging
 from typing import Annotated
 from pydantic import Field
+
+_log = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -68,13 +72,13 @@ _skills_engine = SkillsSearchEngine(_skills_db_path)
 mcp = FastMCP(
     "AiPayGen",
     instructions=(
-        "AiPayGen lets you build, run, and schedule AI agents with 155 tools. "
+        "AiPayGen lets you build, run, and schedule AI agents with 162 tools. "
         "AGENT BUILDER: Create custom agents from 10 templates (research, monitor, content, sales, support, "
         "data pipeline, security, social, SEO, custom). Schedule agents on loops, cron, or event triggers. "
         "TOOLS: research, write, code, translate, analyze, summarize, vision (image analysis), "
         "RAG (document Q&A), diagram generation, workflow orchestration, chain (pipeline multiple AI steps), "
         "web scraping (Google Maps, Twitter, Instagram, YouTube, TikTok), "
-        "persistent agent memory, agent marketplace, 4100+ API catalog, 1500+ skills. "
+        "persistent agent memory, agent marketplace, 4183 API catalog, 2200+ skills. "
         "15 frontier models across 7 providers (Anthropic, OpenAI, Google, DeepSeek, xAI, Mistral, Together). "
         "\n\n"
         "PRICING: Set AIPAYGEN_API_KEY env var for unlimited metered access. "
@@ -512,8 +516,9 @@ def batch(operations: Annotated[list[dict], Field(description="Independent opera
         else:
             try:
                 results.append({"endpoint": endpoint, **handler(inp)})
-            except Exception as e:
-                results.append({"endpoint": endpoint, "error": str(e)})
+            except Exception:
+                _log.exception("batch operation %s failed", endpoint)
+                results.append({"endpoint": endpoint, "error": "Tool execution failed"})
     return {"results": results, "count": len(results)}
 
 
@@ -682,8 +687,9 @@ def list_registered_agents() -> dict:
 def _apify_run(actor_id: str, run_input: dict, max_items: int = 10) -> list:
     try:
         return run_actor_sync(actor_id, run_input, max_items=max_items)
-    except Exception as e:
-        return [{"error": str(e)}]
+    except Exception:
+        _log.exception("apify actor %s failed", actor_id)
+        return [{"error": "Tool execution failed"}]
 
 
 @metered_tool("scraping")
@@ -870,8 +876,9 @@ def get_quote() -> dict:
         resp = _mcp_requests.get("https://zenquotes.io/api/random", timeout=5)
         d = resp.json()[0] if resp.ok else {}
         return {"quote": d.get("q"), "author": d.get("a")}
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("free")
@@ -886,8 +893,9 @@ def get_holidays(country: Annotated[str, Field(description="ISO 2-letter country
         )
         holidays = resp.json()
         return {"country": country.upper(), "year": yr, "holidays": holidays[:20], "count": len(holidays)}
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Agent Messaging ──────────────────────────────────────────────────────────
@@ -1005,8 +1013,9 @@ def web_search(query: Annotated[str, Field(description="Search query for DuckDuc
             "results": results,
             "count": len(results),
         }
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Real-Time Data ───────────────────────────────────────────────────────────
@@ -1038,8 +1047,9 @@ def get_weather(city: Annotated[str, Field(description="City name to get weather
             "weather_code": cw.get("weathercode"),
             "is_day": cw.get("is_day"),
         }
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1052,8 +1062,9 @@ def get_crypto_prices(symbols: Annotated[str, Field(description="Comma-separated
             timeout=8,
         ).json()
         return {"prices": data, "symbols": symbols.split(",")}
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1065,8 +1076,9 @@ def get_exchange_rates(base_currency: Annotated[str, Field(description="Base cur
             timeout=8,
         ).json()
         return {"base": base_currency.upper(), "date": data.get("date"), "rates": data.get("rates", {})}
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1079,8 +1091,9 @@ def enrich_entity(entity: Annotated[str, Field(description="Entity value to enri
             timeout=30,
         )
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── API Key Management ───────────────────────────────────────────────────────
@@ -1095,8 +1108,9 @@ def generate_api_key(label: Annotated[str, Field(description="Optional label for
             timeout=5,
         )
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("free")
@@ -1105,8 +1119,9 @@ def check_api_key_balance(key: Annotated[str, Field(description="API key to chec
     try:
         resp = _mcp_requests.get(f"http://localhost:5001/auth/status?key={key}", timeout=5)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Skills System (Skill Harvester MCP Tools) ────────────────────────────────
@@ -1169,8 +1184,9 @@ def execute_skill(skill_name: Annotated[str, Field(description="Name of the skil
         resp = _mcp_requests.post("http://localhost:5001/skills/execute",
             json={"skill": skill_name, "input": input_text}, timeout=120)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("ai")
@@ -1180,8 +1196,9 @@ def ask(question: Annotated[str, Field(description="Question or prompt to answer
         resp = _mcp_requests.post("http://localhost:5001/ask",
             json={"question": question}, timeout=120)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1192,8 +1209,9 @@ def create_skill(name: Annotated[str, Field(description="Unique name for the ski
             json={"name": name, "description": description,
                   "prompt_template": prompt_template, "category": category}, timeout=30)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1203,8 +1221,9 @@ def absorb_skill(url: Annotated[str, Field(description="URL to absorb a skill fr
         resp = _mcp_requests.post("http://localhost:5001/skills/absorb",
             json={"url": url, "text": text}, timeout=60)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Agent Builder & Account Tools ─────────────────────────────────────────────
@@ -1219,8 +1238,9 @@ def check_balance() -> dict:
         resp = _mcp_requests.get("http://localhost:5001/auth/status",
             headers={"Authorization": f"Bearer {api_key}"}, timeout=5)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("free")
@@ -1229,8 +1249,9 @@ def list_models() -> dict:
     try:
         resp = _mcp_requests.get("http://localhost:5001/models", timeout=5)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1243,8 +1264,9 @@ def create_agent(name: Annotated[str, Field(description="Name for the custom age
                   "tools": tools or [], "template": template, "model": model},
             timeout=30)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1256,8 +1278,9 @@ def list_my_agents() -> dict:
             headers={"Authorization": f"Bearer {api_key}"} if api_key else {},
             timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("ai")
@@ -1267,8 +1290,9 @@ def run_agent(agent_id: Annotated[str, Field(description="ID of the agent to run
         resp = _mcp_requests.post(f"http://localhost:5001/agents/{agent_id}/run",
             json={"input": input_text}, timeout=120)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1280,8 +1304,9 @@ def schedule_agent(agent_id: Annotated[str, Field(description="ID of the agent t
             json={"schedule_type": schedule_type, "schedule_value": schedule_value},
             timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1291,8 +1316,9 @@ def pause_agent(agent_id: Annotated[str, Field(description="ID of the agent to p
         resp = _mcp_requests.post(f"http://localhost:5001/agents/{agent_id}/pause",
             timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1302,8 +1328,9 @@ def get_agent_runs(agent_id: Annotated[str, Field(description="ID of the agent t
         resp = _mcp_requests.get(f"http://localhost:5001/agents/{agent_id}/runs",
             timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1313,8 +1340,9 @@ def delete_agent(agent_id: Annotated[str, Field(description="ID of the agent to 
         resp = _mcp_requests.delete(f"http://localhost:5001/agents/{agent_id}",
             timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Utility Tools: Geocoding & Location ──────────────────────────────────────
@@ -1325,8 +1353,9 @@ def geocode(q: Annotated[str, Field(description="Address or place name to geocod
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/geocode", params={"q": q}, timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1338,8 +1367,9 @@ def geocode_reverse(
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/geocode/reverse", params={"lat": lat, "lon": lon}, timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Utility Tools: Company & Domain ──────────────────────────────────────────
@@ -1350,8 +1380,9 @@ def company_search(q: Annotated[str, Field(description="Company name to search")
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/company", params={"q": q}, timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1360,8 +1391,9 @@ def whois_lookup(domain: Annotated[str, Field(description="Domain name to look u
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/whois", params={"domain": domain}, timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1370,8 +1402,9 @@ def domain_profile(domain: Annotated[str, Field(description="Domain name (e.g. e
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/domain", params={"domain": domain}, timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Utility Tools: Text Analysis ─────────────────────────────────────────────
@@ -1382,8 +1415,9 @@ def readability_score(text: Annotated[str, Field(description="Text to analyze fo
     try:
         resp = _mcp_requests.post("http://localhost:5001/data/readability", json={"text": text}, timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1392,8 +1426,9 @@ def language_detect(text: Annotated[str, Field(description="Text to detect langu
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/language", params={"text": text}, timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1402,8 +1437,9 @@ def profanity_filter(text: Annotated[str, Field(description="Text to check for p
     try:
         resp = _mcp_requests.post("http://localhost:5001/data/profanity", json={"text": text}, timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Utility Tools: Web & URL ─────────────────────────────────────────────────
@@ -1414,8 +1450,9 @@ def url_meta(url: Annotated[str, Field(description="URL to extract meta tags fro
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/meta", params={"url": url}, timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1424,8 +1461,9 @@ def extract_links(url: Annotated[str, Field(description="URL to extract links fr
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/links", params={"url": url}, timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1434,8 +1472,9 @@ def parse_sitemap(domain: Annotated[str, Field(description="Domain to parse site
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/sitemap", params={"domain": domain}, timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1444,8 +1483,9 @@ def parse_robots(domain: Annotated[str, Field(description="Domain to parse robot
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/robots", params={"domain": domain}, timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1454,8 +1494,9 @@ def http_headers(url: Annotated[str, Field(description="URL to get HTTP headers 
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/headers", params={"url": url}, timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1464,8 +1505,9 @@ def ssl_info(domain: Annotated[str, Field(description="Domain to check SSL certi
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/ssl", params={"domain": domain}, timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Utility Tools: Compute & Dev ─────────────────────────────────────────────
@@ -1476,8 +1518,9 @@ def jwt_decode(token: Annotated[str, Field(description="JWT token string to deco
     try:
         resp = _mcp_requests.post("http://localhost:5001/data/jwt/decode", json={"token": token}, timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1486,8 +1529,9 @@ def markdown_to_html(text: Annotated[str, Field(description="Markdown text to co
     try:
         resp = _mcp_requests.post("http://localhost:5001/data/markdown", json={"text": text}, timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Utility Tools: Media & Visual ────────────────────────────────────────────
@@ -1507,8 +1551,9 @@ def placeholder_image(
             params["text"] = text
         resp = _mcp_requests.get("http://localhost:5001/data/placeholder", params=params, timeout=10)
         return {"svg": resp.text, "width": width, "height": height}
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1517,8 +1562,9 @@ def favicon_extract(domain: Annotated[str, Field(description="Domain to extract 
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/favicon", params={"domain": domain}, timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1530,8 +1576,9 @@ def identicon_avatar(
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/avatar", params={"input": input_str, "size": size}, timeout=10)
         return {"svg": resp.text, "input": input_str, "size": size}
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Utility Tools: Blockchain ────────────────────────────────────────────────
@@ -1542,8 +1589,9 @@ def ens_resolve(name: Annotated[str, Field(description="ENS name (e.g. vitalik.e
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/ens", params={"name": name}, timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Utility Tools: Enrichment ────────────────────────────────────────────────
@@ -1554,8 +1602,9 @@ def enrich_domain(domain: Annotated[str, Field(description="Domain to enrich (e.
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/enrich/domain", params={"domain": domain}, timeout=20)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1564,8 +1613,9 @@ def enrich_github(username: Annotated[str, Field(description="GitHub username to
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/enrich/github", params={"username": username}, timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Utility Tools: Email ─────────────────────────────────────────────────────
@@ -1581,8 +1631,9 @@ def email_send(
         resp = _mcp_requests.post("http://localhost:5001/data/email/send",
             json={"to": to, "subject": subject, "body": body}, timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Utility Tools: Document Extraction ───────────────────────────────────────
@@ -1601,8 +1652,9 @@ def extract_text(
             payload["html"] = html
         resp = _mcp_requests.post("http://localhost:5001/data/extract/text", json=payload, timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Utility Tools: Finance ───────────────────────────────────────────────────
@@ -1613,8 +1665,9 @@ def stock_history(symbol: Annotated[str, Field(description="Stock ticker symbol 
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/finance/history", params={"symbol": symbol}, timeout=20)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1623,8 +1676,9 @@ def forex_rates(base: Annotated[str, Field(description="Base currency code (e.g.
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/finance/forex", params={"base": base}, timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1638,8 +1692,9 @@ def currency_convert(
         resp = _mcp_requests.get("http://localhost:5001/data/finance/convert",
             params={"amount": amount, "from": from_currency, "to": to_currency}, timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Utility Tools: NLP ───────────────────────────────────────────────────────
@@ -1650,8 +1705,9 @@ def entity_extraction(text: Annotated[str, Field(description="Text to extract en
     try:
         resp = _mcp_requests.post("http://localhost:5001/data/entities", json={"text": text}, timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1664,8 +1720,9 @@ def text_similarity(
         resp = _mcp_requests.post("http://localhost:5001/data/similarity",
             json={"text1": text1, "text2": text2}, timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Utility Tools: Data Transforms ───────────────────────────────────────────
@@ -1677,8 +1734,9 @@ def json_to_csv(data: Annotated[list, Field(description="JSON array of objects t
         resp = _mcp_requests.post("http://localhost:5001/data/transform/json-to-csv",
             json={"data": data}, timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1688,8 +1746,9 @@ def xml_to_json(xml: Annotated[str, Field(description="XML string to convert to 
         resp = _mcp_requests.post("http://localhost:5001/data/transform/xml",
             json={"xml": xml}, timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1699,8 +1758,9 @@ def yaml_to_json(yaml_str: Annotated[str, Field(description="YAML string to conv
         resp = _mcp_requests.post("http://localhost:5001/data/transform/yaml",
             json={"yaml": yaml_str}, timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Utility Tools: Date & Time ───────────────────────────────────────────────
@@ -1715,8 +1775,9 @@ def datetime_between(
         resp = _mcp_requests.get("http://localhost:5001/data/datetime/between",
             params={"from": from_date, "to": to_date}, timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1729,8 +1790,9 @@ def business_days(
         resp = _mcp_requests.get("http://localhost:5001/data/datetime/business-days",
             params={"from": from_date, "to": to_date}, timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1740,8 +1802,9 @@ def unix_timestamp(timestamp: Annotated[str, Field(description="Unix timestamp t
         params = {"timestamp": timestamp} if timestamp else {}
         resp = _mcp_requests.get("http://localhost:5001/data/datetime/unix", params=params, timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Utility Tools: Security ──────────────────────────────────────────────────
@@ -1752,8 +1815,9 @@ def security_headers_audit(url: Annotated[str, Field(description="URL to audit s
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/security/headers", params={"url": url}, timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1762,8 +1826,9 @@ def techstack_detect(url: Annotated[str, Field(description="URL to detect techno
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/security/techstack", params={"url": url}, timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1772,8 +1837,9 @@ def uptime_check(url: Annotated[str, Field(description="URL to check uptime for"
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/security/uptime", params={"url": url}, timeout=20)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Utility Tools: Math & Statistics ─────────────────────────────────────────
@@ -1785,8 +1851,9 @@ def math_evaluate(expression: Annotated[str, Field(description="Math expression 
         resp = _mcp_requests.post("http://localhost:5001/data/math/eval",
             json={"expression": expression}, timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1800,8 +1867,9 @@ def unit_convert(
         resp = _mcp_requests.get("http://localhost:5001/data/math/convert",
             params={"value": value, "from": from_unit, "to": to_unit}, timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1811,8 +1879,9 @@ def math_stats(numbers: Annotated[list, Field(description="List of numbers for s
         resp = _mcp_requests.post("http://localhost:5001/data/math/stats",
             json={"numbers": numbers}, timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Utility Tools: Crypto ────────────────────────────────────────────────────
@@ -1823,8 +1892,9 @@ def crypto_trending() -> dict:
     try:
         resp = _mcp_requests.get("http://localhost:5001/data/crypto/trending", timeout=15)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── Crypto Deposit Tools ─────────────────────────────────────────────────────
@@ -1835,8 +1905,9 @@ def get_crypto_deposit_info() -> dict:
     try:
         resp = _mcp_requests.get("http://localhost:5001/crypto/deposit", timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1848,8 +1919,9 @@ def create_deposit(
     try:
         resp = _mcp_requests.post("http://localhost:5001/crypto/deposit", json={"network": network, "amount_usd": amount_usd}, timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1861,8 +1933,9 @@ def claim_deposit(
     try:
         resp = _mcp_requests.post("http://localhost:5001/crypto/claim", json={"tx_hash": tx_hash, "network": network}, timeout=30)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1873,8 +1946,9 @@ def get_deposit_history(
     try:
         resp = _mcp_requests.get("http://localhost:5001/crypto/deposits", params={"api_key": api_key}, timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @metered_tool("standard")
@@ -1886,8 +1960,9 @@ def get_deposit_address(
     try:
         resp = _mcp_requests.get("http://localhost:5001/crypto/address", params={"api_key": api_key, "network": network}, timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 # ── x402 Discovery Tools ─────────────────────────────────────────────────────
@@ -1906,8 +1981,9 @@ def discover_endpoints(
             params["search"] = search
         resp = _mcp_requests.get("http://localhost:5001/discover", params=params, timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @mcp.tool()
@@ -1916,8 +1992,9 @@ def discover_pricing() -> dict:
     try:
         resp = _mcp_requests.get("http://localhost:5001/discover/pricing", timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @mcp.tool()
@@ -1931,8 +2008,9 @@ def estimate_revenue(
                                    json={"price_per_call": price_per_call, "daily_calls": daily_calls},
                                    timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @mcp.tool()
@@ -1941,8 +2019,9 @@ def x402_protocol_info() -> dict:
     try:
         resp = _mcp_requests.get("http://localhost:5001/.well-known/x402", timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @mcp.tool()
@@ -1951,8 +2030,9 @@ def compare_platforms() -> dict:
     try:
         resp = _mcp_requests.get("http://localhost:5001/discover/compare", timeout=10)
         return resp.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
 
 
 @mcp.tool()
@@ -2005,8 +2085,30 @@ def main():
         starlette_app = mcp.streamable_http_app()
 
         async def health(request):
-            tool_count = len([m for m in dir() if callable(getattr(__import__(__name__), m, None)) and hasattr(getattr(__import__(__name__), m, None), '__wrapped__')])
-            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 161, "version": "1.7.1"})
+            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 162, "version": "1.7.1"})
+
+        _tracked_sessions = set()
+
+        @starlette_app.middleware("http")
+        async def mcp_connect_tracker(request, call_next):
+            """Track unique MCP client connections per session."""
+            response = await call_next(request)
+            if request.url.path == "/mcp" and request.method == "POST":
+                try:
+                    from funnel_tracker import log_event
+                    ip = request.headers.get("cf-connecting-ip",
+                         request.client.host if request.client else "unknown")
+                    session_key = f"{ip}:{request.headers.get('mcp-session-id', '')}"
+                    if session_key not in _tracked_sessions:
+                        _tracked_sessions.add(session_key)
+                        client_info = request.headers.get("user-agent", "unknown")
+                        log_event("mcp_connection", ip=ip,
+                                  metadata=_json.dumps({"client": client_info[:100]}))
+                        if len(_tracked_sessions) > 10000:
+                            _tracked_sessions.clear()
+                except Exception:
+                    pass
+            return response
 
         starlette_app.routes.insert(0, Route("/health", health))
         uvicorn.run(starlette_app, host="0.0.0.0", port=5002)

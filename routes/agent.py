@@ -6,10 +6,13 @@ from datetime import datetime
 
 from flask import Blueprint, request, jsonify, Response
 from model_router import call_model
-from helpers import log_payment, agent_response, get_client_ip as _get_client_ip, check_identity_rate_limit as _check_identity_rate_limit, require_verified_agent
+from helpers import log_payment, agent_response, get_client_ip as _get_client_ip, check_identity_rate_limit as _check_identity_rate_limit, require_verified_agent, rate_limit
 from agent_memory import memory_set, memory_get, memory_search, memory_clear, memory_list, register_agent, list_agents, marketplace_get_services
 from agent_identity import generate_challenge, verify_challenge, verify_jwt, InvalidSignatureError, ChallengeExpiredError
 from agent_network import get_reputation
+
+import logging
+_log = logging.getLogger(__name__)
 
 agent_bp = Blueprint("agent", __name__)
 
@@ -168,8 +171,10 @@ def agent_verify():
         except Exception:
             pass
         return jsonify(result)
-    except (InvalidSignatureError, ChallengeExpiredError) as e:
-        return jsonify({"error": str(e)}), 401
+    except InvalidSignatureError:
+        return jsonify({"error": "Invalid signature"}), 401
+    except ChallengeExpiredError:
+        return jsonify({"error": "Challenge expired"}), 401
 
 
 @agent_bp.route("/agents/me", methods=["GET"])
@@ -288,6 +293,7 @@ def _get_chain_handlers():
 
 
 @agent_bp.route("/chain", methods=["POST"])
+@rate_limit(10, bucket="chain")
 def chain_endpoint():
     """Chain up to 5 AI operations in sequence. Output of each step feeds the next."""
     data = request.get_json() or {}
@@ -325,8 +331,9 @@ def chain_endpoint():
                 context["last_result"] = out.get("result") or out.get("text") or out.get("summary") or str(out)
             else:
                 context["last_result"] = str(out)
-        except Exception as e:
-            return jsonify({"error": f"step {i} ({name}) failed: {str(e)}", "completed_steps": results}), 500
+        except Exception:
+            _log.exception("chain step %d (%s) failed", i, name)
+            return jsonify({"error": f"step {i} ({name}) failed", "completed_steps": results}), 500
 
     log_payment("/chain", 0.25, request.remote_addr)
     return jsonify(agent_response({

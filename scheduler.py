@@ -124,6 +124,13 @@ def init_scheduler(claude_client, call_model_fn, parse_json_fn,
     except Exception as e:
         logger.warning("scout init failed: %s", e)
 
+    # ── PyPI download tracker — every 6h ──────────────────────────────
+    try:
+        from funnel_tracker import poll_pypi_downloads
+        _scheduler.add_job(poll_pypi_downloads, "interval", hours=6, id="pypi_downloads")
+    except Exception as e:
+        logger.warning("pypi download tracker init failed: %s", e)
+
     # ── Start scheduler ──────────────────────────────────────────────────
     _scheduler.start()
 

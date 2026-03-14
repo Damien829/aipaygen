@@ -1,7 +1,13 @@
 """Conversion funnel tracking — append-only SQLite event logger."""
+import json as _json
+import logging
 import sqlite3
 import os
 from datetime import datetime, timedelta
+
+import requests
+
+_log = logging.getLogger(__name__)
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "funnel.db")
 
@@ -66,6 +72,28 @@ def get_funnel_stats(days: int = 7) -> dict:
         "by_type": {r["event_type"]: r["count"] for r in rows},
         "daily": [dict(r) for r in daily],
     }
+
+
+def poll_pypi_downloads():
+    """Fetch PyPI download stats for aipaygen-mcp and log as funnel event (call daily)."""
+    try:
+        r = requests.get("https://pypistats.org/api/packages/aipaygen-mcp/recent", timeout=10)
+        if r.status_code != 200:
+            return
+        data = r.json().get("data", {})
+        log_event(
+            "mcp_pypi_downloads",
+            ip="cron",
+            metadata=_json.dumps({
+                "last_day": data.get("last_day", 0),
+                "last_week": data.get("last_week", 0),
+                "last_month": data.get("last_month", 0),
+            }),
+        )
+        _log.info("PyPI downloads: day=%s week=%s month=%s",
+                   data.get("last_day"), data.get("last_week"), data.get("last_month"))
+    except Exception:
+        _log.exception("PyPI download poll failed")
 
 
 # Auto-init on import

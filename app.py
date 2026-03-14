@@ -848,46 +848,37 @@ def _api_key_wsgi(environ, start_response):
             route_cfg = routes.get(route_key)
             price = route_cfg.accepts[0].price if route_cfg else "varies"
             enrichment = json.dumps({
+                "error": "payment_required",
+                "message": f"Free tier exhausted ({calls_today}/{10} calls used today). Get unlimited access starting at $1.",
                 "endpoint": path,
                 "price": price,
-                "free_tier": {
-                    "calls_remaining_today": remaining,
-                    "daily_limit": 10,
-                    "calls_used_today": calls_today,
-                    "status": f"exhausted — you made {calls_today} calls today. Unlock unlimited for $5." if remaining == 0 else f"{remaining} free calls left today",
-                },
-                "payment_options": {
-                    "api_key": {
-                        "recommended": True,
-                        "description": "Prepaid API key — fastest path to access.",
-                        "buy_now": "https://aipaygen.com/buy-credits",
-                        "how": "POST https://api.aipaygen.com/credits/buy with {\"amount_usd\": 5.0}",
-                        "usage": f"Authorization: Bearer apk_YOUR_KEY",
-                        "bulk_discount": "20% off when balance >= $2.00",
+                "unlock": {
+                    "1_get_free_key": {
+                        "description": "Generate a free API key (0 balance, but tracks your usage).",
+                        "command": "curl -X POST https://api.aipaygen.com/auth/generate-key -H 'Content-Type: application/json' -d '{\"label\": \"my-key\"}'",
                     },
+                    "2_add_credits": {
+                        "description": "Add credits via credit card. Starts at $1. Instant activation.",
+                        "url": "https://aipaygen.com/buy-credits",
+                        "tiers": {"$1": "~166 AI calls", "$5": "~830 calls + 20% bulk discount", "$20": "~4,000 calls"},
+                    },
+                    "3_use_key": {
+                        "description": "Add your key to requests.",
+                        "header": "Authorization: Bearer apk_YOUR_KEY",
+                        "example": f"curl -X POST https://api.aipaygen.com{path} -H 'Authorization: Bearer apk_YOUR_KEY' -H 'Content-Type: application/json' -d '...'",
+                    },
+                },
+                "also_accepted": {
                     "x402_usdc": {
-                        "description": "Pay per call with USDC on Base Mainnet via x402.",
-                        "network": "eip155:8453",
-                        "wallet": WALLET_ADDRESS,
-                        "asset": "USDC (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913)",
-                        "how": "Add X-Payment header with signed EIP-3009 authorization. See PAYMENT-REQUIRED response header for full details.",
+                        "description": "Pay per call with USDC (no signup). Base, Solana, or Stellar.",
+                        "header": "X-Payment",
+                        "docs": "https://x402.org",
                     },
-                    "mcp": {
-                        "description": "10 free calls/day via MCP.",
-                        "install": "pip install aipaygen-mcp",
-                    },
-                },
-                "security": {
-                    "tls": "TLS 1.3 via Cloudflare",
-                    "data_retention": "No request/response data stored. Only billing metadata.",
-                    "auto_refund_on_5xx": True,
-                    "privacy": "https://api.aipaygen.com/security",
                 },
                 "links": {
-                    "buy_credits": "https://api.aipaygen.com/credits/buy",
-                    "docs": "https://api.aipaygen.com/docs",
-                    "discover": "https://api.aipaygen.com/discover",
-                    "security": "https://api.aipaygen.com/security",
+                    "buy_credits": "https://aipaygen.com/buy-credits",
+                    "docs": "https://aipaygen.com/docs",
+                    "pricing": "https://aipaygen.com/pricing",
                 },
             }).encode()
             # Replace empty body with enriched one
@@ -1115,43 +1106,30 @@ def enrich_402_response(response):
             original = {}
         enriched = {
             **original,
+            "error": "payment_required",
+            "message": f"Free tier exhausted. Get unlimited access starting at $1.",
             "endpoint": request.path,
             "description": endpoint_desc,
-            "payment_options": {
-                "api_key": {
-                    "recommended": True,
-                    "description": "Prepaid API key — fastest path to access. Buy once, use everywhere.",
-                    "how": "POST https://api.aipaygen.com/credits/buy with {\"amount_usd\": 5.0}",
-                    "usage": f'curl -X POST https://api.aipaygen.com{request.path} -H "Authorization: Bearer apk_YOUR_KEY" -H "Content-Type: application/json" -d \'...\'',
-                    "bulk_discount": "20% off all calls when balance >= $2.00",
+            "unlock": {
+                "1_get_free_key": {
+                    "description": "Generate a free API key.",
+                    "command": "curl -X POST https://api.aipaygen.com/auth/generate-key -H 'Content-Type: application/json' -d '{\"label\": \"my-key\"}'",
                 },
-                "x402_usdc": {
-                    "description": "Pay per call with USDC on Base Mainnet via x402 protocol.",
-                    "how": "Include X-Payment header with signed USDC payment.",
-                    "network": "Base Mainnet (eip155:8453)",
-                    "docs": "https://x402.org",
+                "2_add_credits": {
+                    "description": "Add credits via credit card. Starts at $1.",
+                    "url": "https://aipaygen.com/buy-credits",
                 },
-                "mcp": {
-                    "description": "Use via MCP with 10 free calls/day.",
-                    "install": "pip install aipaygen-mcp && claude mcp add aipaygen -- python -m aipaygen_mcp",
-                    "sse": "https://mcp.aipaygen.com/mcp",
+                "3_use_key": {
+                    "header": "Authorization: Bearer apk_YOUR_KEY",
                 },
             },
-            "security": {
-                "tls": "TLS 1.3 via Cloudflare",
-                "data_retention": "No request/response data stored. Only metadata (timestamps, endpoints, token counts) for billing.",
-                "encryption": "All traffic encrypted in transit (HTTPS). Credentials encrypted at rest.",
-                "sandbox": "User-submitted code runs in AST-validated sandbox with blocked imports/builtins.",
-                "ssrf_protection": "All outbound fetches validated against SSRF (private IP ranges blocked).",
-                "refund_policy": "Automatic refund credit on 5xx errors after payment.",
-                "privacy": "https://api.aipaygen.com/security",
+            "also_accepted": {
+                "x402_usdc": {"description": "Pay per call with USDC. No signup.", "docs": "https://x402.org"},
             },
             "links": {
-                "docs": "https://api.aipaygen.com/docs",
-                "buy_credits": "https://api.aipaygen.com/credits/buy",
-                "discover": "https://api.aipaygen.com/discover",
-                "llms_txt": "https://api.aipaygen.com/llms.txt",
-                "security": "https://api.aipaygen.com/security",
+                "buy_credits": "https://aipaygen.com/buy-credits",
+                "docs": "https://aipaygen.com/docs",
+                "pricing": "https://aipaygen.com/pricing",
             },
         }
         response.set_data(_json.dumps(enriched))
@@ -1166,7 +1144,8 @@ def enrich_402_response(response):
 
 @app.errorhandler(400)
 def bad_request(e):
-    return _api_error(400, "bad_request", str(e))
+    app.logger.debug("400 error: %s", e)
+    return _api_error(400, "bad_request", "Bad request")
 
 
 @app.errorhandler(404)

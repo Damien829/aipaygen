@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pricing — AiPayGen</title>
+<meta name="description" content="AiPayGen pricing: 10 free calls/day, or prepaid credits from $0.004/call. No subscription, no expiration.">
+<link rel="icon" href="/static/icon.png" type="image/png">
+<link rel="apple-touch-icon" href="/static/icon.png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Pricing — AiPayGen">
+<meta property="og:description" content="Start free with 10 calls/day. Prepaid credits from $0.004/call. No subscription.">
+<meta property="og:url" content="https://api.aipaygen.com/pricing">
+<meta property="og:image" content="https://api.aipaygen.com/static/og-image.svg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Pricing — AiPayGen">
+<meta name="twitter:description" content="Start free with 10 calls/day. Prepaid credits from $0.004/call.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020408;
+    --bg2: #070d14;
+    --green: #00ff9d;
+    --blue: #0088ff;
+    --cyan: #00d4ff;
+    --text: #c8d8e8;
+    --muted: #4a6070;
+    --border: #0d2030;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    overflow-x: hidden;
+    padding-top: 70px;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,136,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,136,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+    pointer-events: none;
+    z-index: 1;
+  }
+  .noise {
+    position: fixed; inset: -200%; width: 400%; height: 400%;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.4; pointer-events: none; z-index: 0;
+    animation: noise 0.5s steps(1) infinite;
+  }
+  @keyframes noise {
+    0%,100%{transform:translate(0,0)}10%{transform:translate(-2%,-2%)}20%{transform:translate(2%,2%)}30%{transform:translate(-1%,1%)}40%{transform:translate(1%,-1%)}50%{transform:translate(-2%,1%)}60%{transform:translate(2%,-1%)}70%{transform:translate(-1%,2%)}80%{transform:translate(1%,1%)}90%{transform:translate(-1%,-2%)}
+  }
+  .content { position: relative; z-index: 2; }
+
+  /* Hero */
+  .pricing-hero {
+    text-align: center;
+    padding: 80px 24px 40px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .pricing-hero h1 {
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 16px;
+    letter-spacing: -0.02em;
+  }
+  .pricing-hero h1 .accent { color: var(--green); }
+  .pricing-hero p {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 1.1rem;
+    color: var(--muted);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+
+  /* Tier cards */
+  .tiers {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    max-width: 1200px;
+    margin: 40px auto 80px;
+  }
+  .tier {
+    background: var(--bg);
+    padding: 48px 28px;
+    text-align: center;
+    position: relative;
+    transition: background 0.25s;
+  }
+  .tier:hover { background: var(--bg2); }
+  .tier.featured {
+    border: 1px solid var(--green);
+    margin: -1px;
+    z-index: 1;
+  }
+  .tier-badge {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--green);
+    color: #000;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 4px 16px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .tier-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    margin-bottom: 16px;
+  }
+  .tier-price {
+    font-size: 3rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .tier-price .currency { font-size: 1.4rem; vertical-align: super; color: var(--green); }
+  .tier-price .period {
+    font-size: 0.85rem;
+    font-weight: 300;
+    color: var(--muted);
+  }
+  .tier-desc {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin: 12px 0 24px;
+    font-weight: 300;
+  }
+  .tier-features {
+    list-style: none;
+    text-align: left;
+    margin-bottom: 32px;
+  }
+  .tier-features li {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.85rem;
+    color: var(--text);
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(13,32,48,0.6);
+    font-weight: 300;
+  }
+  .tier-features li::before {
+    content: '\2713';
+    color: var(--green);
+    font-weight: 700;
+    margin-right: 10px;
+  }
+  .tier-features li.disabled {
+    color: var(--muted);
+    opacity: 0.5;
+  }
+  .tier-features li.disabled::before {
+    content: '\2014';
+    color: var(--muted);
+  }
+  .btn-tier {
+    display: inline-block;
+    padding: 14px 32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+    width: 100%;
+  }
+  .btn-tier.primary {
+    background: var(--green);
+    color: #000;
+  }
+  .btn-tier.primary:hover {
+    background: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,255,157,0.3);
+  }
+  .btn-tier.secondary {
+    background: transparent;
+    color: var(--green);
+    border: 1px solid var(--green);
+  }
+  .btn-tier.secondary:hover {
+    background: rgba(0,255,157,0.08);
+    transform: translateY(-2px);
+  }
+  .btn-tier.outline {
+    background: transparent;
+    color: var(--cyan);
+    border: 1px solid var(--cyan);
+  }
+  .btn-tier.outline:hover {
+    background: rgba(0,212,255,0.08);
+    transform: translateY(-2px);
+  }
+
+  /* Comparison table */
+  .compare-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 20px;
+    margin-bottom: 32px;
+  }
+  .section-header span {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .section-header-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid var(--border);
+  }
+  .compare-table th,
+  .compare-table td {
+    padding: 14px 20px;
+    text-align: center;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 300;
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-table th {
+    background: var(--bg2);
+    color: #fff;
+    font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .compare-table td:first-child {
+    text-align: left;
+    color: var(--text);
+    font-weight: 400;
+  }
+  .compare-table tr:hover td {
+    background: var(--bg2);
+  }
+  .compare-table .check { color: var(--green); font-weight: 700; }
+  .compare-table .dash { color: var(--muted); opacity: 0.5; }
+
+  /* Payment methods */
+  .methods-section {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 24px 80px;
+  }
+  .methods-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+  .method-card {
+    background: var(--bg);
+    padding: 32px 24px;
+    transition: background 0.25s;
+  }
+  .method-card:hover { background: var(--bg2); }
+  .method-card h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 12px;
+    letter-spacing: 0.03em;
+  }
+  .method-card p {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+  .method-card code {
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--cyan);
+    font-size: 0.82rem;
+  }
+
+  /* FAQ */
+  .faq-section {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0 24px 100px;
+  }
+  .faq-item {
+    border: 1px solid var(--border);
+    margin-bottom: -1px;
+    background: var(--bg);
+    transition: background 0.2s;
+  }
+  .faq-item:hover { background: var(--bg2); }
+  .faq-q {
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 20px 24px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .faq-q::after {
+    content: '+';
+    color: var(--green);
+    font-size: 1.2rem;
+    font-weight: 700;
+    transition: transform 0.2s;
+  }
+  .faq-item.open .faq-q::after {
+    transform: rotate(45deg);
+  }
+  .faq-a {
+    display: none;
+    padding: 0 24px 20px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+  .faq-a a {
+    color: var(--cyan);
+    text-decoration: none;
+  }
+  .faq-a a:hover { text-decoration: underline; }
+  .faq-item.open .faq-a { display: block; }
+
+  /* Bottom CTA */
+  .bottom-cta {
+    text-align: center;
+    padding: 60px 24px 80px;
+    border-top: 1px solid var(--border);
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .bottom-cta h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 12px;
+  }
+  .bottom-cta p {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.95rem;
+    color: var(--muted);
+    margin-bottom: 28px;
+    font-weight: 300;
+  }
+  .bottom-cta .btn-group {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .bottom-cta .btn-group a {
+    display: inline-block;
+    padding: 14px 32px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-decoration: none;
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+  }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .fade-up { animation: fadeUp 0.6s ease both; }
+  .delay-1 { animation-delay: 0.1s; }
+  .delay-2 { animation-delay: 0.2s; }
+  .delay-3 { animation-delay: 0.3s; }
+
+  /* Mobile */
+  @media (max-width: 1024px) {
+    .tiers { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 768px) {
+    .pricing-hero { padding: 60px 20px 32px; }
+    .pricing-hero p { font-size: 0.95rem; }
+    .tiers { grid-template-columns: 1fr; margin: 32px 16px 60px; }
+    .tier { padding: 36px 24px; }
+    .tier.featured { margin: 0; border: 1px solid var(--green); }
+    .compare-table { font-size: 0.78rem; }
+    .compare-table th, .compare-table td { padding: 10px 8px; }
+    .compare-section { padding: 0 16px 60px; }
+    .methods-grid { grid-template-columns: 1fr; }
+    .faq-section { padding: 0 16px 60px; }
+    .bottom-cta { padding: 48px 16px 60px; }
+    .bottom-cta .btn-group a { width: 100%; text-align: center; min-height: 48px; }
+    body > nav div[style*="display:flex;gap:24px"] { display: none !important; }
+  }
+  @media (max-width: 480px) {
+    .pricing-hero h1 { font-size: clamp(1.5rem, 5vw, 2rem); }
+    .tier-price { font-size: 2.4rem; }
+    .compare-table { display: block; overflow-x: auto; }
+  }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+{{ nav|safe }}
+<div class="content">
+
+<!-- Hero -->
+<section class="pricing-hero fade-up">
+  <h1>Simple, <span class="accent">transparent</span> pricing</h1>
+  <p>Start free. Pay only for what you use. Credits never expire.</p>
+</section>
+
+<!-- Tiers -->
+<div class="tiers">
+  <!-- Free -->
+  <div class="tier fade-up">
+    <div class="tier-name">Free</div>
+    <div class="tier-price"><span class="currency">$</span>0</div>
+    <div class="tier-desc">10 calls/day &middot; no credit card</div>
+    <ul class="tier-features">
+      <li>10 API calls per day</li>
+      <li>Basic AI tools (ask, summarize, translate)</li>
+      <li>15 frontier models</li>
+      <li>No API key needed</li>
+      <li>MCP &amp; REST access</li>
+      <li class="disabled">Priority support</li>
+      <li class="disabled">Higher rate limits</li>
+    </ul>
+    <a href="/try" class="btn-tier secondary">Get Started Free</a>
+  </div>
+
+  <!-- Starter -->
+  <div class="tier fade-up delay-1">
+    <div class="tier-name">Starter</div>
+    <div class="tier-price"><span class="currency">$</span>5 <span class="period">prepaid</span></div>
+    <div class="tier-desc">~830 calls &middot; $0.006/call</div>
+    <ul class="tier-features">
+      <li>~830 prepaid API calls</li>
+      <li>All 162 tools unlocked</li>
+      <li>15 frontier models</li>
+      <li>Personal API key</li>
+      <li>MCP &amp; REST access</li>
+      <li>Priority support</li>
+      <li class="disabled">Higher rate limits</li>
+    </ul>
+    <a href="/buy-credits" class="btn-tier primary">Buy Credits &rarr;</a>
+  </div>
+
+  <!-- Pro -->
+  <div class="tier featured fade-up delay-2">
+    <div class="tier-badge">Best Value</div>
+    <div class="tier-name">Pro</div>
+    <div class="tier-price"><span class="currency">$</span>20 <span class="period">prepaid</span></div>
+    <div class="tier-desc">~4,000 calls &middot; $0.005/call &middot; 20% off</div>
+    <ul class="tier-features">
+      <li>~4,000 prepaid API calls</li>
+      <li>All 162 tools unlocked</li>
+      <li>15 frontier models</li>
+      <li>Personal API key</li>
+      <li>MCP &amp; REST access</li>
+      <li>Premium support</li>
+      <li>600 req/min rate limit</li>
+    </ul>
+    <a href="/buy-credits" class="btn-tier primary">Buy Credits &rarr;</a>
+  </div>
+
+  <!-- Enterprise -->
+  <div class="tier fade-up delay-3">
+    <div class="tier-name">Enterprise</div>
+    <div class="tier-price" style="font-size:2.2rem">Custom</div>
+    <div class="tier-desc">Volume pricing &middot; SLAs &middot; dedicated support</div>
+    <ul class="tier-features">
+      <li>Custom call volume</li>
+      <li>All 162 tools unlocked</li>
+      <li>Custom model routing</li>
+      <li>Dedicated API key</li>
+      <li>Dedicated support channel</li>
+      <li>Custom rate limits</li>
+      <li>SLA guarantees</li>
+    </ul>
+    <a href="mailto:hello@aipaygen.com" class="btn-tier outline">Contact Us</a>
+  </div>
+</div>
+
+<!-- Feature comparison -->
+<section class="compare-section">
+  <div class="section-header">
+    <span>// Feature Comparison</span>
+    <div class="section-header-line"></div>
+  </div>
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th style="text-align:left">Feature</th>
+        <th>Free</th>
+        <th>Starter ($5)</th>
+        <th>Pro ($20)</th>
+        <th>Enterprise</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>API calls</td>
+        <td>10/day</td>
+        <td>~830 prepaid</td>
+        <td>~4,000 prepaid</td>
+        <td>Custom</td>
+      </tr>
+      <tr>
+        <td>AI tools available</td>
+        <td>Basic set</td>
+        <td class="check">All 161</td>
+        <td class="check">All 161</td>
+        <td class="check">All 161</td>
+      </tr>
+      <tr>
+        <td>Models (Claude, GPT-4o, Gemini, etc.)</td>
+        <td class="check">15 models</td>
+        <td class="check">15 models</td>
+        <td class="check">15 models</td>
+        <td class="check">15+ models</td>
+      </tr>
+      <tr>
+        <td>MCP &amp; REST access</td>
+        <td class="check">&#10003;</td>
+        <td class="check">&#10003;</td>
+        <td class="check">&#10003;</td>
+        <td class="check">&#10003;</td>
+      </tr>
+      <tr>
+        <td>Agent builder</td>
+        <td class="dash">&mdash;</td>
+        <td class="check">&#10003;</td>
+        <td class="check">&#10003;</td>
+        <td class="check">&#10003;</td>
+      </tr>
+      <tr>
+        <td>Memory &amp; context</td>
+        <td class="dash">&mdash;</td>
+        <td class="check">&#10003;</td>
+        <td class="check">&#10003;</td>
+        <td class="check">&#10003;</td>
+      </tr>
+      <tr>
+        <td>Rate limit</td>
+        <td>60/min</td>
+        <td>600/min</td>
+        <td>600/min</td>
+        <td>Custom</td>
+      </tr>
+      <tr>
+        <td>Support</td>
+        <td>Community</td>
+        <td>Priority</td>
+        <td>Premium</td>
+        <td>Dedicated</td>
+      </tr>
+      <tr>
+        <td>Cost per call</td>
+        <td class="check">Free</td>
+        <td>$0.006</td>
+        <td>$0.005</td>
+        <td>Volume discount</td>
+      </tr>
+      <tr>
+        <td>Credits expire?</td>
+        <td class="check">N/A</td>
+        <td class="check">Never</td>
+        <td class="check">Never</td>
+        <td class="check">Never</td>
+      </tr>
+      <tr>
+        <td>SLA</td>
+        <td class="dash">&mdash;</td>
+        <td class="dash">&mdash;</td>
+        <td class="dash">&mdash;</td>
+        <td class="check">&#10003;</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="color:var(--muted);font-size:0.78rem;margin-top:12px;font-family:'IBM Plex Sans',sans-serif">Paid tiers use prepaid credits, not daily limits. Call counts shown are approximate totals at each credit level.</p>
+</section>
+
+<!-- Payment Methods -->
+<section class="methods-section">
+  <div class="section-header">
+    <span>// Three Ways to Pay</span>
+    <div class="section-header-line"></div>
+  </div>
+  <div class="methods-grid">
+    <div class="method-card">
+      <h3>API Key (Stripe)</h3>
+      <p>Buy a prepaid key with a credit card. Use it in any request via <code>Authorization: Bearer apk_xxx</code>. Top up anytime. Instant activation.</p>
+    </div>
+    <div class="method-card">
+      <h3>x402 USDC (Crypto)</h3>
+      <p>Native HTTP 402 micropayments. Send USDC on Base, Solana, or Stellar. No account needed &mdash; pay per request via the <a href="https://x402.org" target="_blank" rel="noopener noreferrer">x402 V2 protocol</a>.</p>
+    </div>
+    <div class="method-card">
+      <h3>Free Tier</h3>
+      <p>No auth needed. 10 calls/day per IP. Just POST JSON to any endpoint. Perfect for testing and prototyping before committing.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section">
+  <div class="section-header">
+    <span>// Frequently Asked Questions</span>
+    <div class="section-header-line"></div>
+  </div>
+
+  <div class="faq-item open">
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What is x402?</button>
+    <div class="faq-a">
+      x402 V2 is an open payment protocol based on HTTP status code 402 (Payment Required). When you call an API endpoint, the server returns a 402 response with a <code>PAYMENT-REQUIRED</code> header containing payment instructions &mdash; wallet address, amount, and supported chains (Base, Solana, Stellar). Your agent signs a USDC payment and attaches it as a <code>PAYMENT-SIGNATURE</code> header. The server verifies via a facilitator and returns your result instantly. It enables truly autonomous, pay-per-use AI without subscriptions or API keys.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">How does billing work?</button>
+    <div class="faq-a">
+      AiPayGen uses prepaid credits, not subscriptions. Buy credits with a credit card via Stripe &mdash; you get an API key and each call deducts from your balance. No recurring charges, no surprise bills. You also get a 20% bulk discount when your balance is $2 or more. Alternatively, use x402 USDC micropayments to pay per call with crypto &mdash; no API key needed.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Can I get a refund?</button>
+    <div class="faq-a">
+      Prepaid API credits are non-refundable once purchased, as they are consumed per-call. If you experience billing issues or errors, contact us at hello@aipaygen.com and we will work with you to resolve it.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What happens when my balance runs out?</button>
+    <div class="faq-a">
+      Your API key still works, but calls return a 402 Payment Required response until you top up. You can fall back to the free tier (10 calls/day) without any key. No data is lost &mdash; your memory, skills, and configurations persist.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Do credits expire?</button>
+    <div class="faq-a">
+      No. Prepaid credits never expire. Use them at your own pace.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What models are available?</button>
+    <div class="faq-a">
+      15 frontier models across 7 providers: Claude (Anthropic), GPT-4o &amp; GPT-4o-mini (OpenAI), Gemini 2.0 &amp; 1.5 (Google), DeepSeek V3 &amp; R1, Llama 3, Mistral, and more. Pass a <code>model</code> parameter to choose, or let AiPayGen route automatically for best results.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Is there a subscription?</button>
+    <div class="faq-a">
+      No. AiPayGen uses prepaid credits, not subscriptions. Buy once, use whenever. No recurring charges.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Can I sell my own API on AiPayGen?</button>
+    <div class="faq-a">
+      Yes. AiPayGen has a <a href="/sell">seller marketplace</a> where you can list your own API endpoints. You set the price, we handle payments and distribution. Sellers receive 85% of revenue, paid out in USDC.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">How do I get started?</button>
+    <div class="faq-a">
+      The fastest way: <code>pip install aipaygen-mcp</code> and add it to your MCP client (Claude Code, Cursor, Windsurf). You get 10 free calls per day with no sign-up. For higher volume, <a href="/buy-credits">buy credits</a> to get an API key.
+    </div>
+  </div>
+</section>
+
+<!-- Bottom CTA -->
+<section class="bottom-cta">
+  <h2>Ready to build?</h2>
+  <p>Start with 10 free calls today. No credit card required.</p>
+  <div class="btn-group">
+    <a href="/try" style="background:transparent;color:var(--green);border:1px solid var(--green)">Try Free</a>
+    <a href="/buy-credits" style="background:var(--green);color:#000">Buy Credits &rarr;</a>
+  </div>
+</section>
+
+</div>
+{{ footer|safe }}
+</body>
+</html>

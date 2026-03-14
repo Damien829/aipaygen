@@ -186,6 +186,8 @@ def _build_discover_services():
         {"endpoint": "/free/hash", "method": "GET", "price_usd": 0.00, "input": {"text": "string"}, "description": "Hash text with MD5, SHA1, SHA256, SHA512 — completely free"},
         {"endpoint": "/free/base64", "method": "GET", "price_usd": 0.00, "input": {"text": "string to encode", "decode": "string to decode"}, "description": "Encode/decode base64 — completely free"},
         {"endpoint": "/free/random", "method": "GET", "price_usd": 0.00, "input": {"n": 5, "min": 1, "max": 100}, "description": "Random integers, floats, booleans, and strings — completely free"},
+        {"endpoint": "/free/joke", "method": "GET", "price_usd": 0.00, "description": "Random joke with setup and punchline — completely free"},
+        {"endpoint": "/free/quote", "method": "GET", "price_usd": 0.00, "input": {"category": "optional"}, "description": "Random inspirational quote with author — completely free"},
         {"endpoint": "/free-tier/status", "method": "GET", "price_usd": 0.01, "description": "Check how many free AI calls remain today for your IP. 10 free calls/day, resets midnight UTC."},
         {"endpoint": "/sdk/code", "method": "GET", "price_usd": 0.01, "input": {"lang": "python|javascript|curl", "endpoint": "optional"}, "description": "Get copy-paste SDK code in Python, JavaScript, or cURL"},
         {"endpoint": "/sitemap.xml", "method": "GET", "price_usd": 0.01, "description": "XML sitemap of all public endpoints for crawlers and agents"},

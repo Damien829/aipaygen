@@ -1,9 +1,12 @@
 import re
+import logging
 import requests
 from bs4 import BeautifulSoup
 from markdownify import markdownify as md
 from ddgs import DDGS
 from security import validate_url, SSRFError
+
+_log = logging.getLogger(__name__)
 
 SCRAPE_HEADERS = {
     "User-Agent": "Mozilla/5.0 (compatible; AiPayGen/1.0; +https://aipaygen.com)"
@@ -24,8 +27,9 @@ def scrape_url(url: str, timeout: int = 10) -> dict:
         return {"error": "timeout", "url": url}
     except requests.exceptions.HTTPError as e:
         return {"error": f"http_{e.response.status_code}", "url": url}
-    except Exception as e:
-        return {"error": str(e), "url": url}
+    except Exception:
+        _log.exception("scrape_url failed for %s", url)
+        return {"error": "Request failed", "url": url}
 
     soup = BeautifulSoup(resp.text, "html.parser")
     for tag in soup(STRIP_TAGS):
@@ -53,7 +57,8 @@ def search_web(query: str, n: int = 5) -> dict:
                     "url": r.get("href", ""),
                     "snippet": r.get("body", ""),
                 })
-    except Exception as e:
-        return {"error": str(e), "query": query, "results": []}
+    except Exception:
+        _log.exception("search_web failed for query: %s", query)
+        return {"error": "Search failed", "query": query, "results": []}
 
     return {"query": query, "results": results}

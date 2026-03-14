@@ -4,8 +4,11 @@ import json
 import requests as _requests
 from flask import Blueprint, request, jsonify, Response
 from model_router import call_model, get_model_config, ModelNotFoundError
-from helpers import parse_json_from_claude, agent_response, log_payment, call_llm
+from helpers import parse_json_from_claude, agent_response, log_payment, call_llm, rate_limit
 from web import scrape_url, search_web
+
+import logging
+_log = logging.getLogger(__name__)
 
 ai_tools_bp = Blueprint("ai_tools", __name__)
 
@@ -453,8 +456,9 @@ def pipeline_inner(steps):
         else:
             try:
                 result = handler(inp)
-            except Exception as e:
-                result = {"error": str(e)}
+            except Exception:
+                _log.exception("pipeline step %d (%s) failed", i + 1, endpoint)
+                result = {"error": "Step execution failed"}
         results.append({"step": i + 1, "endpoint": endpoint, **result})
         prev_output = result
     return {"results": results, "steps": len(steps), "final_output": prev_output}
@@ -529,6 +533,7 @@ def workflow_inner(goal, available_data="", model="claude-sonnet"):
 # ── Route Endpoints ─────────────────────────────────────────────────────────────
 
 @ai_tools_bp.route("/scrape", methods=["POST"])
+@rate_limit(10, bucket="scrape")
 def scrape():
     data = request.get_json() or {}
     url = data.get("url", "")
@@ -1038,8 +1043,9 @@ def think_inner(problem, context="", tools=None, max_steps=5, model="claude-haik
                 try:
                     tool_result = BATCH_HANDLERS[action](step.get("action_input", {}))
                     step["observation"] = tool_result.get("result") or tool_result.get("summary") or str(tool_result)[:500]
-                except Exception as e:
-                    step["observation"] = f"Tool error: {str(e)}"
+                except Exception:
+                    _log.exception("think tool step failed")
+                    step["observation"] = "Tool error: execution failed"
             steps_executed.append(step)
 
         # If no final answer yet, do a synthesis pass
@@ -1370,8 +1376,9 @@ def batch():
             try:
                 result = handler(inp)
                 results.append({"endpoint": endpoint, **result})
-            except Exception as e:
-                results.append({"endpoint": endpoint, "error": str(e)})
+            except Exception:
+                _log.exception("batch operation %s failed", endpoint)
+                results.append({"endpoint": endpoint, "error": "Execution failed"})
 
     log_payment("/batch", 0.10, request.remote_addr)
     return jsonify(agent_response({"results": results, "count": len(results)}, "/batch"))
@@ -1446,6 +1453,7 @@ def test_cases_route():
 
 
 @ai_tools_bp.route("/workflow", methods=["POST"])
+@rate_limit(10, bucket="workflow")
 def workflow_route():
     data = request.get_json() or {}
     goal = data.get("goal", "")
@@ -1458,6 +1466,7 @@ def workflow_route():
 
 
 @ai_tools_bp.route("/code/run", methods=["POST"])
+@rate_limit(5, bucket="code_run")
 def code_run():
     import subprocess
     import time as _time
@@ -1531,8 +1540,9 @@ def web_search():
             "results": results,
             "count": len(results),
         }, "/web/search"))
-    except Exception as e:
-        return jsonify({"error": "search_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("web search failed")
+        return jsonify({"error": "search_failed", "message": "Request failed"}), 502
 
 
 @ai_tools_bp.route("/enrich", methods=["POST"])
@@ -1570,8 +1580,9 @@ def enrich():
             raw = {"abstract": resp.get("AbstractText", ""), "url": resp.get("AbstractURL", ""), "image": resp.get("Image", "")}
         else:
             return jsonify({"error": f"unknown type '{entity_type}'. Use: ip, crypto, country, company"}), 400
-    except Exception as e:
-        return jsonify({"error": "data_fetch_failed", "message": str(e)}), 502
+    except Exception:
+        _log.exception("data fetch failed")
+        return jsonify({"error": "data_fetch_failed", "message": "Request failed"}), 502
 
     llm_result, llm_err = _call_llm(
         [{"role": "user", "content": (
