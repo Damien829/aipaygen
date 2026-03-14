@@ -38,6 +38,9 @@ a:hover{text-decoration:underline}
 .pricing-label{font-size:0.8rem;font-weight:600}
 .label-free{color:var(--green)}
 .label-x402{color:var(--orange)}
+.card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+.try-btn{display:inline-block;padding:5px 14px;border:1px solid var(--green);color:var(--green);border-radius:6px;font-family:'IBM Plex Sans',sans-serif;font-size:0.78rem;font-weight:600;cursor:pointer;transition:all .2s;text-decoration:none}
+.try-btn:hover{background:var(--green);color:var(--bg);text-decoration:none}
 .empty{text-align:center;padding:48px 24px;color:var(--muted);font-size:0.95rem}
 .bottom-cta{text-align:center;padding:48px 24px 64px}
 .bottom-cta a{display:inline-block;padding:12px 32px;border:1px solid var(--green);color:var(--green);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:0.95rem;transition:all .2s}
@@ -48,7 +51,7 @@ a:hover{text-decoration:underline}
 {{ nav|safe }}
 <div class="page-header">
   <h1>Service <span>Catalog</span></h1>
-  <p class="tagline">Browse every endpoint. Pay per call with USDC on Base via the x402 protocol — no accounts, no API keys.</p>
+  <p class="tagline">162 AI tools. 10 free calls/day. Try any tool below — no sign-up required.</p>
 </div>
 <div class="container">
   <div class="search-wrap">
@@ -70,8 +73,11 @@ a:hover{text-decoration:underline}
         <span class="endpoint">{{ svc.endpoint }}</span>
       </div>
       <div class="desc">{{ svc.description }}</div>
-      <div class="pricing-label {{ 'label-free' if svc.free else 'label-x402' }}">
-        {{ 'FREE' if svc.free else 'x402' }}
+      <div class="card-footer">
+        <span class="pricing-label {{ 'label-free' if svc.free else 'label-x402' }}">
+          {{ 'FREE' if svc.free else ('$' + '%.4f'|format(svc.price_usd) if svc.price_usd else 'x402') }}
+        </span>
+        <a class="try-btn" href="/try" data-tool="{{ svc.endpoint.replace('/', '') }}">Try it</a>
       </div>
     </div>
     {% endfor %}
@@ -80,7 +86,7 @@ a:hover{text-decoration:underline}
   <div class="empty" id="emptyState" style="display:none">No services match your search.</div>
 </div>
 <div class="bottom-cta">
-  <a href="/docs">Read the Docs &rarr;</a>
+  <a href="/try">Try Free — 10 calls/day, no sign-up &rarr;</a>
 </div>
 {{ footer|safe }}
 <script>
@@ -110,6 +116,29 @@ a:hover{text-decoration:underline}
       activeCat = tab.getAttribute('data-cat');
       filterCards();
     });
+  });
+
+  // Map endpoint names to /try tool names
+  var tryMap = {
+    'sentiment':'sentiment','summarize':'summarize','translate':'translate',
+    'keywords':'keywords','explain':'explain','analyze':'analyze',
+    'compare':'compare','extract':'extract','questions':'questions',
+    'decide':'decide','classify':'classify','rewrite':'rewrite',
+    'headline':'headline','geocode':'geocode','matheval':'math-eval',
+    'datamathevaluate':'math-eval','datamathconvert':'unit-convert',
+    'datareadability':'readability','datalanguage':'language-detect',
+    'datawhois':'whois','datasecurityheaders':'security-headers',
+    'datacurrencyconvert':'currency-convert','datastats':'stats',
+    'code':'code','research':'research','preview':'sentiment'
+  };
+  document.querySelectorAll('.try-btn').forEach(function(btn){
+    var tool = btn.getAttribute('data-tool');
+    var mapped = tryMap[tool] || tryMap[tool.replace(/^data/,'')] || null;
+    if(mapped) {
+      btn.href = '/try?tool=' + mapped;
+    } else {
+      btn.href = '/try';
+    }
   });
 })();
 </script>

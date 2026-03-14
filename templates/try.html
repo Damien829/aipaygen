@@ -41,6 +41,20 @@
 
   .free-note { text-align: center; color: #555; font-size: 0.75rem; margin-top: 12px; }
 
+  /* Progress bar */
+  .demo-progress { margin-bottom: 18px; }
+  .demo-progress-label { font-size: 0.75rem; color: #888; margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .demo-progress-bar { height: 6px; background: #1e1e1e; border-radius: 3px; overflow: hidden; }
+  .demo-progress-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease, background 0.4s ease; width: 0%; background: #059669; }
+
+  /* Nudge banner */
+  .nudge-banner { display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a1a2e; border: 1px solid #6366f1; border-radius: 12px; padding: 16px 24px; z-index: 90; max-width: 480px; width: calc(100% - 32px); box-shadow: 0 8px 32px rgba(99,102,241,0.3); }
+
+  /* Email capture */
+  .email-capture { display: none; background: #141414; border: 1px solid #6366f1; border-radius: 14px; padding: 24px; margin-top: 16px; text-align: center; }
+  .email-capture input { flex: 1; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 14px; color: #e8e8e8; font-size: 0.9rem; outline: none; }
+  .email-capture button { background: #6366f1; color: #fff; border: none; border-radius: 8px; padding: 10px 18px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+
   /* Upsell modal */
   .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
   .modal-overlay.show { display: flex; }
@@ -73,6 +87,10 @@
   <p class="sub">Test any tool below — completely free, no sign-up. <a href="/discover">See all 162 tools &rarr;</a></p>
 
   <div class="demo-card">
+    <div class="demo-progress" id="demo-progress">
+      <div class="demo-progress-label"><span id="demo-progress-text">0 / 10 demos used</span><span id="demo-progress-pct">0%</span></div>
+      <div class="demo-progress-bar"><div class="demo-progress-fill" id="demo-progress-fill"></div></div>
+    </div>
     <div class="tool-row">
       <div class="tool-btn active" data-tool="sentiment" data-placeholder="Type any text to analyze sentiment..." data-desc="Detects polarity, emotions, confidence, and key phrases">Sentiment</div>
       <div class="tool-btn" data-tool="summarize" data-placeholder="Paste text to summarize..." data-desc="Condenses long text into key bullet points">Summarize</div>
@@ -158,6 +176,15 @@ document.querySelectorAll('.tool-btn').forEach(btn => {
     document.getElementById('desc').textContent = btn.dataset.desc;
   });
 });
+
+// Pre-select tool from ?tool= URL param
+(function() {
+  const p = new URLSearchParams(window.location.search).get('tool');
+  if (p) {
+    const btn = document.querySelector('.tool-btn[data-tool="' + CSS.escape(p) + '"]');
+    if (btn) { btn.click(); btn.scrollIntoView({behavior:'smooth', block:'center'}); }
+  }
+})();
 
 function escapeHtml(s) {
   const d = document.createElement('div');
