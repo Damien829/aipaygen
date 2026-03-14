@@ -19,7 +19,7 @@ WALLET_ADDRESS = os.getenv("WALLET_ADDRESS", "0x366D488a48de1B2773F3a21F1A697271
 EVM_NETWORK = os.getenv("EVM_NETWORK", "eip155:8453")
 
 # Pre-compute MCP tool count at import time (avoid reading file on every /api/stats call)
-_MCP_TOOL_COUNT = 161  # fallback
+_MCP_TOOL_COUNT = 162  # fallback
 try:
     _mcp_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "mcp_server.py")
     with open(_mcp_path) as _f:
@@ -351,7 +351,7 @@ def discover():
     return jsonify({
         "meta": {
             "name": "AiPayGen",
-            "description": "AI agent API marketplace with 162 tools and 1500+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day).",
+            "description": "AI agent API marketplace with 162 tools and 2400+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day).",
             "categories": list(categories.keys()),
         },
         "payment": {
@@ -447,7 +447,14 @@ def health():
     if _circuit_state:
         checks["circuit_breakers"] = {k: {"failures": v["failures"], "open": v.get("opened_at") is not None} for k, v in _circuit_state.items() if v["failures"] > 0}
 
-    # 7. Model performance stats
+    # 7. MCP server reachable
+    try:
+        mcp_r = _requests.get("http://127.0.0.1:5002/", timeout=2)
+        checks["mcp_server"] = "ok" if mcp_r.status_code < 500 else f"http {mcp_r.status_code}"
+    except Exception:
+        checks["mcp_server"] = "not running"
+
+    # 8. Model performance stats
     perf = get_all_perf()
     if perf:
         checks["model_performance"] = perf
@@ -675,7 +682,7 @@ def robots_txt():
         "Disallow: /credits/\n"
         "Disallow: /free-tier/\n"
         "\n"
-        "Sitemap: https://api.aipaygen.com/sitemap.xml\n"
+        "Sitemap: https://aipaygen.com/sitemap.xml\n"
         "\n"
         "# AI Agent Discovery\n"
         "# LLMs.txt: https://api.aipaygen.com/llms.txt\n"
@@ -738,7 +745,7 @@ AiPayGen is a pay-per-use AI platform for autonomous agents. Research, write, co
 - **Web Scraping** — Google Maps, Twitter/X, Instagram, LinkedIn, YouTube, TikTok, any website
 - **Agent Infrastructure** — persistent memory, messaging, task boards, webhook relay, async jobs, file storage
 - **Data & Utilities** — weather, crypto, stocks, news, Wikipedia, arXiv, GitHub trending
-- **Skills Library** — 1500+ searchable skills via TF-IDF. Search, browse, and execute dynamically.
+- **Skills Library** — 2400+ searchable skills via TF-IDF. Search, browse, and execute dynamically.
 - **Multi-Model** — Claude, GPT-4o, DeepSeek, Gemini. All AI endpoints accept `model` parameter.
 
 ## Authentication (3 Paths)
@@ -937,7 +944,7 @@ def agent_manifest():
     return jsonify({
         "name": "AiPayGen",
         "description": (
-            "AI agent API marketplace with 162 tools and 1500+ searchable skills. "
+            "AI agent API marketplace with 162 tools and 2400+ searchable skills. "
             "Research, writing, coding, analysis, web scraping, real-time data, agent memory, "
             "and multi-model AI (Claude, GPT-4o, DeepSeek, Gemini). "
             "Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day)."
@@ -1173,7 +1180,7 @@ def x402_manifest():
         "version": "2.0",
         "name": "AiPayGen",
         "description": (
-            "155+ AI tools, 1900+ skills, web scrapers, agent memory, file storage, "
+            "162 AI tools, 2400+ skills, web scrapers, agent memory, file storage, "
             "webhook relay, async jobs, and an API catalog of 4100+ discovered APIs. "
             "No API key required — pay per call in USDC via x402 protocol."
         ),
@@ -1901,7 +1908,7 @@ curl "$BASE/discover" | python3 -m json.tool
 @meta_bp.route("/sitemap.xml", methods=["GET"])
 def sitemap():
     """XML sitemap — includes static pages AND all blog posts for Google/Bing."""
-    base_url = "https://api.aipaygen.com"
+    base_url = "https://aipaygen.com"
     now = datetime.utcnow().strftime("%Y-%m-%d")
     static_pages = [
         ("/", "daily", "1.0"),
