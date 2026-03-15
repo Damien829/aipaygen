@@ -53,7 +53,7 @@ curl -X POST "https://api.aipaygen.com/workflow/run" \
 ### Links:
 - Try it (no install): https://aipaygen.com/try?ref=reddit
 - Docs: https://aipaygen.com/docs?ref=reddit
-- PyPI: https://pypi.org/project/aipaygen-mcp/ (v1.8.1)
+- PyPI: https://pypi.org/project/aipaygen-mcp/ (v1.8.2)
 - MCP Registry: `io.github.Damien829/aipaygen`
 - Smithery & Glama: LIVE
 - GitHub: https://github.com/Damien829/aipaygen

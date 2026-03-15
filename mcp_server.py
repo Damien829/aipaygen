@@ -3044,7 +3044,7 @@ def main():
         starlette_app = mcp.streamable_http_app()
 
         async def health(request):
-            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 229, "version": "1.8.1"})
+            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 229, "version": "1.8.2"})
 
         _tracked_sessions = set()
 

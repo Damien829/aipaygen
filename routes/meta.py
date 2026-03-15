@@ -374,7 +374,7 @@ def discover():
     return jsonify({
         "meta": {
             "name": "AiPayGen",
-            "description": "AI agent API marketplace with 229 tools (v1.8.1) and 2400+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day). $0.25 trial credits available.",
+            "description": "AI agent API marketplace with 229 tools (v1.8.2) and 2400+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day). $0.25 trial credits available.",
             "categories": list(categories.keys()),
         },
         "payment": {
@@ -971,7 +971,7 @@ def docs_api():
 LLMS_TXT = """\
 # AiPayGen
 
-> 229 AI tools in one API (v1.8.1). Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (10 free/day). New: $0.25 trial credits via buy_credits / generate_api_key MCP tools.
+> 229 AI tools in one API (v1.8.2). Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (10 free/day). New: $0.25 trial credits via buy_credits / generate_api_key MCP tools.
 
 ## What This Service Does
 
@@ -1162,9 +1162,9 @@ def ai_plugin():
         "schema_version": "v1",
         "name_for_human": "AiPayGen",
         "name_for_model": "aipaygen",
-        "description_for_human": "229 AI tools (v1.8.1) — research, write, code, translate, scrape, and more. $0.25 trial credits. 10 free calls/day.",
+        "description_for_human": "229 AI tools (v1.8.2) — research, write, code, translate, scrape, and more. $0.25 trial credits. 10 free calls/day.",
         "description_for_model": (
-            "AiPayGen provides 229 AI-powered tools accessible via a single API (v1.8.1). "
+            "AiPayGen provides 229 AI-powered tools accessible via a single API (v1.8.2). "
             "Use for research, writing, code generation, translation, sentiment analysis, "
             "web scraping, data extraction, content comparison, fact-checking, and more. "
             "Free tier: 10 calls/day per IP. Paid: prepaid API key (Bearer apk_xxx) or "
@@ -1197,14 +1197,14 @@ def agent_manifest():
     return jsonify({
         "name": "AiPayGen",
         "description": (
-            "AI agent API marketplace with 229 tools (v1.8.1) and 2400+ searchable skills. "
+            "AI agent API marketplace with 229 tools (v1.8.2) and 2400+ searchable skills. "
             "Research, writing, coding, analysis, web scraping, real-time data, agent memory, "
             "and multi-model AI (Claude, GPT-4o, DeepSeek, Gemini). "
             "Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day). "
             "$0.25 trial credits available via buy_credits/generate_api_key."
         ),
         "url": base,
-        "version": "1.8.1",
+        "version": "1.8.2",
         "documentationUrl": f"{base}/llms.txt",
         "capabilities": {
             "streaming": True,
@@ -1435,7 +1435,7 @@ def x402_manifest():
         "version": "2.0",
         "name": "AiPayGen",
         "description": (
-            "229 AI tools (v1.8.1), 2400+ skills, web scrapers, agent memory, file storage, "
+            "229 AI tools (v1.8.2), 2400+ skills, web scrapers, agent memory, file storage, "
             "webhook relay, async jobs, and an API catalog of 4100+ discovered APIs. "
             "No API key required — pay per call in USDC via x402 protocol."
         ),
@@ -1545,7 +1545,7 @@ def smithery_server_card():
     return jsonify({
         "serverInfo": {
             "name": "AiPayGen",
-            "version": "1.8.1"
+            "version": "1.8.2"
         },
         "authentication": {
             "required": False,
@@ -2144,7 +2144,7 @@ curl -X POST "$BASE{endpoint}" \\
   -H "X-Payment: $X_PAYMENT" \\
   -d \'{{"query": "latest AI agent frameworks 2026"}}\'
 
-# List all 161 endpoints
+# List all endpoints
 curl "$BASE/discover" | python3 -m json.tool
 '''
     else:
@@ -2324,11 +2324,23 @@ def try_tool(tool):
 
 CHANGELOG = [
     {
-        "version": "1.8.1",
-        "date": "2026-03-14",
-        "title": "Workflow Templates + Notifications + DB Recovery",
+        "version": "1.8.2",
+        "date": "2026-03-15",
+        "title": "229 Tools — Massive Expansion",
         "changes": [
-            "229 MCP tools (was 165) — added workflow templates, notifications, popular tools",
+            "229 MCP tools (was 169) — 60 new tools added in one release",
+            "New data tools: Wikipedia, arXiv, GitHub trending, Reddit, YouTube transcripts, news, QR codes, DNS, screenshots",
+            "New utility tools: base64, hashing, URL encode/decode, JSON format/minify, text stats, random generation, CIDR, epoch conversion",
+            "File storage: upload and list files via MCP",
+            "Agent network: leaderboard, search, portfolio, reputation, task claim/complete/subscribe",
+            "Marketplace: seller registration, directory, dashboard",
+            "Webhooks: create and list webhook subscriptions",
+            "Streaming: stream_research, stream_write, stream_analyze",
+            "Scraping: LinkedIn profiles, Facebook Ad Library",
+            "Sessions: persistent conversation sessions with context",
+            "Referral: stats and leaderboard tools",
+            "Platform: stats, popular tools, economy status",
+            "SQLite database recovery for corrupted WAL files",
             "Referral system — $0.10 both sides on API key generation",
             "Public changelog at /changelog",
             "Live status page at /status with auto-refresh",

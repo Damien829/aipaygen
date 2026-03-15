@@ -30,7 +30,7 @@ class TestGenerateKey:
     def test_generate_key_success(self, mock_rl, mock_gen, client):
         mock_gen.return_value = {
             "key": "apk_testkey123",
-            "balance_usd": 0.0,
+            "balance_usd": 0.25,
             "label": "my-key",
             "created_at": "2026-01-01T00:00:00",
         }
@@ -38,11 +38,11 @@ class TestGenerateKey:
         assert r.status_code == 200
         data = r.get_json()
         assert data["key"] == "apk_testkey123"
-        assert data["balance_usd"] == 0.0
+        assert data["balance_usd"] == 0.25
         assert data["label"] == "my-key"
         assert "_meta" in data
         assert data["_meta"]["free"] is True
-        mock_gen.assert_called_once_with(initial_balance=0.0, label="my-key", source="api-direct")
+        mock_gen.assert_called_once_with(initial_balance=0.25, label="my-key", source="api-direct")
 
     @patch("routes.auth.generate_key")
     @patch("routes.auth.check_identity_rate_limit", return_value=True)
@@ -53,7 +53,7 @@ class TestGenerateKey:
         }
         r = client.post("/auth/generate-key", json={})
         assert r.status_code == 200
-        mock_gen.assert_called_once_with(initial_balance=0.0, label="", source="api-direct")
+        mock_gen.assert_called_once_with(initial_balance=0.25, label="", source="api-direct")
 
     @patch("routes.auth.generate_key")
     @patch("routes.auth.check_identity_rate_limit", return_value=True)
@@ -575,7 +575,7 @@ class TestFreeTierEnforcement:
         }
         r = client.post("/auth/generate-key", json={})
         assert r.status_code == 200
-        mock_gen.assert_called_once_with(initial_balance=0.0, label="", source="api-direct")
+        mock_gen.assert_called_once_with(initial_balance=0.25, label="", source="api-direct")
 
     @patch("routes.auth.check_identity_rate_limit", return_value=False)
     def test_rate_limit_blocks_key_generation(self, mock_rl, client):
