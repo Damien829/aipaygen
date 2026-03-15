@@ -934,3 +934,436 @@ paths:
           description: Session data
         "404":
           description: Session not found
+
+  # ── Additional AI Tools ─────────────────────────────────────────────
+  /write:
+    post:
+      tags: [AI Tools]
+      summary: Generate written content
+      description: Generate blog posts, emails, copy, social media, and more.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prompt]
+              properties:
+                prompt:
+                  type: string
+                tone:
+                  type: string
+                  default: professional
+                format:
+                  type: string
+                  description: "blog, email, social, copy"
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Generated content
+        "400":
+          description: Missing prompt
+
+  /analyze:
+    post:
+      tags: [AI Tools]
+      summary: Analyze text with a question
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content:
+                  type: string
+                question:
+                  type: string
+                  default: general analysis
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Analysis result
+        "400":
+          description: Missing content
+
+  /compare:
+    post:
+      tags: [AI Tools]
+      summary: Compare two texts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text_a, text_b]
+              properties:
+                text_a:
+                  type: string
+                text_b:
+                  type: string
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Comparison with similarities, differences, scores
+
+  /keywords:
+    post:
+      tags: [AI Tools]
+      summary: Extract keywords from text
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  type: string
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Extracted keywords and topics
+
+  /rewrite:
+    post:
+      tags: [AI Tools]
+      summary: Rewrite text for a different audience or tone
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  type: string
+                audience:
+                  type: string
+                  default: general
+                tone:
+                  type: string
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Rewritten text
+
+  /explain:
+    post:
+      tags: [AI Tools]
+      summary: Explain a concept in simple terms
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [concept]
+              properties:
+                concept:
+                  type: string
+                level:
+                  type: string
+                  default: beginner
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Explanation with analogies
+
+  /proofread:
+    post:
+      tags: [AI Tools]
+      summary: Proofread and correct text
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text:
+                  type: string
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Corrected text with changes
+
+  /outline:
+    post:
+      tags: [AI Tools]
+      summary: Generate an outline for a topic
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [topic]
+              properties:
+                topic:
+                  type: string
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Structured outline
+
+  /email:
+    post:
+      tags: [AI Tools]
+      summary: Generate professional emails
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prompt]
+              properties:
+                prompt:
+                  type: string
+                tone:
+                  type: string
+                  default: professional
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Generated email
+
+  /diagram:
+    post:
+      tags: [AI Tools]
+      summary: Generate Mermaid diagrams from descriptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [description]
+              properties:
+                description:
+                  type: string
+                type:
+                  type: string
+                  description: "flowchart, sequence, class, er, gantt"
+                model:
+                  type: string
+      responses:
+        "200":
+          description: Mermaid diagram code
+
+  # ── Scraping ────────────────────────────────────────────────────────
+  /scrape/website:
+    post:
+      tags: [Scraping]
+      summary: Scrape a website URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  example: "https://example.com"
+      responses:
+        "200":
+          description: Scraped content
+
+  /scrape/google-maps:
+    post:
+      tags: [Scraping]
+      summary: Scrape Google Maps business listings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query:
+                  type: string
+                  example: "restaurants in NYC"
+      responses:
+        "200":
+          description: Business listings
+
+  /scrape/tweets:
+    post:
+      tags: [Scraping]
+      summary: Scrape tweets by keyword or user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query:
+                  type: string
+      responses:
+        "200":
+          description: Tweet data
+
+  /scrape/youtube:
+    post:
+      tags: [Scraping]
+      summary: Scrape YouTube video data and transcripts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+      responses:
+        "200":
+          description: Video data and transcript
+
+  # ── Data Lookups ────────────────────────────────────────────────────
+  /data/weather:
+    get:
+      tags: [Data]
+      summary: Get current weather
+      security: []
+      parameters:
+        - name: city
+          in: query
+          required: true
+          schema:
+            type: string
+          example: London
+      responses:
+        "200":
+          description: Weather data
+
+  /data/crypto:
+    get:
+      tags: [Data]
+      summary: Get live crypto prices
+      security: []
+      parameters:
+        - name: symbols
+          in: query
+          required: true
+          schema:
+            type: string
+          example: "BTC,ETH"
+      responses:
+        "200":
+          description: Crypto prices
+
+  /data/exchange:
+    get:
+      tags: [Data]
+      summary: Get currency exchange rates
+      security: []
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            default: USD
+        - name: to
+          in: query
+          schema:
+            type: string
+            default: EUR
+      responses:
+        "200":
+          description: Exchange rates
+
+  # ── Skills ──────────────────────────────────────────────────────────
+  /skills/search:
+    get:
+      tags: [Skills]
+      summary: Search the skills library
+      security: []
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Matching skills (TF-IDF ranked)
+
+  /skills/execute:
+    post:
+      tags: [Skills]
+      summary: Execute a skill by name
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [skill, input]
+              properties:
+                skill:
+                  type: string
+                input:
+                  type: string
+      responses:
+        "200":
+          description: Skill execution result
+
+  # ── Discovery ───────────────────────────────────────────────────────
+  /discover:
+    get:
+      tags: [Discovery]
+      summary: Full service catalog
+      security: []
+      responses:
+        "200":
+          description: JSON catalog of all endpoints with pricing
+
+  /health:
+    get:
+      tags: [Discovery]
+      summary: Service health check
+      security: []
+      responses:
+        "200":
+          description: Health status with component details
+
+  /preview:
+    post:
+      tags: [Discovery]
+      summary: Free Claude demo — no payment needed
+      security: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                topic:
+                  type: string
+                question:
+                  type: string
+      responses:
+        "200":
+          description: Free AI preview result (120 token cap)

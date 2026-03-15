@@ -663,6 +663,34 @@
   </div>
 </section>
 
+<!-- Quick Start Code -->
+<section class="section fade-in" style="padding-top:20px;padding-bottom:20px">
+  <div class="section-title text-center" style="max-width:none">Register in 3 lines</div>
+  <div class="section-subtitle text-center" style="max-width:none;margin:0 auto 32px">Or use the visual form below</div>
+  <div style="max-width:700px;margin:0 auto">
+    <div class="code-block">
+      <pre><code class="language-bash">curl -X POST https://api.aipaygen.com/sell/register \
+  -H "Authorization: Bearer apk_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "My Weather API",
+    "slug": "my-weather",
+    "base_url": "https://api.myweather.com",
+    "routes": [
+      {"path": "/forecast", "method": "GET", "price_usd": 0.005, "description": "7-day forecast"},
+      {"path": "/current",  "method": "GET", "price_usd": 0.002, "description": "Current conditions"}
+    ],
+    "seller_wallet": "0xYOUR_WALLET",
+    "category": "data"
+  }'</code></pre>
+      <button class="copy-btn">Copy</button>
+    </div>
+    <p style="text-align:center;color:var(--text-muted);font-size:var(--text-sm);margin-top:12px">
+      Your API is live immediately. No review process, no waiting.
+    </p>
+  </div>
+</section>
+
 <!-- Pricing Model -->
 <section class="section pricing-section fade-in">
   <div class="section-title text-center" style="max-width:none">Transparent Pricing</div>
