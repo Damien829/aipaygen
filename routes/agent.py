@@ -262,12 +262,15 @@ def _build_chain_handlers():
         sentiment_inner, keywords_inner, classify_inner, rewrite_inner,
         extract_inner, qa_inner, compare_inner, outline_inner,
         diagram_inner, json_schema_inner, workflow_inner,
+        write_inner, code_inner, social_inner, proofread_inner,
+        explain_inner, pitch_inner, fact_inner,
     )
+    from web import scrape_url, search_web
     return {
         "research": lambda p: research_inner(p.get("query", ""), model=p.get("model", "claude-haiku")),
         "summarize": lambda p: summarize_inner(p.get("text", ""), p.get("format", "bullets"), model=p.get("model", "claude-haiku")),
         "analyze": lambda p: analyze_inner(p.get("text", ""), p.get("question", ""), model=p.get("model", "claude-haiku")),
-        "translate": lambda p: translate_inner(p.get("text", ""), p.get("language", "English"), model=p.get("model", "claude-haiku")),
+        "translate": lambda p: translate_inner(p.get("text", ""), p.get("target", p.get("language", "English")), model=p.get("model", "claude-haiku")),
         "sentiment": lambda p: sentiment_inner(p.get("text", ""), model=p.get("model", "claude-haiku")),
         "keywords": lambda p: keywords_inner(p.get("text", ""), int(p.get("n", 10)), model=p.get("model", "claude-haiku")),
         "classify": lambda p: classify_inner(p.get("text", ""), p.get("categories", []), model=p.get("model", "claude-haiku")),
@@ -279,6 +282,16 @@ def _build_chain_handlers():
         "diagram": lambda p: diagram_inner(p.get("description", ""), p.get("diagram_type", "flowchart"), model=p.get("model", "claude-haiku")),
         "json_schema": lambda p: json_schema_inner(p.get("description", ""), p.get("example", {}), model=p.get("model", "claude-haiku")),
         "workflow": lambda p: workflow_inner(p.get("goal", ""), p.get("available_data", {}), model=p.get("model", "claude-sonnet")),
+        # Additional tools for richer chains
+        "write": lambda p: write_inner(p.get("spec", p.get("text", "")), p.get("type", "article"), model=p.get("model", "claude-haiku")),
+        "code": lambda p: code_inner(p.get("description", p.get("text", "")), p.get("language", "python"), model=p.get("model", "claude-haiku")),
+        "social": lambda p: social_inner(p.get("topic", p.get("text", "")), p.get("platforms", ["twitter"]), p.get("tone", "professional"), model=p.get("model", "claude-haiku")),
+        "proofread": lambda p: proofread_inner(p.get("text", ""), p.get("style", "professional"), model=p.get("model", "claude-haiku")),
+        "explain": lambda p: explain_inner(p.get("concept", p.get("text", "")), p.get("level", "beginner"), model=p.get("model", "claude-haiku")),
+        "pitch": lambda p: pitch_inner(p.get("product", p.get("text", "")), p.get("audience", "investors"), p.get("length", "30s"), model=p.get("model", "claude-haiku")),
+        "fact": lambda p: fact_inner(p.get("text", ""), int(p.get("count", 10)), model=p.get("model", "claude-haiku")),
+        "scrape_website": lambda p: scrape_url(p.get("url", "")),
+        "search": lambda p: search_web(p.get("query", ""), n=min(int(p.get("n", 5)), 10)),
     }
 
 
@@ -292,52 +305,95 @@ def _get_chain_handlers():
     return _CHAIN_HANDLERS
 
 
+def _resolve_prev_refs(value, prev_result):
+    """Recursively resolve $prev.result and {{prev_result}} references in step inputs."""
+    if isinstance(value, str):
+        value = value.replace("$prev.result", str(prev_result))
+        value = value.replace("{{prev_result}}", str(prev_result))
+        return value
+    if isinstance(value, dict):
+        return {k: _resolve_prev_refs(v, prev_result) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_resolve_prev_refs(v, prev_result) for v in value]
+    return value
+
+
+def _extract_result_text(out):
+    """Extract the primary text result from a handler or HTTP response output."""
+    if isinstance(out, dict):
+        for key in ("result", "text", "summary", "content", "output", "data"):
+            if out.get(key) and isinstance(out[key], str):
+                return out[key]
+        return json.dumps(out, default=str)
+    return str(out)
+
+
 @agent_bp.route("/chain", methods=["POST"])
 @rate_limit(10, bucket="chain")
 def chain_endpoint():
-    """Chain up to 5 AI operations in sequence. Output of each step feeds the next."""
+    """Chain up to 10 AI operations in sequence. Output of each step feeds the next.
+
+    Supports two input formats:
+      Legacy:  {"steps": [{"action": "research", "params": {"query": "AI"}}]}
+      Modern:  {"steps": [{"tool": "research", "input": {"query": "AI"}}]}
+
+    Use $prev.result or {{prev_result}} in any string value to inject
+    the previous step's output.
+    """
+    import time as _t
     data = request.get_json() or {}
     steps = data.get("steps", [])
     if not steps:
-        return jsonify({"error": "steps array required"}), 400
-    if len(steps) > 5:
-        return jsonify({"error": "maximum 5 steps per chain"}), 400
+        return jsonify({"error": "steps array required", "hint": "POST {\"steps\": [{\"tool\": \"research\", \"input\": {\"query\": \"AI\"}}, {\"tool\": \"summarize\", \"input\": {\"text\": \"$prev.result\"}}]}"}), 400
+    if len(steps) > 10:
+        return jsonify({"error": "maximum 10 steps per chain"}), 400
 
     chain_handlers = _get_chain_handlers()
     results = []
-    context = {}  # carries forward between steps
+    prev_result = None
+    t0 = _t.time()
 
     for i, step in enumerate(steps):
-        name = step.get("action")
+        # Support both "action"/"params" (legacy) and "tool"/"input" (modern) formats
+        name = step.get("tool") or step.get("action")
+        params = step.get("input") or step.get("params") or {}
+
         if not name or name not in chain_handlers:
             return jsonify({
-                "error": f"step {i}: unknown action '{name}'",
-                "available": list(chain_handlers.keys())
+                "error": f"step {i+1}: unknown action '{name}'",
+                "available": sorted(chain_handlers.keys()),
+                "hint": "Use 'tool' (modern) or 'action' (legacy) to specify the operation"
             }), 400
 
-        # Allow steps to reference previous result via {{prev_result}}
-        params = step.get("params", {})
-        if context.get("last_result"):
-            for k, v in params.items():
-                if isinstance(v, str) and "{{prev_result}}" in v:
-                    params[k] = v.replace("{{prev_result}}", str(context["last_result"]))
+        # Resolve $prev.result and {{prev_result}} references
+        if prev_result is not None:
+            params = _resolve_prev_refs(params, prev_result)
 
+        step_t0 = _t.time()
         try:
             out = chain_handlers[name](params)
-            step_result = {"step": i + 1, "action": name, "result": out}
+            step_ms = round((_t.time() - step_t0) * 1000)
+            prev_result = _extract_result_text(out)
+            step_result = {"step": i + 1, "tool": name, "time_ms": step_ms, "result": out}
             results.append(step_result)
-            # Extract text result for next step context
-            if isinstance(out, dict):
-                context["last_result"] = out.get("result") or out.get("text") or out.get("summary") or str(out)
-            else:
-                context["last_result"] = str(out)
         except Exception:
+            step_ms = round((_t.time() - step_t0) * 1000)
             _log.exception("chain step %d (%s) failed", i, name)
-            return jsonify({"error": f"step {i} ({name}) failed", "completed_steps": results}), 500
+            results.append({"step": i + 1, "tool": name, "time_ms": step_ms, "error": "step failed"})
+            total_ms = round((_t.time() - t0) * 1000)
+            return jsonify(agent_response({
+                "steps_completed": len(results),
+                "total_time_ms": total_ms,
+                "chain": results,
+                "final_result": None,
+                "error": f"Chain stopped at step {i+1} ({name})",
+            }, "/chain")), 500
 
+    total_ms = round((_t.time() - t0) * 1000)
     log_payment("/chain", 0.25, request.remote_addr)
     return jsonify(agent_response({
         "steps_completed": len(results),
+        "total_time_ms": total_ms,
         "chain": results,
         "final_result": results[-1]["result"] if results else None,
     }, "/chain"))

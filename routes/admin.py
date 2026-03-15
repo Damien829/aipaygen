@@ -13,7 +13,7 @@ import requests as _requests
 from datetime import datetime
 import logging
 
-from flask import Blueprint, request, jsonify, Response
+from flask import Blueprint, request, jsonify, render_template, Response
 
 logger = logging.getLogger(__name__)
 
@@ -429,6 +429,12 @@ def blog_index():
     resp = Response(html, content_type="text/html")
     resp.headers["Link"] = '</feed.xml>; rel="alternate"; type="application/rss+xml"'
     return resp
+
+
+@admin_bp.route("/blog/launch", methods=["GET"])
+def blog_launch():
+    """Static launch blog post — served from Jinja template."""
+    return render_template("blog_launch.html")
 
 
 @admin_bp.route("/blog/<slug>", methods=["GET"])
@@ -1217,12 +1223,11 @@ def rss_feed():
     return rss, 200, {"Content-Type": "application/rss+xml; charset=utf-8"}
 
 
-# ── OG Image (SVG served as PNG fallback) ─────────────────────────────────────
+# ── OG Image (PNG for social platforms) ───────────────────────────────────────
 
-@admin_bp.route("/og-image.png", methods=["GET"])
-def og_image():
-    """Social sharing card image — returned as inline SVG (browsers + crawlers accept it)."""
-    svg = """<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+_og_png_cache = None  # module-level cache for generated PNG bytes
+
+_OG_SVG = """<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0a0a0a"/>
@@ -1238,7 +1243,80 @@ def og_image():
   <rect x="440" y="490" width="320" height="48" rx="24" fill="#6366f1"/>
   <text x="600" y="521" font-family="system-ui,sans-serif" font-size="20" font-weight="600" fill="#fff" text-anchor="middle">Try free — no credit card</text>
 </svg>"""
-    return svg, 200, {"Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=86400"}
+
+
+def _generate_og_png():
+    """Generate OG image as PNG bytes. Tries cairosvg, then Pillow, then returns None."""
+    # Strategy 1: cairosvg (best quality — renders SVG faithfully)
+    try:
+        import cairosvg
+        import io
+        buf = io.BytesIO()
+        cairosvg.svg2png(bytestring=_OG_SVG.encode("utf-8"), write_to=buf,
+                         output_width=1200, output_height=630)
+        return buf.getvalue()
+    except Exception:
+        pass
+
+    # Strategy 2: Pillow — draw a simple card programmatically
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+        img = Image.new("RGB", (1200, 630))
+        draw = ImageDraw.Draw(img)
+        # Gradient-ish background: dark with slight purple tint at bottom-right
+        for y in range(630):
+            r = int(10 + (30 - 10) * y / 630)
+            g = int(10 + (27 - 10) * y / 630)
+            b = int(10 + (75 - 10) * y / 630)
+            draw.line([(0, y), (1199, y)], fill=(r, g, b))
+        # Inner card
+        draw.rounded_rectangle([60, 60, 1140, 570], radius=20, fill=(20, 20, 20, 204))
+        # Text — use default font (always available), scale up with truetype if possible
+        try:
+            title_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 64)
+            sub_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 30)
+            detail_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24)
+            small_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 20)
+            btn_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 19)
+        except Exception:
+            title_font = ImageFont.load_default()
+            sub_font = title_font
+            detail_font = title_font
+            small_font = title_font
+            btn_font = title_font
+        # Title
+        draw.text((600, 190), "AiPayGen", fill=(255, 255, 255), font=title_font, anchor="mm")
+        # Subtitle
+        draw.text((600, 280), "Pay-per-use Claude AI API", fill=(167, 139, 250), font=sub_font, anchor="mm")
+        # Details
+        draw.text((600, 360), "244 tools \u00b7 15 models \u00b7 4100+ APIs \u00b7 No signup",
+                  fill=(136, 136, 136), font=detail_font, anchor="mm")
+        # URL
+        draw.text((600, 430), "api.aipaygen.com", fill=(99, 102, 241), font=small_font, anchor="mm")
+        # Button
+        draw.rounded_rectangle([440, 470, 760, 518], radius=24, fill=(99, 102, 241))
+        draw.text((600, 494), "Try free \u2014 no credit card", fill=(255, 255, 255), font=btn_font, anchor="mm")
+
+        import io
+        buf = io.BytesIO()
+        img.save(buf, format="PNG", optimize=True)
+        return buf.getvalue()
+    except Exception:
+        pass
+
+    return None
+
+
+@admin_bp.route("/og-image.png", methods=["GET"])
+def og_image():
+    """Social sharing card image — served as PNG for Twitter/LinkedIn/Facebook/Slack compatibility."""
+    global _og_png_cache
+    if _og_png_cache is None:
+        _og_png_cache = _generate_og_png()
+    if _og_png_cache:
+        return _og_png_cache, 200, {"Content-Type": "image/png", "Cache-Control": "public, max-age=86400"}
+    # Fallback: serve SVG (better than nothing)
+    return _OG_SVG, 200, {"Content-Type": "image/svg+xml", "Cache-Control": "public, max-age=86400"}
 
 
 @admin_bp.route("/favicon.svg")

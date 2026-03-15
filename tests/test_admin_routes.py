@@ -755,8 +755,12 @@ class TestStaticAssets:
     def test_og_image(self, client):
         r = client.get("/og-image.png")
         assert r.status_code == 200
-        assert "svg" in r.content_type
-        assert b"AiPayGen" in r.data
+        # Accepts PNG (preferred) or SVG fallback
+        assert "image/png" in r.content_type or "image/svg+xml" in r.content_type
+        if "image/png" in r.content_type:
+            assert r.data[:4] == b"\x89PNG"
+        else:
+            assert b"AiPayGen" in r.data
 
     def test_favicon_svg(self, client):
         r = client.get("/favicon.svg")

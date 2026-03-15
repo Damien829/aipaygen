@@ -604,6 +604,18 @@ def status_page():
     except Exception:
         pass
 
+    # --- Response time stats (last hour) ---
+    try:
+        from app import get_response_time_stats, get_endpoint_response_times
+        rt_stats = get_response_time_stats(3600)
+        rt_endpoints = get_endpoint_response_times(3600, top_n=10)
+    except Exception:
+        rt_stats = {"avg_ms": 0, "p50_ms": 0, "p95_ms": 0, "p99_ms": 0, "count": 0}
+        rt_endpoints = []
+
+    rt_avg = rt_stats["avg_ms"]
+    rt_p95 = rt_stats["p95_ms"]
+
     # --- Build HTML ---
     def _dot(status):
         colors = {"healthy": "#00ff9d", "degraded": "#ffb800", "down": "#ff4444"}
@@ -615,6 +627,40 @@ def status_page():
         colors = {"healthy": "#00ff9d", "degraded": "#ffb800", "down": "#ff4444"}
         c = colors.get(status, "#666")
         return f'<span style="color:{c};font-weight:600;text-transform:uppercase;font-size:0.85rem">{status}</span>'
+
+    def _speed_color(ms):
+        if ms < 100:
+            return "#00ff9d"
+        if ms < 500:
+            return "#00d4ff"
+        if ms < 2000:
+            return "#ffb800"
+        return "#ff4444"
+
+    def _build_endpoint_speed_rows(endpoints):
+        if not endpoints:
+            return '<p style="color:#8b949e;font-size:0.85rem">No requests tracked yet. Data appears after the first API calls.</p>'
+        rows = ""
+        for ep in endpoints:
+            c = _speed_color(ep["avg_ms"])
+            bar_width = min(ep["avg_ms"] / 30, 100)  # scale: 3000ms = 100%
+            rows += f'''
+            <tr>
+              <td style="padding:8px 16px;border-bottom:1px solid rgba(255,255,255,0.06);font-family:'IBM Plex Mono',monospace;font-size:0.85rem">{ep["endpoint"]}</td>
+              <td style="padding:8px 16px;border-bottom:1px solid rgba(255,255,255,0.06)">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <div style="width:120px;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden">
+                    <div style="width:{bar_width}%;height:100%;background:{c};border-radius:3px"></div>
+                  </div>
+                  <span style="color:{c};font-family:'IBM Plex Mono',monospace;font-size:0.85rem;font-weight:600">{ep["avg_ms"]}ms</span>
+                </div>
+              </td>
+              <td style="padding:8px 16px;border-bottom:1px solid rgba(255,255,255,0.06);color:#8b949e;font-size:0.85rem">{ep["calls"]:,} calls</td>
+            </tr>'''
+        return f'''<table>
+          <tr><th>Endpoint</th><th>Avg Response Time</th><th>Calls (1h)</th></tr>
+          {rows}
+        </table>'''
 
     comp_rows = ""
     for key in ["api", "mcp"]:
@@ -691,7 +737,15 @@ def status_page():
     </div>
     <div class="stat-box">
       <div class="stat-val">{api_latency}ms</div>
-      <div class="stat-label">API Latency</div>
+      <div class="stat-label">API Latency (now)</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val">{rt_avg}ms</div>
+      <div class="stat-label">Avg Response (1h)</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val">{rt_p95}ms</div>
+      <div class="stat-label">P95 Response (1h)</div>
     </div>
   </div>
 
@@ -709,6 +763,18 @@ def status_page():
       <tr><th>Provider</th><th>Status</th></tr>
       {provider_rows}
     </table>
+  </div>
+
+  <div class="card">
+    <h2>API Response Times <span style="font-size:0.7rem;color:#8b949e;font-weight:400">(last hour)</span></h2>
+    <div class="stat-grid" style="margin-bottom:16px">
+      <div class="stat-box"><div class="stat-val" style="font-size:1.3rem">{rt_stats["avg_ms"]}ms</div><div class="stat-label">Average</div></div>
+      <div class="stat-box"><div class="stat-val" style="font-size:1.3rem">{rt_stats["p50_ms"]}ms</div><div class="stat-label">Median (P50)</div></div>
+      <div class="stat-box"><div class="stat-val" style="font-size:1.3rem">{rt_stats["p95_ms"]}ms</div><div class="stat-label">P95</div></div>
+      <div class="stat-box"><div class="stat-val" style="font-size:1.3rem">{rt_stats["p99_ms"]}ms</div><div class="stat-label">P99</div></div>
+      <div class="stat-box"><div class="stat-val" style="font-size:1.3rem">{rt_stats["count"]:,}</div><div class="stat-label">Requests Tracked</div></div>
+    </div>
+    {_build_endpoint_speed_rows(rt_endpoints)}
   </div>
 
   <p class="updated">Auto-refreshes every 60 seconds &middot; Last checked: {datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")} UTC</p>

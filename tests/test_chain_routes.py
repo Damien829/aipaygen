@@ -46,10 +46,10 @@ class TestChainEndpoint:
         assert r.status_code == 400
 
     def test_too_many_steps_returns_400(self, client):
-        steps = [{"action": "research", "params": {"query": f"q{i}"}} for i in range(6)]
+        steps = [{"action": "research", "params": {"query": f"q{i}"}} for i in range(11)]
         r = client.post("/chain", json={"steps": steps}, headers=AUTH)
         assert r.status_code == 400
-        assert "maximum 5" in r.get_json()["error"]
+        assert "maximum 10" in r.get_json()["error"]
 
     def test_unknown_action_returns_400(self, client):
         r = client.post("/chain",
@@ -70,7 +70,7 @@ class TestChainEndpoint:
         data = r.get_json()
         assert data["steps_completed"] == 1
         assert len(data["chain"]) == 1
-        assert data["chain"][0]["action"] == "research"
+        assert data["chain"][0]["tool"] == "research"
         assert data["final_result"] is not None
 
     @patch("routes.agent._get_chain_handlers")
@@ -108,3 +108,54 @@ class TestChainEndpoint:
         ]}, headers=AUTH)
         assert r.status_code == 200
         assert "FIRST_STEP_OUTPUT" in captured_params.get("text", "")
+
+    @patch("routes.agent._get_chain_handlers")
+    @patch("routes.agent.log_payment")
+    def test_modern_tool_input_format(self, mock_log, mock_handlers, client):
+        """Modern format uses 'tool' and 'input' instead of 'action' and 'params'."""
+        mock_handlers.return_value = {"research": _mock_handler}
+        r = client.post("/chain",
+                        json={"steps": [{"tool": "research", "input": {"query": "AI"}}]},
+                        headers=AUTH)
+        assert r.status_code == 200
+        data = r.get_json()
+        assert data["steps_completed"] == 1
+        assert data["chain"][0]["tool"] == "research"
+
+    @patch("routes.agent._get_chain_handlers")
+    @patch("routes.agent.log_payment")
+    def test_dollar_prev_result_substitution(self, mock_log, mock_handlers, client):
+        """$prev.result syntax resolves to previous step output."""
+        captured = {}
+
+        def capture_translate(params):
+            captured.update(params)
+            return {"result": "translated"}
+
+        mock_handlers.return_value = {
+            "summarize": lambda p: {"result": "SUMMARY_OUTPUT"},
+            "translate": capture_translate,
+        }
+        r = client.post("/chain", json={"steps": [
+            {"tool": "summarize", "input": {"text": "some long text"}},
+            {"tool": "translate", "input": {"text": "$prev.result", "target": "es"}},
+        ]}, headers=AUTH)
+        assert r.status_code == 200
+        assert "SUMMARY_OUTPUT" in captured.get("text", "")
+
+    @patch("routes.agent._get_chain_handlers")
+    @patch("routes.agent.log_payment")
+    def test_chain_returns_timing(self, mock_log, mock_handlers, client):
+        """Chain response includes per-step and total timing."""
+        mock_handlers.return_value = {"research": _mock_handler}
+        # Clear rate limit caches to avoid 429
+        from helpers import _endpoint_rate, _ip_rate
+        _endpoint_rate.clear()
+        _ip_rate.clear()
+        r = client.post("/chain",
+                        json={"steps": [{"tool": "research", "input": {"query": "AI"}}]},
+                        headers=AUTH)
+        assert r.status_code == 200
+        data = r.get_json()
+        assert "total_time_ms" in data
+        assert "time_ms" in data["chain"][0]

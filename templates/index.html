@@ -377,12 +377,78 @@ function updateCalc(){var s=document.getElementById('calc-slider'),n=parseInt(s.
   </div>
 </section>
 
+<!-- One-Click Install -->
+<section class="section fade-in" id="install">
+  <div class="section-title text-center" style="max-width:none">Add to Claude Code in one command</div>
+  <div class="section-subtitle text-center" style="max-width:none;margin:0 auto 40px">Start using all 244 tools immediately. No API key needed for 10 free calls/day.</div>
+
+  <div style="max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:20px">
+    <!-- Claude Code remote MCP (recommended) -->
+    <div class="card" style="position:relative;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span class="badge" style="background:var(--accent);color:#000;font-weight:700">Recommended</span>
+        <span style="font-family:var(--font-mono);font-weight:600">Claude Code (Remote MCP)</span>
+      </div>
+      <div class="code-block" style="position:relative">
+        <pre style="margin:0;overflow-x:auto"><code id="installCmd1" class="language-bash">claude mcp add aipaygen -- npx -y @anthropic-ai/mcp-proxy https://mcp.aipaygen.com/mcp</code></pre>
+        <button class="copy-btn" onclick="copyInstall('installCmd1', this)" style="position:absolute;top:8px;right:8px">Copy</button>
+      </div>
+      <p style="color:var(--text-muted);font-size:var(--text-xs);margin-top:8px">Zero install. Connects to the hosted MCP server. Works with Claude Code, Cursor, Windsurf, and any MCP client.</p>
+    </div>
+
+    <!-- pip install -->
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="font-family:var(--font-mono);font-weight:600">pip install (local MCP server)</span>
+      </div>
+      <div class="code-block" style="position:relative">
+        <pre style="margin:0;overflow-x:auto"><code id="installCmd2" class="language-bash">pip install aipaygen-mcp</code></pre>
+        <button class="copy-btn" onclick="copyInstall('installCmd2', this)" style="position:absolute;top:8px;right:8px">Copy</button>
+      </div>
+      <p style="color:var(--text-muted);font-size:var(--text-xs);margin-top:8px">Run locally with <code style="color:var(--accent2);background:rgba(0,212,255,0.08);padding:1px 6px;border-radius:3px">python -m aipaygen_mcp</code>. Published on <a href="https://pypi.org/project/aipaygen-mcp/" target="_blank">PyPI</a>.</p>
+    </div>
+
+    <!-- REST API -->
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span style="font-family:var(--font-mono);font-weight:600">REST API (curl / any language)</span>
+      </div>
+      <div class="code-block" style="position:relative">
+        <pre style="margin:0;overflow-x:auto"><code id="installCmd3" class="language-bash">curl -X POST https://aipaygen.com/research \
+  -H "Content-Type: application/json" \
+  -d '{"query": "x402 payment protocol"}'</code></pre>
+        <button class="copy-btn" onclick="copyInstall('installCmd3', this)" style="position:absolute;top:8px;right:8px">Copy</button>
+      </div>
+      <p style="color:var(--text-muted);font-size:var(--text-xs);margin-top:8px">Plain HTTP. Works from any language, any framework. No SDK needed.</p>
+    </div>
+
+    <!-- Tool Chaining -->
+    <div class="card" style="border-color:var(--accent-dim)">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <span class="badge badge-cyan">New</span>
+        <span style="font-family:var(--font-mono);font-weight:600">Multi-Step Tool Chains</span>
+      </div>
+      <div class="code-block" style="position:relative">
+        <pre style="margin:0;overflow-x:auto"><code id="installCmd4" class="language-json">{
+  "steps": [
+    {"tool": "scrape_website", "input": {"url": "https://example.com"}},
+    {"tool": "summarize", "input": {"text": "$prev.result"}},
+    {"tool": "translate", "input": {"text": "$prev.result", "target": "es"}}
+  ]
+}</code></pre>
+        <button class="copy-btn" onclick="copyInstall('installCmd4', this)" style="position:absolute;top:8px;right:8px">Copy</button>
+      </div>
+      <p style="color:var(--text-muted);font-size:var(--text-xs);margin-top:8px">Chain up to 10 AI tools in one API call. <code style="color:var(--accent2);background:rgba(0,212,255,0.08);padding:1px 6px;border-radius:3px">$prev.result</code> pipes output between steps. POST to <a href="/chain">/chain</a>.</p>
+    </div>
+  </div>
+</section>
+
 <!-- CTA -->
 <section class="cta-section fade-in">
   <div class="section-title" style="margin-bottom:16px">Start building in 30 seconds</div>
   <p class="text-muted mb-4">Install the MCP server and start calling tools from Claude Code, Cursor, or any MCP client.</p>
   <div class="cta-install" id="ctaCopy">
-    <code>pip install aipaygen-mcp &amp;&amp; claude mcp add aipaygen -- python -m aipaygen_mcp</code>
+    <code>claude mcp add aipaygen -- npx -y @anthropic-ai/mcp-proxy https://mcp.aipaygen.com/mcp</code>
     <span style="color:var(--text-muted);font-size:var(--text-xs)">Copy</span>
   </div>
 </section>
@@ -435,9 +501,20 @@ function submitNewsletter(e) {
 
 // CTA copy
 document.getElementById('ctaCopy').addEventListener('click', function() {
-  var text = 'pip install aipaygen-mcp && claude mcp add aipaygen -- python -m aipaygen_mcp';
+  var text = 'claude mcp add aipaygen -- npx -y @anthropic-ai/mcp-proxy https://mcp.aipaygen.com/mcp';
   navigator.clipboard.writeText(text).then(function(){ showToast('Copied to clipboard!'); });
 });
+
+// Install section copy buttons
+function copyInstall(id, btn) {
+  var el = document.getElementById(id);
+  var text = el.textContent;
+  navigator.clipboard.writeText(text).then(function(){
+    btn.textContent = 'Copied!';
+    setTimeout(function(){ btn.textContent = 'Copy'; }, 2000);
+    if (typeof showToast === 'function') showToast('Copied to clipboard!');
+  });
+}
 
 // Terminal typewriter demo
 (function() {

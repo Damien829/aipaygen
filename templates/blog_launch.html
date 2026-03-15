@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Why I Built AiPayGen: 244 AI Tools for the Price of One API Call{% endblock %}
+{% block description %}The problem with AI APIs: every provider needs a separate key, a separate billing account, and charges $20/month whether you use it or not. I built a single API with 244 tools that charges per call.{% endblock %}
+{% block canonical %}/blog/launch{% endblock %}
+
+{% block head %}
+<meta property="og:type" content="article">
+<meta property="og:title" content="Why I Built AiPayGen: 244 AI Tools for the Price of One API Call">
+<meta property="og:description" content="One API, 244 tools, 15 models. Pay $0.006 per call instead of $20/month per provider.">
+<meta property="og:url" content="https://aipaygen.com/blog/launch">
+<meta property="og:image" content="https://aipaygen.com/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Why I Built AiPayGen: 244 AI Tools for the Price of One API Call">
+<meta name="twitter:description" content="One API, 244 tools, 15 models. Pay $0.006 per call instead of $20/month per provider.">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "Why I Built AiPayGen: 244 AI Tools for the Price of One API Call",
+  "description": "The problem with AI APIs and how pay-per-call changes everything.",
+  "url": "https://aipaygen.com/blog/launch",
+  "datePublished": "2026-03-15",
+  "author": {"@type": "Person", "name": "Damien"},
+  "publisher": {"@type": "Organization", "name": "AiPayGen", "url": "https://aipaygen.com"}
+}
+</script>
+<style>
+  .blog-post { max-width: 740px; margin: 0 auto; padding: 3rem 1.5rem; }
+  .blog-post h1 { font-family: 'IBM Plex Sans', sans-serif; font-size: 2.2rem; font-weight: 700; color: #fff; line-height: 1.25; margin-bottom: 0.5rem; }
+  .blog-meta { color: var(--text-muted, #4a6070); font-size: 0.85rem; margin-bottom: 2.5rem; }
+  .blog-post h2 { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.4rem; color: #fff; margin: 2.5rem 0 1rem; }
+  .blog-post h3 { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.1rem; color: var(--green, #00ff9d); margin: 2rem 0 0.75rem; }
+  .blog-post p { line-height: 1.75; margin-bottom: 1.25rem; color: var(--text, #c8d8e8); }
+  .blog-post ul, .blog-post ol { margin: 1rem 0 1.5rem 1.5rem; line-height: 1.75; color: var(--text, #c8d8e8); }
+  .blog-post li { margin-bottom: 0.5rem; }
+  .blog-post a { color: var(--green, #00ff9d); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+  .blog-post a:hover { border-bottom-color: var(--green, #00ff9d); }
+  .blog-post code { background: rgba(0,136,255,0.1); padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+  .blog-post pre { background: var(--bg2, #070d14); border: 1px solid var(--border, #0d2030); border-radius: 8px; padding: 1.25rem; overflow-x: auto; margin: 1.25rem 0; }
+  .blog-post pre code { background: none; padding: 0; }
+  .blog-callout { background: rgba(0,255,157,0.05); border: 1px solid rgba(0,255,157,0.15); border-radius: 8px; padding: 1.25rem 1.5rem; margin: 2rem 0; }
+  .blog-callout strong { color: var(--green, #00ff9d); }
+  .blog-cta { display: inline-block; background: var(--green, #00ff9d); color: #020408; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; border: none; margin: 0.5rem 0.5rem 0.5rem 0; transition: opacity 0.2s; }
+  .blog-cta:hover { opacity: 0.85; border-bottom: none; }
+  .blog-cta-secondary { display: inline-block; border: 1px solid var(--green, #00ff9d); color: var(--green, #00ff9d); font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; margin: 0.5rem 0.5rem 0.5rem 0; transition: background 0.2s; }
+  .blog-cta-secondary:hover { background: rgba(0,255,157,0.1); border-bottom: none; }
+  .blog-nav { color: var(--text-muted, #4a6070); font-size: 0.9rem; margin-bottom: 2rem; }
+  .blog-nav a { color: var(--text-muted, #4a6070); }
+  .blog-nav a:hover { color: var(--green, #00ff9d); }
+  .price-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
+  .price-compare div { background: var(--bg2, #070d14); border: 1px solid var(--border, #0d2030); border-radius: 8px; padding: 1rem 1.25rem; }
+  .price-compare .label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted, #4a6070); margin-bottom: 0.25rem; }
+  .price-compare .amount { font-size: 1.5rem; font-weight: 700; }
+  .price-compare .old .amount { color: #ff4444; }
+  .price-compare .new .amount { color: var(--green, #00ff9d); }
+  @media (max-width: 600px) {
+    .blog-post h1 { font-size: 1.6rem; }
+    .price-compare { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<article class="blog-post">
+  <div class="blog-nav">
+    <a href="/blog">&larr; All posts</a> &middot; <a href="/">AiPayGen</a>
+  </div>
+
+  <h1>Why I Built AiPayGen: 244 AI Tools for the Price of One API Call</h1>
+  <p class="blog-meta">March 15, 2026 &middot; 5 min read</p>
+
+  <h2>The problem nobody talks about</h2>
+
+  <p>If you build anything with AI, you know the drill. You need an OpenAI key for text generation. A separate Anthropic key for Claude. Google for Gemini. An Apify account for web scraping. A geocoding service. A sentiment analysis tool. Each one has its own dashboard, its own billing, its own SDK.</p>
+
+  <p>And every single one charges you a monthly minimum whether you use it or not.</p>
+
+  <p>I was spending $60/month across four providers and using maybe 2% of my quota. For side projects and prototypes, this is absurd. For AI agents that need to call tools dynamically, it's even worse — you can't predict which tools they'll need, so you end up subscribing to everything "just in case."</p>
+
+  <h2>What if you could pay per call?</h2>
+
+  <p>That's the core idea behind AiPayGen. One API endpoint, 244 tools, 15 AI models from 7 providers. You pay only when you make a call. No monthly fees. No unused quotas expiring at the end of the month.</p>
+
+  <div class="price-compare">
+    <div class="old">
+      <div class="label">Direct API call</div>
+      <div class="amount">~$0.03</div>
+      <div style="font-size:0.85rem;color:var(--text-muted)">+ monthly subscription</div>
+    </div>
+    <div class="new">
+      <div class="label">Via AiPayGen</div>
+      <div class="amount">~$0.006</div>
+      <div style="font-size:0.85rem;color:var(--text-muted)">Pay only what you use</div>
+    </div>
+  </div>
+
+  <p>The cost savings come from model routing. Not every request needs GPT-4o. A simple summarization task works fine with a smaller model. AiPayGen automatically picks the best model for the job — and passes the savings to you.</p>
+
+  <h2>244 tools, not 244 model proxies</h2>
+
+  <p>This isn't another OpenRouter. AiPayGen doesn't just forward your prompt to a model. Each of the 244 tools is purpose-built:</p>
+
+  <ul>
+    <li><strong>AI tools</strong> (40+) — research, write, summarize, translate, code, analyze, sentiment, classify, compare, debate, proofread, rewrite, vision, RAG, diagrams</li>
+    <li><strong>Web scraping</strong> (6) — Google Maps, Twitter/X, Instagram, TikTok, YouTube, any website</li>
+    <li><strong>Utility APIs</strong> (43) — geocoding, WHOIS, SSL certs, security audits, stock data, forex, PDF extraction, JSON/CSV transforms, ENS resolution</li>
+    <li><strong>Agent infrastructure</strong> — persistent memory, agent messaging, knowledge base, 4183 API catalog, 2439 skills</li>
+    <li><strong>Data feeds</strong> (free) — weather, crypto prices, exchange rates, time, jokes, quotes</li>
+    <li><strong>Seller marketplace</strong> — register your own APIs, set prices, get paid via escrow</li>
+  </ul>
+
+  <p>You can chain these together in workflows. Research a topic, summarize the findings, translate to Spanish, and generate a social media post — all in one API call with a 15% discount on the chain.</p>
+
+  <h2>How it works under the hood</h2>
+
+  <p>The architecture is deliberately simple:</p>
+
+  <ul>
+    <li><strong>Flask + Gunicorn</strong> serving the API (gthread workers for concurrency)</li>
+    <li><strong>SQLite in WAL mode</strong> for all persistence — agents, skills, API catalog, usage tracking. No Postgres, no Redis, no external dependencies.</li>
+    <li><strong>Cloudflare tunnel</strong> for TLS termination and DDoS protection</li>
+    <li><strong>Oracle Cloud</strong> for hosting (started on a Raspberry Pi 5, migrated for uptime)</li>
+    <li><strong>15 AI models</strong> from 7 providers, auto-routed by task type and complexity</li>
+    <li><strong>x402 protocol</strong> for crypto payments — USDC on Base, Solana, or Stellar. The payment travels with the HTTP request, so AI agents can pay for API calls autonomously.</li>
+  </ul>
+
+  <p>The whole thing started on a Raspberry Pi 5 in my apartment. An $80 board serving 292 agents and 4183 APIs. I migrated to Oracle Cloud when I needed better uptime, but the Pi could still handle the traffic.</p>
+
+  <h2>Get started in 30 seconds</h2>
+
+  <h3>Option 1: Try it in the browser</h3>
+
+  <p>The <a href="/try">/try page</a> lets you test any tool without signing up or installing anything. Just pick a tool, enter your input, and see the result.</p>
+
+  <h3>Option 2: curl</h3>
+
+  <pre><code class="language-bash"># Free — no key needed
+curl "https://api.aipaygen.com/data/weather?city=Tokyo"
+
+# AI tool — uses free tier (10 calls/day)
+curl -X POST "https://api.aipaygen.com/summarize" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Paste any long text here", "length": "short"}'
+
+# With API key — unlimited calls
+curl -X POST "https://api.aipaygen.com/research" \
+  -H "x-api-key: apk_your_key" \
+  -H "Content-Type: application/json" \
+  -d '{"topic": "best practices for AI agent architectures"}'</code></pre>
+
+  <h3>Option 3: MCP (for Claude Code / Cursor / Cline)</h3>
+
+  <pre><code class="language-bash">pip install aipaygen-mcp
+claude mcp add aipaygen -- aipaygen-mcp</code></pre>
+
+  <p>That's it. All 244 tools are now available in your AI coding assistant.</p>
+
+  <div class="blog-callout">
+    <strong>Free tier:</strong> 10 calls per day, no API key needed, no credit card required.<br>
+    <strong>Paid:</strong> Load credits from $1 via Stripe. AI calls ~$0.006, utilities ~$0.002, scraping ~$0.01.<br>
+    <strong>Crypto:</strong> Pay per call in USDC via x402 on Base, Solana, or Stellar.
+  </div>
+
+  <h2>What's next</h2>
+
+  <p>AiPayGen is live and serving requests today. The roadmap includes more tools, better model routing, and growing the seller marketplace where anyone can register their API and get paid per call.</p>
+
+  <p>If you build with AI — whether it's agents, automations, or just the occasional API call — I'd genuinely appreciate you trying it out and telling me what's missing.</p>
+
+  <div style="margin: 2.5rem 0;">
+    <a href="/try" class="blog-cta">Try Free — No Signup</a>
+    <a href="/pricing" class="blog-cta-secondary">View Pricing</a>
+    <a href="/buy-credits" class="blog-cta-secondary">Get API Key ($1)</a>
+  </div>
+
+  <p style="color:var(--text-muted);font-size:0.85rem;">Published March 15, 2026. AiPayGen is an independent project by a solo developer. Questions or feedback? Reach out via the <a href="/playground">API Playground</a> or <a href="https://github.com/Damien829/aipaygen">GitHub</a>.</p>
+</article>
+{% endblock %}

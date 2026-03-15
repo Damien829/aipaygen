@@ -998,6 +998,65 @@ init_scheduler(
 # agent_response now in helpers.py (imported at top)
 
 
+# ── Response time tracking ──────────────────────────────────────────────────────
+import collections as _collections
+
+# Ring buffer: stores (timestamp, endpoint, response_time_ms) for last hour
+_response_times = _collections.deque(maxlen=5000)
+
+@app.before_request
+def _start_timer():
+    request._start_time = _time.time()
+
+@app.after_request
+def _record_response_time(response):
+    start = getattr(request, '_start_time', None)
+    if start is not None:
+        elapsed_ms = round((_time.time() - start) * 1000, 1)
+        # Only track API endpoints (skip static, health)
+        path = request.path
+        if path not in ("/health", "/favicon.ico") and not path.startswith("/static"):
+            _response_times.append((_time.time(), path, elapsed_ms))
+    return response
+
+
+def get_response_time_stats(window_seconds=3600):
+    """Return response time stats for the given window. Used by /status page."""
+    cutoff = _time.time() - window_seconds
+    times = [ms for ts, _, ms in _response_times if ts >= cutoff]
+    if not times:
+        return {"avg_ms": 0, "p50_ms": 0, "p95_ms": 0, "p99_ms": 0, "count": 0}
+    times.sort()
+    n = len(times)
+    return {
+        "avg_ms": round(sum(times) / n, 1),
+        "p50_ms": round(times[n // 2], 1),
+        "p95_ms": round(times[int(n * 0.95)], 1),
+        "p99_ms": round(times[int(n * 0.99)], 1),
+        "count": n,
+    }
+
+
+def get_endpoint_response_times(window_seconds=3600, top_n=10):
+    """Return per-endpoint average response times. Used by /status page."""
+    cutoff = _time.time() - window_seconds
+    by_endpoint = {}
+    for ts, path, ms in _response_times:
+        if ts >= cutoff:
+            if path not in by_endpoint:
+                by_endpoint[path] = []
+            by_endpoint[path].append(ms)
+    result = []
+    for path, times in by_endpoint.items():
+        result.append({
+            "endpoint": path,
+            "avg_ms": round(sum(times) / len(times), 1),
+            "calls": len(times),
+        })
+    result.sort(key=lambda x: x["calls"], reverse=True)
+    return result[:top_n]
+
+
 @app.before_request
 def track_referral():
     ref = request.args.get("ref", request.headers.get("X-Referred-By", "")).strip()
