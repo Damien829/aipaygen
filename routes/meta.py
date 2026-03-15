@@ -15,6 +15,24 @@ from funnel_tracker import log_event as funnel_log_event
 
 logger = logging.getLogger(__name__)
 
+import sqlite3 as _sqlite3
+
+_tool_usage_db = os.path.join(os.path.dirname(os.path.dirname(__file__)), "tool_usage.db")
+
+def _get_popular_tools(limit=10):
+    """Return top tools by total call count from tool_usage.db."""
+    try:
+        with _sqlite3.connect(_tool_usage_db) as conn:
+            conn.row_factory = _sqlite3.Row
+            rows = conn.execute(
+                """SELECT tool_name, SUM(count) as total_calls, MAX(last_used) as last_used
+                   FROM tool_usage GROUP BY tool_name ORDER BY total_calls DESC LIMIT ?""",
+                (limit,),
+            ).fetchall()
+        return [{"tool": r["tool_name"], "calls": r["total_calls"], "last_used": r["last_used"]} for r in rows]
+    except Exception:
+        return []
+
 WALLET_ADDRESS = os.getenv("WALLET_ADDRESS", "0x366D488a48de1B2773F3a21F1A6972715056Cb30")
 EVM_NETWORK = os.getenv("EVM_NETWORK", "eip155:8453")
 
@@ -53,7 +71,9 @@ NAV_HTML = '''
       <a href="/sdk" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">SDK</a>
       <a href="/security" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Security</a>
       <a href="/changelog" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Changelog</a>
+      <a href="/status" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Status</a>
       <a href="/try" style="color:#00ff9d;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600">Try Free</a>
+      <a href="/playground" style="color:#00d4ff;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600">Playground</a>
       <a href="/buy-credits" style="color:#000;text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:700;background:linear-gradient(135deg,#00ff9d,#00d4ff);padding:7px 16px;border-radius:4px;margin-left:8px;letter-spacing:0.03em;transition:all .2s;box-shadow:0 0 12px rgba(0,255,157,0.2)">GET API KEY</a>
     </div>
   </div>
@@ -70,9 +90,11 @@ FOOTER_HTML = '''
       <a href="/discover" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Discover</a>
       <a href="/docs" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Docs</a>
       <a href="/pricing" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Pricing</a>
+      <a href="/playground" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Playground</a>
       <a href="/llms.txt" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">llms.txt</a>
       <a href="/.well-known/agent.json" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">agent.json</a>
       <a href="/health" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Health</a>
+      <a href="/status" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Status</a>
     </div>
     <div style="color:#4a5568;font-size:0.8rem;font-family:'IBM Plex Mono',monospace">
       Powered by x402 &middot; USDC on Base &middot; Built for autonomous agents
@@ -472,7 +494,218 @@ def health():
     return jsonify(result), code
 
 
+@meta_bp.route("/status")
+def status_page():
+    """Public status page — HTML dashboard with system health."""
+    import sqlite3 as _sq
+    from datetime import timedelta
+
+    start = _time.time()
+    overall = "healthy"
+    components = {}
+
+    # --- API health ---
+    try:
+        r = _requests.get("http://127.0.0.1:5001/health", timeout=5)
+        health_data = r.json()
+        api_ok = r.status_code == 200
+        components["api"] = {
+            "name": "API Server",
+            "status": "healthy" if api_ok else "degraded",
+            "detail": health_data.get("status", "unknown"),
+        }
+        uptime_s = health_data.get("checks", {}).get("uptime_seconds", 0)
+        if uptime_s:
+            days = int(uptime_s // 86400)
+            hours = int((uptime_s % 86400) // 3600)
+            mins = int((uptime_s % 3600) // 60)
+            components["api"]["uptime"] = f"{days}d {hours}h {mins}m"
+        if not api_ok:
+            overall = "degraded"
+    except Exception:
+        components["api"] = {"name": "API Server", "status": "down", "detail": "unreachable"}
+        overall = "down"
+
+    api_latency = round((_time.time() - start) * 1000, 1)
+
+    # --- MCP server ---
+    try:
+        mr = _requests.get("http://127.0.0.1:5002/", timeout=3)
+        mcp_ok = mr.status_code < 500
+        components["mcp"] = {
+            "name": "MCP Server",
+            "status": "healthy" if mcp_ok else "degraded",
+            "detail": f"HTTP {mr.status_code}",
+        }
+        if not mcp_ok:
+            overall = "degraded"
+    except Exception:
+        components["mcp"] = {"name": "MCP Server", "status": "down", "detail": "not running"}
+        if overall == "healthy":
+            overall = "degraded"
+
+    # --- Model providers ---
+    from model_router import _circuit_state
+    providers_list = ["anthropic", "openai", "google", "deepseek", "together", "xai", "mistral"]
+    provider_status = {}
+    for p in providers_list:
+        cb = _circuit_state.get(p, {})
+        if cb.get("opened_at"):
+            provider_status[p] = "down"
+            if overall == "healthy":
+                overall = "degraded"
+        elif cb.get("failures", 0) > 0:
+            provider_status[p] = "degraded"
+        else:
+            provider_status[p] = "healthy"
+
+    # --- Funnel stats (last 24h) ---
+    total_requests = 0
+    unique_ips = 0
+    count_402 = 0
+    try:
+        _project_root = os.path.dirname(os.path.dirname(__file__))
+        fdb = os.path.join(_project_root, "funnel.db")
+        cutoff = (datetime.utcnow() - timedelta(days=1)).isoformat()
+        c = _sq.connect(fdb, timeout=2)
+        c.row_factory = _sq.Row
+        total_requests = c.execute(
+            "SELECT COUNT(*) FROM funnel_events WHERE created_at >= ?", (cutoff,)
+        ).fetchone()[0]
+        unique_ips = c.execute(
+            "SELECT COUNT(DISTINCT ip) FROM funnel_events WHERE created_at >= ?", (cutoff,)
+        ).fetchone()[0]
+        count_402 = c.execute(
+            "SELECT COUNT(*) FROM funnel_events WHERE event_type = '402_shown' AND created_at >= ?", (cutoff,)
+        ).fetchone()[0]
+        c.close()
+    except Exception:
+        pass
+
+    # --- Build HTML ---
+    def _dot(status):
+        colors = {"healthy": "#00ff9d", "degraded": "#ffb800", "down": "#ff4444"}
+        c = colors.get(status, "#666")
+        shadow = f"0 0 8px {c}"
+        return f'<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:{c};box-shadow:{shadow};margin-right:8px"></span>'
+
+    def _badge(status):
+        colors = {"healthy": "#00ff9d", "degraded": "#ffb800", "down": "#ff4444"}
+        c = colors.get(status, "#666")
+        return f'<span style="color:{c};font-weight:600;text-transform:uppercase;font-size:0.85rem">{status}</span>'
+
+    comp_rows = ""
+    for key in ["api", "mcp"]:
+        comp = components.get(key, {})
+        name = comp.get("name", key)
+        st = comp.get("status", "unknown")
+        detail = comp.get("detail", "")
+        uptime = comp.get("uptime", "")
+        extra = f' &mdash; uptime: {uptime}' if uptime else ""
+        comp_rows += f'''
+        <tr>
+          <td style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.06)">{_dot(st)}{name}</td>
+          <td style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.06)">{_badge(st)}</td>
+          <td style="padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.06);color:#8b949e">{detail}{extra}</td>
+        </tr>'''
+
+    provider_rows = ""
+    for p in providers_list:
+        st = provider_status[p]
+        provider_rows += f'''
+        <tr>
+          <td style="padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.06)">{_dot(st)}{p.capitalize()}</td>
+          <td style="padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.06)">{_badge(st)}</td>
+        </tr>'''
+
+    overall_color = {"healthy": "#00ff9d", "degraded": "#ffb800", "down": "#ff4444"}.get(overall, "#666")
+
+    html = f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="refresh" content="60">
+  <title>AiPayGen Status</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *{{margin:0;padding:0;box-sizing:border-box}}
+    body{{background:#020408;color:#e6edf3;font-family:'IBM Plex Sans',sans-serif;min-height:100vh}}
+    a{{color:#00d4ff;text-decoration:none}}
+    .container{{max-width:900px;margin:0 auto;padding:100px 24px 60px}}
+    .card{{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:28px;margin-bottom:24px}}
+    table{{width:100%;border-collapse:collapse}}
+    th{{text-align:left;padding:10px 16px;color:#8b949e;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid rgba(255,255,255,0.1)}}
+    h1{{font-family:'IBM Plex Mono',monospace;font-size:1.6rem;margin-bottom:8px}}
+    h2{{font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:#8b949e;margin-bottom:16px}}
+    .stat-grid{{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:24px}}
+    .stat-box{{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:20px;text-align:center}}
+    .stat-val{{font-family:'IBM Plex Mono',monospace;font-size:1.8rem;font-weight:700;color:#00ff9d}}
+    .stat-label{{color:#8b949e;font-size:0.8rem;margin-top:4px}}
+    .updated{{color:#4a5568;font-size:0.75rem;text-align:center;margin-top:24px}}
+  </style>
+</head>
+<body>
+{NAV_HTML}
+<div class="container">
+  <div style="text-align:center;margin-bottom:40px">
+    <h1>{_dot(overall)} All Systems <span style="color:{overall_color}">{overall.capitalize()}</span></h1>
+    <p style="color:#8b949e;font-size:0.9rem;margin-top:8px">API response time: {api_latency}ms</p>
+  </div>
+
+  <div class="stat-grid">
+    <div class="stat-box">
+      <div class="stat-val">{total_requests:,}</div>
+      <div class="stat-label">Requests (24h)</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val">{unique_ips:,}</div>
+      <div class="stat-label">Unique IPs (24h)</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val">{count_402:,}</div>
+      <div class="stat-label">402s Shown (24h)</div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-val">{api_latency}ms</div>
+      <div class="stat-label">API Latency</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Core Services</h2>
+    <table>
+      <tr><th>Service</th><th>Status</th><th>Details</th></tr>
+      {comp_rows}
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>Model Providers</h2>
+    <table>
+      <tr><th>Provider</th><th>Status</th></tr>
+      {provider_rows}
+    </table>
+  </div>
+
+  <p class="updated">Auto-refreshes every 60 seconds &middot; Last checked: {datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")} UTC</p>
+</div>
+{FOOTER_HTML}
+</body>
+</html>'''
+
+    return html, 200, {"Content-Type": "text/html"}
+
+
 _stats_cache = {"data": None, "ts": 0}
+
+
+@meta_bp.route("/popular")
+def popular_tools():
+    """Public endpoint — top 10 most-used tools with call counts."""
+    tools = _get_popular_tools(10)
+    return jsonify({"popular": tools, "count": len(tools)})
 
 
 @meta_bp.route("/api/stats")
@@ -666,6 +899,10 @@ def robots_txt():
         "Allow: /sell\n"
         "Allow: /pricing\n"
         "Allow: /docs/api\n"
+        "Allow: /try\n"
+        "Allow: /builder\n"
+        "Allow: /sdk\n"
+        "Allow: /blog\n"
         "Allow: /llms.txt\n"
         "Allow: /security\n"
         "Allow: /openapi.json\n"
@@ -868,10 +1105,22 @@ result = httpx.post(f"{BASE}/research",
 print(httpx.post(f"{BASE}/preview", json={"topic": "AI agents"}).json())
 ```
 
+## All 165 Tools
+
+For the full list of all 165 tools with pricing and input/output schemas, query:
+- `GET /discover` — machine-readable JSON catalog of every endpoint
+- `GET /openapi.json` — OpenAPI 3.1 spec
+
 ## Links
 
 - Documentation: https://aipaygen.com/docs
+- SDK & Code Examples: https://aipaygen.com/sdk
+- Interactive Playground: https://aipaygen.com/try
+- API Catalog: https://aipaygen.com/discover
+- Pricing: https://aipaygen.com/pricing
 - OpenAPI Spec: https://api.aipaygen.com/openapi.json
+- PyPI: https://pypi.org/project/aipaygen-mcp/
+- MCP Registry: https://registry.modelcontextprotocol.io (ID: io.github.Damien829/aipaygen)
 - Buy Credits: https://aipaygen.com/buy-credits
 - Security: https://aipaygen.com/security
 - MCP Registry: https://registry.modelcontextprotocol.io/servers/io.github.Damien829/aipaygen
@@ -1920,12 +2169,15 @@ def sitemap():
         ("/", "daily", "1.0"),
         ("/discover", "weekly", "0.9"),
         ("/docs", "weekly", "0.9"),
+        ("/try", "weekly", "0.9"),
+        ("/builder", "weekly", "0.9"),
+        ("/sdk", "weekly", "0.85"),
         ("/sell", "weekly", "0.8"),
         ("/pricing", "weekly", "0.8"),
         ("/docs/api", "weekly", "0.8"),
+        ("/blog", "daily", "0.8"),
         ("/security", "monthly", "0.7"),
         ("/changelog", "weekly", "0.8"),
-        ("/try", "weekly", "0.8"),
         ("/buy-credits", "weekly", "0.8"),
         ("/preview", "weekly", "0.7"),
         ("/openapi.json", "weekly", "0.6"),
@@ -1933,6 +2185,7 @@ def sitemap():
         ("/.well-known/agent.json", "weekly", "0.6"),
         ("/.well-known/ai-plugin.json", "weekly", "0.6"),
         ("/health", "hourly", "0.3"),
+        ("/status", "hourly", "0.4"),
     ]
     urls_xml = "\n".join(
         f'  <url><loc>{base_url}{p}</loc><changefreq>{freq}</changefreq><priority>{pri}</priority><lastmod>{now}</lastmod></url>'
@@ -1965,11 +2218,19 @@ def try_page():
     return resp
 
 
-# Per-IP demo rate limiter (10 per 10 minutes)
+# Per-IP demo rate limiter (10 per 10 minutes) with periodic cleanup
 _demo_usage = {}
+_demo_last_cleanup = 0
 
 def _check_demo_limit(ip):
+    global _demo_last_cleanup
     now = _time.time()
+    # Periodic cleanup: every 5 minutes, purge expired entries
+    if now - _demo_last_cleanup > 300:
+        _demo_last_cleanup = now
+        stale = [k for k, v in _demo_usage.items() if not v or now - v[-1] > 600]
+        for k in stale:
+            del _demo_usage[k]
     key = f"demo:{ip}"
     entries = _demo_usage.get(key, [])
     entries = [t for t in entries if now - t < 600]
@@ -2138,3 +2399,192 @@ def public_changelog():
     resp.headers["Content-Type"] = "text/html"
     return resp
 
+
+@meta_bp.route("/playground", methods=["GET"])
+def playground():
+    """Interactive API playground — test any endpoint from the browser."""
+    html = f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>API Playground — AiPayGen</title>
+<meta name="description" content="Test any AiPayGen API endpoint directly from your browser. Interactive request builder with live responses.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{{margin:0;padding:0;box-sizing:border-box}}
+body{{background:#020408;color:#e6edf3;font-family:'IBM Plex Sans',sans-serif;min-height:100vh}}
+a{{color:#00d4ff;text-decoration:none}}
+.pg-wrap{{max-width:1100px;margin:0 auto;padding:100px 24px 60px}}
+.pg-title{{font-family:'IBM Plex Mono',monospace;font-size:1.8rem;font-weight:700;margin-bottom:6px}}
+.pg-sub{{color:#8b949e;font-size:0.95rem;margin-bottom:24px}}
+.pg-banner{{background:rgba(0,255,157,0.06);border:1px solid rgba(0,255,157,0.15);border-radius:8px;padding:12px 20px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;font-size:0.88rem;flex-wrap:wrap;gap:8px}}
+.pg-banner .cl{{color:#00ff9d;font-family:'IBM Plex Mono',monospace;font-weight:700}}
+.pg-banner .cta{{color:#00d4ff;font-weight:600}}
+.pg-grid{{display:grid;grid-template-columns:1fr 1fr;gap:20px}}
+@media(max-width:768px){{.pg-grid{{grid-template-columns:1fr}}}}
+.pg-pnl{{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}}
+.pg-ph{{background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.06);padding:12px 18px;display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;color:#8b949e;font-weight:600;text-transform:uppercase;letter-spacing:0.05em}}
+.pg-pb{{padding:18px;flex:1;display:flex;flex-direction:column;gap:14px}}
+.pg-row{{display:flex;gap:10px;align-items:center}}
+.pg-sel,.pg-inp{{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#e6edf3;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;padding:10px 14px;outline:none;transition:border-color .2s}}
+.pg-sel:focus,.pg-inp:focus,.pg-ta:focus{{border-color:#00ff9d}}
+.pg-sel{{flex:1;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238b949e' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}}
+.pg-ms{{width:90px;flex:none}}
+.pg-ta{{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#e6edf3;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;padding:12px 14px;outline:none;resize:vertical;min-height:140px;line-height:1.5;flex:1;transition:border-color .2s;tab-size:2}}
+.pg-lbl{{color:#8b949e;font-size:0.78rem;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.04em}}
+.pg-run{{background:linear-gradient(135deg,#00ff9d,#00d4ff);color:#020408;border:none;border-radius:6px;padding:12px 28px;font-family:'IBM Plex Mono',monospace;font-size:0.9rem;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:0.03em}}
+.pg-run:hover{{box-shadow:0 0 20px rgba(0,255,157,0.3);transform:translateY(-1px)}}
+.pg-run:disabled{{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none}}
+.pg-run.ld{{background:linear-gradient(135deg,#8b949e,#4a5568)}}
+.pg-st{{display:flex;gap:16px;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)}}
+.pg-sc{{font-weight:700;padding:3px 10px;border-radius:4px;font-size:0.85rem}}
+.pg-sc.s2{{background:rgba(0,255,157,0.15);color:#00ff9d}}
+.pg-sc.s4{{background:rgba(255,183,0,0.15);color:#ffb700}}
+.pg-sc.s5{{background:rgba(255,68,68,0.15);color:#ff4444}}
+.pg-rb{{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:14px;font-family:'IBM Plex Mono',monospace;font-size:0.8rem;line-height:1.6;overflow:auto;white-space:pre-wrap;word-break:break-word;flex:1;min-height:200px;max-height:500px;color:#c9d1d9}}
+.pg-dot{{display:inline-block;width:6px;height:6px;background:#00ff9d;border-radius:50%;margin-right:4px}}
+.pg-desc{{color:#8b949e;font-size:0.82rem;padding:8px 0;min-height:20px}}
+.pg-hr{{display:flex;gap:8px;align-items:center}}
+.pg-hr input{{flex:1}}
+.pg-bs{{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:#8b949e;font-size:0.75rem;padding:4px 10px;cursor:pointer;font-family:'IBM Plex Mono',monospace}}
+.pg-bs:hover{{border-color:#00ff9d;color:#00ff9d}}
+</style>
+</head>
+<body>
+{NAV_HTML}
+<div class="pg-wrap">
+  <h1 class="pg-title"><span class="pg-dot"></span> API Playground</h1>
+  <p class="pg-sub">Test any AiPayGen endpoint directly from your browser &middot; <kbd style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:3px;font-size:0.8rem">Ctrl+Enter</kbd> to run</p>
+
+  <div class="pg-banner" id="pgBanner">
+    <span>Free tier: <span class="cl" id="pgCalls">...</span> calls remaining today</span>
+    <a class="cta" href="/buy-credits">Need more? Get an API key &rarr;</a>
+  </div>
+
+  <div class="pg-grid">
+    <div class="pg-pnl">
+      <div class="pg-ph"><span class="pg-dot"></span> Request</div>
+      <div class="pg-pb">
+        <div class="pg-row">
+          <select id="pgM" class="pg-sel pg-ms">
+            <option value="GET">GET</option>
+            <option value="POST" selected>POST</option>
+          </select>
+          <select id="pgE" class="pg-sel">
+            <option value="">— select endpoint —</option>
+          </select>
+        </div>
+        <div class="pg-desc" id="pgD"></div>
+        <div>
+          <div class="pg-lbl">Headers</div>
+          <div id="pgH" style="margin-top:6px">
+            <div class="pg-hr">
+              <input class="pg-inp" value="Content-Type" style="flex:0.8" readonly>
+              <input class="pg-inp" value="application/json" style="flex:1" readonly>
+            </div>
+            <div class="pg-hr" style="margin-top:6px">
+              <input class="pg-inp hk" placeholder="X-API-Key" style="flex:0.8">
+              <input class="pg-inp hv" placeholder="your-api-key (optional)" style="flex:1">
+              <button class="pg-bs" onclick="addH()" title="Add header">+</button>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column">
+          <div class="pg-lbl">Request Body <span style="color:#4a5568">(JSON)</span></div>
+          <textarea id="pgB" class="pg-ta" spellcheck="false">{{}}</textarea>
+        </div>
+        <button class="pg-run" id="pgR" onclick="run()">&#9654; Run</button>
+      </div>
+    </div>
+    <div class="pg-pnl">
+      <div class="pg-ph"><span class="pg-dot"></span> Response</div>
+      <div class="pg-pb">
+        <div class="pg-st" id="pgSt" style="display:none">
+          <span class="pg-sc" id="pgSc"></span>
+          <span style="color:#8b949e" id="pgTm"></span>
+        </div>
+        <div class="pg-rb" id="pgRb">Hit "Run" to send a request...</div>
+      </div>
+    </div>
+  </div>
+</div>
+{FOOTER_HTML}
+<script>
+const EP=[
+  {{ep:"/sentiment",m:"POST",d:"Deep sentiment — polarity, score, emotions, confidence",b:{{"text":"I love building with AI agents!"}}}},
+  {{ep:"/summarize",m:"POST",d:"Summarize long text into key points",b:{{"text":"Paste your text here...","length":"short"}}}},
+  {{ep:"/translate",m:"POST",d:"Translate text to any language",b:{{"text":"Hello world","language":"Spanish"}}}},
+  {{ep:"/analyze",m:"POST",d:"Analyze data or text with structured insights",b:{{"content":"Your content here","question":"What are the key themes?"}}}},
+  {{ep:"/chat",m:"POST",d:"Multi-turn chat with Claude",b:{{"messages":[{{"role":"user","content":"What is x402?"}}]}}}},
+  {{ep:"/code",m:"POST",d:"Generate code in any language",b:{{"description":"fibonacci function","language":"python"}}}},
+  {{ep:"/write",m:"POST",d:"Write articles, copy, or content to spec",b:{{"spec":"Write a tweet about AI payments","type":"post"}}}},
+  {{ep:"/search",m:"POST",d:"Web search — returns top N results",b:{{"query":"x402 protocol","n":3}}}},
+  {{ep:"/scrape",m:"POST",d:"Fetch any URL, return clean text",b:{{"url":"https://example.com"}}}},
+  {{ep:"/research",m:"POST",d:"Deep research with citations",b:{{"question":"What is the x402 payment protocol?"}}}},
+  {{ep:"/extract",m:"POST",d:"Extract structured data from text or URL",b:{{"text":"John Smith, CEO of Acme Inc, announced $5M funding.","fields":["name","title","company","amount"]}}}},
+  {{ep:"/classify",m:"POST",d:"Classify text into categories",b:{{"text":"The stock market rallied today","categories":["business","sports","tech","politics"]}}}},
+  {{ep:"/keywords",m:"POST",d:"Extract keywords and topics from text",b:{{"text":"AI agents that pay for APIs using blockchain micropayments","max_keywords":5}}}},
+  {{ep:"/compare",m:"POST",d:"Compare two texts — similarities and differences",b:{{"text_a":"Python is great for AI","text_b":"JavaScript is great for web"}}}},
+  {{ep:"/qa",m:"POST",d:"Q&A over a document",b:{{"context":"AiPayGen is an AI agent payment platform using x402.","question":"What protocol does AiPayGen use?"}}}},
+  {{ep:"/plan",m:"POST",d:"Step-by-step action plan",b:{{"goal":"Launch an AI SaaS product","steps":5}}}},
+  {{ep:"/decide",m:"POST",d:"Decision framework with pros/cons",b:{{"decision":"Which cloud provider to use?","options":["AWS","GCP","Azure"]}}}},
+  {{ep:"/mock",m:"POST",d:"Generate realistic mock data",b:{{"description":"user profiles with name, email, age","count":3,"format":"json"}}}},
+  {{ep:"/explain",m:"POST",d:"Explain any concept",b:{{"concept":"blockchain","level":"beginner"}}}},
+  {{ep:"/social",m:"POST",d:"Generate social media posts",b:{{"topic":"AI payments","platforms":["twitter","linkedin"],"tone":"professional"}}}},
+  {{ep:"/preview",m:"POST",d:"Free 120-token Claude preview (no payment needed)",b:{{"topic":"AI agents"}}}},
+  {{ep:"/sql",m:"POST",d:"Natural language to SQL query",b:{{"description":"find users who signed up this week","dialect":"postgresql"}}}},
+  {{ep:"/regex",m:"POST",d:"Regex pattern from description",b:{{"description":"email address","language":"python"}}}},
+  {{ep:"/diagram",m:"POST",d:"Generate Mermaid diagrams from description",b:{{"description":"user login flow","type":"flowchart"}}}},
+  {{ep:"/email",m:"POST",d:"Compose professional emails",b:{{"purpose":"follow up after a meeting","tone":"professional"}}}},
+  {{ep:"/data/weather",m:"GET",d:"Real-time weather data",b:null,q:"city=London"}},
+  {{ep:"/data/crypto",m:"GET",d:"Live crypto prices",b:null,q:"symbol=bitcoin"}},
+  {{ep:"/data/joke",m:"GET",d:"Random joke",b:null}},
+  {{ep:"/data/quote",m:"GET",d:"Random inspirational quote",b:null}},
+  {{ep:"/free/time",m:"GET",d:"Current UTC time (free)",b:null}},
+  {{ep:"/free/uuid",m:"GET",d:"Generate UUID (free)",b:null}},
+  {{ep:"/free/ip",m:"GET",d:"Your IP info (free)",b:null}},
+  {{ep:"/health",m:"GET",d:"Service health check",b:null}},
+  {{ep:"/models",m:"GET",d:"List all supported LLM models",b:null}},
+  {{ep:"/discover",m:"GET",d:"Full service catalog",b:null}}
+];
+const eS=document.getElementById("pgE"),mS=document.getElementById("pgM"),bA=document.getElementById("pgB"),dE=document.getElementById("pgD");
+EP.forEach((e,i)=>{{const o=document.createElement("option");o.value=i;o.textContent=e.m+" "+e.ep+" — "+e.d.slice(0,48);eS.appendChild(o)}});
+eS.addEventListener("change",()=>{{const i=eS.value;if(i==="")return;const e=EP[i];mS.value=e.m;dE.textContent=e.d;if(e.b){{bA.value=JSON.stringify(e.b,null,2);bA.style.display=""}}else{{bA.value="";bA.style.display=e.m==="GET"?"none":""}}}});
+mS.addEventListener("change",()=>{{bA.style.display=mS.value==="GET"?"none":""}});
+function addH(){{
+  const a=document.getElementById("pgH"),r=document.createElement("div");
+  r.className="pg-hr";r.style.marginTop="6px";
+  const k=document.createElement("input");k.className="pg-inp hk";k.placeholder="Header";k.style.flex="0.8";
+  const v=document.createElement("input");v.className="pg-inp hv";v.placeholder="Value";v.style.flex="1";
+  const x=document.createElement("button");x.className="pg-bs";x.textContent="x";x.onclick=function(){{r.remove()}};
+  r.appendChild(k);r.appendChild(v);r.appendChild(x);a.appendChild(r);
+}}
+function gH(){{const h={{"Content-Type":"application/json"}};document.querySelectorAll(".pg-hr").forEach(r=>{{const ins=r.querySelectorAll("input");if(ins.length>=2){{const k=ins[0].value.trim(),v=ins[1].value.trim();if(k&&v)h[k]=v}}}});return h}}
+async function run(){{
+  const btn=document.getElementById("pgR"),rb=document.getElementById("pgRb"),st=document.getElementById("pgSt"),sc=document.getElementById("pgSc"),tm=document.getElementById("pgTm");
+  const method=mS.value,idx=eS.value;
+  if(idx===""){{rb.textContent="Select an endpoint first.";return}}
+  const e=EP[idx];let path=e.ep,qs=e.q||"";
+  btn.disabled=true;btn.classList.add("ld");btn.textContent="Running...";rb.textContent="Sending request...";st.style.display="none";
+  const headers=gH(),url=location.origin+path+(qs?"?"+qs:""),opts={{method,headers}};
+  if(method==="POST"){{try{{const raw=bA.value.trim();if(raw)JSON.parse(raw);opts.body=raw||undefined}}catch(er){{rb.textContent="Invalid JSON:\\n"+er.message;btn.disabled=false;btn.classList.remove("ld");btn.textContent="Run";return}}}}
+  const t0=performance.now();
+  try{{
+    const resp=await fetch(url,opts),elapsed=Math.round(performance.now()-t0),ct=resp.headers.get("content-type")||"";
+    let body;if(ct.includes("json")){{body=JSON.stringify(await resp.json(),null,2)}}else{{body=await resp.text();try{{body=JSON.stringify(JSON.parse(body),null,2)}}catch(_){{}}}}
+    st.style.display="flex";sc.textContent=resp.status+" "+resp.statusText;sc.className="pg-sc "+(resp.status<300?"s2":resp.status<500?"s4":"s5");tm.textContent=elapsed+"ms";rb.textContent=body;
+    ftFree();
+  }}catch(err){{st.style.display="flex";sc.textContent="ERR";sc.className="pg-sc s5";tm.textContent="";rb.textContent="Network error:\\n"+err.message}}
+  btn.disabled=false;btn.classList.remove("ld");btn.textContent="Run";
+}}
+async function ftFree(){{try{{const r=await fetch("/free-tier/status"),d=await r.json(),rem=d.remaining??d.calls_remaining??"?",lim=d.limit??d.daily_limit??10;document.getElementById("pgCalls").textContent=rem+" / "+lim;if(rem===0){{const b=document.getElementById("pgBanner");b.style.borderColor="rgba(255,68,68,0.3)";b.style.background="rgba(255,68,68,0.06)";document.getElementById("pgCalls").style.color="#ff4444"}}}}catch(_){{document.getElementById("pgCalls").textContent="—"}}}}
+ftFree();
+document.addEventListener("keydown",e=>{{if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){{e.preventDefault();run()}}}});
+</script>
+</body>
+</html>'''
+    resp = make_response(html)
+    resp.headers["Content-Type"] = "text/html"
+    return resp

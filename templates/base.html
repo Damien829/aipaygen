@@ -17,9 +17,10 @@
 {% block head %}{% endblock %}
 </head>
 <body>
+<a href="#main-content" class="sr-only" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:9999" onfocus="this.style.position='static';this.style.width='auto';this.style.height='auto'" onblur="this.style.position='absolute';this.style.left='-9999px';this.style.width='1px';this.style.height='1px'">Skip to main content</a>
 
 <!-- Navigation -->
-<nav class="nav" id="mainNav">
+<nav class="nav" id="mainNav" role="navigation" aria-label="Main navigation">
   <div class="nav-inner">
     <a href="/" class="nav-logo">
       <span class="dot"></span>
@@ -41,7 +42,7 @@
   </div>
 </nav>
 
-<main class="pt-nav">
+<main class="pt-nav" id="main-content">
 {% block content %}{% endblock %}
 </main>
 

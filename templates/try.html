@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Try AiPayGen — Free Interactive Demo</title>
+<meta name="description" content="Try 165 AI tools free — no sign-up required. Sentiment analysis, translation, summarization, code generation, and more.">
+<meta property="og:title" content="Try AiPayGen Free — 165 AI Tools">
+<meta property="og:description" content="Interactive demo of 165 AI tools. No sign-up, no credit card. 10 free calls/day.">
+<meta property="og:url" content="https://aipaygen.com/try">
+<meta property="og:image" content="https://api.aipaygen.com/og-image.png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e8e8e8; min-height: 100vh; padding: 32px 16px; }
@@ -86,10 +93,19 @@
   <h1>Try AiPayGen</h1>
   <p class="sub">Test any tool below — completely free, no sign-up. <a href="/discover">See all 165 tools &rarr;</a></p>
 
+  <!-- Popular Tools -->
+  <div class="demo-card" id="popular-section" style="display:none;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <span style="font-size:1rem">Popular Tools</span>
+      <span style="font-size:0.7rem;color:#666;background:#1e1e1e;padding:2px 8px;border-radius:10px" id="popular-label">Loading...</span>
+    </div>
+    <div class="tool-row" id="popular-row"></div>
+  </div>
+
   <div class="demo-card">
     <div class="demo-progress" id="demo-progress">
       <div class="demo-progress-label"><span id="demo-progress-text">0 / 10 demos used</span><span id="demo-progress-pct">0%</span></div>
-      <div class="demo-progress-bar"><div class="demo-progress-fill" id="demo-progress-fill"></div></div>
+      <div class="demo-progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="10" aria-label="Demo usage"><div class="demo-progress-fill" id="demo-progress-fill"></div></div>
     </div>
     <div class="tool-row">
       <div class="tool-btn active" data-tool="sentiment" data-placeholder="Type any text to analyze sentiment..." data-desc="Detects polarity, emotions, confidence, and key phrases">Sentiment</div>
@@ -118,9 +134,10 @@
       <div class="tool-btn" data-tool="stats" data-placeholder="Enter numbers separated by commas (e.g. 10, 20, 30, 40, 50)..." data-desc="Statistical analysis — mean, median, std dev, quartiles">Stats</div>
     </div>
     <p class="tool-desc" id="desc">Detects polarity, emotions, confidence, and key phrases</p>
-    <textarea id="input" placeholder="Type any text to analyze sentiment..."></textarea>
-    <button class="run-btn" id="run" onclick="runTool()">&#9654; Run</button>
-    <div class="result-box" id="result"></div>
+    <label for="input" class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0">Tool input</label>
+    <textarea id="input" placeholder="Type any text to analyze sentiment..." aria-label="Enter text for the selected tool"></textarea>
+    <button class="run-btn" id="run" onclick="runTool()" aria-label="Run the selected tool">&#9654; Run</button>
+    <div class="result-box" id="result" aria-live="polite" role="status"></div>
     <div class="curl-wrap" id="curl-wrap">
       <div class="curl-box" id="curl-cmd"></div>
       <button class="copy-curl-btn" id="copy-curl" onclick="copyCurl()">Copy as curl</button>
@@ -135,9 +152,9 @@
 </div>
 
 <!-- Upsell modal -->
-<div class="modal-overlay" id="upsell-modal">
+<div class="modal-overlay" id="upsell-modal" role="dialog" aria-modal="true" aria-label="Upgrade plan">
   <div class="modal">
-    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
     <h2>You've used all 10 free demos</h2>
     <p class="modal-sub">Pick a plan to unlock unlimited access to all 165 tools.</p>
     <div class="modal-plans">
@@ -166,6 +183,38 @@ let currentTool = 'sentiment';
 let demoCount = 0;
 const MAX_DEMOS = 10;
 let lastCurl = '';
+
+// Fetch and render popular tools
+(function loadPopular() {
+  fetch('/popular')
+    .then(r => r.json())
+    .then(data => {
+      const tools = (data.popular || []).slice(0, 5);
+      if (!tools.length) return;
+      const section = document.getElementById('popular-section');
+      const row = document.getElementById('popular-row');
+      document.getElementById('popular-label').textContent = 'Based on usage';
+      tools.forEach(t => {
+        const btn = document.createElement('div');
+        btn.className = 'tool-btn';
+        btn.style.cssText = 'display:flex;flex-direction:column;align-items:flex-start;gap:2px';
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = t.tool;
+        const countSpan = document.createElement('span');
+        countSpan.style.cssText = 'font-size:0.68rem;color:#555';
+        countSpan.textContent = t.calls.toLocaleString() + ' calls';
+        btn.appendChild(nameSpan);
+        btn.appendChild(countSpan);
+        btn.addEventListener('click', function() {
+          const target = document.querySelector('.tool-btn[data-tool="' + CSS.escape(t.tool) + '"]');
+          if (target) { target.click(); target.scrollIntoView({behavior:'smooth', block:'center'}); }
+        });
+        row.appendChild(btn);
+      });
+      section.style.display = 'block';
+    })
+    .catch(() => {});
+})();
 
 document.querySelectorAll('.tool-btn').forEach(btn => {
   btn.addEventListener('click', () => {

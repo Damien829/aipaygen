@@ -363,6 +363,20 @@ function updateCalc(){var s=document.getElementById('calc-slider'),n=parseInt(s.
   </div>
 </section>
 
+<!-- Newsletter -->
+<section class="section fade-in" style="padding-bottom:0">
+  <div style="max-width:480px;margin:0 auto;text-align:center">
+    <div class="section-title" style="font-size:var(--text-xl);margin-bottom:8px">Stay in the loop</div>
+    <p class="text-muted" style="margin-bottom:16px;font-size:var(--text-sm)">New tools, features, and tutorials. No spam, unsubscribe anytime.</p>
+    <form id="newsletterForm" style="display:flex;gap:8px" onsubmit="return submitNewsletter(event)">
+      <input type="email" id="nlEmail" required placeholder="you@example.com" aria-label="Email address"
+        style="flex:1;padding:10px 14px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text);font-size:var(--text-sm);outline:none;font-family:var(--font-sans)">
+      <button type="submit" class="btn btn-primary btn-sm" id="nlBtn">Subscribe</button>
+    </form>
+    <p id="nlMsg" style="margin-top:8px;font-size:var(--text-xs);color:var(--accent);display:none"></p>
+  </div>
+</section>
+
 <!-- CTA -->
 <section class="cta-section fade-in">
   <div class="section-title" style="margin-bottom:16px">Start building in 30 seconds</div>
@@ -383,7 +397,7 @@ fetch('/api/stats').then(function(r){return r.json()}).then(function(d){
     'stat-keys': d.api_keys || 0,
     'stat-skills': d.skills || 0,
     'stat-apis': d.apis || 0,
-    'stat-tools': d.mcp_tools || 161
+    'stat-tools': d.mcp_tools || 165
   };
   Object.keys(map).forEach(function(id){
     var el = document.getElementById(id);
@@ -394,6 +408,30 @@ fetch('/api/stats').then(function(r){return r.json()}).then(function(d){
     s.parentElement.textContent = '\u2014';
   });
 });
+
+// Newsletter
+function submitNewsletter(e) {
+  e.preventDefault();
+  var email = document.getElementById('nlEmail').value;
+  var btn = document.getElementById('nlBtn');
+  var msg = document.getElementById('nlMsg');
+  btn.disabled = true; btn.textContent = 'Subscribing...';
+  fetch('/api/subscribe', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({email: email})
+  }).then(function(r){ return r.json(); }).then(function(d){
+    msg.textContent = d.message || 'Subscribed!';
+    msg.style.display = 'block';
+    btn.textContent = 'Subscribed';
+  }).catch(function(){
+    msg.textContent = 'Something went wrong. Try again.';
+    msg.style.color = 'var(--danger)';
+    msg.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Subscribe';
+  });
+  return false;
+}
 
 // CTA copy
 document.getElementById('ctaCopy').addEventListener('click', function() {
