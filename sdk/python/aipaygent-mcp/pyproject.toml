@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aipaygen-mcp"
-version = "1.8.2"
-description = "229 AI tools for Claude, Cursor, and any MCP-compatible agent — research, write, code, review, think, scrape, translate, agent builder, agent network, API catalog, utility APIs, and more"
+version = "1.8.3"
+description = "244 AI tools for Claude, Cursor, and any MCP-compatible agent — research, write, code, review, think, scrape, translate, agent builder, agent network, API catalog, utility APIs, and more"
 readme = "README.md"
 license = {text = "MIT"}
 requires-python = ">=3.10"

@@ -1068,11 +1068,11 @@ def inject_free_tier_upsell(response):
     """Add upgrade CTA to free tier JSON responses so users know how to get a key."""
     if response.status_code != 200:
         return response
-    remaining = response.headers.get("X-Free-Calls-Remaining")
-    if remaining is None:
+    remaining_str = request.environ.get("X_FREE_REMAINING")
+    if not remaining_str:
         return response
     try:
-        remaining_int = int(remaining)
+        remaining_int = int(remaining_str)
     except (ValueError, TypeError):
         return response
     if not response.content_type or "json" not in response.content_type:

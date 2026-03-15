@@ -1,13 +1,13 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.Damien829/aipaygen",
-  "title": "AiPayGen — 229 AI tools for Agents",
-  "description": "229 AI tools — research, write, code, translate, analyze, scrape, utility APIs, agent memory, seller marketplace",
+  "title": "AiPayGen — 244 AI tools for Agents",
+  "description": "244 AI tools — research, write, code, translate, analyze, scrape, utility APIs, agent memory, seller marketplace",
   "repository": {
     "url": "https://github.com/Damien829/aipaygen",
     "source": "github"
   },
-  "version": "1.8.2",
+  "version": "1.8.3",
   "remotes": [
     {
       "type": "streamable-http",
@@ -26,7 +26,7 @@
     {
       "registryType": "pypi",
       "identifier": "aipaygen-mcp",
-      "version": "1.8.2",
+      "version": "1.8.3",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"

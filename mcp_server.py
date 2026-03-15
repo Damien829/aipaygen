@@ -1,5 +1,5 @@
 """
-AiPayGen MCP Server — 229 tools (metered + free)
+AiPayGen MCP Server — 244 tools (metered + free)
 
 Exposes all AiPayGen capabilities as MCP tools with usage metering.
 10 free calls/day without an API key. Unlimited with a prepaid key.
@@ -73,7 +73,7 @@ _skills_engine = SkillsSearchEngine(_skills_db_path)
 mcp = FastMCP(
     "AiPayGen",
     instructions=(
-        "AiPayGen lets you build, run, and schedule AI agents with 229 tools. "
+        "AiPayGen lets you build, run, and schedule AI agents with 244 tools. "
         "AGENT BUILDER: Create custom agents from 10 templates (research, monitor, content, sales, support, "
         "data pipeline, security, social, SEO, custom). Schedule agents on loops, cron, or event triggers. "
         "TOOLS: research, write, code, translate, analyze, summarize, vision (image analysis), "
@@ -3034,6 +3034,194 @@ def economy_status() -> dict:
         return {"error": "Tool execution failed"}
 
 
+# ── Async Jobs ──────────────────────────────────────────────────────────────
+
+@metered_tool("standard")
+def async_submit(endpoint: Annotated[str, Field(description="API endpoint to run asynchronously (e.g. /research)")], params: Annotated[dict, Field(description="Parameters for the endpoint")] = None) -> dict:
+    """Submit a long-running task for async execution. Returns a job_id for polling."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/async/submit", json={"endpoint": endpoint, "params": params or {}}, timeout=15)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def async_status(job_id: Annotated[str, Field(description="Job ID from async_submit")]) -> dict:
+    """Check the status and result of an async job."""
+    try:
+        resp = _mcp_requests.get(f"http://localhost:5001/async/status/{job_id}", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+# ── Wallet Extended ─────────────────────────────────────────────────────────
+
+@metered_tool("standard")
+def wallet_create(agent_id: Annotated[str, Field(description="Agent ID to create wallet for")]) -> dict:
+    """Create a new agent wallet for receiving payments."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/wallet/create", json={"agent_id": agent_id}, timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def wallet_list() -> dict:
+    """List all agent wallets."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/wallet/list", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def wallet_fund(agent_id: Annotated[str, Field(description="Agent ID to fund")], amount: Annotated[float, Field(description="Amount in USD to add")]) -> dict:
+    """Add funds to an agent wallet."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/wallet/fund", json={"agent_id": agent_id, "amount": amount}, timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def wallet_analytics() -> dict:
+    """View wallet analytics: earnings, spending, and trends."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/wallet/analytics", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def wallet_policy(agent_id: Annotated[str, Field(description="Agent ID to set policy for")], max_per_call: Annotated[float, Field(description="Maximum spend per API call")] = 0.10, daily_limit: Annotated[float, Field(description="Daily spending limit")] = 5.0) -> dict:
+    """Set spending policy for an agent wallet."""
+    try:
+        resp = _mcp_requests.patch("http://localhost:5001/wallet/policy", json={"agent_id": agent_id, "max_per_call": max_per_call, "daily_limit": daily_limit}, timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def sell_withdraw(amount: Annotated[float, Field(description="Amount in USD to withdraw")]) -> dict:
+    """Withdraw earnings from seller marketplace."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/sell/withdraw", json={"amount": amount}, timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+# ── File Extended ───────────────────────────────────────────────────────────
+
+@metered_tool("standard")
+def file_get(file_id: Annotated[str, Field(description="File ID to retrieve")]) -> dict:
+    """Retrieve a stored file by its ID."""
+    try:
+        resp = _mcp_requests.get(f"http://localhost:5001/files/{file_id}", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+# ── Builder Templates ───────────────────────────────────────────────────────
+
+@metered_tool("standard")
+def builder_templates() -> dict:
+    """List all available agent builder templates (research, monitor, content, sales, etc.)."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/builder/templates", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+# ── Agent Verification ──────────────────────────────────────────────────────
+
+@metered_tool("standard")
+def agent_verify(agent_id: Annotated[str, Field(description="Agent ID to verify")]) -> dict:
+    """Verify an agent's identity via challenge-response."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/agents/verify", json={"agent_id": agent_id}, timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+# ── Free Tier Status ────────────────────────────────────────────────────────
+
+@mcp.tool()
+def free_tier_status() -> dict:
+    """Check how many free calls remain today."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/free-tier/status", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+# ── Blog ────────────────────────────────────────────────────────────────────
+
+@metered_tool("standard")
+def blog_list() -> dict:
+    """List all blog posts on the AiPayGen blog."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/blog", timeout=10, headers={"Accept": "application/json"})
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def blog_read(slug: Annotated[str, Field(description="Blog post slug to read")]) -> dict:
+    """Read a blog post by its slug."""
+    try:
+        resp = _mcp_requests.get(f"http://localhost:5001/blog/{slug}", timeout=10, headers={"Accept": "application/json"})
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+# ── Health & Costs ──────────────────────────────────────────────────────────
+
+@mcp.tool()
+def health_history() -> dict:
+    """View service health check history."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/health/history", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@mcp.tool()
+def costs_summary() -> dict:
+    """View your API usage costs breakdown."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/costs", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+# ── RSS Feed ────────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def rss_feed() -> dict:
+    """Get the AiPayGen RSS feed (latest updates and blog posts)."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/feed.xml", timeout=10)
+        return {"content_type": "application/xml", "data": resp.text[:5000]}
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
 def main():
     import sys
     if "--http" in sys.argv:
@@ -3044,7 +3232,7 @@ def main():
         starlette_app = mcp.streamable_http_app()
 
         async def health(request):
-            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 229, "version": "1.8.2"})
+            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 244, "version": "1.8.3"})
 
         _tracked_sessions = set()
 

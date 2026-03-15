@@ -37,7 +37,7 @@ WALLET_ADDRESS = os.getenv("WALLET_ADDRESS", "0x366D488a48de1B2773F3a21F1A697271
 EVM_NETWORK = os.getenv("EVM_NETWORK", "eip155:8453")
 
 # Pre-compute MCP tool count at import time (avoid reading file on every /api/stats call)
-_MCP_TOOL_COUNT = 229  # fallback
+_MCP_TOOL_COUNT = 244  # fallback
 try:
     _mcp_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "mcp_server.py")
     with open(_mcp_path) as _f:
@@ -374,7 +374,7 @@ def discover():
     return jsonify({
         "meta": {
             "name": "AiPayGen",
-            "description": "AI agent API marketplace with 229 tools (v1.8.2) and 2400+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day). $0.25 trial credits available.",
+            "description": "AI agent API marketplace with 244 tools (v1.8.3) and 2400+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day). $0.25 trial credits available.",
             "categories": list(categories.keys()),
         },
         "payment": {
@@ -971,7 +971,7 @@ def docs_api():
 LLMS_TXT = """\
 # AiPayGen
 
-> 229 AI tools in one API (v1.8.2). Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (10 free/day). New: $0.25 trial credits via buy_credits / generate_api_key MCP tools.
+> 244 AI tools in one API (v1.8.3). Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (10 free/day). New: $0.25 trial credits via buy_credits / generate_api_key MCP tools.
 
 ## What This Service Does
 
@@ -1107,7 +1107,7 @@ print(httpx.post(f"{BASE}/preview", json={"topic": "AI agents"}).json())
 
 ## All 229 Tools
 
-For the full list of all 229 tools with pricing and input/output schemas, query:
+For the full list of all 244 tools with pricing and input/output schemas, query:
 - `GET /discover` — machine-readable JSON catalog of every endpoint
 - `GET /openapi.json` — OpenAPI 3.1 spec
 
@@ -1162,9 +1162,9 @@ def ai_plugin():
         "schema_version": "v1",
         "name_for_human": "AiPayGen",
         "name_for_model": "aipaygen",
-        "description_for_human": "229 AI tools (v1.8.2) — research, write, code, translate, scrape, and more. $0.25 trial credits. 10 free calls/day.",
+        "description_for_human": "244 AI tools (v1.8.3) — research, write, code, translate, scrape, and more. $0.25 trial credits. 10 free calls/day.",
         "description_for_model": (
-            "AiPayGen provides 229 AI-powered tools accessible via a single API (v1.8.2). "
+            "AiPayGen provides 244 AI-powered tools accessible via a single API (v1.8.3). "
             "Use for research, writing, code generation, translation, sentiment analysis, "
             "web scraping, data extraction, content comparison, fact-checking, and more. "
             "Free tier: 10 calls/day per IP. Paid: prepaid API key (Bearer apk_xxx) or "
@@ -1197,14 +1197,14 @@ def agent_manifest():
     return jsonify({
         "name": "AiPayGen",
         "description": (
-            "AI agent API marketplace with 229 tools (v1.8.2) and 2400+ searchable skills. "
+            "AI agent API marketplace with 244 tools (v1.8.3) and 2400+ searchable skills. "
             "Research, writing, coding, analysis, web scraping, real-time data, agent memory, "
             "and multi-model AI (Claude, GPT-4o, DeepSeek, Gemini). "
             "Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day). "
             "$0.25 trial credits available via buy_credits/generate_api_key."
         ),
         "url": base,
-        "version": "1.8.2",
+        "version": "1.8.3",
         "documentationUrl": f"{base}/llms.txt",
         "capabilities": {
             "streaming": True,
@@ -1357,7 +1357,7 @@ def agents_json():
         "agents": [{
             "name": "AiPayGen",
             "description": (
-                "Multi-model AI platform (15 LLMs, 7 providers) with 229 tools and 140+ endpoints + web scrapers + agent memory + "
+                "Multi-model AI platform (15 LLMs, 7 providers) with 244 tools and 140+ endpoints + web scrapers + agent memory + "
                 "wallet-based identity + metered token pricing + agent economy. "
                 "Research, write, code, analyze, vision, RAG, diagrams, test-cases, workflows, "
                 "web scraping (Google Maps, Twitter, LinkedIn, TikTok, YouTube), persistent agent memory, "
@@ -1435,7 +1435,7 @@ def x402_manifest():
         "version": "2.0",
         "name": "AiPayGen",
         "description": (
-            "229 AI tools (v1.8.2), 2400+ skills, web scrapers, agent memory, file storage, "
+            "244 AI tools (v1.8.3), 2400+ skills, web scrapers, agent memory, file storage, "
             "webhook relay, async jobs, and an API catalog of 4100+ discovered APIs. "
             "No API key required — pay per call in USDC via x402 protocol."
         ),
@@ -1545,7 +1545,7 @@ def smithery_server_card():
     return jsonify({
         "serverInfo": {
             "name": "AiPayGen",
-            "version": "1.8.2"
+            "version": "1.8.3"
         },
         "authentication": {
             "required": False,
@@ -2324,11 +2324,11 @@ def try_tool(tool):
 
 CHANGELOG = [
     {
-        "version": "1.8.2",
+        "version": "1.8.3",
         "date": "2026-03-15",
         "title": "229 Tools — Massive Expansion",
         "changes": [
-            "229 MCP tools (was 169) — 60 new tools added in one release",
+            "244 MCP tools (was 169) — 60 new tools added in one release",
             "New data tools: Wikipedia, arXiv, GitHub trending, Reddit, YouTube transcripts, news, QR codes, DNS, screenshots",
             "New utility tools: base64, hashing, URL encode/decode, JSON format/minify, text stats, random generation, CIDR, epoch conversion",
             "File storage: upload and list files via MCP",
