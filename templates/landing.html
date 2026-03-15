@@ -307,17 +307,13 @@
   </p>
 
   <!-- Instant hero demo -->
-  <div class="fade-up delay-3" id="hero-demo" style="margin-top:36px;width:100%;max-width:560px">
-    <div style="background:var(--bg2);border:1px solid var(--border);padding:20px 24px;text-align:left">
-      <label for="demo-input" style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);display:block;margin-bottom:8px">Try it now &mdash; Sentiment Analysis</label>
-      <div style="display:flex;gap:8px">
-        <input id="demo-input" type="text" value="I love this product but the shipping was slow"
-          style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 14px;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;outline:none"
-          aria-label="Text for sentiment analysis">
-        <button id="demo-btn" onclick="runHeroDemo()" style="background:var(--green);color:#000;border:none;padding:10px 20px;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;font-weight:700;cursor:pointer;white-space:nowrap;letter-spacing:0.03em">Analyze</button>
-      </div>
-      <div id="demo-result" style="margin-top:12px;font-size:0.85rem;color:var(--text);display:none;background:var(--bg);border:1px solid var(--border);padding:12px 14px;line-height:1.6"></div>
+  <div class="fade-up delay-3" id="hero-demo" style="margin-top:32px;width:100%;max-width:560px">
+    <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);margin-bottom:10px">Try it now &mdash; no signup</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <input id="demo-input" type="text" value="I love this product but the shipping was slow" style="flex:1;min-width:200px;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:0.85rem;outline:none" onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border)'" aria-label="Text for sentiment analysis">
+      <button id="demo-btn" onclick="runHeroDemo()" style="padding:12px 20px;background:var(--green);color:#000;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;font-weight:700;border:none;cursor:pointer;white-space:nowrap;letter-spacing:0.03em;transition:all 0.2s" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='var(--green)'">Analyze Sentiment &rarr;</button>
     </div>
+    <div id="demo-result" style="display:none;margin-top:12px;padding:16px;background:var(--bg2);border:1px solid var(--border);font-size:0.85rem;text-align:left;line-height:1.6"></div>
   </div>
 </section>
 
@@ -440,6 +436,32 @@ window.addEventListener('scroll', function() {
   var scrollPct = window.scrollY / (document.body.scrollHeight - window.innerHeight);
   stickyCta.style.display = scrollPct > 0.4 ? 'block' : 'none';
 });
+</script>
+<script>
+function runHeroDemo(){
+  var btn=document.getElementById('demo-btn'),inp=document.getElementById('demo-input'),res=document.getElementById('demo-result');
+  var text=inp.value.trim();
+  if(!text)return;
+  btn.disabled=true;btn.textContent='Analyzing...';res.style.display='block';res.innerHTML='<span style="color:var(--muted)">Processing...</span>';
+  fetch('/free/sentiment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text})})
+  .then(function(r){return r.json()})
+  .then(function(d){
+    var s=d.sentiment||d.result||'';
+    var score=d.score||d.confidence||'';
+    var html='<span style="color:var(--green);font-weight:600">Result:</span> ';
+    if(typeof d==='object'&&!d.error){
+      if(s)html+='<span style="color:#fff">'+s+'</span>';
+      if(score)html+=' <span style="color:var(--muted)">('+score+')</span>';
+      if(!s&&!score)html+='<pre style="color:var(--text);margin:0;white-space:pre-wrap">'+JSON.stringify(d,null,2).replace(/"_billing"[\s\S]*$/,'').replace(/,\s*$/,'')+'</pre>';
+      html+='<div style="margin-top:8px;font-size:0.8rem;color:var(--muted)">Free &mdash; no signup needed. <a href="/try" style="color:var(--green);text-decoration:none">Try more tools &rarr;</a></div>';
+    }else{
+      html+='<span style="color:#ff6b6b">'+(d.error||d.message||'Try again')+'</span>';
+    }
+    res.innerHTML=html;
+  })
+  .catch(function(){res.innerHTML='<span style="color:#ff6b6b">Network error. Try again.</span>';})
+  .finally(function(){btn.disabled=false;btn.textContent='Analyze Sentiment \u2192';});
+}
 </script>
 <script>
 fetch('/api/stats').then(r=>r.json()).then(d=>{

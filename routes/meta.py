@@ -2346,7 +2346,7 @@ def try_tool(tool):
         else:
             return jsonify({"error": f"Unknown demo tool: {tool}"}), 400
         funnel_log_event("demo_used", endpoint=f"/try/{tool}", ip=ip, user_agent=request.headers.get("User-Agent", ""))
-        _log_tool_usage(tool, "demo")
+        _log_tool_usage(tool, api_key="demo")
         return jsonify({"result": result, "tool": tool, "_meta": {"free_demo": True, "upgrade": "/buy-credits"}})
     except Exception as e:
         logger.error("Demo tool '%s' failed: %s", tool, e)
