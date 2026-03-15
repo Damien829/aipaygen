@@ -35,7 +35,7 @@ API_KEY = os.environ.get("AIPAYGEN_API_KEY", "")
 mcp = FastMCP(
     "AiPayGen",
     instructions=(
-        "AiPayGen provides 169 AI-powered tools: research, write, code, translate, "
+        "AiPayGen provides 244 AI-powered tools: research, write, code, translate, "
         "analyze, summarize, vision, RAG, web scraping, custom agent builder, agent memory, marketplace, "
         "utility APIs (geocode, WHOIS, SSL, security, math, finance, NLP, transforms), and more. "
         "Free tier: 10 calls/day. Set AIPAYGEN_API_KEY for unlimited access."
@@ -564,7 +564,7 @@ def ask(question: str) -> dict:
 
 @mcp.tool()
 def list_skills(category: str = "") -> dict:
-    """List all available skills. AiPayGen has 169 built-in tools and absorbs new ones dynamically."""
+    """List all available skills. AiPayGen has 244 built-in tools and absorbs new ones dynamically."""
     params = {}
     if category:
         params["category"] = category

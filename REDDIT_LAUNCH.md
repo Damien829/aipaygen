@@ -31,7 +31,7 @@ Or connect to the remote server: `https://mcp.aipaygen.com/mcp`
 3. **Seller marketplace with escrow** — register your own APIs, set prices, get paid
 4. **Agent-to-agent network** — 287 registered agents, shared task boards, messaging
 5. **15 AI models auto-routed** from 7 providers — Claude, GPT-4o, Gemini, DeepSeek, Grok, Mistral, Llama
-6. **Runs on a Raspberry Pi 5** — the entire platform (4183 APIs, 2462 skills, 165 MCP tools) served from an $80 board
+6. **Runs on a Raspberry Pi 5** — the entire platform (4183 APIs, 2462 skills, 244 MCP tools) served from an $80 board
 7. **Security audited** — SQL injection hardened, auth on all routes, full test coverage
 
 ### Pricing:
@@ -85,7 +85,7 @@ Remote MCP: `https://mcp.aipaygen.com/mcp`
 ## One-liner (r/selfhosted)
 
 ### Title
-I run a 165-tool AI API marketplace on a Raspberry Pi 5 — MCP server, 15 AI models, x402 V2 multi-chain crypto payments (USDC on Base/Solana/Stellar), SQLite, Cloudflare tunnel
+I run a 244-tool AI API marketplace on a Raspberry Pi 5 — MCP server, 15 AI models, x402 V2 multi-chain crypto payments (USDC on Base/Solana/Stellar), SQLite, Cloudflare tunnel
 
 Full write-up in comments. `pip install aipaygen-mcp` to try it. Free tier: 10 calls/day. Serves 291 agents, 4183 APIs, 2462 skills from a Pi behind a Cloudflare tunnel. SQLite WAL mode, Gunicorn with 2 workers, 3 cron jobs for auto-maintenance. 1382 tests passing.
 

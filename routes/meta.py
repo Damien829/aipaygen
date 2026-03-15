@@ -81,16 +81,11 @@ NAV_HTML = '''
       Ai<span style="color:#00ff9d">Pay</span>Gen
     </a>
     <div style="display:flex;gap:24px;align-items:center">
-      <a href="/builder" style="color:#00d4ff;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600;transition:color .2s">Build Agent</a>
-      <a href="/discover" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Discover</a>
+      <a href="/try" style="color:#00ff9d;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600">Try Free</a>
       <a href="/docs" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Docs</a>
       <a href="/pricing" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Pricing</a>
-      <a href="/sdk" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">SDK</a>
-      <a href="/security" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Security</a>
-      <a href="/changelog" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Changelog</a>
-      <a href="/status" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Status</a>
-      <a href="/try" style="color:#00ff9d;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600">Try Free</a>
       <a href="/playground" style="color:#00d4ff;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600">Playground</a>
+      <a href="/status" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Status</a>
       <a href="/buy-credits" style="color:#000;text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:700;background:linear-gradient(135deg,#00ff9d,#00d4ff);padding:7px 16px;border-radius:4px;margin-left:8px;letter-spacing:0.03em;transition:all .2s;box-shadow:0 0 12px rgba(0,255,157,0.2)">GET API KEY</a>
     </div>
   </div>
@@ -489,8 +484,8 @@ def health():
 
     # 7. MCP server reachable
     try:
-        mcp_r = _requests.get("http://127.0.0.1:5002/", timeout=2)
-        checks["mcp_server"] = "ok" if mcp_r.status_code < 500 else f"http {mcp_r.status_code}"
+        mcp_r = _requests.get("http://127.0.0.1:5002/health", timeout=2)
+        checks["mcp_server"] = "ok" if mcp_r.status_code == 200 else f"http {mcp_r.status_code}"
     except Exception:
         checks["mcp_server"] = "not running"
 
@@ -532,11 +527,21 @@ def status_page():
             "detail": health_data.get("status", "unknown"),
         }
         uptime_s = health_data.get("checks", {}).get("uptime_seconds", 0)
-        if uptime_s:
+        if isinstance(uptime_s, (int, float)) and uptime_s > 0:
             days = int(uptime_s // 86400)
             hours = int((uptime_s % 86400) // 3600)
             mins = int((uptime_s % 3600) // 60)
-            components["api"]["uptime"] = f"{days}d {hours}h {mins}m"
+            secs = int(uptime_s % 60)
+            if days > 0:
+                components["api"]["uptime"] = f"{days}d {hours}h {mins}m"
+            elif hours > 0:
+                components["api"]["uptime"] = f"{hours}h {mins}m"
+            elif mins > 0:
+                components["api"]["uptime"] = f"{mins}m {secs}s"
+            else:
+                components["api"]["uptime"] = f"{secs}s"
+        else:
+            components["api"]["uptime"] = "just started"
         if not api_ok:
             overall = "degraded"
     except Exception:
@@ -547,8 +552,8 @@ def status_page():
 
     # --- MCP server ---
     try:
-        mr = _requests.get("http://127.0.0.1:5002/", timeout=3)
-        mcp_ok = mr.status_code < 500
+        mr = _requests.get("http://127.0.0.1:5002/health", timeout=3)
+        mcp_ok = mr.status_code == 200
         components["mcp"] = {
             "name": "MCP Server",
             "status": "healthy" if mcp_ok else "degraded",

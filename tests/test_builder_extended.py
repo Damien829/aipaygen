@@ -271,6 +271,6 @@ class TestUpdateToolsValidation:
         with patch("api_keys.validate_key", side_effect=_validate_key_mock):
             with patch("routes.builder.validate_key", side_effect=_validate_key_mock):
                 r = client.put(f"/agents/custom/{agent_id}",
-                               json={"tools": ["t"] * 200},
+                               json={"tools": ["t"] * 250},
                                headers=AUTH_HEADER)
         assert r.status_code == 400

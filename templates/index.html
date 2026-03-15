@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 {% block title %}AiPayGen{% endblock %}
-{% block description %}169 AI tools in one API. Multi-model (Claude, GPT-4o, Gemini, DeepSeek, Grok). Pay per call. 10 free calls/day. $0.25 trial credits.{% endblock %}
+{% block description %}244 AI tools in one API. Multi-model (Claude, GPT-4o, Gemini, DeepSeek, Grok). Pay per call. 10 free calls/day. $0.25 trial credits.{% endblock %}
 
 {% block head %}
 <!-- OG Tags -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="AiPayGen — The AI Agent API">
-<meta property="og:description" content="169 AI tools, 15 models, 7 providers. Pay per call. 10 free calls/day. $0.25 trial credits.">
+<meta property="og:description" content="244 AI tools, 15 models, 7 providers. Pay per call. 10 free calls/day. $0.25 trial credits.">
 <meta property="og:url" content="https://aipaygen.com">
-<meta property="og:image" content="https://aipaygen.com/static/og-image.svg">
+<meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta property="og:site_name" content="AiPayGen">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="AiPayGen — The AI Agent API">
-<meta name="twitter:description" content="169 AI tools, 15 models, 7 providers. Pay per call. 10 free calls/day.">
-<meta name="twitter:image" content="https://aipaygen.com/static/og-image.svg">
+<meta name="twitter:description" content="244 AI tools, 15 models, 7 providers. Pay per call. 10 free calls/day.">
+<meta name="twitter:image" content="https://aipaygen.com/og-image.png">
 <!-- JSON-LD -->
 <script type="application/ld+json">
 {
@@ -21,7 +21,7 @@
   "@type": "WebApplication",
   "name": "AiPayGen",
   "url": "https://aipaygen.com",
-  "description": "169 AI tools in one API. Multi-model. Pay per call with API key, x402 USDC, or MCP.",
+  "description": "244 AI tools in one API. Multi-model. Pay per call with API key, x402 USDC, or MCP.",
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": "Any",
   "offers": [
@@ -117,11 +117,11 @@
   <div style="position:relative;z-index:1">
     <div class="hero-badge fade-in">
       <span class="badge">Live on Base Mainnet</span>
-      <span class="badge badge-cyan">169 tools</span>
+      <span class="badge badge-cyan">244 tools</span>
     </div>
     <h1 class="fade-in delay-1">The AI Agent API</h1>
     <p class="hero-sub fade-in delay-2">
-      169 tools across 15 models from 7 providers. Research, write, code, analyze, scrape, translate — pay per call.
+      244 tools across 15 models from 7 providers. Research, write, code, analyze, scrape, translate — pay per call.
     </p>
     <div class="hero-actions fade-in delay-3">
       <a href="/try" class="btn btn-primary">Try Free</a>
@@ -167,7 +167,7 @@
   <div class="section-subtitle">One API key. Every AI tool.</div>
   <div class="bento-grid">
     <div class="card card-lg">
-      <h3>169 AI Tools</h3>
+      <h3>244 AI Tools</h3>
       <p>Research, write, code, analyze, extract, translate, scrape, RAG, vision, diagrams, and more — every tool is one POST request away.</p>
       <div class="tag-row">
         <span class="tag">research</span><span class="tag">write</span><span class="tag">code</span>
@@ -257,7 +257,7 @@
       <ul class="pricing-features">
         <li>10 AI calls per day</li>
         <li>No sign-up required</li>
-        <li>All 169 tools</li>
+        <li>All 244 tools</li>
         <li>MCP access</li>
       </ul>
       <a href="/try" class="btn btn-secondary" style="width:100%;justify-content:center">Try Now</a>
@@ -270,7 +270,7 @@
       <ul class="pricing-features">
         <li>Unlimited calls</li>
         <li>Prepaid API key</li>
-        <li>All 169 tools</li>
+        <li>All 244 tools</li>
         <li>Agent Builder</li>
         <li>Priority routing</li>
       </ul>
@@ -397,7 +397,7 @@ fetch('/api/stats').then(function(r){return r.json()}).then(function(d){
     'stat-keys': d.api_keys || 0,
     'stat-skills': d.skills || 0,
     'stat-apis': d.apis || 0,
-    'stat-tools': d.mcp_tools || 169
+    'stat-tools': d.mcp_tools || 244
   };
   Object.keys(map).forEach(function(id){
     var el = document.getElementById(id);

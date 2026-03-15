@@ -4,9 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Try AiPayGen — Free Interactive Demo</title>
-<meta name="description" content="Try 169 AI tools free — no sign-up required. Sentiment analysis, translation, summarization, code generation, and more.">
-<meta property="og:title" content="Try AiPayGen Free — 169 AI Tools">
-<meta property="og:description" content="Interactive demo of 169 AI tools. No sign-up, no credit card. 10 free calls/day.">
+<meta name="description" content="Try 244 AI tools free — no sign-up required. Sentiment analysis, translation, summarization, code generation, and more.">
+<meta property="og:title" content="Try AiPayGen Free — 244 AI Tools">
+<meta property="og:description" content="Interactive demo of 244 AI tools. No sign-up, no credit card. 10 free calls/day.">
 <meta property="og:url" content="https://aipaygen.com/try">
 <meta property="og:image" content="https://api.aipaygen.com/og-image.png">
 <meta property="og:type" content="website">
@@ -35,6 +35,10 @@
 
   .result-box { margin-top: 16px; background: #0d0d0d; border: 1px solid #222; border-radius: 10px; padding: 16px; font-size: 0.85rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; display: none; max-height: 400px; overflow-y: auto; }
   .result-box.show { display: block; }
+
+  .cost-hint { margin-top: 10px; font-size: 0.75rem; color: #555; line-height: 1.5; display: none; }
+  .cost-hint.show { display: block; }
+  .cost-hint a { color: #6366f1; }
 
   .curl-wrap { margin-top: 12px; display: none; }
   .curl-wrap.show { display: block; }
@@ -94,9 +98,9 @@
 </head>
 <body>
 <div class="wrap">
-  <div style="display:flex;gap:16px;margin-bottom:20px;font-size:0.85rem"><a href="/" style="color:#888;text-decoration:none">Home</a><a href="/docs" style="color:#888;text-decoration:none">Docs</a><a href="/buy-credits" style="color:#818cf8;text-decoration:none;font-weight:600">Get API Key</a></div>
+  <div style="display:flex;gap:16px;margin-bottom:20px;font-size:0.85rem;align-items:center"><a href="/" style="color:#888;text-decoration:none">Home</a><a href="/try" style="color:#818cf8;text-decoration:none;font-weight:600">Try Free</a><a href="/docs" style="color:#888;text-decoration:none">Docs</a><a href="/pricing" style="color:#888;text-decoration:none">Pricing</a><a href="/playground" style="color:#888;text-decoration:none">Playground</a><a href="/status" style="color:#888;text-decoration:none">Status</a><a href="/buy-credits" style="color:#000;text-decoration:none;font-weight:700;background:linear-gradient(135deg,#6366f1,#818cf8);padding:5px 14px;border-radius:6px;font-size:0.8rem">Get API Key</a></div>
   <h1>Try AiPayGen</h1>
-  <p class="sub">Test any tool below — completely free, no sign-up. <a href="/discover">See all 169 tools &rarr;</a></p>
+  <p class="sub">Test any tool below — completely free, no sign-up. <a href="/discover">See all 244 tools &rarr;</a></p>
 
   <!-- Popular Tools -->
   <div class="demo-card" id="popular-section" style="display:none;margin-bottom:16px">
@@ -145,6 +149,7 @@
     <textarea id="input" placeholder="Type any text to analyze sentiment..." aria-label="Enter text for the selected tool"></textarea>
     <button class="run-btn" id="run" onclick="runTool()" aria-label="Run the selected tool">&#9654; Run</button>
     <div class="result-box" id="result" aria-live="polite" role="status"></div>
+    <div class="cost-hint" id="cost-hint">This call costs ~<strong>$0.006</strong> with an API key vs <strong>$0.03+</strong> direct from model providers. <a href="/buy-credits">Get a key from $1</a></div>
     <div class="curl-wrap" id="curl-wrap">
       <div class="curl-box" id="curl-cmd"></div>
       <button class="copy-curl-btn" id="copy-curl" onclick="copyCurl()">Copy as curl</button>
@@ -153,7 +158,7 @@
 
   <div class="cta">
     <a href="/buy-credits">Get API Key — From $1</a>
-    <p>169 tools &middot; 15 AI models &middot; Credits never expire</p>
+    <p>244 tools &middot; 15 AI models &middot; Credits never expire</p>
   </div>
   <p class="free-note">Free demo uses the same AI models as paid API. Limited to 10 demos per session.</p>
 </div>
@@ -163,7 +168,7 @@
   <div class="modal">
     <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
     <h2>You've used all 10 free demos</h2>
-    <p class="modal-sub">Pick a plan to unlock unlimited access to all 169 tools.</p>
+    <p class="modal-sub">Pick a plan to unlock unlimited access to all 244 tools.</p>
     <div class="modal-plans">
       <div class="modal-plan" data-amt="1" onclick="selectModalPlan(this)">
         <div class="mp-left"><span class="mp-amount">$1</span><span class="mp-detail">~160 calls</span></div>
@@ -356,6 +361,8 @@ async function runTool() {
       box.textContent = output + '\n\n--- ' + remaining + ' free demo' + (remaining !== 1 ? 's' : '') + ' remaining';
       box.className = 'result-box show';
     }
+    // Show cost comparison hint
+    document.getElementById('cost-hint').className = 'cost-hint show';
     // Build curl command
     const curlBody = JSON.stringify(body);
     lastCurl = "curl -X POST https://api.aipaygen.com/" + currentTool + " \\\n  -H 'Content-Type: application/json' \\\n  -H 'Authorization: Bearer YOUR_API_KEY' \\\n  -d '" + curlBody.replace(/'/g, "'\\''") + "'";
@@ -366,6 +373,7 @@ async function runTool() {
   } catch(e) {
     box.textContent = 'Error: ' + e.message;
     box.className = 'result-box show';
+    document.getElementById('cost-hint').className = 'cost-hint';
     document.getElementById('curl-wrap').className = 'curl-wrap';
   }
   btn.disabled = false; btn.textContent = '\u25B6 Run';
