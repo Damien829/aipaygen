@@ -17,6 +17,7 @@ from accounts import (
     get_account_keys, update_last_login, set_digest_opt_out,
 )
 from email_service import send_magic_link
+from helpers import check_identity_rate_limit
 
 accounts_bp = Blueprint("accounts", __name__)
 
@@ -88,6 +89,9 @@ def _get_current_account():
 @accounts_bp.route("/auth/magic-link", methods=["POST"])
 def magic_link():
     _check_csrf()
+    ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "unknown")
+    if not check_identity_rate_limit(ip):
+        return jsonify({"error": "rate_limited", "message": "Too many requests. Try again later."}), 429
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
     if not email or not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
@@ -206,6 +210,9 @@ def key_recovery_page():
 @accounts_bp.route("/auth/key-lookup", methods=["POST"])
 def key_lookup():
     _check_csrf()
+    ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "unknown")
+    if not check_identity_rate_limit(ip):
+        return jsonify({"error": "rate_limited", "message": "Too many requests. Try again later."}), 429
     # Always return same message to prevent email enumeration
     msg = "If an account exists for that email, a sign-in link has been sent. Check your inbox."
     data = request.get_json(silent=True) or {}

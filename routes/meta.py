@@ -19,6 +19,23 @@ import sqlite3 as _sqlite3
 
 _tool_usage_db = os.path.join(os.path.dirname(os.path.dirname(__file__)), "tool_usage.db")
 
+def _log_tool_usage(tool_name: str, api_key: str = "free"):
+    """Increment usage counter for a tool in tool_usage.db (same schema as mcp_server)."""
+    try:
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).isoformat()
+        with _sqlite3.connect(_tool_usage_db) as conn:
+            conn.execute(
+                """INSERT INTO tool_usage (tool_name, api_key, count, last_used)
+                   VALUES (?, ?, 1, ?)
+                   ON CONFLICT(tool_name, api_key)
+                   DO UPDATE SET count = count + 1, last_used = ?""",
+                (tool_name, api_key, now, now),
+            )
+    except Exception:
+        pass
+
+
 def _get_popular_tools(limit=10):
     """Return top tools by total call count from tool_usage.db."""
     try:
@@ -323,7 +340,7 @@ def landing():
 @meta_bp.route("/discover")
 def discover():
     try:
-        funnel_log_event("discover_hit", endpoint="/discover", ip=request.headers.get("CF-Connecting-IP", request.remote_addr or ""))
+        funnel_log_event("discover_hit", endpoint="/discover", ip=request.headers.get("CF-Connecting-IP", request.remote_addr or ""), user_agent=request.headers.get("User-Agent", ""))
     except Exception:
         pass
     categories = _build_discover_services()
@@ -719,31 +736,46 @@ def live_stats():
     _root = os.path.dirname(os.path.dirname(__file__))
     stats = {"mcp_tools": _MCP_TOOL_COUNT}
 
-    def _count(db, query):
-        try:
-            c = _sq.connect(os.path.join(_root, db), timeout=2)
-            val = c.execute(query).fetchone()[0]
-            c.close()
-            return val
-        except Exception:
-            logger.exception("stats _count failed for %s", db)
-            return 0
-
-    stats["skills"] = _count("skills.db", "SELECT COUNT(*) FROM skills")
-    stats["apis"] = _count("api_catalog.db", "SELECT COUNT(*) FROM discovered_apis")
-    stats["agents"] = _count("agent_memory.db", "SELECT COUNT(*) FROM agent_registry")
-
     # Baseline: 351 keys existed before test suite wiped api_keys.db (session 34)
     _API_KEY_BASELINE = 351
+
+    # Single connection with ATTACH for all databases
     try:
-        c = _sq.connect(os.path.join(_root, "api_keys.db"), timeout=2)
-        stats["api_keys"] = _API_KEY_BASELINE + c.execute("SELECT COUNT(*) FROM api_keys").fetchone()[0]
-        stats["total_calls"] = c.execute("SELECT COALESCE(SUM(call_count), 0) FROM api_keys").fetchone()[0]
+        c = _sq.connect(":memory:", timeout=2)
+        dbs = {
+            "skills_db": "skills.db",
+            "catalog_db": "api_catalog.db",
+            "agents_db": "agent_memory.db",
+            "keys_db": "api_keys.db",
+        }
+        for alias, filename in dbs.items():
+            db_path = os.path.join(_root, filename)
+            try:
+                c.execute(f"ATTACH DATABASE ? AS {alias}", (db_path,))
+            except Exception:
+                pass
+
+        queries = [
+            ("skills", "SELECT COUNT(*) FROM skills_db.skills"),
+            ("apis", "SELECT COUNT(*) FROM catalog_db.discovered_apis"),
+            ("agents", "SELECT COUNT(*) FROM agents_db.agent_registry"),
+            ("api_keys", "SELECT COUNT(*) FROM keys_db.api_keys"),
+            ("total_calls", "SELECT COALESCE(SUM(call_count), 0) FROM keys_db.api_keys"),
+        ]
+        for key, sql in queries:
+            try:
+                stats[key] = c.execute(sql).fetchone()[0]
+            except Exception:
+                stats[key] = 0
+        # Apply baseline offset for api_keys
+        stats["api_keys"] = _API_KEY_BASELINE + stats.get("api_keys", 0)
         c.close()
     except Exception:
-        logger.exception("stats api_keys query failed")
-        stats["api_keys"] = _API_KEY_BASELINE
-        stats["total_calls"] = 0
+        stats.setdefault("skills", 0)
+        stats.setdefault("apis", 0)
+        stats.setdefault("agents", 0)
+        stats.setdefault("api_keys", _API_KEY_BASELINE)
+        stats.setdefault("total_calls", 0)
 
     _stats_cache["data"] = stats
     _stats_cache["ts"] = now
@@ -784,7 +816,7 @@ def api_subscribe():
         pass
 
     ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "")
-    funnel_log_event("email_captured", endpoint="/api/subscribe", ip=ip)
+    funnel_log_event("email_captured", endpoint="/api/subscribe", ip=ip, user_agent=request.headers.get("User-Agent", ""))
     return jsonify({"ok": True, "message": "Subscribed!"})
 
 
@@ -1148,7 +1180,7 @@ def openapi_spec():
 @meta_bp.route("/llms.txt")
 def llms_txt():
     try:
-        funnel_log_event("llms_txt_hit", endpoint="/llms.txt", ip=request.headers.get("CF-Connecting-IP", request.remote_addr or ""))
+        funnel_log_event("llms_txt_hit", endpoint="/llms.txt", ip=request.headers.get("CF-Connecting-IP", request.remote_addr or ""), user_agent=request.headers.get("User-Agent", ""))
     except Exception:
         pass
     from flask import Response
@@ -2313,7 +2345,8 @@ def try_tool(tool):
             result = r.json()
         else:
             return jsonify({"error": f"Unknown demo tool: {tool}"}), 400
-        funnel_log_event("demo_used", endpoint=f"/try/{tool}", ip=ip)
+        funnel_log_event("demo_used", endpoint=f"/try/{tool}", ip=ip, user_agent=request.headers.get("User-Agent", ""))
+        _log_tool_usage(tool, "demo")
         return jsonify({"result": result, "tool": tool, "_meta": {"free_demo": True, "upgrade": "/buy-credits"}})
     except Exception as e:
         logger.error("Demo tool '%s' failed: %s", tool, e)

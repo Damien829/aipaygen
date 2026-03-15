@@ -36,6 +36,7 @@ DOMAIN_RE = re.compile(r'^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$')
 
 
 def _valid_domain(domain: str) -> bool:
+    """Validate domain string against regex and length limit."""
     return bool(domain and DOMAIN_RE.match(domain) and len(domain) <= 253)
 
 

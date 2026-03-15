@@ -207,7 +207,13 @@ def metered_tool(tier: str = "standard"):
             if tier == "free":
                 result = fn(*args, **kwargs)
                 if isinstance(result, dict):
-                    result["_billing"] = {"cost_usd": 0.0, "tier": "free"}
+                    billing = {"cost_usd": 0.0, "tier": "free"}
+                    # Show remaining free calls so MCP clients know their quota
+                    if not api_key.startswith("apk_"):
+                        identifier = hashlib.sha256(client_id.encode()).hexdigest()[:16]
+                        billing["free_calls_remaining"] = get_free_tier_remaining(identifier)
+                        billing["daily_limit"] = 10
+                    result["_billing"] = billing
                 try:
                     _log_tool_usage(fn.__name__, api_key or "free")
                 except Exception:

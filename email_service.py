@@ -71,7 +71,7 @@ def send_welcome_email(to: str, api_key: str) -> bool:
     <pre style="margin:0;white-space:pre-wrap;">curl https://api.aipaygen.com/summarize \\
   -H "Authorization: Bearer {safe_key}" \\
   -H "Content-Type: application/json" \\
-  -d '{{"text": "Your text here"}}'</pre>
+  -d '{{"text": "Hello world, this is a test."}}'</pre>
   </div>
   <div style="margin-bottom:24px;">
     <a href="https://aipaygen.com/docs" style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;border-radius:10px;padding:12px 24px;font-weight:600;margin-right:10px;">View Docs</a>
@@ -138,10 +138,9 @@ def send_deposit_confirmation(api_key: str, amount: float, network: str, tx_hash
     try:
         import sqlite3
         accounts_db = os.path.join(os.path.dirname(__file__), "accounts.db")
-        conn = sqlite3.connect(accounts_db)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT email FROM accounts WHERE api_key = ?", (api_key,)).fetchone()
-        conn.close()
+        with sqlite3.connect(accounts_db) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute("SELECT email FROM accounts WHERE api_key = ?", (api_key,)).fetchone()
         if not row or not row["email"]:
             return False
         email = row["email"]

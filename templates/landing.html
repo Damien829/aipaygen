@@ -305,6 +305,20 @@
   <p class="fade-up delay-2" style="color:#8b949e;font-size:0.85rem;margin-top:14px;font-family:'IBM Plex Sans',sans-serif">
     <span style="color:#00ff9d;font-weight:600">10 free calls/day</span> &nbsp;&middot;&nbsp; No sign-up required &nbsp;&middot;&nbsp; <code style="color:#00d4ff">pip install aipaygen-mcp</code>
   </p>
+
+  <!-- Instant hero demo -->
+  <div class="fade-up delay-3" id="hero-demo" style="margin-top:36px;width:100%;max-width:560px">
+    <div style="background:var(--bg2);border:1px solid var(--border);padding:20px 24px;text-align:left">
+      <label for="demo-input" style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);display:block;margin-bottom:8px">Try it now &mdash; Sentiment Analysis</label>
+      <div style="display:flex;gap:8px">
+        <input id="demo-input" type="text" value="I love this product but the shipping was slow"
+          style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 14px;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;outline:none"
+          aria-label="Text for sentiment analysis">
+        <button id="demo-btn" onclick="runHeroDemo()" style="background:var(--green);color:#000;border:none;padding:10px 20px;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;font-weight:700;cursor:pointer;white-space:nowrap;letter-spacing:0.03em">Analyze</button>
+      </div>
+      <div id="demo-result" style="margin-top:12px;font-size:0.85rem;color:var(--text);display:none;background:var(--bg);border:1px solid var(--border);padding:12px 14px;line-height:1.6"></div>
+    </div>
+  </div>
 </section>
 
 <div class="stats-bar fade-up delay-3" style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap;padding:0 24px 48px;max-width:900px;margin:0 auto">
@@ -435,6 +449,49 @@ fetch('/api/stats').then(r=>r.json()).then(d=>{
   if(d.agents) document.getElementById('stat-agents').textContent=d.agents.toLocaleString();
   if(d.api_keys) document.getElementById('stat-keys').textContent=d.api_keys.toLocaleString();
 }).catch(()=>{});
+</script>
+<script>
+function runHeroDemo(){
+  var btn=document.getElementById('demo-btn'),inp=document.getElementById('demo-input'),res=document.getElementById('demo-result');
+  var text=inp.value.trim();
+  if(!text)return;
+  btn.textContent='...';btn.disabled=true;
+  res.style.display='none';res.textContent='';
+  fetch('/free/sentiment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:text})})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      res.style.display='block';
+      if(d.error){res.textContent='Error: '+(d.message||d.error);res.style.color='#ff6b6b';return;}
+      res.style.color='';
+      var s=d.sentiment||d.result||'';
+      var score=d.score!==undefined?' ('+d.score+')':'';
+      var expl=d.explanation||d.summary||'';
+      // Build result with safe DOM methods
+      var sentSpan=document.createElement('span');
+      sentSpan.style.cssText='color:var(--green);font-weight:600';
+      sentSpan.textContent=s+score;
+      res.appendChild(sentSpan);
+      if(expl){
+        res.appendChild(document.createElement('br'));
+        var explSpan=document.createElement('span');
+        explSpan.style.color='var(--muted)';
+        explSpan.textContent=expl;
+        res.appendChild(explSpan);
+      }
+      res.appendChild(document.createElement('br'));
+      var ctaSpan=document.createElement('span');
+      ctaSpan.style.cssText='color:var(--cyan);font-size:0.8rem;margin-top:6px;display:inline-block';
+      ctaSpan.textContent='That was 1 API call. ';
+      var ctaLink=document.createElement('a');
+      ctaLink.href='/try';ctaLink.style.cssText='color:var(--green);text-decoration:underline';
+      ctaLink.textContent='Try more tools';
+      ctaSpan.appendChild(ctaLink);
+      res.appendChild(ctaSpan);
+    })
+    .catch(function(){res.style.display='block';res.textContent='Request failed. Try again.';res.style.color='#ff6b6b';})
+    .finally(function(){btn.textContent='Analyze';btn.disabled=false;});
+}
+document.getElementById('demo-input').addEventListener('keydown',function(e){if(e.key==='Enter')runHeroDemo();});
 </script>
 </body>
 </html>

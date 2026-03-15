@@ -730,7 +730,7 @@ def _api_key_wsgi(environ, start_response):
 
             return _raw_flask_wsgi(environ, _free_tier_start_response)
         else:
-            funnel_log_event("free_tier_exhausted", endpoint=environ.get("PATH_INFO", ""), ip=_ip)
+            funnel_log_event("free_tier_exhausted", endpoint=environ.get("PATH_INFO", ""), ip=_ip, user_agent=environ.get("HTTP_USER_AGENT", ""))
 
     # 1. Prepaid API key bypass (Bearer apk_xxx)
     if auth.startswith("Bearer apk_"):
@@ -740,12 +740,17 @@ def _api_key_wsgi(environ, start_response):
         if route_cfg:
             try:
                 if pricing_mode == "metered":
-                    # Metered: validate key exists and has minimum balance
                     key_data = validate_key(key)
                     if key_data and key_data.get("balance_usd", 0) >= 0.001:
-                        environ["X_APIKEY_BYPASS"] = key
-                        environ["X_PRICING_MODE"] = "metered"
-                        return _raw_flask_wsgi(environ, start_response)
+                        # Deduct minimum flat cost upfront for metered
+                        price_str = route_cfg.accepts[0].price
+                        cost = float(price_str.lstrip("$"))
+                        if key_data.get("balance_usd", 0) >= 2.00:
+                            cost = round(cost * 0.8, 4)
+                        if deduct(key, cost):
+                            environ["X_APIKEY_BYPASS"] = key
+                            environ["X_PRICING_MODE"] = "metered"
+                            return _raw_flask_wsgi(environ, start_response)
                 else:
                     # Flat: deduct fixed amount upfront (existing behavior)
                     price_str = route_cfg.accepts[0].price  # e.g. "$0.01"
@@ -811,7 +816,7 @@ def _api_key_wsgi(environ, start_response):
         try:
             path = environ.get("PATH_INFO", "")
             ip = environ.get("HTTP_CF_CONNECTING_IP", environ.get("REMOTE_ADDR", ""))
-            funnel_log_event("402_shown", endpoint=path, ip=ip)
+            funnel_log_event("402_shown", endpoint=path, ip=ip, user_agent=environ.get("HTTP_USER_AGENT", ""))
             remaining = get_free_tier_remaining(ip)
             # Get today's usage stats for personalized message
             try:
@@ -826,7 +831,10 @@ def _api_key_wsgi(environ, start_response):
                 calls_today = 10
             # Add x402-standard headers + upgrade hints + discovery Link headers
             route_cfg_hdr = routes.get(route_key)
-            price_hdr = _parse_x402_price(route_cfg_hdr) if route_cfg_hdr else "0"
+            try:
+                price_hdr = route_cfg_hdr.accepts[0].price if route_cfg_hdr else "0"
+            except (AttributeError, IndexError):
+                price_hdr = "0"
             captured["headers"] = list(captured["headers"]) + [
                 ("X-Free-Calls-Remaining", str(remaining)),
                 ("X-Payment-Required", "true"),
@@ -1090,6 +1098,7 @@ def inject_free_tier_upsell(response):
             data["_free_tier"]["upgrade"] = {
                 "message": f"Only {remaining_int} free calls left today. Get a free API key with $0.25 trial credits (~40 calls).",
                 "get_key": "POST https://api.aipaygen.com/auth/generate-key",
+                "quick_buy_url": "https://aipaygen.com/buy-credits?amount=5&quick=1",
                 "buy_credits": "https://aipaygen.com/buy-credits",
             }
         response.set_data(_json.dumps(data))
@@ -1099,6 +1108,7 @@ def inject_free_tier_upsell(response):
 
 
 # ── Endpoint description lookup for 402 enrichment ───────────────────────────
+_ENDPOINT_DESC_LOCK = threading.Lock()
 _ENDPOINT_DESCRIPTIONS = {}  # populated lazily
 
 
@@ -1107,13 +1117,16 @@ def _get_endpoint_descriptions():
     global _ENDPOINT_DESCRIPTIONS
     if _ENDPOINT_DESCRIPTIONS:
         return _ENDPOINT_DESCRIPTIONS
-    try:
-        cats = _build_discover_services()
-        for services in cats.values():
-            for s in services:
-                _ENDPOINT_DESCRIPTIONS[s["endpoint"]] = s["description"]
-    except Exception:
-        pass
+    with _ENDPOINT_DESC_LOCK:
+        if _ENDPOINT_DESCRIPTIONS:
+            return _ENDPOINT_DESCRIPTIONS
+        try:
+            cats = _build_discover_services()
+            for services in cats.values():
+                for s in services:
+                    _ENDPOINT_DESCRIPTIONS[s["endpoint"]] = s["description"]
+        except Exception:
+            pass
     return _ENDPOINT_DESCRIPTIONS
 
 
@@ -1124,7 +1137,7 @@ def enrich_402_response(response):
         return response
     try:
         caller_ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "unknown")
-        funnel_log_event("402_shown", endpoint=request.path, ip=caller_ip)
+        funnel_log_event("402_shown", endpoint=request.path, ip=caller_ip, user_agent=request.headers.get("User-Agent", ""))
     except Exception:
         pass
     try:
@@ -1157,12 +1170,14 @@ def enrich_402_response(response):
                     "url": "https://aipaygen.com/buy-credits",
                 },
             },
+            "quick_buy_url": "https://aipaygen.com/buy-credits?amount=5&quick=1",
             "also_accepted": {
                 "x402_usdc": {"description": "Pay per call with USDC. No signup.", "docs": "https://x402.org"},
                 "mcp": {"description": "Install MCP package for 10 free calls/day.", "install": "pip install aipaygen-mcp"},
             },
             "try_free": f"https://aipaygen.com/try?tool={request.path.strip('/')}",
             "links": {
+                "quick_buy": "https://aipaygen.com/buy-credits?amount=5&quick=1",
                 "buy_credits": "https://aipaygen.com/buy-credits",
                 "pricing": "https://aipaygen.com/pricing",
                 "try_demo": f"https://aipaygen.com/try?tool={request.path.strip('/')}",

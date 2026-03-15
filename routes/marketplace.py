@@ -40,7 +40,10 @@ def catalog():
         page = max(1, min(1000, int(request.args.get("page", 1))))
     except (ValueError, TypeError):
         page = 1
-    per_page = min(int(request.args.get("per_page", 20)), 100)
+    try:
+        per_page = max(1, min(int(request.args.get("per_page", 20)), 100))
+    except (ValueError, TypeError):
+        per_page = 20
     category = request.args.get("category")
     source = request.args.get("source")
     min_score = request.args.get("min_score", type=float)
@@ -48,7 +51,7 @@ def catalog():
     apis, total = get_all_apis(page=page, per_page=per_page, category=category,
                                source=source, min_score=min_score, free_only=free_only)
     try:
-        funnel_log_event("catalog_browse", endpoint="/catalog", ip=_get_client_ip())
+        funnel_log_event("catalog_browse", endpoint="/catalog", ip=_get_client_ip(), user_agent=request.headers.get("User-Agent", ""))
     except Exception:
         pass
     return jsonify({

@@ -4,6 +4,8 @@ import json
 import os
 import time as _time
 import hashlib as _hashlib
+import threading
+_cache_lock = threading.Lock()
 import functools
 from datetime import datetime
 from flask import request, jsonify
@@ -26,14 +28,15 @@ def cache_set(key: str, data, ttl: int):
 
 def _cache_cleanup():
     """Remove expired entries from cache and rate limit dicts."""
-    now = _time.time()
-    expired = [k for k, v in _ttl_cache.items() if now >= v[1]]
-    for k in expired:
-        del _ttl_cache[k]
-    for d in (_ip_rate, _identity_rate, _endpoint_rate):
-        stale = [k for k, v in d.items() if not v or max(v) < now - 120]
-        for k in stale:
-            del d[k]
+    with _cache_lock:
+        now = _time.time()
+        expired = [k for k, v in _ttl_cache.items() if now >= v[1]]
+        for k in expired:
+            del _ttl_cache[k]
+        for d in (_ip_rate, _identity_rate, _endpoint_rate):
+            stale = [k for k, v in d.items() if not v or max(v) < now - 120]
+            for k in stale:
+                del d[k]
 
 
 # ── Per-IP Rate Limiter ──────────────────────────────────────────────────────
@@ -50,7 +53,7 @@ _IDENTITY_RATE_WINDOW = 60
 def check_rate_limit(ip: str) -> bool:
     """Returns True if request is allowed, False if rate limited."""
     now = _time.time()
-    times = [t for t in _ip_rate.get(ip, []) if t > now - _RATE_WINDOW]
+    times = [t for t in _ip_rate.get(ip, []) if t > now - _RATE_WINDOW][-_RATE_LIMIT:]
     if len(times) >= _RATE_LIMIT:
         _ip_rate[ip] = times
         return False
@@ -62,7 +65,7 @@ def check_rate_limit(ip: str) -> bool:
 def check_identity_rate_limit(ip: str) -> bool:
     """Stricter rate limit for identity endpoints (10 req/min)."""
     now = _time.time()
-    times = [t for t in _identity_rate.get(ip, []) if t > now - _IDENTITY_RATE_WINDOW]
+    times = [t for t in _identity_rate.get(ip, []) if t > now - _IDENTITY_RATE_WINDOW][-_IDENTITY_RATE_LIMIT:]
     if len(times) >= _IDENTITY_RATE_LIMIT:
         _identity_rate[ip] = times
         return False
@@ -78,7 +81,7 @@ def _check_endpoint_rate(ip: str, bucket: str, limit: int, window: int = 60) -> 
     """Generic per-endpoint rate limiter. Returns True if allowed."""
     now = _time.time()
     key = f"{bucket}:{ip}"
-    times = [t for t in _endpoint_rate.get(key, []) if t > now - window]
+    times = [t for t in _endpoint_rate.get(key, []) if t > now - window][-limit:]
     if len(times) >= limit:
         _endpoint_rate[key] = times
         return False

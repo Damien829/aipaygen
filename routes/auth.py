@@ -97,7 +97,8 @@ def auth_generate_key():
             referral_applied = True
             try:
                 funnel_log_event("referral_signup", ip=ip,
-                                 metadata=json.dumps({"ref_code": ref_code, "referrer_key": referrer["key"][:12]}))
+                                 metadata=json.dumps({"ref_code": ref_code, "referrer_key": referrer["key"][:12]}),
+                                 user_agent=request.headers.get("User-Agent", ""))
             except Exception:
                 pass
 
@@ -113,7 +114,8 @@ def auth_generate_key():
     api_key = key_data["key"]
     try:
         funnel_log_event("key_generated", endpoint="/auth/generate-key",
-                         ip=ip, metadata=json.dumps({"source": source}))
+                         ip=ip, metadata=json.dumps({"source": source}),
+                         user_agent=request.headers.get("User-Agent", ""))
     except Exception:
         pass
     resp_data = {
@@ -223,7 +225,8 @@ def buy_credits():
                 _ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "")
                 if _ip not in ("127.0.0.1", "::1"):
                     funnel_log_event("checkout_started", endpoint="/credits/buy",
-                                     ip=_ip, metadata=f'{{"amount_usd": {amount}}}')
+                                     ip=_ip, metadata=f'{{"amount_usd": {amount}}}',
+                                     user_agent=request.headers.get("User-Agent", ""))
                 return jsonify({"checkout_url": session.url, "amount_usd": amount})
             except Exception as e:
                 logger.error("Stripe checkout session creation failed: %s", e)
@@ -239,11 +242,13 @@ def buy_credits():
         }), 402
     key_data = generate_key(initial_balance=amount, label=label)
     try:
+        _ua = request.headers.get("User-Agent", "")
         funnel_log_event("credits_bought", endpoint="/credits/buy",
                          ip=request.headers.get("CF-Connecting-IP", request.remote_addr or ""),
-                         metadata=f'{{"amount_usd": {amount}}}')
+                         metadata=f'{{"amount_usd": {amount}}}', user_agent=_ua)
         funnel_log_event("key_generated", endpoint="/credits/buy",
-                         ip=request.headers.get("CF-Connecting-IP", request.remote_addr or ""))
+                         ip=request.headers.get("CF-Connecting-IP", request.remote_addr or ""),
+                         user_agent=_ua)
     except Exception:
         pass
     return jsonify({
@@ -372,7 +377,8 @@ def stripe_create_checkout():
         ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "")
         if ip not in ("127.0.0.1", "::1"):
             funnel_log_event("checkout_started", endpoint="/stripe/create-checkout",
-                             ip=ip, metadata=f'{{"amount_usd": {amount}}}')
+                             ip=ip, metadata=f'{{"amount_usd": {amount}}}',
+                             user_agent=request.headers.get("User-Agent", ""))
         return jsonify({"url": session.url, "session_id": session.id})
     except Exception as e:
         logger.error("Stripe checkout creation failed: %s", e)

@@ -39,7 +39,7 @@ from referral import (
     register_referral_agent, record_click,
     get_referral_stats, get_referral_leaderboard,
 )
-from funnel_tracker import get_funnel_stats
+from funnel_tracker import get_funnel_stats, get_analytics as _get_analytics
 from async_jobs import submit_job, get_job, run_job_async
 from file_storage import save_file, get_file, delete_file, list_files
 from webhook_relay import (

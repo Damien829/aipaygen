@@ -1473,7 +1473,10 @@ def code_run():
     from security import validate_code_safety, SandboxViolation, get_sandbox_env
     data = request.get_json() or {}
     code = data.get("code", "")
-    timeout = min(int(data.get("timeout", 10)), 15)
+    try:
+        timeout = max(1, min(int(data.get("timeout", 10)), 15))
+    except (ValueError, TypeError):
+        timeout = 10
     if not code:
         return jsonify({"error": "code required"}), 400
     if len(code) > 5000:
