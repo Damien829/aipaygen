@@ -1488,3 +1488,121 @@ def admin_clear_cache():
     from model_router import clear_cache
     clear_cache()
     return jsonify({"status": "ok", "message": "Response cache cleared"})
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ANALYTICS — Bot filtering, tool usage, funnel conversion
+# ══════════════════════════════════════════════════════════════════════════════
+
+@admin_bp.route("/admin/analytics")
+@require_admin
+def admin_analytics():
+    """Analytics dashboard: bot stats, unique IPs, tool usage, funnel conversion."""
+    import sqlite3 as _sq
+
+    # Gather stats for 24h, 7d, 30d
+    periods = {"24h": 1, "7d": 7, "30d": 30}
+    period_stats = {}
+    for label, days in periods.items():
+        stats = get_funnel_stats(days=days, exclude_bots=False)
+        human_stats = get_funnel_stats(days=days, exclude_bots=True)
+        period_stats[label] = {
+            "total_events": stats["total_events"],
+            "bot_events": stats.get("bot_events", 0),
+            "human_events": human_stats["total_events"],
+            "unique_ips": human_stats.get("unique_ips", 0),
+        }
+
+    # Top tools by usage
+    tool_usage_db = os.path.join(os.path.dirname(os.path.dirname(__file__)), "tool_usage.db")
+    top_tools = []
+    try:
+        with _sq.connect(tool_usage_db) as conn:
+            conn.row_factory = _sq.Row
+            rows = conn.execute(
+                """SELECT tool_name, SUM(count) as total_calls, MAX(last_used) as last_used
+                   FROM tool_usage GROUP BY tool_name ORDER BY total_calls DESC LIMIT 20"""
+            ).fetchall()
+            top_tools = [{"tool": r["tool_name"], "calls": r["total_calls"], "last_used": r["last_used"]} for r in rows]
+    except Exception:
+        pass
+
+    # Funnel conversion (human only, 30d)
+    funnel_stages = [
+        "discover_hit", "catalog_browse", "demo_used",
+        "key_generated", "credits_bought",
+    ]
+    human_30d = get_funnel_stats(days=30, exclude_bots=True)
+    by_type = human_30d.get("by_type", {})
+    funnel = []
+    prev = None
+    for stage in funnel_stages:
+        count = by_type.get(stage, 0)
+        conv = round(100 * count / prev, 1) if prev and prev > 0 else None
+        funnel.append({"stage": stage, "count": count, "conversion_pct": conv})
+        prev = count if count > 0 else prev
+
+    # Check if request wants JSON
+    if request.args.get("format") == "json":
+        return jsonify({
+            "periods": period_stats,
+            "top_tools": top_tools,
+            "funnel_30d": funnel,
+        })
+
+    # HTML dashboard
+    period_rows = ""
+    for label, data in period_stats.items():
+        period_rows += (
+            f'<tr><td>{label}</td><td>{data["total_events"]}</td>'
+            f'<td style="color:#f87171">{data["bot_events"]}</td>'
+            f'<td style="color:#34d399">{data["human_events"]}</td>'
+            f'<td>{data["unique_ips"]}</td></tr>'
+        )
+
+    tool_rows = ""
+    for t in top_tools:
+        tool_rows += f'<tr><td>{t["tool"]}</td><td>{t["calls"]}</td><td style="color:#888">{(t["last_used"] or "")[:16]}</td></tr>'
+    if not tool_rows:
+        tool_rows = '<tr><td colspan="3" style="color:#555">No tool usage recorded yet</td></tr>'
+
+    funnel_rows = ""
+    for f in funnel:
+        conv_str = f'{f["conversion_pct"]}%' if f["conversion_pct"] is not None else "-"
+        funnel_rows += f'<tr><td>{f["stage"]}</td><td>{f["count"]}</td><td>{conv_str}</td></tr>'
+
+    html = (
+        '<!DOCTYPE html><html lang="en"><head>'
+        '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+        '<title>Analytics - AiPayGen</title>'
+        '<style>'
+        '*{box-sizing:border-box;margin:0;padding:0}'
+        'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0a0a0a;color:#e8e8e8;padding:32px 16px}'
+        '.wrap{max-width:900px;margin:0 auto}'
+        'h1{font-size:1.5rem;margin-bottom:4px}'
+        '.sub{color:#888;font-size:0.85rem;margin-bottom:24px}'
+        '.card{background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:24px;margin-bottom:20px}'
+        'h2{font-size:1.1rem;margin:0 0 12px}'
+        'table{width:100%;border-collapse:collapse;font-size:0.82rem}'
+        'th,td{padding:8px 12px;text-align:left;border-bottom:1px solid #222}'
+        'th{color:#888;font-weight:600}'
+        'a{color:#6366f1}'
+        '</style></head><body>'
+        '<div class="wrap">'
+        '<h1>Analytics</h1>'
+        '<p class="sub">Bot filtering &middot; Tool usage &middot; Funnel conversion &middot; <a href="?format=json">JSON</a></p>'
+        '<div class="card"><h2>Traffic (total vs bot)</h2>'
+        '<table><thead><tr><th>Period</th><th>Total</th><th>Bot</th><th>Human</th><th>Unique IPs</th></tr></thead>'
+        f'<tbody>{period_rows}</tbody></table></div>'
+        '<div class="card"><h2>Top Tools by Usage</h2>'
+        '<table><thead><tr><th>Tool</th><th>Calls</th><th>Last Used</th></tr></thead>'
+        f'<tbody>{tool_rows}</tbody></table></div>'
+        '<div class="card"><h2>Funnel Conversion (30d, humans only)</h2>'
+        '<table><thead><tr><th>Stage</th><th>Count</th><th>Conv %</th></tr></thead>'
+        f'<tbody>{funnel_rows}</tbody></table></div>'
+        '<p style="text-align:center;margin-top:20px;font-size:0.75rem;color:#444">'
+        '<a href="/admin/funnel" style="color:#555">Funnel dashboard</a> &middot; '
+        '<a href="/stats" style="color:#555">Payment stats</a></p>'
+        '</div></body></html>'
+    )
+    return html, 200, {"Content-Type": "text/html"}

@@ -56,6 +56,11 @@
 
   /* Nudge banner */
   .nudge-banner { display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a1a2e; border: 1px solid #6366f1; border-radius: 12px; padding: 16px 24px; z-index: 90; max-width: 480px; width: calc(100% - 32px); box-shadow: 0 8px 32px rgba(99,102,241,0.3); }
+  .nudge-banner a { color: #818cf8; font-weight: 600; text-decoration: none; }
+  .nudge-banner a:hover { text-decoration: underline; }
+  .nudge-banner.warn { border-color: #3d3d6e; color: #a0a0c0; }
+  .nudge-banner.urgent { background: #2a1a1a; border-color: #6e3d3d; color: #e0a0a0; }
+  .nudge-banner.show { display: block; }
 
   /* Email capture */
   .email-capture { display: none; background: #141414; border: 1px solid #6366f1; border-radius: 14px; padding: 24px; margin-top: 16px; text-align: center; }
@@ -102,6 +107,8 @@
     <div class="tool-row" id="popular-row"></div>
   </div>
 
+  <div class="nudge-banner warn" id="nudge-warn">5 free demos remaining — <a href="/buy-credits">Upgrade for unlimited access</a></div>
+  <div class="nudge-banner urgent" id="nudge-urgent">2 free demos remaining — <a href="/buy-credits">Upgrade now</a></div>
   <div class="demo-card">
     <div class="demo-progress" id="demo-progress">
       <div class="demo-progress-label"><span id="demo-progress-text">0 / 10 demos used</span><span id="demo-progress-pct">0%</span></div>
@@ -338,6 +345,7 @@ async function runTool() {
     const data = await res.json();
     if (res.status === 429) { showModal(); btn.disabled = false; btn.textContent = '\u25B6 Run'; return; }
     demoCount++;
+    updateNudge();
     const output = typeof data.result === 'string' ? data.result : JSON.stringify(data.result || data, null, 2);
     const remaining = MAX_DEMOS - demoCount;
     if (remaining === 0) {
@@ -361,6 +369,30 @@ async function runTool() {
     document.getElementById('curl-wrap').className = 'curl-wrap';
   }
   btn.disabled = false; btn.textContent = '\u25B6 Run';
+}
+
+function updateNudge() {
+  const remaining = MAX_DEMOS - demoCount;
+  const warn = document.getElementById('nudge-warn');
+  const urgent = document.getElementById('nudge-urgent');
+  if (remaining <= 2) {
+    warn.classList.remove('show');
+    urgent.textContent = remaining + ' free demo' + (remaining !== 1 ? 's' : '') + ' remaining \u2014 ';
+    const a = document.createElement('a');
+    a.href = '/buy-credits'; a.textContent = 'Upgrade now';
+    urgent.appendChild(a);
+    urgent.classList.add('show');
+  } else if (remaining <= 5) {
+    urgent.classList.remove('show');
+    warn.textContent = remaining + ' free demos remaining \u2014 ';
+    const a = document.createElement('a');
+    a.href = '/buy-credits'; a.textContent = 'Upgrade for unlimited access';
+    warn.appendChild(a);
+    warn.classList.add('show');
+  } else {
+    warn.classList.remove('show');
+    urgent.classList.remove('show');
+  }
 }
 
 function copyCurl() {
