@@ -81,8 +81,8 @@ def auth_generate_key():
     source = data.get("source", request.cookies.get("aipaygen_ref", "api-direct"))
     email = (data.get("email") or "").strip().lower()
     ref_code = data.get("ref", "") or request.args.get("ref", "") or request.cookies.get("aipaygen_ref", "")
-    # MCP tool users get $0.25 trial credits
-    trial_balance = 0.25 if source == "mcp-tool" else 0.0
+    # All new keys get $0.25 trial credits (~40 AI calls)
+    trial_balance = 0.25
     key_data = generate_key(initial_balance=trial_balance, label=label, source=source)
 
     # ── Referral bonus ────────────────────────────────────────────────────

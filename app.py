@@ -723,13 +723,9 @@ def _api_key_wsgi(environ, start_response):
             environ["X_FREE_REMAINING"] = str(remaining)
 
             def _free_tier_start_response(status, headers, exc_info=None):
-                if remaining <= 3:
-                    headers = list(headers) + [
-                        ("X-Free-Calls-Remaining", str(remaining)),
-                        ("X-Upgrade-Hint", "Buy API key at https://aipaygen.com/buy-credits or fund with crypto at https://aipaygen.com/crypto"),
-                    ]
-                else:
-                    headers = list(headers) + [("X-Free-Calls-Remaining", str(remaining))]
+                headers = list(headers) + [("X-Free-Calls-Remaining", str(remaining))]
+                if remaining <= 5:
+                    headers.append(("X-Upgrade-Hint", "Get a free API key with $0.25 trial credits: POST https://api.aipaygen.com/auth/generate-key"))
                 return start_response(status, headers, exc_info)
 
             return _raw_flask_wsgi(environ, _free_tier_start_response)
@@ -854,18 +850,18 @@ def _api_key_wsgi(environ, start_response):
                 "price": price,
                 "unlock": {
                     "1_get_free_key": {
-                        "description": "Generate a free API key (0 balance, but tracks your usage).",
+                        "description": "Generate a free API key with $0.25 trial credits (~40 calls). No payment needed.",
                         "command": "curl -X POST https://api.aipaygen.com/auth/generate-key -H 'Content-Type: application/json' -d '{\"label\": \"my-key\"}'",
                     },
-                    "2_add_credits": {
-                        "description": "Add credits via credit card. Starts at $1. Instant activation.",
-                        "url": "https://aipaygen.com/buy-credits",
-                        "tiers": {"$1": "~166 AI calls", "$5": "~830 calls + 20% bulk discount", "$20": "~4,000 calls"},
-                    },
-                    "3_use_key": {
-                        "description": "Add your key to requests.",
+                    "2_use_key": {
+                        "description": "Add the key to your requests.",
                         "header": "Authorization: Bearer apk_YOUR_KEY",
                         "example": f"curl -X POST https://api.aipaygen.com{path} -H 'Authorization: Bearer apk_YOUR_KEY' -H 'Content-Type: application/json' -d '...'",
+                    },
+                    "3_buy_more": {
+                        "description": "Need more? Add credits from $1.",
+                        "url": "https://aipaygen.com/buy-credits",
+                        "tiers": {"$1": "~166 AI calls", "$5": "~830 calls + 20% bulk discount", "$20": "~4,000 calls"},
                     },
                 },
                 "also_accepted": {
@@ -1065,6 +1061,43 @@ def add_cors(response):
     return response
 
 
+# ── Free tier upsell injection ─────────────────────────────────────────────────
+
+@app.after_request
+def inject_free_tier_upsell(response):
+    """Add upgrade CTA to free tier JSON responses so users know how to get a key."""
+    if response.status_code != 200:
+        return response
+    remaining = response.headers.get("X-Free-Calls-Remaining")
+    if remaining is None:
+        return response
+    try:
+        remaining_int = int(remaining)
+    except (ValueError, TypeError):
+        return response
+    if not response.content_type or "json" not in response.content_type:
+        return response
+    try:
+        import json as _json
+        data = _json.loads(response.get_data(as_text=True))
+        if not isinstance(data, dict):
+            return response
+        data["_free_tier"] = {
+            "calls_remaining": remaining_int,
+            "total_daily": 10,
+        }
+        if remaining_int <= 5:
+            data["_free_tier"]["upgrade"] = {
+                "message": f"Only {remaining_int} free calls left today. Get a free API key with $0.25 trial credits (~40 calls).",
+                "get_key": "POST https://api.aipaygen.com/auth/generate-key",
+                "buy_credits": "https://aipaygen.com/buy-credits",
+            }
+        response.set_data(_json.dumps(data))
+    except Exception:
+        pass
+    return response
+
+
 # ── Endpoint description lookup for 402 enrichment ───────────────────────────
 _ENDPOINT_DESCRIPTIONS = {}  # populated lazily
 
@@ -1112,15 +1145,16 @@ def enrich_402_response(response):
             "description": endpoint_desc,
             "unlock": {
                 "1_get_free_key": {
-                    "description": "Generate a free API key.",
+                    "description": "Generate a free API key with $0.25 trial credits (~40 calls). No payment needed.",
                     "command": "curl -X POST https://api.aipaygen.com/auth/generate-key -H 'Content-Type: application/json' -d '{\"label\": \"my-key\"}'",
                 },
-                "2_add_credits": {
-                    "description": "Add credits via credit card. Starts at $1.",
-                    "url": "https://aipaygen.com/buy-credits",
-                },
-                "3_use_key": {
+                "2_use_key": {
+                    "description": "Add the key to your requests.",
                     "header": "Authorization: Bearer apk_YOUR_KEY",
+                },
+                "3_buy_more": {
+                    "description": "Need more? Add credits from $1.",
+                    "url": "https://aipaygen.com/buy-credits",
                 },
             },
             "also_accepted": {

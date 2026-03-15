@@ -85,6 +85,9 @@
   </div>
 </footer>
 
+<!-- Scroll to top -->
+<button class="scroll-top" id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Scroll to top">&#8593;</button>
+
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
@@ -96,9 +99,10 @@ document.getElementById('navToggle')?.addEventListener('click', () => {
   document.getElementById('navLinks').classList.toggle('open');
 });
 
-// Nav scroll effect
+// Nav scroll effect + scroll-to-top
 window.addEventListener('scroll', () => {
   document.getElementById('mainNav')?.classList.toggle('scrolled', window.scrollY > 20);
+  document.getElementById('scrollTop')?.classList.toggle('visible', window.scrollY > 400);
 });
 
 // Scroll-triggered fade-in (Intersection Observer)

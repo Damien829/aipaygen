@@ -49,7 +49,13 @@ a:hover{text-decoration:underline}
 .try-btn{display:inline-block;padding:5px 14px;border:1px solid var(--green);color:var(--green);border-radius:6px;font-family:'IBM Plex Sans',sans-serif;font-size:0.78rem;font-weight:600;cursor:pointer;transition:all .2s;text-decoration:none}
 .try-btn:hover{background:var(--green);color:var(--bg);text-decoration:none}
 .empty{text-align:center;padding:48px 24px;color:var(--muted);font-size:0.95rem}
-.bottom-cta{text-align:center;padding:48px 24px 64px}
+.sticky-cta{position:fixed;bottom:0;left:0;right:0;z-index:999;background:linear-gradient(180deg,transparent,var(--bg) 20%);padding:24px 24px 16px;text-align:center}
+.sticky-cta-inner{display:inline-flex;align-items:center;gap:16px;padding:10px 24px;background:var(--card-bg);border:1px solid var(--green);border-radius:10px;box-shadow:0 -4px 24px rgba(0,255,157,0.15)}
+.sticky-cta-text{font-size:0.88rem;color:var(--text)}
+.sticky-cta-text strong{color:var(--green)}
+.sticky-cta-btn{padding:8px 20px;background:var(--green);color:var(--bg);border:none;border-radius:6px;font-family:'IBM Plex Sans',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;text-decoration:none;white-space:nowrap}
+.sticky-cta-btn:hover{opacity:.9;text-decoration:none}
+.bottom-cta{text-align:center;padding:48px 24px 96px}
 .bottom-cta a{display:inline-block;padding:12px 32px;border:1px solid var(--green);color:var(--green);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:0.95rem;transition:all .2s}
 .bottom-cta a:hover{background:var(--green);color:var(--bg);text-decoration:none}
 #demoOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center}
@@ -105,6 +111,12 @@ a:hover{text-decoration:underline}
 </div>
 <div class="bottom-cta">
   <a href="/try">Try Free — 10 calls/day, no sign-up &rarr;</a>
+</div>
+<div class="sticky-cta" id="stickyCta">
+  <div class="sticky-cta-inner">
+    <span class="sticky-cta-text">Get <strong>$0.25 free credits</strong> (~40 AI calls)</span>
+    <a class="sticky-cta-btn" href="/buy-credits">Get API Key &rarr;</a>
+  </div>
 </div>
 <div id="demoOverlay"><div id="demoPanel">
 <button id="demoClose">&times;</button>
@@ -250,7 +262,31 @@ a:hover{text-decoration:underline}
     .then(function(data){
       demoResult.style.color = 'var(--green)';
       demoResult.textContent = JSON.stringify(data, null, 2);
-      if(!localStorage.getItem('aipaygen_email_sub')) document.getElementById('demoEmail').style.display='block';
+      // Show key gen CTA after demo when running low
+      var remaining = data._free_tier ? data._free_tier.calls_remaining : null;
+      var emailDiv = document.getElementById('demoEmail');
+      if(remaining !== null && remaining <= 5) {
+        emailDiv.style.display='block';
+        while(emailDiv.firstChild) emailDiv.removeChild(emailDiv.firstChild);
+        var wrap = document.createElement('div');
+        wrap.style.cssText = 'padding:10px;background:rgba(0,255,157,0.08);border:1px solid var(--green);border-radius:8px;text-align:center';
+        var p1 = document.createElement('p');
+        p1.style.cssText = 'font-size:0.88rem;color:var(--green);margin-bottom:8px;font-weight:600';
+        p1.textContent = remaining + ' free calls left today';
+        var p2 = document.createElement('p');
+        p2.style.cssText = 'font-size:0.82rem;color:var(--muted);margin-bottom:10px';
+        p2.textContent = 'Get a free API key with $0.25 trial credits (~40 calls)';
+        var btn = document.createElement('a');
+        btn.href = '/buy-credits';
+        btn.style.cssText = 'display:inline-block;padding:8px 20px;background:var(--green);color:var(--bg);border-radius:6px;font-weight:700;font-size:0.85rem;text-decoration:none';
+        btn.textContent = 'Get API Key \u2192';
+        wrap.appendChild(p1);
+        wrap.appendChild(p2);
+        wrap.appendChild(btn);
+        emailDiv.appendChild(wrap);
+      } else if(!localStorage.getItem('aipaygen_email_sub')) {
+        emailDiv.style.display='block';
+      }
     }).catch(function(err){
       demoResult.style.color = '#f87171';
       demoResult.textContent = 'Error: ' + err.message;
