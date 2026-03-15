@@ -113,7 +113,7 @@ class TestCreateAgent:
         assert "tools" in data["error"]
 
     def test_create_too_many_tools(self, client):
-        r, data = _create_agent(client, tools=["t"] * 156)
+        r, data = _create_agent(client, tools=["t"] * 170)
         assert r.status_code == 400
 
     def test_create_no_auth(self, client):

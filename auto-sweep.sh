@@ -4,8 +4,9 @@
 # Logs issues to sweep.log, sends wall alert on critical failures
 
 set -e
-cd /home/damien809/agent-service
-LOG="/home/damien809/agent-service/sweep.log"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
+LOG="$SCRIPT_DIR/sweep.log"
 TS=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
 
 # Rotate log if > 500KB
@@ -23,12 +24,9 @@ if [ "$API_LOCAL" != "200" ]; then
     echo "[$TS] CRITICAL: API process down (local=$API_LOCAL)" >> "$LOG"
     wall "AiPayGen ALERT: API process down ($API_LOCAL)" 2>/dev/null || true
     ISSUES=$((ISSUES + 1))
-    # Full restart — kill stale workers, wait, relaunch
-    source venv/bin/activate 2>/dev/null
-    pkill -f "gunicorn.*app:app" 2>/dev/null || true
-    sleep 2
-    gunicorn --workers 2 --worker-class sync --bind 127.0.0.1:5001 --timeout 120 --daemon app:app 2>/dev/null || true
-    echo "[$TS] Attempted gunicorn restart" >> "$LOG"
+    # Use systemd to restart
+    sudo systemctl restart aipaygent.service 2>/dev/null || true
+    echo "[$TS] Attempted systemd restart" >> "$LOG"
 elif [ "$API_PUBLIC" != "200" ]; then
     echo "[$TS] WARNING: API local OK but tunnel returned $API_PUBLIC" >> "$LOG"
     ISSUES=$((ISSUES + 1))
@@ -47,7 +45,7 @@ if [ "$MCP_LOCAL" != "200" ]; then
     echo "[$TS] CRITICAL: MCP process down (local=$MCP_LOCAL)" >> "$LOG"
     wall "AiPayGen ALERT: MCP process down ($MCP_LOCAL)" 2>/dev/null || true
     ISSUES=$((ISSUES + 1))
-    systemctl --user restart aipaygen-mcp.service 2>/dev/null || true
+    sudo systemctl restart aipaygen-mcp.service 2>/dev/null || true
     echo "[$TS] Attempted MCP restart" >> "$LOG"
 elif [ "$MCP_PUBLIC" != "200" ]; then
     echo "[$TS] WARNING: MCP local OK but tunnel returned $MCP_PUBLIC" >> "$LOG"
@@ -68,14 +66,14 @@ done
 # 4. Stale reference check (code-level)
 STALE_COUNT=$(grep -r --include='*.py' --include='*.js' --include='*.json' --include='*.md' --include='*.sh' --include='*.toml' \
     -E 'AiPayGent|aipaygent\.xyz|djautomd-lab|fallback-change-me' \
-    /home/damien809/agent-service 2>/dev/null | grep -v docs/plans/ | grep -v app.py.bak | grep -v __pycache__ | grep -v '.pyc' | grep -v node_modules | grep -v auto-sweep.sh | wc -l)
+    "$SCRIPT_DIR" 2>/dev/null | grep -v docs/plans/ | grep -v app.py.bak | grep -v __pycache__ | grep -v '.pyc' | grep -v node_modules | grep -v auto-sweep.sh | wc -l)
 if [ "$STALE_COUNT" -gt 0 ]; then
     echo "[$TS] WARNING: $STALE_COUNT stale brand references found" >> "$LOG"
     ISSUES=$((ISSUES + 1))
 fi
 
 # 5. Disk space check
-DISK_FREE_MB=$(df -m /home/damien809 | tail -1 | awk '{print $4}')
+DISK_FREE_MB=$(df -m "$SCRIPT_DIR" | tail -1 | awk '{print $4}')
 if [ "$DISK_FREE_MB" -lt 1000 ]; then
     echo "[$TS] WARNING: Low disk space: ${DISK_FREE_MB}MB free" >> "$LOG"
     wall "AiPayGen ALERT: Low disk space (${DISK_FREE_MB}MB)" 2>/dev/null || true
@@ -101,7 +99,30 @@ for logfile in agent.log update.log sweep.log access.log cloudflared.log mcp_ser
     fi
 done
 
-# 8. DB permissions check — ensure all .db files are 600
+# 8. DB integrity check — catch corruption before it causes data loss
+for db in *.db routes/*.db; do
+    if [ -f "$db" ]; then
+        INTEGRITY=$(python3 -c "
+import sqlite3, sys
+try:
+    conn = sqlite3.connect('$db')
+    result = conn.execute('PRAGMA integrity_check').fetchone()[0]
+    conn.close()
+    print(result)
+except Exception as e:
+    print(f'ERROR: {e}')
+" 2>&1)
+        if [ "$INTEGRITY" != "ok" ]; then
+            echo "[$TS] CRITICAL: DB corruption in $db: $INTEGRITY" >> "$LOG"
+            wall "AiPayGen ALERT: DB corruption in $db" 2>/dev/null || true
+            ISSUES=$((ISSUES + 1))
+            # Create backup before it gets worse
+            cp "$db" "${db}.corrupt.$(date +%Y%m%d%H%M%S)" 2>/dev/null || true
+        fi
+    fi
+done
+
+# 9. DB permissions check — ensure all .db files are 600
 for db in *.db routes/*.db; do
     if [ -f "$db" ]; then
         perms=$(stat -c%a "$db" 2>/dev/null)

@@ -2,7 +2,7 @@
 AiPayGen LangChain Tool
 ========================
 Drop this file into any LangChain project to give your agent access to
-165 AI tools via x402 micropayments.
+169 AI tools via x402 micropayments.
 
 Install:
     pip install langchain-core requests

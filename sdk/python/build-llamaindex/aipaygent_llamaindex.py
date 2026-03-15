@@ -2,7 +2,7 @@
 AiPayGen LlamaIndex Tool
 =========================
 Drop this file into any LlamaIndex project to give your agent access to
-165 AI tools via x402 micropayments.
+169 AI tools via x402 micropayments.
 
 Install:
     pip install llama-index-core requests
@@ -58,7 +58,7 @@ except ImportError:
 
 
 class AiPayGenToolSpec(BaseToolSpec):
-    """LlamaIndex ToolSpec for AiPayGen — 165 AI tools via x402."""
+    """LlamaIndex ToolSpec for AiPayGen — 169 AI tools via x402."""
 
     spec_functions = [
         "research", "summarize", "analyze", "sentiment",

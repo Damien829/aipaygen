@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Service Catalog — AiPayGen</title>
+<meta name="description" content="Browse 169 AI tools — sentiment analysis, translation, code generation, web scraping, and more. Try free, no sign-up required.">
+<meta property="og:title" content="169 AI Tools — AiPayGen Service Catalog">
+<meta property="og:description" content="Browse and try 169 AI tools. Sentiment, translation, summarization, code generation, web scraping, and more. 10 free calls/day.">
+<meta property="og:url" content="https://aipaygen.com/discover">
+<meta property="og:image" content="https://api.aipaygen.com/og-image.png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#020408;--green:#00ff9d;--card-bg:#0a0e14;--card-border:#111820;--card-hover:#00ff9d22;--text:#e1e4e8;--muted:#6b7280;--blue:#3b82f6;--orange:#f59e0b}
@@ -62,7 +69,7 @@ a:hover{text-decoration:underline}
 {{ nav|safe }}
 <div class="page-header">
   <h1>Service <span>Catalog</span></h1>
-  <p class="tagline">165 AI tools. 10 free calls/day. Try any tool below — no sign-up required.</p>
+  <p class="tagline">169 AI tools. 10 free calls/day. Try any tool below — no sign-up required.</p>
 </div>
 <div class="container">
   <div class="search-wrap">
@@ -106,6 +113,14 @@ a:hover{text-decoration:underline}
 <textarea id="demoInput" placeholder="Enter your text here..."></textarea>
 <button id="demoRun">Run</button>
 <div id="demoResult"></div>
+<div id="demoEmail" style="display:none;margin-top:12px;padding:12px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px">
+<p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Get notified about new tools and features:</p>
+<form id="emailForm" style="display:flex;gap:8px">
+<input type="email" id="emailInput" placeholder="your@email.com" style="flex:1;padding:6px 10px;background:var(--bg);border:1px solid var(--card-border);border-radius:6px;color:var(--text);font-size:0.82rem">
+<button type="submit" style="padding:6px 14px;background:var(--green);color:var(--bg);border:none;border-radius:6px;font-size:0.82rem;font-weight:600;cursor:pointer">Subscribe</button>
+</form>
+<p id="emailMsg" style="display:none;font-size:0.78rem;color:var(--green);margin-top:6px"></p>
+</div>
 </div></div>
 {{ footer|safe }}
 <script>
@@ -170,7 +185,19 @@ a:hover{text-decoration:underline}
     'classify':'This email is about scheduling a meeting next Tuesday.',
     'rewrite':'The thing was really good and I liked it a lot.',
     'headline':'New study finds remote workers are 13% more productive',
-    'geocode':'1600 Pennsylvania Ave, Washington DC'
+    'geocode':'1600 Pennsylvania Ave, Washington DC',
+    'math-eval':'(2^10 + 3!) * sin(pi/4)',
+    'unit-convert':'42',
+    'readability':'Paste text to analyze reading level...',
+    'language-detect':'Bonjour, comment allez-vous?',
+    'whois':'github.com',
+    'security-headers':'https://example.com',
+    'currency-convert':'USD to EUR',
+    'stats':'10, 20, 30, 40, 50, 100',
+    'compare':'Python vs JavaScript',
+    'decide':'Should I use PostgreSQL or MongoDB for my project?',
+    'extract':'John Smith, CEO of Acme Corp, announced $50M in funding on March 14, 2026.',
+    'questions':'The x402 protocol enables autonomous AI payments using USDC on Base L2.'
   };
 
   document.querySelectorAll('.try-btn').forEach(function(btn){
@@ -223,6 +250,7 @@ a:hover{text-decoration:underline}
     .then(function(data){
       demoResult.style.color = 'var(--green)';
       demoResult.textContent = JSON.stringify(data, null, 2);
+      if(!localStorage.getItem('aipaygen_email_sub')) document.getElementById('demoEmail').style.display='block';
     }).catch(function(err){
       demoResult.style.color = '#f87171';
       demoResult.textContent = 'Error: ' + err.message;
@@ -235,7 +263,24 @@ a:hover{text-decoration:underline}
   demoInput.addEventListener('keydown', function(e){
     if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); demoRun.click(); }
   });
+
+  document.getElementById('emailForm').addEventListener('submit', function(e){
+    e.preventDefault();
+    var email = document.getElementById('emailInput').value.trim();
+    if(!email) return;
+    fetch('/auth/generate-key', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email,source:'discover-subscribe',label:'email-subscriber'})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      document.getElementById('emailMsg').style.display='block';
+      document.getElementById('emailMsg').textContent = d.key ? 'Subscribed! You also got a free API key: '+d.key.substring(0,12)+'...' : 'Subscribed! Thanks.';
+      localStorage.setItem('aipaygen_email_sub','1');
+      document.getElementById('emailForm').style.display='none';
+    });
+  });
 })();
+</script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebAPI","name":"AiPayGen API","url":"https://aipaygen.com/discover","description":"169 AI-powered API tools — sentiment analysis, translation, summarization, code generation, web scraping, and more.","provider":{"@type":"Organization","name":"AiPayGen","url":"https://aipaygen.com"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"10 free calls per day, paid plans from $0.004/call"}}
 </script>
 </body>
 </html>

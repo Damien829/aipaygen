@@ -4,9 +4,10 @@
 # Safe: logs everything, never breaks existing tools.
 
 set -e
-cd /home/damien809/agent-service
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+cd "$SCRIPT_DIR"
 
-LOG="/home/damien809/agent-service/discovery.log"
+LOG="$SCRIPT_DIR/discovery.log"
 TS=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
 BASE="http://127.0.0.1:5001"
 

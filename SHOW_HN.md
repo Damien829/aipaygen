@@ -1,6 +1,6 @@
-# Show HN: AiPayGen — 162+ AI tools in one MCP server, pay-per-call in USDC, runs on a Raspberry Pi
+# Show HN: AiPayGen — 169 AI tools in one MCP server, pay-per-call in USDC, runs on a Raspberry Pi
 
-I built an MCP server with 162+ tools — research, write, code, translate, analyze, scrape, agent memory, workflows, and 43 utility APIs. One install, one API key, 15 AI models from 7 providers behind the scenes. 1382 tests passing (zero failures).
+I built an MCP server with 169 tools — research, write, code, translate, analyze, scrape, agent memory, workflows, and 43 utility APIs. One install, one API key, 15 AI models from 7 providers behind the scenes. 1382 tests passing (zero failures).
 
 It runs on a Raspberry Pi 5. The entire platform — 287 registered agents, 4183 APIs, 2200 skills — served from an $80 board behind a Cloudflare tunnel.
 
@@ -21,7 +21,7 @@ Published on the official MCP Registry (`io.github.Damien829/aipaygen`), Smither
 
 ---
 
-## What's included (162+ tools)
+## What's included (169 tools)
 
 **AI tools (40):** research, write, summarize, translate, code, analyze, sentiment, classify, extract, compare, explain, plan, decide, debate, proofread, rewrite, pitch, headline, and more
 
@@ -47,7 +47,7 @@ Published on the official MCP Registry (`io.github.Damien829/aipaygen`), Smither
 
 Most AI tool services charge monthly subscriptions even if you use them twice a month. x402 V2 flips that: AI agents pay per call in USDC across Base, Solana, or Stellar — no signups, no API keys, just send payment with the request. Backed by the x402 Foundation (Coinbase, Cloudflare, Google, Visa). Google AP2 compatible. This is the only x402 V2-native AI tool marketplace.
 
-One MCP server means any Claude Code / Cursor / Cline user gets 162+ tools without managing separate API keys for OpenAI, Google, scraping services, etc. Install once, use everything.
+One MCP server means any Claude Code / Cursor / Cline user gets 169 tools without managing separate API keys for OpenAI, Google, scraping services, etc. Install once, use everything.
 
 ---
 

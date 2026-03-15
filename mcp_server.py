@@ -1,5 +1,5 @@
 """
-AiPayGen MCP Server — 165 tools (metered + free)
+AiPayGen MCP Server — 229 tools (metered + free)
 
 Exposes all AiPayGen capabilities as MCP tools with usage metering.
 10 free calls/day without an API key. Unlimited with a prepaid key.
@@ -61,6 +61,7 @@ from agent_network import (
     check_and_use_free_tier, get_free_tier_remaining,
 )
 from api_keys import validate_key, deduct
+from notifications import create_notification as _create_notification
 from skills_search import SkillsSearchEngine
 from mcp.server.transport_security import TransportSecuritySettings
 import requests as _mcp_requests
@@ -72,7 +73,7 @@ _skills_engine = SkillsSearchEngine(_skills_db_path)
 mcp = FastMCP(
     "AiPayGen",
     instructions=(
-        "AiPayGen lets you build, run, and schedule AI agents with 165 tools. "
+        "AiPayGen lets you build, run, and schedule AI agents with 229 tools. "
         "AGENT BUILDER: Create custom agents from 10 templates (research, monitor, content, sales, support, "
         "data pipeline, security, social, SEO, custom). Schedule agents on loops, cron, or event triggers. "
         "TOOLS: research, write, code, translate, analyze, summarize, vision (image analysis), "
@@ -93,6 +94,82 @@ mcp = FastMCP(
         enable_dns_rebinding_protection=False,
     ),
 )
+
+# ── Tool Usage Tracking ──────────────────────────────────────────────────────
+
+_tool_usage_db = os.path.join(os.path.dirname(__file__), "tool_usage.db")
+
+def _init_tool_usage_db():
+    """Create tool_usage table if it doesn't exist."""
+    import sqlite3
+    with sqlite3.connect(_tool_usage_db) as conn:
+        conn.execute("""CREATE TABLE IF NOT EXISTS tool_usage (
+            tool_name TEXT NOT NULL,
+            api_key TEXT DEFAULT 'free',
+            count INTEGER DEFAULT 1,
+            last_used TEXT NOT NULL,
+            UNIQUE(tool_name, api_key)
+        )""")
+
+_init_tool_usage_db()
+
+def _log_tool_usage(tool_name: str, api_key: str = "free"):
+    """Increment usage counter for a tool."""
+    import sqlite3
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc).isoformat()
+    with sqlite3.connect(_tool_usage_db) as conn:
+        conn.execute(
+            """INSERT INTO tool_usage (tool_name, api_key, count, last_used)
+               VALUES (?, ?, 1, ?)
+               ON CONFLICT(tool_name, api_key)
+               DO UPDATE SET count = count + 1, last_used = ?""",
+            (tool_name, api_key, now, now),
+        )
+
+def get_popular_tools(limit: int = 10):
+    """Return top tools by total call count."""
+    import sqlite3
+    with sqlite3.connect(_tool_usage_db) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """SELECT tool_name, SUM(count) as total_calls, MAX(last_used) as last_used
+               FROM tool_usage GROUP BY tool_name ORDER BY total_calls DESC LIMIT ?""",
+            (limit,),
+        ).fetchall()
+    return [{"tool": r["tool_name"], "calls": r["total_calls"], "last_used": r["last_used"]} for r in rows]
+
+
+# ── Tool Recommendations ─────────────────────────────────────────────────────
+
+_TOOL_RELATIONS = {
+    "summarize": ["analyze", "keywords", "explain"],
+    "sentiment": ["classify", "keywords", "analyze"],
+    "research": ["summarize", "extract", "analyze"],
+    "code": ["explain", "test_cases", "diagram"],
+    "translate": ["rewrite", "proofread", "summarize"],
+    "analyze": ["compare", "summarize", "extract"],
+    "extract": ["classify", "keywords", "analyze"],
+    "classify": ["sentiment", "keywords", "extract"],
+    "keywords": ["summarize", "extract", "sentiment"],
+    "explain": ["summarize", "diagram", "research"],
+    "rewrite": ["translate", "proofread", "headline"],
+    "proofread": ["rewrite", "summarize", "translate"],
+    "headline": ["rewrite", "summarize", "social"],
+    "compare": ["analyze", "summarize", "score"],
+    "questions": ["explain", "research", "qa"],
+    "decide": ["compare", "analyze", "score"],
+    "diagram": ["code", "explain", "outline"],
+    "outline": ["summarize", "write", "plan"],
+    "write": ["rewrite", "proofread", "headline"],
+    "plan": ["outline", "research", "decide"],
+    "social": ["headline", "rewrite", "write"],
+    "web_search": ["research", "summarize", "extract"],
+    "scrape_website": ["extract", "summarize", "keywords"],
+    "vision": ["analyze", "extract", "describe"],
+    "qa": ["research", "explain", "extract"],
+}
+
 
 # ── Metered Tool Decorator ────────────────────────────────────────────────────
 
@@ -131,6 +208,10 @@ def metered_tool(tier: str = "standard"):
                 result = fn(*args, **kwargs)
                 if isinstance(result, dict):
                     result["_billing"] = {"cost_usd": 0.0, "tier": "free"}
+                try:
+                    _log_tool_usage(fn.__name__, api_key or "free")
+                except Exception:
+                    pass
                 return result
 
             # With API key — validate and deduct
@@ -161,6 +242,12 @@ def metered_tool(tier: str = "standard"):
                 deducted = deduct(api_key, actual_cost)
                 remaining = (key_data.get("balance_usd", 0) - actual_cost) if deducted else key_data.get("balance_usd", 0)
 
+                # Low balance notification (fires once in the $0.40-$0.50 window)
+                if remaining < 0.50 and remaining > 0.40:
+                    _create_notification(
+                        api_key, "low_balance",
+                        f"Low balance: ${remaining:.2f} remaining. Top up at /buy-credits")
+
                 if isinstance(result, dict):
                     result["_billing"] = {
                         "cost_usd": actual_cost,
@@ -168,6 +255,10 @@ def metered_tool(tier: str = "standard"):
                         "tier": tier,
                         "payment": "api_key",
                     }
+                try:
+                    _log_tool_usage(fn.__name__, api_key)
+                except Exception:
+                    pass
                 return result
 
             # Without API key — free tier (10/day)
@@ -199,6 +290,17 @@ def metered_tool(tier: str = "standard"):
                         "message": f"You have {remaining_calls} free calls left today. Use the buy_credits tool to get unlimited access starting at $1.",
                         "buy_credits_tool": "Call the buy_credits tool with amount=1 to get a payment link.",
                     }
+                # Add related tool recommendations on free tier
+                related = _TOOL_RELATIONS.get(fn.__name__, [])[:3]
+                if related:
+                    result["_related"] = {
+                        "tools": related,
+                        "hint": "Try these related tools",
+                    }
+            try:
+                _log_tool_usage(fn.__name__, "free")
+            except Exception:
+                pass
             return result
 
         return wrapper
@@ -624,6 +726,59 @@ def workflow(goal: Annotated[str, Field(description="Complex goal requiring mult
     Best for complex tasks requiring multiple steps of reasoning.
     """
     return workflow_inner(goal, context)
+
+
+# ── Workflow Templates (compound tools) ──────────────────────────────────────
+
+@metered_tool("ai_heavy")
+def content_brief(topic: Annotated[str, Field(description="Topic to create a content brief for")]) -> dict:
+    """Generate a complete content brief: research + keywords + outline + headline suggestions."""
+    gate = _premium_gate("content_brief", "$0.20/call")
+    if gate:
+        return gate
+    research_result = research_inner(topic)
+    research_text = research_result.get("answer", "") if isinstance(research_result, dict) else str(research_result)
+    kw_result = keywords_inner(research_text)
+    kw_text = ", ".join(kw_result.get("keywords", [])) if isinstance(kw_result, dict) else str(kw_result)
+    outline_result = outline_inner(f"{topic} (key themes: {kw_text})")
+    headline_result = headline_inner(f"{topic} — {kw_text}", count=5, style="mixed")
+    return {
+        "topic": topic,
+        "research": research_result,
+        "keywords": kw_result,
+        "outline": outline_result,
+        "headlines": headline_result,
+    }
+
+
+@metered_tool("ai_heavy")
+def competitor_analysis(company: Annotated[str, Field(description="Company or product to analyze")]) -> dict:
+    """Analyze a competitor: research + sentiment + key findings."""
+    gate = _premium_gate("competitor_analysis", "$0.20/call")
+    if gate:
+        return gate
+    research_result = research_inner(f"{company} reviews analysis competitors")
+    research_text = research_result.get("answer", "") if isinstance(research_result, dict) else str(research_result)
+    sentiment_result = sentiment_inner(research_text)
+    return {
+        "company": company,
+        "research": research_result,
+        "sentiment": sentiment_result,
+    }
+
+
+@metered_tool("ai")
+def translate_and_summarize(text: Annotated[str, Field(description="Text to translate and summarize")], language: Annotated[str, Field(description="Target language")] = "Spanish") -> dict:
+    """Translate text to target language and provide a summary of the translation."""
+    translated = translate_inner(text, language)
+    translated_text = translated.get("translation", "") if isinstance(translated, dict) else str(translated)
+    summary = summarize_inner(translated_text, "short")
+    return {
+        "original_language": "auto-detected",
+        "target_language": language,
+        "translation": translated,
+        "summary": summary,
+    }
 
 
 # ── Agent Memory Tools ───────────────────────────────────────────────────────
@@ -1295,6 +1450,21 @@ def check_balance() -> dict:
         return {"error": "AIPAYGEN_API_KEY env var not set"}
     try:
         resp = _mcp_requests.get("http://localhost:5001/auth/status",
+            headers={"Authorization": f"Bearer {api_key}"}, timeout=5)
+        return resp.json()
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("free")
+def check_notifications() -> dict:
+    """Check your unread notifications (payment confirmations, low balance alerts, referral bonuses). Requires AIPAYGEN_API_KEY env var."""
+    api_key = os.environ.get("AIPAYGEN_API_KEY", "")
+    if not api_key:
+        return {"error": "AIPAYGEN_API_KEY env var not set"}
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/auth/notifications",
             headers={"Authorization": f"Bearer {api_key}"}, timeout=5)
         return resp.json()
     except Exception:
@@ -2231,6 +2401,639 @@ def generate_api_key(
         return {"error": "key_generation_failed", "message": "Could not reach auth service. Try again shortly.", "hint": "Visit https://api.aipaygen.com/docs for manual key generation."}
 
 
+# ── NEW: Data & Utility Tools (v1.8.1) ─────────────────────────────────────
+
+@metered_tool("standard")
+def wikipedia_lookup(query: Annotated[str, Field(description="Wikipedia search query")], sentences: Annotated[int, Field(description="Number of sentences to return")] = 5) -> dict:
+    """Search Wikipedia and return a summary of the most relevant article."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/wikipedia", params={"q": query, "sentences": sentences}, timeout=15)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def arxiv_search(query: Annotated[str, Field(description="Academic paper search query")], max_results: Annotated[int, Field(description="Max papers to return")] = 5) -> dict:
+    """Search arXiv for academic papers. Returns titles, authors, abstracts, and links."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/arxiv", params={"q": query, "max": max_results}, timeout=15)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def github_trending(language: Annotated[str, Field(description="Programming language filter (e.g. python, rust)")] = "", since: Annotated[str, Field(description="Time range: daily, weekly, or monthly")] = "daily") -> dict:
+    """Get trending GitHub repositories by language and time range."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/github/trending", params={"language": language, "since": since}, timeout=15)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def reddit_posts(subreddit: Annotated[str, Field(description="Subreddit name (without r/)")], sort: Annotated[str, Field(description="Sort: hot, new, top, rising")] = "hot", limit: Annotated[int, Field(description="Number of posts")] = 10) -> dict:
+    """Get posts from a subreddit with titles, scores, and links."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/reddit", params={"subreddit": subreddit, "sort": sort, "limit": limit}, timeout=15)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def youtube_transcript(url: Annotated[str, Field(description="YouTube video URL or ID")]) -> dict:
+    """Extract the transcript/captions from a YouTube video."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/youtube/transcript", params={"url": url}, timeout=30)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def generate_qr(data: Annotated[str, Field(description="Text or URL to encode as QR code")], size: Annotated[int, Field(description="QR code size in pixels")] = 300) -> dict:
+    """Generate a QR code image from text or URL. Returns base64-encoded PNG."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/qr", params={"data": data, "size": size}, timeout=15)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def dns_lookup(domain: Annotated[str, Field(description="Domain to look up DNS records for")], record_type: Annotated[str, Field(description="DNS record type: A, AAAA, MX, TXT, NS, CNAME")] = "A") -> dict:
+    """Look up DNS records for a domain."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/dns", params={"domain": domain, "type": record_type}, timeout=15)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def validate_email(email: Annotated[str, Field(description="Email address to validate")]) -> dict:
+    """Validate an email address format and check MX records."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/validate/email", params={"email": email}, timeout=15)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def validate_url(url: Annotated[str, Field(description="URL to validate and check")]) -> dict:
+    """Validate a URL format and check if it's reachable."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/validate/url", params={"url": url}, timeout=15)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def random_name(count: Annotated[int, Field(description="Number of random names to generate")] = 5, gender: Annotated[str, Field(description="Gender filter: male, female, or any")] = "any") -> dict:
+    """Generate random realistic names."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/random/name", params={"count": count, "gender": gender}, timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def color_info(color: Annotated[str, Field(description="Color as hex (#FF5733), name (red), or RGB")]) -> dict:
+    """Get detailed color information: hex, RGB, HSL, complementary colors, and name."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/color", params={"color": color}, timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("premium")
+def screenshot(url: Annotated[str, Field(description="URL to capture a screenshot of")], width: Annotated[int, Field(description="Viewport width")] = 1280, height: Annotated[int, Field(description="Viewport height")] = 720) -> dict:
+    """Capture a screenshot of a webpage. Returns base64-encoded PNG."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/screenshot", params={"url": url, "width": width, "height": height}, timeout=30)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def news_search(query: Annotated[str, Field(description="News search query or topic")] = "", country: Annotated[str, Field(description="Country code for news")] = "us") -> dict:
+    """Search for recent news articles by topic or keyword."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/news", params={"q": query, "country": country}, timeout=15)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def stock_quote(symbol: Annotated[str, Field(description="Stock ticker symbol (e.g. AAPL)")]) -> dict:
+    """Get current stock price, change, and basic financial data."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/stocks", params={"symbol": symbol}, timeout=15)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def ip_lookup(ip: Annotated[str, Field(description="IP address to look up (leave empty for your own)")] = "") -> dict:
+    """Look up geolocation and ISP information for an IP address."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/ip", params={"ip": ip} if ip else {}, timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def country_info(code: Annotated[str, Field(description="ISO 2-letter country code (e.g. US, GB, JP)")]) -> dict:
+    """Get detailed country information: capital, population, languages, currency, flag."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/country", params={"code": code}, timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def timezone_info(timezone: Annotated[str, Field(description="Timezone name (e.g. America/New_York) or city")] = "UTC") -> dict:
+    """Get current time, UTC offset, and DST status for a timezone."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/timezone", params={"tz": timezone}, timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def pdf_extract(url: Annotated[str, Field(description="URL to a PDF file to extract text from")]) -> dict:
+    """Extract text content from a PDF file by URL."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/extract/pdf", params={"url": url}, timeout=30)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def extract_text_from_url(url: Annotated[str, Field(description="URL to extract clean text from")]) -> dict:
+    """Extract clean, readable text from any webpage URL (strips HTML)."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/data/extract/text", params={"url": url}, timeout=15)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+# ── File Storage Tools ──────────────────────────────────────────────────────
+
+@metered_tool("standard")
+def file_upload(filename: Annotated[str, Field(description="Name for the file")], content: Annotated[str, Field(description="File content (text or base64-encoded)")], content_type: Annotated[str, Field(description="MIME type")] = "text/plain") -> dict:
+    """Upload a file to AiPayGen storage. Returns a file ID for retrieval."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/files/upload", json={"filename": filename, "content": content, "content_type": content_type}, timeout=15)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def file_list(agent_id: Annotated[str, Field(description="Agent ID to list files for")] = "default") -> dict:
+    """List all files stored by an agent."""
+    try:
+        resp = _mcp_requests.get(f"http://localhost:5001/files/list/{agent_id}", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+# ── Encoding Tools (free tier) ──────────────────────────────────────────────
+
+@mcp.tool()
+def base64_encode(text: Annotated[str, Field(description="Text to encode as base64")]) -> dict:
+    """Encode text to base64."""
+    import base64 as _b64
+    return {"result": _b64.b64encode(text.encode()).decode()}
+
+
+@mcp.tool()
+def base64_decode(encoded: Annotated[str, Field(description="Base64 string to decode")]) -> dict:
+    """Decode a base64 string back to text."""
+    import base64 as _b64
+    try:
+        return {"result": _b64.b64decode(encoded).decode()}
+    except Exception:
+        return {"error": "Invalid base64 input"}
+
+
+@mcp.tool()
+def hash_text(text: Annotated[str, Field(description="Text to hash")], algorithm: Annotated[str, Field(description="Hash algorithm: md5, sha1, sha256, sha512")] = "sha256") -> dict:
+    """Compute a hash of the given text."""
+    try:
+        h = hashlib.new(algorithm, text.encode())
+        return {"algorithm": algorithm, "hash": h.hexdigest()}
+    except ValueError:
+        return {"error": f"Unknown algorithm: {algorithm}"}
+
+
+@mcp.tool()
+def url_encode(text: Annotated[str, Field(description="Text to URL-encode")]) -> dict:
+    """URL-encode a string."""
+    from urllib.parse import quote
+    return {"result": quote(text)}
+
+
+@mcp.tool()
+def url_decode(text: Annotated[str, Field(description="URL-encoded string to decode")]) -> dict:
+    """Decode a URL-encoded string."""
+    from urllib.parse import unquote
+    return {"result": unquote(text)}
+
+
+@mcp.tool()
+def json_format(json_string: Annotated[str, Field(description="JSON string to format/validate")]) -> dict:
+    """Validate and pretty-print a JSON string."""
+    try:
+        parsed = _json.loads(json_string)
+        return {"valid": True, "formatted": _json.dumps(parsed, indent=2)}
+    except _json.JSONDecodeError as e:
+        return {"valid": False, "error": str(e)}
+
+
+@mcp.tool()
+def json_minify(json_string: Annotated[str, Field(description="JSON string to minify")]) -> dict:
+    """Minify a JSON string by removing whitespace."""
+    try:
+        parsed = _json.loads(json_string)
+        return {"result": _json.dumps(parsed, separators=(",", ":"))}
+    except _json.JSONDecodeError as e:
+        return {"valid": False, "error": str(e)}
+
+
+@mcp.tool()
+def text_stats(text: Annotated[str, Field(description="Text to analyze")]) -> dict:
+    """Count words, characters, sentences, and paragraphs in text."""
+    words = len(text.split())
+    chars = len(text)
+    sentences = text.count('.') + text.count('!') + text.count('?')
+    paragraphs = len([p for p in text.split('\n\n') if p.strip()])
+    lines = text.count('\n') + 1
+    return {"words": words, "characters": chars, "sentences": sentences, "paragraphs": paragraphs, "lines": lines}
+
+
+@mcp.tool()
+def random_number(min_val: Annotated[int, Field(description="Minimum value")] = 1, max_val: Annotated[int, Field(description="Maximum value")] = 100) -> dict:
+    """Generate a cryptographically secure random number in range."""
+    import secrets
+    return {"result": secrets.randbelow(max_val - min_val + 1) + min_val}
+
+
+@mcp.tool()
+def random_string(length: Annotated[int, Field(description="Length of the random string")] = 16, charset: Annotated[str, Field(description="Character set: alphanumeric, alpha, hex, digits")] = "alphanumeric") -> dict:
+    """Generate a random string from the specified character set."""
+    import secrets, string
+    charsets = {
+        "alphanumeric": string.ascii_letters + string.digits,
+        "alpha": string.ascii_letters,
+        "hex": string.hexdigits[:16],
+        "digits": string.digits,
+    }
+    chars = charsets.get(charset, charsets["alphanumeric"])
+    return {"result": "".join(secrets.choice(chars) for _ in range(min(length, 256)))}
+
+
+@mcp.tool()
+def epoch_convert(epoch: Annotated[str, Field(description="Unix epoch seconds (or 'now' for current time)")] = "now") -> dict:
+    """Convert between Unix epoch and human-readable datetime."""
+    from datetime import datetime, timezone
+    if epoch == "now":
+        now = datetime.now(timezone.utc)
+        return {"epoch": int(now.timestamp()), "iso": now.isoformat(), "human": now.strftime("%Y-%m-%d %H:%M:%S UTC")}
+    try:
+        ts = float(epoch)
+        dt = datetime.fromtimestamp(ts, tz=timezone.utc)
+        return {"epoch": int(ts), "iso": dt.isoformat(), "human": dt.strftime("%Y-%m-%d %H:%M:%S UTC")}
+    except Exception:
+        return {"error": "Invalid epoch timestamp"}
+
+
+@mcp.tool()
+def ip_to_decimal(ip: Annotated[str, Field(description="IPv4 address to convert (e.g. 192.168.1.1)")]) -> dict:
+    """Convert an IPv4 address to decimal and back."""
+    try:
+        parts = ip.strip().split('.')
+        decimal = sum(int(p) << (8 * (3 - i)) for i, p in enumerate(parts))
+        return {"ip": ip, "decimal": decimal, "hex": hex(decimal), "binary": bin(decimal)}
+    except Exception:
+        return {"error": "Invalid IPv4 address"}
+
+
+@mcp.tool()
+def cidr_expand(cidr: Annotated[str, Field(description="CIDR notation (e.g. 192.168.1.0/24)")]) -> dict:
+    """Expand a CIDR range to show network info: first/last IP, host count."""
+    try:
+        import ipaddress
+        net = ipaddress.ip_network(cidr, strict=False)
+        return {
+            "network": str(net.network_address),
+            "broadcast": str(net.broadcast_address),
+            "netmask": str(net.netmask),
+            "hosts": net.num_addresses - 2 if net.num_addresses > 2 else net.num_addresses,
+            "first_host": str(list(net.hosts())[0]) if net.num_addresses > 2 else str(net.network_address),
+            "last_host": str(list(net.hosts())[-1]) if net.num_addresses > 2 else str(net.network_address),
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── Agent Wallet & Payments ─────────────────────────────────────────────────
+
+@metered_tool("standard")
+def wallet_balance() -> dict:
+    """Check your agent wallet balance (requires API key)."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/wallet/balance", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def wallet_transactions(limit: Annotated[int, Field(description="Number of recent transactions")] = 20) -> dict:
+    """List recent wallet transactions."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/wallet/transactions", params={"limit": limit}, timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+# ── Webhook Management ──────────────────────────────────────────────────────
+
+@metered_tool("standard")
+def create_webhook(url: Annotated[str, Field(description="URL to receive webhook events")], events: Annotated[list, Field(description="List of event types to subscribe to")] = None) -> dict:
+    """Create a webhook endpoint to receive event notifications."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/webhooks/create", json={"url": url, "events": events or ["all"]}, timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def list_webhooks(agent_id: Annotated[str, Field(description="Agent ID to list webhooks for")] = "default") -> dict:
+    """List all registered webhooks for an agent."""
+    try:
+        resp = _mcp_requests.get(f"http://localhost:5001/webhooks/list/{agent_id}", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+# ── Scraping additions ──────────────────────────────────────────────────────
+
+@metered_tool("premium")
+def scrape_linkedin(url: Annotated[str, Field(description="LinkedIn profile or company URL")]) -> dict:
+    """Scrape a LinkedIn profile or company page for public data."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/scrape/linkedin", json={"url": url}, timeout=30)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("premium")
+def scrape_facebook_ads(query: Annotated[str, Field(description="Search query for Facebook ads")], max_results: Annotated[int, Field(description="Max ads to return")] = 10) -> dict:
+    """Search the Facebook Ad Library for active advertisements."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/scrape/facebook-ads", json={"query": query, "max_results": max_results}, timeout=30)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+# ── Session / Conversation Management ───────────────────────────────────────
+
+@metered_tool("standard")
+def session_start(agent_id: Annotated[str, Field(description="Agent ID starting the session")] = "default", context: Annotated[str, Field(description="Initial session context or system prompt")] = "") -> dict:
+    """Start a persistent conversation session with context tracking."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/session/start", json={"agent_id": agent_id, "context": context}, timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def session_context(session_id: Annotated[str, Field(description="Session ID to retrieve context for")]) -> dict:
+    """Get the current context and history of a conversation session."""
+    try:
+        resp = _mcp_requests.get(f"http://localhost:5001/session/{session_id}/context", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+# ── Streaming AI Tools ──────────────────────────────────────────────────────
+
+@metered_tool("standard")
+def stream_research(topic: Annotated[str, Field(description="Topic to research with streaming output")]) -> dict:
+    """Research a topic with streaming output for real-time results."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/stream/research", json={"topic": topic}, timeout=60)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def stream_write(spec: Annotated[str, Field(description="Writing specification or prompt")]) -> dict:
+    """Generate long-form writing with streaming output."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/stream/write", json={"spec": spec}, timeout=60)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def stream_analyze(content: Annotated[str, Field(description="Content to analyze with streaming output")]) -> dict:
+    """Analyze content with streaming output for real-time results."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/stream/analyze", json={"content": content}, timeout=60)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+# ── Marketplace Management ──────────────────────────────────────────────────
+
+@metered_tool("standard")
+def sell_register(name: Annotated[str, Field(description="API name")], endpoint: Annotated[str, Field(description="API endpoint URL")], price_per_call: Annotated[float, Field(description="Price per call in USD")], description: Annotated[str, Field(description="API description")] = "") -> dict:
+    """Register your own API on the seller marketplace."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/sell/register", json={"name": name, "endpoint": endpoint, "price_per_call": price_per_call, "description": description}, timeout=15)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def sell_directory() -> dict:
+    """Browse all APIs listed on the seller marketplace."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/sell/directory", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def sell_dashboard() -> dict:
+    """View your seller dashboard with earnings, calls, and analytics."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/sell/dashboard", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+# ── Agent Network Extended ──────────────────────────────────────────────────
+
+@metered_tool("standard")
+def agent_leaderboard() -> dict:
+    """View the agent leaderboard ranked by reputation and activity."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/agents/leaderboard", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def agent_search(query: Annotated[str, Field(description="Search query for finding agents")]) -> dict:
+    """Search the agent network for agents matching a query."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/agents/search", params={"q": query}, timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def agent_portfolio(agent_id: Annotated[str, Field(description="Agent ID to view portfolio for")]) -> dict:
+    """View an agent's portfolio: services, reputation, and history."""
+    try:
+        resp = _mcp_requests.get(f"http://localhost:5001/agents/{agent_id}/portfolio", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def agent_reputation(agent_id: Annotated[str, Field(description="Agent ID to check reputation for")]) -> dict:
+    """Check an agent's reputation score and history."""
+    try:
+        resp = _mcp_requests.get(f"http://localhost:5001/agent/reputation/{agent_id}", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+# ── Task Board Extended ─────────────────────────────────────────────────────
+
+@metered_tool("standard")
+def task_claim(task_id: Annotated[str, Field(description="Task ID to claim")], agent_id: Annotated[str, Field(description="Your agent ID")]) -> dict:
+    """Claim an open task from the task board."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/task/claim", json={"task_id": task_id, "agent_id": agent_id}, timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def task_complete(task_id: Annotated[str, Field(description="Task ID to mark complete")], result: Annotated[str, Field(description="Task result or deliverable")] = "") -> dict:
+    """Mark a claimed task as completed with results."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/task/complete", json={"task_id": task_id, "result": result}, timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def task_subscribe(agent_id: Annotated[str, Field(description="Your agent ID")], skill: Annotated[str, Field(description="Skill to subscribe to for task notifications")]) -> dict:
+    """Subscribe to task board notifications for a specific skill."""
+    try:
+        resp = _mcp_requests.post("http://localhost:5001/task/subscribe", json={"agent_id": agent_id, "skill": skill}, timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+# ── Referral System ─────────────────────────────────────────────────────────
+
+@mcp.tool()
+def referral_stats(agent_id: Annotated[str, Field(description="Agent ID to check referral stats for")]) -> dict:
+    """Check your referral stats: clicks, conversions, and earnings."""
+    try:
+        resp = _mcp_requests.get(f"http://localhost:5001/referral/stats/{agent_id}", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@mcp.tool()
+def referral_leaderboard() -> dict:
+    """View the referral leaderboard — top referrers by conversions."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/referral/leaderboard", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+# ── Economy & Stats ─────────────────────────────────────────────────────────
+
+@mcp.tool()
+def platform_stats() -> dict:
+    """Get AiPayGen platform statistics: tools, agents, skills, APIs, and usage."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/stats", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@mcp.tool()
+def popular_tools(limit: Annotated[int, Field(description="Number of top tools to return")] = 20) -> dict:
+    """Get the most popular tools ranked by usage count."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/popular", params={"limit": limit}, timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
+@mcp.tool()
+def economy_status() -> dict:
+    """View the platform economy: total transactions, active agents, revenue metrics."""
+    try:
+        resp = _mcp_requests.get("http://localhost:5001/economy/status", timeout=10)
+        return resp.json()
+    except Exception:
+        return {"error": "Tool execution failed"}
+
+
 def main():
     import sys
     if "--http" in sys.argv:
@@ -2241,7 +3044,7 @@ def main():
         starlette_app = mcp.streamable_http_app()
 
         async def health(request):
-            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 165, "version": "1.8.0"})
+            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 229, "version": "1.8.1"})
 
         _tracked_sessions = set()
 

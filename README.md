@@ -2,7 +2,7 @@
 
 <!-- mcp-name: io.github.Damien829/aipaygen -->
 
-**165 AI tools in one MCP server.** Research, write, code, translate, scrape, analyze, vision, RAG, agent memory, workflows, and more. 15 AI models from 7 providers. Pay per call with credit card or USDC.
+**169 AI tools in one MCP server.** Research, write, code, translate, scrape, analyze, vision, RAG, agent memory, workflows, and more. 15 AI models from 7 providers. Pay per call with credit card or USDC.
 
 [![PyPI](https://img.shields.io/pypi/v/aipaygen-mcp)](https://pypi.org/project/aipaygen-mcp/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -16,7 +16,7 @@ claude mcp add aipaygen -- aipaygen-mcp
 
 Or connect to the remote server: `https://mcp.aipaygen.com/mcp`
 
-## What's included (165 tools)
+## What's included (169 tools)
 
 **AI tools (40+):** research, write, summarize, translate, code, analyze, sentiment, classify, extract, compare, explain, plan, decide, debate, proofread, rewrite, pitch, headline, keywords, questions, outline, and more
 

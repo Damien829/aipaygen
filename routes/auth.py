@@ -17,6 +17,7 @@ from funnel_tracker import log_event as funnel_log_event
 import logging
 
 from referral import record_conversion
+from notifications import create_notification
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +136,17 @@ def auth_generate_key():
     }
     if referral_applied:
         resp_data["referral_bonus"] = "$0.10 credited to you and your referrer!"
+    # ── Notifications ──────────────────────────────────────────────────────
+    bal = key_data["balance_usd"]
+    create_notification(api_key, "key_generated",
+                        f"Welcome! You have ${bal:.2f} trial credits. Visit /docs to get started.")
+    if referral_applied:
+        create_notification(api_key, "referral_bonus", "You earned $0.10 from a referral!")
+        if ref_code:
+            referrer_obj = get_key_by_referral_code(ref_code)
+            if referrer_obj:
+                create_notification(referrer_obj["key"], "referral_bonus",
+                                    "You earned $0.10 from a referral!")
     return jsonify(resp_data)
 
 
@@ -286,6 +298,19 @@ def delete_user_webhook(webhook_id):
     return jsonify({"error": "Not found or not owned by this key"}), 404
 
 
+@auth_bp.route("/auth/notifications", methods=["GET"])
+@require_api_key
+def auth_notifications():
+    """Return unread notifications for the authenticated API key, then mark them read."""
+    bearer = (request.headers.get("Authorization", "")[7:]
+              if request.headers.get("Authorization", "").startswith("Bearer ") else "")
+    if not bearer:
+        return jsonify({"error": "API key required"}), 401
+    from notifications import get_unread
+    notes = get_unread(bearer, limit=20)
+    return jsonify({"notifications": notes, "count": len(notes)})
+
+
 @auth_bp.route("/buy-credits", methods=["GET"])
 def buy_credits_page():
     if not STRIPE_SECRET_KEY:
@@ -397,6 +422,12 @@ def stripe_webhook():
 
             log_payment("/stripe/topup", amount, session.get("customer_details", {}).get("email", "stripe"))
             _notify_checkout(amount, "PAID", api_key)
+            # In-app notification for payment
+            if api_key:
+                status_info = get_key_status(api_key)
+                new_bal = status_info["balance_usd"] if status_info else amount
+                create_notification(api_key, "payment_received",
+                                    f"Payment of ${amount:.2f} received. Balance: ${new_bal:.2f}")
 
             # Send API key email and link to account
             customer_email = (session.get("customer_details", {}).get("email", "")
