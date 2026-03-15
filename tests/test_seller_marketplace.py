@@ -723,26 +723,29 @@ class TestSellerValidation:
     def setup_method(self):
         _reset_seller_db()
 
-    def test_register_name_too_long_truncated(self):
+    def test_register_name_too_long_rejected(self):
         result = sm.register_seller_api(
             seller_id="s1", slug="long-name-api", name="X" * 300,
             description="", base_url="https://example.com", routes=[],
         )
-        assert "error" not in result  # silently truncates to 255
+        assert "error" in result
+        assert "name too long" in result["error"]
 
-    def test_register_description_too_long_truncated(self):
+    def test_register_description_too_long_rejected(self):
         result = sm.register_seller_api(
             seller_id="s1", slug="long-desc-api", name="OK",
             description="D" * 1001, base_url="https://example.com", routes=[],
         )
-        assert "error" not in result  # silently truncates to 500
+        assert "error" in result
+        assert "description too long" in result["error"]
 
-    def test_register_base_url_too_long_accepted(self):
+    def test_register_base_url_too_long_rejected(self):
         result = sm.register_seller_api(
             seller_id="s1", slug="long-url-api", name="OK",
             description="", base_url="https://example.com/" + "x" * 500, routes=[],
         )
-        assert "error" not in result  # no length validation on url
+        assert "error" in result
+        assert "base_url too long" in result["error"]
 
     def test_register_unsupported_chain(self):
         result = sm.register_seller_api(

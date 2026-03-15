@@ -273,10 +273,11 @@ class TestCryptoRouteValidation:
         })
         assert resp.status_code == 400
 
-    def test_claim_invalid_api_key(self, flask_client):
+    @patch("routes.crypto.validate_key", return_value=None)
+    def test_claim_invalid_api_key(self, mock_validate, flask_client):
         resp = flask_client.post("/crypto/claim", json={
             "api_key": "apk_totally_invalid_key_xyz",
-            "tx_hash": "0xabc",
+            "tx_hash": "0x" + "ab" * 32,
             "network": "base",
         })
         assert resp.status_code == 401
@@ -334,7 +335,7 @@ class TestCryptoClaimFeeCalculation:
     @patch("routes.crypto.topup_key")
     @patch("routes.crypto.verify_base_tx")
     def test_fee_deducted_from_credit(self, mock_verify, mock_topup, mock_validate, flask_client):
-        tx_hash = f"0x{uuid.uuid4().hex}"
+        tx_hash = f"0x{uuid.uuid4().hex}{uuid.uuid4().hex}"
         mock_verify.return_value = {
             "valid": True,
             "amount_usdc": 100.0,
@@ -358,10 +359,13 @@ class TestCryptoClaimFeeCalculation:
 
     @patch("routes.crypto.validate_key", return_value={"key": _FAKE_KEY, "balance_usd": 0.0, "is_active": 1})
     @patch("routes.crypto.topup_key")
+    @patch("routes.crypto.is_tx_claimed", return_value=False)
+    @patch("routes.crypto.record_deposit", return_value={"status": "credited", "id": 1})
+    @patch("routes.crypto.mark_deposit_credited")
     @patch("routes.crypto.verify_solana_tx")
-    def test_solana_claim_success(self, mock_verify, mock_topup, mock_validate, flask_client):
+    def test_solana_claim_success(self, mock_verify, mock_mark, mock_record, mock_claimed, mock_topup, mock_validate, flask_client):
         """Solana claim flow through the route."""
-        tx_sig = uuid.uuid4().hex + uuid.uuid4().hex + uuid.uuid4().hex[:24]
+        tx_sig = "5" * 88  # valid base58 Solana signature
         mock_verify.return_value = {
             "valid": True,
             "amount_usdc": 50.0,
@@ -391,7 +395,7 @@ class TestCryptoDoubleClaim:
     @patch("routes.crypto.topup_key")
     @patch("routes.crypto.verify_base_tx")
     def test_double_claim_rejected(self, mock_verify, mock_topup, mock_validate, flask_client):
-        tx_hash = f"0x{uuid.uuid4().hex}"
+        tx_hash = f"0x{uuid.uuid4().hex}{uuid.uuid4().hex}"
         mock_verify.return_value = {
             "valid": True, "amount_usdc": 10.0, "sender": "0xS",
             "recipient": "0xR", "block_number": 100, "confirmations": 10,

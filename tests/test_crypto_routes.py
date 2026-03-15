@@ -79,7 +79,7 @@ def test_crypto_claim_missing_fields(client):
 def test_crypto_claim_valid(mock_verify, mock_topup, mock_vk, client):
     """POST /crypto/claim with valid tx returns credited."""
     import uuid
-    tx_hash = f"0x{uuid.uuid4().hex}"
+    tx_hash = f"0x{uuid.uuid4().hex}{uuid.uuid4().hex}"
     mock_verify.return_value = {
         "valid": True,
         "amount_usdc": 10.0,
@@ -110,7 +110,9 @@ def test_crypto_claim_valid(mock_verify, mock_topup, mock_vk, client):
 @patch("routes.crypto.validate_key", side_effect=_validate_key_crypto)
 @patch("routes.crypto.verify_base_tx")
 def test_crypto_claim_invalid_tx(mock_verify, mock_vk, client):
-    """POST /crypto/claim with invalid tx returns 400."""
+    """POST /crypto/claim with invalid tx_hash format returns 400."""
+    import uuid
+    tx_hash = f"0x{uuid.uuid4().hex}{uuid.uuid4().hex}"
     mock_verify.return_value = {
         "valid": False,
         "error": "Transaction failed (status=0)",
@@ -118,7 +120,7 @@ def test_crypto_claim_invalid_tx(mock_verify, mock_vk, client):
     api_key = _generate_key(client)
     resp = client.post("/crypto/claim", json={
         "api_key": api_key,
-        "tx_hash": "0xbad_tx_invalid_test",
+        "tx_hash": tx_hash,
         "network": "base",
     })
     assert resp.status_code == 400

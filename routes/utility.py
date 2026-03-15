@@ -40,6 +40,16 @@ def _valid_domain(domain: str) -> bool:
     return bool(domain and DOMAIN_RE.match(domain) and len(domain) <= 253)
 
 
+_MAX_TEXT_LEN = 50000  # 50 KB limit for text processing endpoints
+
+
+def _check_text_len(text: str, max_len: int = _MAX_TEXT_LEN) -> str | None:
+    """Return error message if text exceeds max length, else None."""
+    if len(text) > max_len:
+        return f"text too long ({len(text)} chars, max {max_len})"
+    return None
+
+
 utility_bp = Blueprint("utility", __name__)
 
 # ─────────────────────────────────────────────────────────────────────────────

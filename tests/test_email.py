@@ -375,13 +375,15 @@ def test_send_deposit_confirmation_subject_contains_amount():
         assert "$15.50" in subject
 
 def test_send_deposit_confirmation_conn_closed():
-    """DB connection should be closed after lookup."""
+    """DB connection should be properly managed via context manager."""
     from email_service import send_deposit_confirmation
     with patch("email_service.resend.Emails.send") as mock_send, \
          patch("sqlite3.connect") as mock_conn:
         mock_send.return_value = {"id": "close-check"}
         mock_db = MagicMock()
         mock_conn.return_value = mock_db
+        mock_db.__enter__ = MagicMock(return_value=mock_db)
+        mock_db.__exit__ = MagicMock(return_value=False)
         mock_db.execute.return_value.fetchone.return_value = {"email": "user@example.com"}
         send_deposit_confirmation("apk_close", 1.0, "base", "0x000")
-        mock_db.close.assert_called_once()
+        mock_db.__enter__.assert_called_once()
