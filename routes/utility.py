@@ -34,6 +34,11 @@ _log = logging.getLogger(__name__)
 # Domain validation regex — prevents command injection via dig subprocess calls
 DOMAIN_RE = re.compile(r'^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$')
 
+
+def _valid_domain(domain: str) -> bool:
+    return bool(domain and DOMAIN_RE.match(domain) and len(domain) <= 253)
+
+
 utility_bp = Blueprint("utility", __name__)
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -206,6 +211,9 @@ def readability_score():
     text = data.get("text", "").strip()
     if not text:
         return jsonify({"error": "text field required"}), 400
+    err = _check_text_len(text)
+    if err:
+        return jsonify({"error": err}), 400
     sentences = max(1, len(re.split(r'[.!?]+', text)))
     words_list = text.split()
     word_count = max(1, len(words_list))
@@ -241,6 +249,9 @@ def language_detect():
     text = request.args.get("text", "").strip()
     if not text:
         return jsonify({"error": "text parameter required"}), 400
+    err = _check_text_len(text)
+    if err:
+        return jsonify({"error": err}), 400
     scripts = {}
     for char in text:
         try:
@@ -273,6 +284,9 @@ def profanity_filter():
     text = data.get("text", "").strip()
     if not text:
         return jsonify({"error": "text field required"}), 400
+    err = _check_text_len(text)
+    if err:
+        return jsonify({"error": err}), 400
     words = re.findall(r'\b\w+\b', text.lower())
     found = [w for w in words if w in _PROFANITY_WORDS]
     cleaned = text
@@ -348,6 +362,8 @@ def parse_sitemap():
     domain = request.args.get("domain", "").strip()
     if not domain:
         return jsonify({"error": "domain parameter required"}), 400
+    if not domain.startswith("http") and not _valid_domain(domain):
+        return jsonify({"error": "invalid domain format"}), 400
     if not domain.startswith("http"):
         domain = "https://" + domain
     try:
@@ -370,6 +386,8 @@ def parse_robots():
     domain = request.args.get("domain", "").strip()
     if not domain:
         return jsonify({"error": "domain parameter required"}), 400
+    if not domain.startswith("http") and not _valid_domain(domain):
+        return jsonify({"error": "invalid domain format"}), 400
     if not domain.startswith("http"):
         domain = "https://" + domain
     try:
@@ -423,6 +441,8 @@ def ssl_info():
     domain = request.args.get("domain", "").strip()
     if not domain:
         return jsonify({"error": "domain parameter required"}), 400
+    if not _valid_domain(domain):
+        return jsonify({"error": "invalid domain format"}), 400
     import ssl
     import OpenSSL.crypto as crypto
     try:
@@ -479,6 +499,9 @@ def markdown_to_html():
     text = data.get("text", "").strip()
     if not text:
         return jsonify({"error": "text field required"}), 400
+    err = _check_text_len(text)
+    if err:
+        return jsonify({"error": err}), 400
     html = md_lib.markdown(text, extensions=["tables", "fenced_code", "codehilite"])
     return jsonify({"markdown": text, "html": html})
 
@@ -509,6 +532,8 @@ def favicon_extract():
     domain = request.args.get("domain", "").strip()
     if not domain:
         return jsonify({"error": "domain parameter required"}), 400
+    if not domain.startswith("http") and not _valid_domain(domain):
+        return jsonify({"error": "invalid domain format"}), 400
     if not domain.startswith("http"):
         domain = "https://" + domain
     try:
@@ -860,6 +885,9 @@ def entity_extraction():
     text = data.get("text", "").strip()
     if not text:
         return jsonify({"error": "text field required"}), 400
+    err = _check_text_len(text)
+    if err:
+        return jsonify({"error": err}), 400
     entities = {
         "emails": re.findall(r'[\w.+-]+@[\w-]+\.[\w.-]+', text),
         "urls": re.findall(r'https?://[^\s<>"\']+', text),
@@ -883,6 +911,10 @@ def text_similarity():
     text2 = data.get("text2", "").strip()
     if not text1 or not text2:
         return jsonify({"error": "text1 and text2 fields required"}), 400
+    for t in (text1, text2):
+        err = _check_text_len(t)
+        if err:
+            return jsonify({"error": err}), 400
     words1 = set(text1.lower().split())
     words2 = set(text2.lower().split())
     intersection = words1 & words2
@@ -931,6 +963,9 @@ def xml_to_json():
     xml_str = data.get("xml", "").strip()
     if not xml_str:
         return jsonify({"error": "xml field required"}), 400
+    err = _check_text_len(xml_str)
+    if err:
+        return jsonify({"error": err}), 400
     try:
         root = ElementTree.fromstring(xml_str)
         def elem_to_dict(elem):
@@ -960,6 +995,9 @@ def yaml_to_json():
     yaml_str = data.get("yaml", "").strip()
     if not yaml_str:
         return jsonify({"error": "yaml field required"}), 400
+    err = _check_text_len(yaml_str)
+    if err:
+        return jsonify({"error": err}), 400
     try:
         result = yaml.safe_load(yaml_str)
         return jsonify({"json": result})

@@ -73,8 +73,11 @@ def send_welcome_email(to: str, api_key: str) -> bool:
   -H "Content-Type: application/json" \\
   -d '{{"text": "Your text here"}}'</pre>
   </div>
-  <a href="https://aipaygen.com/docs" style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;border-radius:10px;padding:12px 24px;font-weight:600;margin-right:12px;">View Docs</a>
-  <a href="https://aipaygen.com/try" style="display:inline-block;background:#2a2a2a;color:#fff;text-decoration:none;border-radius:10px;padding:12px 24px;font-weight:600;">Try It</a>
+  <div style="margin-bottom:24px;">
+    <a href="https://aipaygen.com/docs" style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;border-radius:10px;padding:12px 24px;font-weight:600;margin-right:10px;">View Docs</a>
+    <a href="https://aipaygen.com/try" style="display:inline-block;background:#2a2a2a;color:#e8e8e8;text-decoration:none;border-radius:10px;padding:12px 24px;font-weight:600;">Try It Live</a>
+  </div>
+  <p style="color:#555;font-size:0.8rem;">Need help? Reply to this email or visit our docs.</p>
 </div>
 </body></html>"""
         })

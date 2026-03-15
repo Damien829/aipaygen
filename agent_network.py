@@ -284,16 +284,47 @@ def get_task(task_id: str) -> dict | None:
 
 FREE_DAILY_LIMIT = 10
 
+# In-memory cache for free tier counts: {(ip, date): (calls_used, cache_time)}
+import time as _time
+import threading as _threading
+_free_tier_cache = {}
+_free_tier_cache_lock = _threading.Lock()
+_FREE_TIER_CACHE_TTL = 60  # seconds
+
+
+def _free_tier_cache_get(ip: str, today: str):
+    """Get cached free tier count. Returns calls_used or None if expired/missing."""
+    key = (ip, today)
+    with _free_tier_cache_lock:
+        entry = _free_tier_cache.get(key)
+        if entry and (_time.time() - entry[1]) < _FREE_TIER_CACHE_TTL:
+            return entry[0]
+    return None
+
+
+def _free_tier_cache_set(ip: str, today: str, calls_used: int):
+    """Set cached free tier count."""
+    key = (ip, today)
+    with _free_tier_cache_lock:
+        _free_tier_cache[key] = (calls_used, _time.time())
+
 
 def check_and_use_free_tier(ip: str) -> bool:
     """Returns True and increments counter if this IP has free calls remaining today."""
     today = datetime.utcnow().strftime("%Y-%m-%d")
+
+    # Check cache first to avoid DB hit
+    cached = _free_tier_cache_get(ip, today)
+    if cached is not None and cached >= FREE_DAILY_LIMIT:
+        return False
+
     with _conn() as c:
         row = c.execute(
             "SELECT calls_used FROM free_tier_usage WHERE ip=? AND date=?", (ip, today)
         ).fetchone()
         used = row["calls_used"] if row else 0
         if used >= FREE_DAILY_LIMIT:
+            _free_tier_cache_set(ip, today, used)
             return False
         if row:
             c.execute(
@@ -305,17 +336,25 @@ def check_and_use_free_tier(ip: str) -> bool:
                 "INSERT INTO free_tier_usage (ip, date, calls_used) VALUES (?, ?, 1)",
                 (ip, today)
             )
+        _free_tier_cache_set(ip, today, used + 1)
     return True
 
 
 def get_free_tier_remaining(identifier: str) -> int:
     """Return number of free calls remaining today for an identifier (IP or API key hash)."""
     today = datetime.utcnow().strftime("%Y-%m-%d")
+
+    # Check cache first
+    cached = _free_tier_cache_get(identifier, today)
+    if cached is not None:
+        return max(0, FREE_DAILY_LIMIT - cached)
+
     with _conn() as c:
         row = c.execute(
             "SELECT calls_used FROM free_tier_usage WHERE ip=? AND date=?", (identifier, today)
         ).fetchone()
     used = row["calls_used"] if row else 0
+    _free_tier_cache_set(identifier, today, used)
     return max(0, FREE_DAILY_LIMIT - used)
 
 

@@ -1,4 +1,5 @@
 """Shared utilities extracted from app.py — cache, rate limiting, response helpers."""
+import hmac
 import json
 import os
 import time as _time
@@ -188,7 +189,7 @@ def require_admin(f):
             token = request.form.get("key", "")
         if not admin_secret:
             return jsonify({"error": "misconfigured", "message": "ADMIN_SECRET not set"}), 503
-        if not token or token != admin_secret:
+        if not token or not hmac.compare_digest(token, admin_secret):
             return jsonify({"error": "unauthorized", "message": "Admin authentication required"}), 401
         return f(*args, **kwargs)
     return wrapper

@@ -5,6 +5,7 @@ import io
 import json
 import logging
 import os
+import re
 import subprocess
 import threading
 
@@ -36,6 +37,10 @@ from funnel_tracker import log_event
 logger = logging.getLogger(__name__)
 
 crypto_bp = Blueprint("crypto", __name__)
+
+# tx_hash validation: EVM = 0x + 64 hex chars, Solana = base58 (43-88 chars)
+_EVM_TX_RE = re.compile(r'^0x[0-9a-fA-F]{64}$')
+_SOLANA_TX_RE = re.compile(r'^[1-9A-HJ-NP-Za-km-z]{43,88}$')
 
 SUPPORTED_NETWORKS = {
     "base": {
@@ -194,6 +199,14 @@ def crypto_claim():
 
     if not api_key or not tx_hash:
         return jsonify({"error": "api_key and tx_hash required"}), 400
+
+    if len(tx_hash) > 128:
+        return jsonify({"error": "tx_hash too long"}), 400
+
+    if network == "base" and not _EVM_TX_RE.match(tx_hash):
+        return jsonify({"error": "invalid EVM tx_hash — must be 0x followed by 64 hex characters"}), 400
+    if network == "solana" and not _SOLANA_TX_RE.match(tx_hash):
+        return jsonify({"error": "invalid Solana tx_hash — must be base58 encoded"}), 400
 
     if network not in SUPPORTED_NETWORKS:
         return jsonify({"error": f"unsupported network: {network}"}), 400

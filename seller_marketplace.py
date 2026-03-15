@@ -126,6 +126,14 @@ def register_seller_api(seller_id, slug, name, description, base_url, routes,
                         seller_wallet="", preferred_chain="base", category="general",
                         escrow_enabled=False):
     """Register a new seller API. Returns the created record."""
+    # Max length validation
+    if len(name) > 100:
+        return {"error": "name too long (max 100 chars)"}
+    if len(description) > 1000:
+        return {"error": "description too long (max 1000 chars)"}
+    if len(base_url) > 500:
+        return {"error": "base_url too long (max 500 chars)"}
+
     slug = slug.lower().strip()
     if not re.match(r'^[a-z0-9][a-z0-9-]{1,48}[a-z0-9]$', slug):
         return {"error": "Invalid slug. Use 3-50 chars: lowercase letters, numbers, hyphens."}
@@ -174,6 +182,8 @@ def get_seller_api(slug_or_id):
 
 def list_seller_apis(category=None, page=1, per_page=20):
     """List active seller APIs."""
+    per_page = min(max(int(per_page), 1), 100)
+    page = max(int(page), 1)
     with _conn() as c:
         where = "WHERE is_active=1"
         params = []

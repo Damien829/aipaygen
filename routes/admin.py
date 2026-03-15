@@ -3,6 +3,7 @@ Admin, discovery management, referral, blog, economy, self-test, health history,
 costs, and miscellaneous admin endpoints — extracted from app.py as a Blueprint.
 """
 
+import hmac
 import os
 import re as _re
 import json
@@ -155,7 +156,7 @@ def admin_login():
     if request.method == "POST":
         key = request.form.get("key", "")
         admin_secret = os.getenv("ADMIN_SECRET", "")
-        if key == admin_secret:
+        if admin_secret and hmac.compare_digest(key, admin_secret):
             session["admin"] = True
             return redirect("/admin/funnel")
         return """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">

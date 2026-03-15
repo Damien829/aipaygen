@@ -1,3 +1,4 @@
+import hmac
 import os
 from flask import Blueprint, request, jsonify
 from agent_network import (
@@ -17,7 +18,7 @@ def _verify_agent_access(agent_id):
     admin_secret = os.environ.get("ADMIN_SECRET", "")
     if admin_secret and request.remote_addr in ("127.0.0.1", "::1"):
         auth = request.headers.get("Authorization", "")
-        if auth == f"Bearer {admin_secret}":
+        if auth.startswith("Bearer ") and hmac.compare_digest(auth[7:], admin_secret):
             return True
     # Normal JWT path
     auth = request.headers.get("Authorization", "")

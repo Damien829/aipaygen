@@ -55,7 +55,7 @@ def get_funnel_stats(days: int = 7) -> dict:
     cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
     with _conn() as c:
         rows = c.execute(
-            "SELECT event_type, COUNT(*) as count FROM funnel_events WHERE created_at >= ? GROUP BY event_type ORDER BY count DESC",
+            "SELECT event_type, COUNT(*) as count FROM funnel_events WHERE created_at >= ? GROUP BY event_type ORDER BY count DESC LIMIT 1000",
             (cutoff,),
         ).fetchall()
         total = c.execute(
