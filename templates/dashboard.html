@@ -116,6 +116,21 @@
   </div>
   {% endif %}
 
+  <!-- Refer & Earn -->
+  <div style="background:linear-gradient(135deg,#0a1628 0%,#0d2040 100%);border:1px solid var(--green,#00ff9d);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1rem">
+      <h3 style="font-family:'IBM Plex Mono',monospace;font-size:1rem;color:var(--green,#00ff9d);margin:0">Refer &amp; Earn $0.10</h3>
+      <a href="/referrals?key={{ data.key_full }}" style="color:var(--cyan,#00d4ff);font-size:0.85rem;text-decoration:none">View all referrals &rarr;</a>
+    </div>
+    <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1rem">Share your link. You both get $0.10 in API credits when they sign up.</p>
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center">
+      <input type="text" id="ref-link-dash" value="https://aipaygen.com/buy-credits?ref={{ data.referral_code }}" readonly
+             style="flex:1;min-width:220px;background:#070e18;border:1px solid #1a2a3a;color:#c8d8e8;padding:0.5rem 0.75rem;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.8rem">
+      <button onclick="navigator.clipboard.writeText(document.getElementById('ref-link-dash').value).then(()=>{this.textContent='Copied!';setTimeout(()=>{this.textContent='Copy'},2000)})"
+              style="background:var(--green,#00ff9d);color:#020408;border:none;padding:0.5rem 1.2rem;border-radius:8px;font-weight:600;cursor:pointer;font-size:0.85rem;white-space:nowrap">Copy</button>
+    </div>
+  </div>
+
   <!-- Account Info -->
   <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
     <h3 style="font-family:'IBM Plex Mono',monospace;font-size:1rem;margin-bottom:1rem;color:var(--text-muted)">Account Details</h3>

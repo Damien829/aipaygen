@@ -7,7 +7,7 @@
     "url": "https://github.com/Damien829/aipaygen",
     "source": "github"
   },
-  "version": "1.8.3",
+  "version": "1.9.0",
   "remotes": [
     {
       "type": "streamable-http",
@@ -26,7 +26,7 @@
     {
       "registryType": "pypi",
       "identifier": "aipaygen-mcp",
-      "version": "1.8.3",
+      "version": "1.9.0",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"

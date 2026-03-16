@@ -59,13 +59,21 @@ EVM_NETWORK = os.getenv("EVM_NETWORK", "eip155:8453")
 # Pre-compute MCP tool count at import time (avoid reading file on every /api/stats call)
 _MCP_TOOL_COUNT = 244  # fallback
 try:
-    _mcp_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "mcp_server.py")
-    with open(_mcp_path) as _f:
-        _mcp_src = _f.read()
+    import glob as _glob
+    _mcp_tools_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "mcp_tools")
+    _mcp_src = ""
+    for _fp in _glob.glob(os.path.join(_mcp_tools_dir, "*.py")):
+        with open(_fp) as _f:
+            _mcp_src += _f.read()
+    # Also scan mcp_server.py for any remaining tool definitions
+    _mcp_server_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "mcp_server.py")
+    if os.path.exists(_mcp_server_path):
+        with open(_mcp_server_path) as _f:
+            _mcp_src += _f.read()
     # Count @metered_tool decorators + standalone @mcp.tool() decorators.
     # Subtract 2 from @mcp.tool() count: 1 docstring mention + 1 inside metered_tool wrapper.
     _MCP_TOOL_COUNT = _mcp_src.count("@metered_tool") + _mcp_src.count("@mcp.tool()") - 2
-    del _mcp_src, _f
+    del _mcp_src, _f, _fp, _glob
 except Exception:
     pass
 FACILITATOR_URL = os.getenv("FACILITATOR_URL", "https://api.cdp.coinbase.com/platform/v2/x402")
@@ -425,7 +433,7 @@ def discover():
     return jsonify({
         "meta": {
             "name": "AiPayGen",
-            "description": "AI agent API marketplace with 244 tools (v1.8.3) and 2400+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day). $0.25 trial credits available.",
+            "description": "AI agent API marketplace with 244 tools (v1.9.0) and 2400+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day). $0.25 trial credits available.",
             "categories": list(categories.keys()),
         },
         "payment": {
@@ -1263,6 +1271,8 @@ def robots_txt():
         "Allow: /pricing\n"
         "Allow: /docs/api\n"
         "Allow: /try\n"
+        "Allow: /tools/\n"
+        "Allow: /referrals\n"
         "Allow: /builder\n"
         "Allow: /sdk\n"
         "Allow: /blog\n"
@@ -1337,7 +1347,7 @@ def _build_llms_txt():
     lines = []
     lines.append("# AiPayGen")
     lines.append("")
-    lines.append("> 244 AI tools in one API (v1.8.3). Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (10 free/day). $0.25 trial credits via buy_credits / generate_api_key MCP tools.")
+    lines.append("> 244 AI tools in one API (v1.9.0). Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (10 free/day). $0.25 trial credits via buy_credits / generate_api_key MCP tools.")
     lines.append("")
     lines.append("## What This Service Does")
     lines.append("")
@@ -1559,9 +1569,9 @@ def ai_plugin():
         "schema_version": "v1",
         "name_for_human": "AiPayGen",
         "name_for_model": "aipaygen",
-        "description_for_human": "244 AI tools (v1.8.3) — research, write, code, translate, scrape, and more. $0.25 trial credits. 10 free calls/day.",
+        "description_for_human": "244 AI tools (v1.9.0) — research, write, code, translate, scrape, and more. $0.25 trial credits. 10 free calls/day.",
         "description_for_model": (
-            "AiPayGen provides 244 AI-powered tools accessible via a single API (v1.8.3). "
+            "AiPayGen provides 244 AI-powered tools accessible via a single API (v1.9.0). "
             "Use for research, writing, code generation, translation, sentiment analysis, "
             "web scraping, data extraction, content comparison, fact-checking, and more. "
             "Free tier: 10 calls/day per IP. Paid: prepaid API key (Bearer apk_xxx) or "
@@ -1606,14 +1616,14 @@ def agent_manifest():
     return jsonify({
         "name": "AiPayGen",
         "description": (
-            "AI agent API marketplace with 244 tools (v1.8.3) and 2400+ searchable skills. "
+            "AI agent API marketplace with 244 tools (v1.9.0) and 2400+ searchable skills. "
             "Research, writing, coding, analysis, web scraping, real-time data, agent memory, "
             "and multi-model AI (Claude, GPT-4o, DeepSeek, Gemini). "
             "Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day). "
             "$0.25 trial credits available via buy_credits/generate_api_key."
         ),
         "url": base,
-        "version": "1.8.3",
+        "version": "1.9.0",
         "documentationUrl": f"{base}/llms.txt",
         "capabilities": {
             "streaming": True,
@@ -1844,7 +1854,7 @@ def x402_manifest():
         "version": "2.0",
         "name": "AiPayGen",
         "description": (
-            "244 AI tools (v1.8.3), 2400+ skills, web scrapers, agent memory, file storage, "
+            "244 AI tools (v1.9.0), 2400+ skills, web scrapers, agent memory, file storage, "
             "webhook relay, async jobs, and an API catalog of 4100+ discovered APIs. "
             "No API key required — pay per call in USDC via x402 protocol."
         ),
@@ -1954,7 +1964,7 @@ def smithery_server_card():
     return jsonify({
         "serverInfo": {
             "name": "AiPayGen",
-            "version": "1.8.3"
+            "version": "1.9.0"
         },
         "authentication": {
             "required": False,
@@ -2569,6 +2579,298 @@ curl "$BASE/discover" | python3 -m json.tool
     })
 
 
+# ── Individual Tool Pages (Programmatic SEO) ─────────────────────────────────
+
+# Tool relation map (shared with mcp_server.py)
+_TOOL_RELATIONS = {
+    "summarize": ["analyze", "keywords", "explain"],
+    "sentiment": ["classify", "keywords", "analyze"],
+    "research": ["summarize", "extract", "analyze"],
+    "code": ["explain", "test-cases", "diagram"],
+    "translate": ["rewrite", "proofread", "summarize"],
+    "analyze": ["compare", "summarize", "extract"],
+    "extract": ["classify", "keywords", "analyze"],
+    "classify": ["sentiment", "keywords", "extract"],
+    "keywords": ["summarize", "extract", "sentiment"],
+    "explain": ["summarize", "diagram", "research"],
+    "rewrite": ["translate", "proofread", "headline"],
+    "proofread": ["rewrite", "summarize", "translate"],
+    "headline": ["rewrite", "summarize", "social"],
+    "compare": ["analyze", "summarize", "score"],
+    "questions": ["explain", "research", "qa"],
+    "decide": ["compare", "analyze", "score"],
+    "diagram": ["code", "explain", "outline"],
+    "outline": ["summarize", "write", "plan"],
+    "write": ["rewrite", "proofread", "headline"],
+    "plan": ["outline", "research", "decide"],
+    "social": ["headline", "rewrite", "write"],
+    "search": ["research", "summarize", "extract"],
+    "scrape": ["extract", "summarize", "keywords"],
+    "vision": ["analyze", "extract", "research"],
+    "qa": ["research", "explain", "extract"],
+    "enrich": ["research", "extract", "analyze"],
+    "chat": ["research", "write", "explain"],
+    "score": ["analyze", "compare", "decide"],
+    "timeline": ["summarize", "extract", "analyze"],
+    "action": ["summarize", "plan", "extract"],
+    "pitch": ["write", "social", "headline"],
+    "debate": ["compare", "decide", "analyze"],
+    "fact": ["research", "extract", "analyze"],
+    "tag": ["keywords", "classify", "extract"],
+    "rag": ["qa", "research", "summarize"],
+    "mock": ["code", "json-schema", "test-cases"],
+    "sql": ["code", "explain", "extract"],
+    "regex": ["code", "explain", "extract"],
+    "email": ["write", "proofread", "rewrite"],
+    "transform": ["rewrite", "translate", "summarize"],
+}
+
+# Demo-available tools (subset that works on /try endpoint)
+_DEMO_TOOLS = {
+    "sentiment", "summarize", "translate", "keywords", "explain",
+    "analyze", "compare", "extract", "questions", "decide",
+    "classify", "rewrite", "headline",
+}
+
+# Top 30 tools for sitemap inclusion
+_SITEMAP_TOOLS = [
+    "sentiment", "summarize", "research", "translate", "analyze",
+    "code", "write", "search", "extract", "keywords",
+    "explain", "compare", "classify", "rewrite", "headline",
+    "questions", "decide", "plan", "social", "email",
+    "qa", "rag", "vision", "enrich", "scrape",
+    "outline", "diagram", "mock", "sql", "chat",
+]
+
+
+def _get_tool_data(tool_slug):
+    """Build tool data dict from the discover services catalog."""
+    categories = _build_discover_services()
+    all_services = []
+    cat_map = {}
+    for cat_name, services in categories.items():
+        for svc in services:
+            all_services.append(svc)
+            # Map endpoint slug to category
+            slug = svc["endpoint"].strip("/").split("/")[-1]
+            cat_map[slug] = cat_name
+            # Also map full path for multi-segment endpoints
+            full_slug = svc["endpoint"].strip("/").replace("/", "-")
+            cat_map[full_slug] = cat_name
+
+    # Find matching service
+    matched = None
+    for svc in all_services:
+        slug = svc["endpoint"].strip("/").split("/")[-1]
+        full_slug = svc["endpoint"].strip("/").replace("/", "-")
+        if slug == tool_slug or full_slug == tool_slug:
+            matched = svc
+            break
+
+    if not matched:
+        return None
+
+    endpoint = matched["endpoint"]
+    slug = endpoint.strip("/").split("/")[-1]
+    method = matched.get("method", "POST")
+    price = matched.get("price_usd", 0.01)
+    description = matched.get("description", "")
+    category = cat_map.get(slug, "AI Processing")
+    input_spec = matched.get("input", {})
+
+    # Build display name
+    name = slug.replace("-", " ").replace("_", " ").title()
+
+    # Price label
+    if price == 0:
+        price_label = "Free"
+    else:
+        price_label = f"${price:.2f}"
+
+    # Input fields for the demo form
+    input_fields = []
+    if isinstance(input_spec, dict):
+        for key, val in input_spec.items():
+            field_type = "textarea" if key in ("text", "content", "spec", "code", "context", "documents") else "input"
+            placeholder = str(val) if not isinstance(val, (list, dict, bool)) else ""
+            input_fields.append({
+                "key": key,
+                "name": key.replace("_", " ").title(),
+                "type": field_type,
+                "placeholder": placeholder,
+                "default": "",
+            })
+
+    # Build curl example
+    base_url = "https://api.aipaygen.com"
+    if method == "GET":
+        params = ""
+        if isinstance(input_spec, dict):
+            parts = []
+            for k, v in list(input_spec.items())[:2]:
+                if isinstance(v, (list, dict, bool)):
+                    continue
+                parts.append(f"{k}={v}")
+            if parts:
+                params = "?" + "&".join(parts)
+        curl_example = f'curl "{base_url}{endpoint}{params}" \\\n  -H "Authorization: Bearer YOUR_API_KEY"'
+    else:
+        # Build sample JSON body
+        body_parts = []
+        if isinstance(input_spec, dict):
+            for k, v in list(input_spec.items())[:3]:
+                if isinstance(v, str):
+                    body_parts.append(f'  "{k}": "{v}"')
+                elif isinstance(v, (int, float)):
+                    body_parts.append(f'  "{k}": {v}')
+                elif isinstance(v, list):
+                    body_parts.append(f'  "{k}": {json.dumps(v)}')
+        body_json = "{\n" + ",\n".join(body_parts) + "\n}" if body_parts else '{"text": "Hello world"}'
+        curl_example = f"curl -X POST {base_url}{endpoint} \\\n  -H \"Content-Type: application/json\" \\\n  -H \"Authorization: Bearer YOUR_API_KEY\" \\\n  -d '{body_json}'"
+
+    # Build Python example
+    if method == "GET":
+        python_example = f'''import requests
+
+resp = requests.get(
+    "{base_url}{endpoint}",
+    headers={{"Authorization": "Bearer YOUR_API_KEY"}},
+    params={json.dumps(input_spec if isinstance(input_spec, dict) else {{}}, indent=4)}
+)
+print(resp.json())'''
+    else:
+        python_example = f'''import requests
+
+resp = requests.post(
+    "{base_url}{endpoint}",
+    headers={{
+        "Authorization": "Bearer YOUR_API_KEY",
+        "Content-Type": "application/json",
+    }},
+    json={json.dumps(input_spec if isinstance(input_spec, dict) else {{"text": "Hello world"}}, indent=4)}
+)
+print(resp.json())'''
+
+    # Response example
+    output_spec = matched.get("output", None)
+    if output_spec:
+        response_example = json.dumps(output_spec, indent=2)
+    else:
+        response_example = json.dumps({
+            "result": f"<{name} output>",
+            "_meta": {
+                "endpoint": endpoint,
+                "model": "claude-sonnet-4-20250514",
+                "cost_usd": price,
+            }
+        }, indent=2)
+
+    # Related tools
+    related = []
+    rel_slugs = _TOOL_RELATIONS.get(slug, [])[:4]
+    for rs in rel_slugs:
+        # Find the related service in catalog
+        for svc in all_services:
+            rs_slug = svc["endpoint"].strip("/").split("/")[-1]
+            if rs_slug == rs:
+                rp = svc.get("price_usd", 0.01)
+                related.append({
+                    "slug": rs,
+                    "name": rs.replace("-", " ").replace("_", " ").title(),
+                    "price_label": "Free" if rp == 0 else f"${rp:.2f}",
+                })
+                break
+
+    # Demo tool mapping (slug used by /try/<tool>)
+    demo_tool = slug
+    demo_available = slug in _DEMO_TOOLS
+
+    return {
+        "slug": slug,
+        "name": name,
+        "description": description,
+        "endpoint": endpoint,
+        "method": method,
+        "price_usd": price,
+        "price_label": price_label,
+        "category": category,
+        "input_fields": input_fields,
+        "curl_example": curl_example,
+        "python_example": python_example,
+        "response_example": response_example,
+        "related": related,
+        "demo_available": demo_available,
+        "demo_tool": demo_tool,
+    }
+
+
+@meta_bp.route("/tools/<tool_name>", methods=["GET"])
+def tool_page(tool_name):
+    """Individual tool page for programmatic SEO."""
+    # Sanitize input
+    tool_name = tool_name.strip().lower()[:60]
+    tool_data = _get_tool_data(tool_name)
+    if not tool_data:
+        return render_template("404.html"), 404
+    try:
+        funnel_log_event("tool_page_hit", endpoint=f"/tools/{tool_name}",
+                         ip=request.headers.get("CF-Connecting-IP", request.remote_addr or ""),
+                         user_agent=request.headers.get("User-Agent", ""))
+    except Exception:
+        pass
+    return render_template("tool_page.html", tool=tool_data)
+
+
+# ── Referral Program UI ──────────────────────────────────────────────────────
+
+@meta_bp.route("/referrals", methods=["GET"])
+def referrals_page():
+    """Referral program page — show referral link, stats, and how it works."""
+    api_key = request.args.get("key", "")
+    if not api_key or not api_key.startswith("apk_"):
+        return render_template("referrals.html", error="Enter your API key to view your referral stats.", data=None)
+
+    from api_keys import get_key_status
+    status = get_key_status(api_key)
+    if not status:
+        return render_template("referrals.html", error="API key not found.", data=None)
+
+    referral_code = status.get("referral_code", "")
+    if not referral_code:
+        return render_template("referrals.html", error="No referral code found for this key.", data=None)
+
+    # Count referrals made using this code
+    total_referrals = 0
+    credits_earned = 0.0
+    try:
+        from funnel_tracker import _conn as funnel_conn
+        import sqlite3 as _sql3
+        # Count referral_signup events matching this code
+        fdb = os.path.join(os.path.dirname(os.path.dirname(__file__)), "funnel.db")
+        conn = _sql3.connect(fdb)
+        conn.row_factory = _sql3.Row
+        row = conn.execute(
+            "SELECT COUNT(*) as cnt FROM events WHERE event = 'referral_signup' AND metadata LIKE ?",
+            (f'%"ref_code": "{referral_code}"%',)
+        ).fetchone()
+        total_referrals = row["cnt"] if row else 0
+        conn.close()
+    except Exception:
+        pass
+
+    credits_earned = total_referrals * 0.10
+
+    referral_link = f"https://aipaygen.com/buy-credits?ref={referral_code}"
+
+    return render_template("referrals.html", error=None, data={
+        "referral_code": referral_code,
+        "referral_link": referral_link,
+        "total_referrals": total_referrals,
+        "credits_earned": credits_earned,
+        "api_key_masked": api_key[:8] + "..." + api_key[-4:],
+    })
+
+
 @meta_bp.route("/sitemap.xml", methods=["GET"])
 def sitemap():
     """XML sitemap — includes static pages AND all blog posts for Google/Bing."""
@@ -2601,7 +2903,11 @@ def sitemap():
         ("/blog/x402-explained", "monthly", "0.8"),
         ("/health", "hourly", "0.3"),
         ("/status", "hourly", "0.4"),
+        ("/referrals", "weekly", "0.6"),
     ]
+    # Add top 30 tool pages for programmatic SEO
+    for t_slug in _SITEMAP_TOOLS:
+        static_pages.append((f"/tools/{t_slug}", "weekly", "0.75"))
     urls_xml = "\n".join(
         f'  <url><loc>{base_url}{p}</loc><changefreq>{freq}</changefreq><priority>{pri}</priority><lastmod>{now}</lastmod></url>'
         for p, freq, pri in static_pages
@@ -2740,7 +3046,7 @@ def try_tool(tool):
 
 CHANGELOG = [
     {
-        "version": "1.8.3",
+        "version": "1.9.0",
         "date": "2026-03-15",
         "title": "229 Tools — Massive Expansion",
         "changes": [

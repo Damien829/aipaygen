@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aipaygen-mcp"
-version = "1.8.3"
+version = "1.9.0"
 description = "MCP server for AiPayGen — 244 AI tools with pay-per-call USDC payments, free tier, and in-chat purchasing"
 readme = "README.md"
 license = { text = "MIT" }
@@ -34,7 +34,7 @@ MCP = "https://mcp.aipaygen.com/mcp"
 aipaygen-mcp = "mcp_server:main"
 
 [tool.hatch.build.targets.wheel]
-only-include = ["mcp_server.py"]
+only-include = ["mcp_server.py", "mcp_tools/"]
 
 [tool.hatch.build.targets.sdist]
-only-include = ["mcp_server.py", "README.md", "pyproject.toml"]
+only-include = ["mcp_server.py", "mcp_tools/", "README.md", "pyproject.toml"]

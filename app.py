@@ -1233,7 +1233,7 @@ def add_cors(response):
     response.headers["X-Request-Id"] = req_id
 
     # ── API Version + Powered-By ───────────────────────────────────────────────
-    response.headers["X-API-Version"] = "1.8.3"
+    response.headers["X-API-Version"] = "1.9.0"
     response.headers["X-Powered-By"] = "AiPayGen"
 
     # ── Rate Limit Headers ─────────────────────────────────────────────────────
@@ -1622,7 +1622,8 @@ init_builder_bp(_skills_db_path, _skills_engine, BATCH_HANDLERS)
 app.register_blueprint(builder_bp)
 
 # Sessions
-from routes.sessions import sessions_bp
+from routes.sessions import sessions_bp, init_sessions_bp
+init_sessions_bp(BATCH_HANDLERS)
 app.register_blueprint(sessions_bp)
 
 # Workflow Engine

@@ -1,4 +1,4 @@
-"""Persistent agent sessions with context accumulation."""
+"""Persistent agent sessions with context accumulation and call history."""
 
 import json
 import os
@@ -33,6 +33,19 @@ def init_sessions_db():
         )
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_agent_id ON sessions(agent_id)")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS session_calls (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            tool TEXT NOT NULL,
+            input TEXT NOT NULL,
+            output TEXT NOT NULL,
+            time_ms INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL,
+            FOREIGN KEY (session_id) REFERENCES sessions(id)
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_session_calls_sid ON session_calls(session_id)")
     conn.commit()
 
 
@@ -77,8 +90,61 @@ def update_session_context(session_id, context):
     conn.commit()
 
 
+def delete_session(session_id):
+    """Delete a session and all its call history."""
+    conn = _get_conn()
+    conn.execute("DELETE FROM session_calls WHERE session_id = ?", (session_id,))
+    conn.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+    conn.commit()
+
+
+def add_session_call(session_id, tool, input_data, output_data, time_ms=0):
+    """Record a tool call in the session history."""
+    conn = _get_conn()
+    now = datetime.now(timezone.utc).isoformat()
+    conn.execute(
+        "INSERT INTO session_calls (session_id, tool, input, output, time_ms, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+        (session_id, tool, json.dumps(input_data), json.dumps(output_data), time_ms, now),
+    )
+    conn.execute("UPDATE sessions SET last_active = ? WHERE id = ?", (now, session_id))
+    conn.commit()
+
+
+def get_session_history(session_id, limit=50):
+    """Return call history for a session, ordered chronologically."""
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT tool, input, output, time_ms, created_at FROM session_calls WHERE session_id = ? ORDER BY id ASC LIMIT ?",
+        (session_id, min(limit, 200)),
+    ).fetchall()
+    return [
+        {
+            "tool": r["tool"],
+            "input": json.loads(r["input"]),
+            "output": json.loads(r["output"]),
+            "time_ms": r["time_ms"],
+            "created_at": r["created_at"],
+        }
+        for r in rows
+    ]
+
+
+def get_session_context_messages(session_id, limit=10):
+    """Build conversation-style context from recent calls for AI tool injection."""
+    history = get_session_history(session_id, limit=limit)
+    messages = []
+    for call in history:
+        out_summary = call["output"].get("result") or call["output"].get("summary") or str(call["output"])[:300]
+        messages.append(f"[Previous call] Tool: {call['tool']}, Result: {out_summary}")
+    return "\n".join(messages)
+
+
 def cleanup_expired():
     conn = _get_conn()
+    conn.execute(
+        "DELETE FROM session_calls WHERE session_id IN "
+        "(SELECT id FROM sessions WHERE datetime(last_active, '+' || ttl_hours || ' hours') < datetime('now'))"
+    )
     conn.execute(
         "DELETE FROM sessions WHERE datetime(last_active, '+' || ttl_hours || ' hours') < datetime('now')"
     )

@@ -103,7 +103,7 @@ _RATE_LIMIT_HEADERS = {
     },
     "X-API-Version": {
         "description": "Current API version",
-        "schema": {"type": "string", "example": "1.8.3"},
+        "schema": {"type": "string", "example": "1.9.0"},
     },
 }
 
@@ -303,7 +303,7 @@ def generate_openapi_spec(routes=None):
         "openapi": "3.1.0",
         "info": {
             "title": "AiPayGen API",
-            "version": "1.8.3",
+            "version": "1.9.0",
             "description": (
                 "244 AI tools in one API. Research, write, code, translate, analyze, scrape — "
                 "pay per call with USDC on Base via x402, use a prepaid API key, or get $0.25 trial credits.\n\n"

@@ -1,9 +1,11 @@
 """AI Tool endpoints — extracted from app.py into a Flask Blueprint."""
 
 import json
+import time as _time
 import requests as _requests
-from flask import Blueprint, request, jsonify, Response
-from model_router import call_model, get_model_config, ModelNotFoundError
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from flask import Blueprint, request, jsonify, Response, stream_with_context
+from model_router import call_model, get_model_config, ModelNotFoundError, call_model_stream
 from helpers import parse_json_from_claude, agent_response, log_payment, call_llm, rate_limit
 from web import scrape_url, search_web
 
@@ -580,13 +582,28 @@ def research():
     context = "\n\n---\n\n".join(
         f"Source: {p['url']}\n\n{p['text'][:2000]}" for p in pages
     )
+    sources = [{"title": r["title"], "url": r["url"]} for r in search_result["results"][:3]]
+
+    # SSE streaming if client requests it
+    if "text/event-stream" in request.headers.get("Accept", ""):
+        messages = [{"role": "user", "content": f"Answer the following question based on the sources below. Include inline citations like [1], [2] etc. Be thorough but concise.\n\nQuestion: {question}\n\nSources:\n{context}"}]
+        def _stream():
+            yield f"data: {json.dumps({'sources': sources})}\n\n"
+            for chunk in call_model_stream("auto", messages, max_tokens=1500):
+                if chunk.get("done"):
+                    yield f"data: {json.dumps({'done': True, 'model': chunk.get('model'), 'cost_usd': chunk.get('cost_usd')})}\n\n"
+                    log_payment("/research", chunk.get("cost_usd", 0.15), request.remote_addr)
+                else:
+                    yield f"data: {json.dumps({'text': chunk['text']})}\n\n"
+        return Response(stream_with_context(_stream()), mimetype="text/event-stream",
+                        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
     result, err = _call_llm(
         [{"role": "user", "content": f"Answer the following question based on the sources below. Include inline citations like [1], [2] etc. Be thorough but concise.\n\nQuestion: {question}\n\nSources:\n{context}"}],
         max_tokens=1500, endpoint="/research",
     )
     if err:
         return jsonify({"error": err}), 400
-    sources = [{"title": r["title"], "url": r["url"]} for r in search_result["results"][:3]]
     log_payment("/research", 0.15, request.remote_addr)
     return jsonify({
         "question": question,
@@ -603,6 +620,19 @@ def write():
     content_type = data.get("type", "article")
     if not spec:
         return jsonify({"error": "spec required"}), 400
+
+    # SSE streaming if client requests it
+    if "text/event-stream" in request.headers.get("Accept", ""):
+        messages = [{"role": "user", "content": f"Write a {content_type} based on this spec. Return only the written content, no preamble.\n\nSpec: {spec}"}]
+        def _stream():
+            for chunk in call_model_stream("auto", messages, max_tokens=2048):
+                if chunk.get("done"):
+                    yield f"data: {json.dumps({'done': True, 'type': content_type, 'model': chunk.get('model'), 'cost_usd': chunk.get('cost_usd')})}\n\n"
+                    log_payment("/write", chunk.get("cost_usd", 0.05), request.remote_addr)
+                else:
+                    yield f"data: {json.dumps({'text': chunk['text']})}\n\n"
+        return Response(stream_with_context(_stream()), mimetype="text/event-stream",
+                        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
 
     result, err = _call_llm(
         [{"role": "user", "content": f"Write a {content_type} based on this spec. Return only the written content, no preamble.\n\nSpec: {spec}"}],
@@ -1357,31 +1387,58 @@ def classify():
 
 @ai_tools_bp.route("/batch", methods=["POST"])
 def batch():
-    """Run up to 5 AI operations in one payment. $0.10 flat."""
+    """Run up to 20 tool calls in parallel. Each call billed individually.
+
+    Accepts two formats:
+      Legacy: {"operations": [{"endpoint": "...", "input": {...}}]}
+      New:    {"calls": [{"tool": "...", "input": {...}}]}
+    """
     data = request.get_json() or {}
-    ops = data.get("operations", [])
-    if not ops or not isinstance(ops, list):
-        return jsonify({"error": "operations array required", "hint": "POST {\"operations\": [{\"endpoint\": \"research\", \"input\": {\"topic\": \"AI\"}}]}"}), 400
-    if len(ops) > 5:
-        return jsonify({"error": "max 5 operations per batch"}), 400
+    # Support both legacy "operations" and new "calls" format
+    calls = data.get("calls") or data.get("operations") or []
+    if not calls or not isinstance(calls, list):
+        return jsonify({"error": "calls array required", "hint": 'POST {"calls": [{"tool": "sentiment", "input": {"text": "..."}}]}'}), 400
+    if len(calls) > 20:
+        return jsonify({"error": "max 20 calls per batch"}), 400
 
-    results = []
-    for op in ops:
-        endpoint = op.get("endpoint", "").lstrip("/")
-        inp = op.get("input", {})
-        handler = BATCH_HANDLERS.get(endpoint)
+    batch_start = _time.time()
+    client_ip = request.remote_addr
+
+    def _execute_one(idx, call):
+        tool = (call.get("tool") or call.get("endpoint", "")).lstrip("/")
+        inp = call.get("input", {})
+        handler = BATCH_HANDLERS.get(tool)
+        t0 = _time.time()
         if not handler:
-            results.append({"endpoint": endpoint, "error": f"unknown endpoint '{endpoint}'. Valid: {list(BATCH_HANDLERS.keys())}"})
-        else:
-            try:
-                result = handler(inp)
-                results.append({"endpoint": endpoint, **result})
-            except Exception:
-                _log.exception("batch operation %s failed", endpoint)
-                results.append({"endpoint": endpoint, "error": "Execution failed"})
+            return idx, {"tool": tool, "error": f"unknown tool '{tool}'", "time_ms": 0}
+        try:
+            result = handler(inp)
+            elapsed = int((_time.time() - t0) * 1000)
+            return idx, {"tool": tool, "result": result, "time_ms": elapsed}
+        except Exception:
+            elapsed = int((_time.time() - t0) * 1000)
+            _log.exception("batch call %s failed", tool)
+            return idx, {"tool": tool, "error": "Execution failed", "time_ms": elapsed}
 
-    log_payment("/batch", 0.10, request.remote_addr)
-    return jsonify(agent_response({"results": results, "count": len(results)}, "/batch"))
+    results = [None] * len(calls)
+    with ThreadPoolExecutor(max_workers=min(5, len(calls))) as pool:
+        futures = {pool.submit(_execute_one, i, c): i for i, c in enumerate(calls)}
+        for future in as_completed(futures):
+            idx, result = future.result()
+            results[idx] = result
+
+    total_ms = int((_time.time() - batch_start) * 1000)
+    completed = sum(1 for r in results if "error" not in r)
+    # Bill each successful call individually
+    for r in results:
+        if "error" not in r:
+            log_payment(f"/batch:{r['tool']}", 0.01, client_ip)
+    return jsonify(agent_response({
+        "results": results,
+        "total_time_ms": total_ms,
+        "calls_completed": completed,
+        "calls_failed": len(results) - completed,
+    }, "/batch"))
 
 
 @ai_tools_bp.route("/vision", methods=["POST"])

@@ -614,6 +614,7 @@ def _get_usage_data(api_key):
         "last_used_at": status.get("last_used_at", ""),
         "is_active": status.get("is_active", 1),
         "label": status.get("label", ""),
+        "referral_code": status.get("referral_code", ""),
     }
 
 

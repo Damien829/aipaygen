@@ -37,5 +37,5 @@ Interactive demo (no signup): https://aipaygen.com/try
 Free tier: 10 calls/day. Paid: from $1 (Stripe or USDC).
 
 - API: https://api.aipaygen.com
-- PyPI: https://pypi.org/project/aipaygen-mcp/ (v1.8.3)
+- PyPI: https://pypi.org/project/aipaygen-mcp/ (v1.9.0)
 - MCP Registry: `io.github.Damien829/aipaygen`
