@@ -62,7 +62,9 @@ try:
     _mcp_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "mcp_server.py")
     with open(_mcp_path) as _f:
         _mcp_src = _f.read()
-    _MCP_TOOL_COUNT = _mcp_src.count("@metered_tool") + _mcp_src.count("@mcp.tool()")
+    # Count @metered_tool decorators + standalone @mcp.tool() decorators.
+    # Subtract 2 from @mcp.tool() count: 1 docstring mention + 1 inside metered_tool wrapper.
+    _MCP_TOOL_COUNT = _mcp_src.count("@metered_tool") + _mcp_src.count("@mcp.tool()") - 2
     del _mcp_src, _f
 except Exception:
     pass
@@ -924,6 +926,12 @@ def status_page():
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta http-equiv="refresh" content="60">
   <title>AiPayGen Status</title>
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="System Status — AiPayGen">
+  <meta property="og:description" content="Live system health, uptime, response times, and model provider status for AiPayGen API.">
+  <meta property="og:url" content="https://aipaygen.com/status">
+  <meta property="og:image" content="https://aipaygen.com/og-image.png">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
@@ -1575,6 +1583,18 @@ def ai_plugin():
 def well_known_openapi():
     from flask import redirect
     return redirect("/openapi.json", code=301)
+
+
+@meta_bp.route("/agent.json")
+def agent_json_alias():
+    """Root-level alias for /.well-known/agent.json."""
+    return agent_manifest()
+
+
+@meta_bp.route("/ai-plugin.json")
+def ai_plugin_json_alias():
+    """Root-level alias for /.well-known/ai-plugin.json."""
+    return ai_plugin()
 
 
 
@@ -2573,6 +2593,12 @@ def sitemap():
         ("/llms.txt", "weekly", "0.6"),
         ("/.well-known/agent.json", "weekly", "0.6"),
         ("/.well-known/ai-plugin.json", "weekly", "0.6"),
+        ("/playground", "weekly", "0.8"),
+        ("/examples", "weekly", "0.8"),
+        ("/dashboard", "weekly", "0.6"),
+        ("/blog/launch", "monthly", "0.8"),
+        ("/blog/5-things-you-can-build", "monthly", "0.8"),
+        ("/blog/x402-explained", "monthly", "0.8"),
         ("/health", "hourly", "0.3"),
         ("/status", "hourly", "0.4"),
     ]

@@ -10,12 +10,12 @@
 <meta property="og:title" content="{{ safe_title }}">
 <meta property="og:description" content="{{ desc }}">
 <meta property="og:url" content="{{ canonical }}">
-<meta property="og:image" content="https://api.aipaygen.com/og-image.png">
+<meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta property="og:site_name" content="AiPayGen">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ safe_title }}">
 <meta name="twitter:description" content="{{ desc }}">
-<meta name="twitter:image" content="https://api.aipaygen.com/og-image.png">
+<meta name="twitter:image" content="https://aipaygen.com/og-image.png">
 <script type="application/ld+json">{{ jsonld|safe }}</script>
 <style>
 body{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.7;color:#1a1a1a}
@@ -25,7 +25,16 @@ pre{padding:16px;overflow-x:auto;display:block}a{color:#6366f1}h1{color:#1e1b4b;
 </style>
 </head>
 <body>
-<div class="nav"><a href="/blog">&larr; All posts</a> &middot; <a href="https://api.aipaygen.com">AiPayGen API</a> &middot; <a href="/discover">244 tools</a></div>
+<nav style="background:#f8f7ff;padding:10px 20px;border-radius:8px;margin-bottom:16px;font-size:0.9rem">
+<a href="/try" style="margin-right:12px">Try Free</a>
+<a href="/docs" style="margin-right:12px">Docs</a>
+<a href="/pricing" style="margin-right:12px">Pricing</a>
+<a href="/playground" style="margin-right:12px">Playground</a>
+<a href="/examples" style="margin-right:12px">Examples</a>
+<a href="/status" style="margin-right:12px">Status</a>
+<a href="/buy-credits" style="font-weight:600">Get API Key</a>
+</nav>
+<div class="nav"><a href="/blog">&larr; All posts</a> &middot; <a href="https://aipaygen.com">AiPayGen API</a> &middot; <a href="/discover">244 tools</a></div>
 <h1>{{ safe_title }}</h1>
 {{ content|safe }}
 <div class="cta">

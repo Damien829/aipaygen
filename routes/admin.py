@@ -421,13 +421,22 @@ def blog_index():
 <meta property="og:type" content="website">
 <meta property="og:title" content="AiPayGen Developer Blog">
 <meta property="og:description" content="Tutorials for building AI agents and automations with AiPayGen's 244 tools and 140+ Claude-powered endpoints.">
-<meta property="og:url" content="https://api.aipaygen.com/blog">
-<meta property="og:image" content="https://api.aipaygen.com/og-image.png">
+<meta property="og:url" content="https://aipaygen.com/blog">
+<meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{json.dumps({"@context":"https://schema.org","@type":"Blog","name":"AiPayGen Developer Blog","url":"https://api.aipaygen.com/blog","description":"Developer tutorials for AI agent APIs","publisher":{"@type":"Organization","name":"AiPayGen","url":"https://api.aipaygen.com"}})}</script>
+<script type="application/ld+json">{json.dumps({"@context":"https://schema.org","@type":"Blog","name":"AiPayGen Developer Blog","url":"https://aipaygen.com/blog","description":"Developer tutorials for AI agent APIs","publisher":{"@type":"Organization","name":"AiPayGen","url":"https://aipaygen.com"}})}</script>
 <style>body{{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.6;color:#1a1a1a}}a{{color:#6366f1}}h1{{color:#1e1b4b}}.rss{{float:right;font-size:0.85rem;background:#f4f4f4;padding:4px 10px;border-radius:20px;text-decoration:none;color:#555}}</style>
 </head>
 <body>
+<nav style="background:#f8f7ff;padding:10px 20px;border-radius:8px;margin-bottom:24px;font-size:0.9rem">
+<a href="/try" style="margin-right:12px">Try Free</a>
+<a href="/docs" style="margin-right:12px">Docs</a>
+<a href="/pricing" style="margin-right:12px">Pricing</a>
+<a href="/playground" style="margin-right:12px">Playground</a>
+<a href="/examples" style="margin-right:12px">Examples</a>
+<a href="/status" style="margin-right:12px">Status</a>
+<a href="/buy-credits" style="font-weight:600">Get API Key</a>
+</nav>
 <a class="rss" href="/feed.xml">RSS feed</a>
 <h1>AiPayGen Developer Blog</h1>
 <p>Tutorials for building AI agents with AiPayGen — 244 tools and 140+ Claude-powered endpoints. <strong>First 10 calls/day free.</strong></p>
@@ -494,12 +503,12 @@ def blog_post(slug):
 <meta property="og:title" content="{safe_title}">
 <meta property="og:description" content="{desc}">
 <meta property="og:url" content="{canonical}">
-<meta property="og:image" content="https://api.aipaygen.com/og-image.png">
+<meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta property="og:site_name" content="AiPayGen">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{safe_title}">
 <meta name="twitter:description" content="{desc}">
-<meta name="twitter:image" content="https://api.aipaygen.com/og-image.png">
+<meta name="twitter:image" content="https://aipaygen.com/og-image.png">
 <script type="application/ld+json">{jsonld}</script>
 <style>
 body{{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.7;color:#1a1a1a}}
@@ -509,7 +518,16 @@ pre{{padding:16px;overflow-x:auto;display:block}}a{{color:#6366f1}}h1{{color:#1e
 </style>
 </head>
 <body>
-<div class="nav"><a href="/blog">← All posts</a> · <a href="https://api.aipaygen.com">AiPayGen API</a> · <a href="/discover">244 tools</a></div>
+<nav style="background:#f8f7ff;padding:10px 20px;border-radius:8px;margin-bottom:16px;font-size:0.9rem">
+<a href="/try" style="margin-right:12px">Try Free</a>
+<a href="/docs" style="margin-right:12px">Docs</a>
+<a href="/pricing" style="margin-right:12px">Pricing</a>
+<a href="/playground" style="margin-right:12px">Playground</a>
+<a href="/examples" style="margin-right:12px">Examples</a>
+<a href="/status" style="margin-right:12px">Status</a>
+<a href="/buy-credits" style="font-weight:600">Get API Key</a>
+</nav>
+<div class="nav"><a href="/blog">← All posts</a> · <a href="https://aipaygen.com">AiPayGen API</a> · <a href="/discover">244 tools</a></div>
 <h1>{safe_title}</h1>
 {post['content']}
 <div class="cta">
@@ -1388,7 +1406,10 @@ def admin_changelog():
 <meta name="description" content="What's new at AiPayGen — latest blog posts, API updates, and service stats.">
 <link rel="canonical" href="https://api.aipaygen.com/changelog">
 <meta property="og:title" content="AiPayGen Changelog">
-<meta property="og:url" content="https://api.aipaygen.com/changelog">
+<meta property="og:url" content="https://aipaygen.com/changelog">
+<meta property="og:description" content="Latest updates, blog posts, and service stats for AiPayGen API.">
+<meta property="og:image" content="https://aipaygen.com/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
 <style>body{{font-family:system-ui,sans-serif;max-width:760px;margin:40px auto;padding:0 20px;line-height:1.7;color:#1a1a1a}}
 a{{color:#6366f1}}h1,h2{{color:#1e1b4b}}.stat{{display:inline-block;background:#f8f7ff;border:1px solid #e0e0ff;border-radius:8px;padding:10px 20px;margin:6px;text-align:center}}
 .stat .n{{font-size:1.8rem;font-weight:800;color:#6366f1}}.stat .l{{font-size:0.8rem;color:#888}}</style>

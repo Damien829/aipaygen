@@ -95,6 +95,7 @@ pluggy==1.6.0
 primp==1.1.3
 propcache==0.4.1
 protobuf==7.34.0
+psutil==5.9.4
 pyasn1==0.6.2
 pyasn1_modules==0.4.2
 pycparser==3.0
