@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+
+{% block title %}How x402 Makes AI APIs Pay-Per-Use{% endblock %}
+{% block description %}x402 turns HTTP 402 Payment Required into a real payment protocol. Here's how AiPayGen uses it to let AI agents pay for API calls autonomously with USDC on Base.{% endblock %}
+{% block canonical %}/blog/x402-explained{% endblock %}
+
+{% block head %}
+<meta property="og:type" content="article">
+<meta property="og:title" content="How x402 Makes AI APIs Pay-Per-Use">
+<meta property="og:description" content="x402 turns HTTP 402 into a real payment protocol. AI agents can pay for API calls autonomously with USDC.">
+<meta property="og:url" content="https://aipaygen.com/blog/x402-explained">
+<meta property="og:image" content="https://aipaygen.com/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="How x402 Makes AI APIs Pay-Per-Use">
+<meta name="twitter:description" content="x402 turns HTTP 402 into a real payment protocol. AI agents pay for API calls autonomously.">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "How x402 Makes AI APIs Pay-Per-Use",
+  "description": "x402 turns HTTP 402 Payment Required into a real payment protocol for AI agents.",
+  "url": "https://aipaygen.com/blog/x402-explained",
+  "datePublished": "2026-03-15",
+  "author": {"@type": "Person", "name": "Damien"},
+  "publisher": {"@type": "Organization", "name": "AiPayGen", "url": "https://aipaygen.com"}
+}
+</script>
+<style>
+  .blog-post { max-width: 740px; margin: 0 auto; padding: 3rem 1.5rem; }
+  .blog-post h1 { font-family: 'IBM Plex Sans', sans-serif; font-size: 2.2rem; font-weight: 700; color: #fff; line-height: 1.25; margin-bottom: 0.5rem; }
+  .blog-meta { color: var(--text-muted, #4a6070); font-size: 0.85rem; margin-bottom: 2.5rem; }
+  .blog-post h2 { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.4rem; color: #fff; margin: 2.5rem 0 1rem; }
+  .blog-post h3 { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.1rem; color: var(--green, #00ff9d); margin: 2rem 0 0.75rem; }
+  .blog-post p { line-height: 1.75; margin-bottom: 1.25rem; color: var(--text, #c8d8e8); }
+  .blog-post ul, .blog-post ol { margin: 1rem 0 1.5rem 1.5rem; line-height: 1.75; color: var(--text, #c8d8e8); }
+  .blog-post li { margin-bottom: 0.5rem; }
+  .blog-post a { color: var(--green, #00ff9d); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+  .blog-post a:hover { border-bottom-color: var(--green, #00ff9d); }
+  .blog-post code { background: rgba(0,136,255,0.1); padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+  .blog-post pre { background: var(--bg2, #070d14); border: 1px solid var(--border, #0d2030); border-radius: 8px; padding: 1.25rem; overflow-x: auto; margin: 1.25rem 0; }
+  .blog-post pre code { background: none; padding: 0; }
+  .blog-callout { background: rgba(0,255,157,0.05); border: 1px solid rgba(0,255,157,0.15); border-radius: 8px; padding: 1.25rem 1.5rem; margin: 2rem 0; }
+  .blog-callout strong { color: var(--green, #00ff9d); }
+  .blog-cta { display: inline-block; background: var(--green, #00ff9d); color: #020408; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; border: none; margin: 0.5rem 0.5rem 0.5rem 0; transition: opacity 0.2s; }
+  .blog-cta:hover { opacity: 0.85; border-bottom: none; }
+  .blog-cta-secondary { display: inline-block; border: 1px solid var(--green, #00ff9d); color: var(--green, #00ff9d); font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; margin: 0.5rem 0.5rem 0.5rem 0; transition: background 0.2s; }
+  .blog-cta-secondary:hover { background: rgba(0,255,157,0.1); border-bottom: none; }
+  .blog-nav { color: var(--text-muted, #4a6070); font-size: 0.9rem; margin-bottom: 2rem; }
+  .blog-nav a { color: var(--text-muted, #4a6070); }
+  .blog-nav a:hover { color: var(--green, #00ff9d); }
+  .flow-diagram { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin: 1.5rem 0; font-size: 0.9rem; }
+  .flow-step { background: var(--bg2, #070d14); border: 1px solid var(--border, #0d2030); border-radius: 8px; padding: 0.6rem 1rem; color: var(--text, #c8d8e8); }
+  .flow-arrow { color: var(--green, #00ff9d); font-weight: 700; }
+  .flow-step.highlight { border-color: var(--green, #00ff9d); color: var(--green, #00ff9d); }
+  @media (max-width: 600px) {
+    .blog-post h1 { font-size: 1.6rem; }
+    .flow-diagram { flex-direction: column; align-items: flex-start; }
+    .flow-arrow { transform: rotate(90deg); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<article class="blog-post">
+  <div class="blog-nav">
+    <a href="/blog">&larr; All posts</a> &middot; <a href="/">AiPayGen</a>
+  </div>
+
+  <h1>How x402 Makes AI APIs Pay-Per-Use</h1>
+  <p class="blog-meta">March 15, 2026 &middot; 6 min read</p>
+
+  <p>HTTP has had a <code>402 Payment Required</code> status code since 1999. For 27 years, it was "reserved for future use." In 2025, the <a href="https://www.x402.org/">x402 protocol</a> finally gave it a job: letting clients pay for API calls inline, with no subscription, no billing portal, and no human in the loop.</p>
+
+  <p>AiPayGen is built on x402. Here's how it works and why it matters for AI agents.</p>
+
+  <h2>The subscription problem</h2>
+
+  <p>Traditional API billing works like a gym membership. You pay monthly whether you use it or not. For predictable workloads, that's fine. For AI agents? It breaks down fast.</p>
+
+  <ul>
+    <li>Agents don't know in advance which tools they'll need</li>
+    <li>You can't give an agent a credit card to sign up for subscriptions</li>
+    <li>Per-seat pricing doesn't work when one agent spawns hundreds of sub-agents</li>
+    <li>Monthly minimums make experimentation expensive</li>
+  </ul>
+
+  <p>What agents need is vending-machine economics: put in a coin, get a result. That's exactly what x402 provides.</p>
+
+  <h2>What x402 is</h2>
+
+  <p>x402 is a protocol that embeds payment into HTTP requests. The payment is a cryptographic signature proving you've authorized a USDC transfer. It travels with the request header, so the API can verify payment and return the result in a single round trip.</p>
+
+  <div class="flow-diagram">
+    <div class="flow-step">Client sends request</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step highlight">Server returns 402 + price</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">Client signs payment</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step">Client resends with X-PAYMENT header</div>
+    <div class="flow-arrow">&rarr;</div>
+    <div class="flow-step highlight">Server verifies &amp; responds 200</div>
+  </div>
+
+  <h3>The 402 response</h3>
+
+  <p>When you call an AiPayGen endpoint without an API key or x402 payment, you get a <code>402</code> response with pricing details:</p>
+
+  <pre><code class="language-json">HTTP/1.1 402 Payment Required
+
+{
+  "error": "Payment required",
+  "x402": {
+    "version": 2,
+    "networks": [
+      {
+        "network": "eip155:8453",
+        "asset": "USDC",
+        "address": "0x366D488a48de1B2773F3a21F1A6972715056Cb30",
+        "amount": "6000",
+        "decimals": 6
+      },
+      {
+        "network": "solana:mainnet",
+        "asset": "USDC",
+        "amount": "6000",
+        "decimals": 6
+      },
+      {
+        "network": "stellar:pubnet",
+        "asset": "USDC",
+        "amount": "6000",
+        "decimals": 6
+      }
+    ]
+  },
+  "unlock": "Add x-api-key header or pay via x402 (USDC on Base, Solana, or Stellar)"
+}</code></pre>
+
+  <p>The <code>amount: 6000</code> with <code>decimals: 6</code> means $0.006 USDC. Three networks are supported: Base (Ethereum L2), Solana, and Stellar.</p>
+
+  <h3>The payment header</h3>
+
+  <p>The client signs a USDC transfer authorization and attaches it as an <code>X-PAYMENT</code> header. The server verifies the signature on-chain before processing the request.</p>
+
+  <pre><code class="language-bash"># Using the x402 SDK (Python)
+pip install x402
+
+# In your code:
+from x402.client import create_x402_client
+
+client = create_x402_client(
+    private_key="0x_your_wallet_private_key",
+    network="base"
+)
+
+# The SDK handles 402 → sign → retry automatically
+response = client.post(
+    "https://api.aipaygen.com/summarize",
+    json={"text": "Long article text...", "length": "short"}
+)
+print(response.json())</code></pre>
+
+  <p>That's it. No API key, no account creation, no billing portal. The wallet signs, the server verifies, the result comes back.</p>
+
+  <h2>How AiPayGen implements x402</h2>
+
+  <p>Every paid endpoint in AiPayGen supports three payment methods:</p>
+
+  <ol>
+    <li><strong>Free tier</strong> (10 calls/day) &mdash; no key, no payment, just call the endpoint</li>
+    <li><strong>API key</strong> &mdash; prepaid balance via Stripe, deducted per call</li>
+    <li><strong>x402</strong> &mdash; pay per call in USDC, no account needed</li>
+  </ol>
+
+  <p>The middleware checks in order: API key &rarr; x402 payment &rarr; free tier. If you have a key with balance, that's used first. If you send an x402 payment, that's verified and accepted. If neither, the free tier counter is checked.</p>
+
+  <pre><code class="language-python"># Simplified middleware flow (actual code in app.py)
+def payment_middleware():
+    # 1. Check API key
+    key = request.headers.get("x-api-key")
+    if key and validate_key(key):
+        deduct_balance(key, cost)
+        return proceed()
+
+    # 2. Check x402 payment
+    payment = request.headers.get("X-PAYMENT")
+    if payment:
+        if verify_x402(payment, cost):
+            return proceed()
+        return error("Invalid x402 payment"), 402
+
+    # 3. Check free tier
+    if free_calls_remaining(request) > 0:
+        decrement_free_calls(request)
+        return proceed()
+
+    # 4. Return 402 with pricing
+    return x402_pricing_response(), 402</code></pre>
+
+  <h2>Why this matters for AI agents</h2>
+
+  <p>The key insight: <strong>AI agents can hold wallets.</strong> You give an agent a private key with a USDC balance, and it can autonomously pay for any x402-enabled API. No OAuth, no API key management, no billing dashboard.</p>
+
+  <p>This enables a new pattern:</p>
+
+  <ul>
+    <li><strong>Autonomous agents</strong> that discover and pay for tools on their own</li>
+    <li><strong>Micro-transactions</strong> &mdash; $0.006 per call is too small for credit cards, but perfect for crypto</li>
+    <li><strong>No vendor lock-in</strong> &mdash; any x402-compatible API works with the same wallet</li>
+    <li><strong>Composable payments</strong> &mdash; an agent chain where each step pays a different provider</li>
+    <li><strong>Transparent costs</strong> &mdash; every 402 response tells you the exact price before you pay</li>
+  </ul>
+
+  <div class="blog-callout">
+    <strong>Real-world example:</strong> An autonomous research agent receives a task. It calls AiPayGen's <code>/research</code> endpoint ($0.006), then <code>/extract</code> ($0.006), then stores results in <code>/memory/store</code> ($0.002). Total cost: $0.014. No subscription. No human approval. The agent's wallet handles everything.
+  </div>
+
+  <h2>x402 V2: Multi-chain support</h2>
+
+  <p>AiPayGen uses x402 V2, which adds support for multiple blockchain networks in a single 402 response. The client picks whichever network has the cheapest gas or where it holds funds:</p>
+
+  <ul>
+    <li><strong>Base</strong> (Ethereum L2) &mdash; lowest gas fees (~$0.001), fastest settlement</li>
+    <li><strong>Solana</strong> &mdash; sub-second finality, native USDC</li>
+    <li><strong>Stellar</strong> &mdash; designed for payments, near-zero fees</li>
+  </ul>
+
+  <p>All three networks settle in USDC, so the API price is the same regardless of which chain you use.</p>
+
+  <h2>Try it yourself</h2>
+
+  <p>You don't need crypto to start. The free tier (10 calls/day) and API key ($1 via Stripe) both work without a wallet. But if you're building autonomous agents that need to pay for tools, x402 is the cleanest path.</p>
+
+  <pre><code class="language-bash"># No payment needed — free tier
+curl -X POST "https://api.aipaygen.com/summarize" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Your text here", "length": "short"}'
+
+# API key (prepaid Stripe balance)
+curl -X POST "https://api.aipaygen.com/summarize" \
+  -H "x-api-key: apk_your_key" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Your text here", "length": "short"}'
+
+# x402 (USDC on Base) — using the x402 Python SDK
+python -c "
+from x402.client import create_x402_client
+c = create_x402_client(private_key='0x...', network='base')
+r = c.post('https://api.aipaygen.com/summarize',
+    json={'text': 'Your text here', 'length': 'short'})
+print(r.json())
+"</code></pre>
+
+  <h2>Further reading</h2>
+
+  <ul>
+    <li><a href="https://www.x402.org/">x402 Protocol Specification</a></li>
+    <li><a href="https://github.com/coinbase/x402">x402 Reference Implementation (Coinbase)</a></li>
+    <li><a href="/docs">AiPayGen API Documentation</a></li>
+    <li><a href="/blog/launch">Why I Built AiPayGen</a> &mdash; the full backstory</li>
+    <li><a href="/blog/5-things-you-can-build">5 Things You Can Build with 244 AI Tools</a></li>
+  </ul>
+
+  <div style="margin: 2.5rem 0;">
+    <a href="/try" class="blog-cta">Try Free &mdash; No Signup</a>
+    <a href="/buy-credits" class="blog-cta-secondary">Get API Key ($1)</a>
+    <a href="/pricing" class="blog-cta-secondary">View Pricing</a>
+  </div>
+
+  <p style="color:var(--text-muted);font-size:0.85rem;">Published March 15, 2026 &middot; <a href="/blog">All posts</a> &middot; <a href="/feed.xml">RSS feed</a></p>
+</article>
+{% endblock %}

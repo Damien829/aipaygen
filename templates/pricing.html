@@ -468,15 +468,33 @@
       <li>15 frontier models</li>
       <li>No API key needed</li>
       <li>MCP &amp; REST access</li>
+      <li class="disabled">Premium tools (research, scraping)</li>
       <li class="disabled">Priority support</li>
-      <li class="disabled">Higher rate limits</li>
     </ul>
-    <a href="/try" class="btn-tier secondary">Get Started Free</a>
+    <a href="/try" class="btn-tier secondary">Try Free &mdash; No Sign Up</a>
   </div>
 
   <!-- Starter -->
   <div class="tier fade-up delay-1">
     <div class="tier-name">Starter</div>
+    <div class="tier-price"><span class="currency">$</span>1 <span class="period">prepaid</span></div>
+    <div class="tier-desc">~160 calls &middot; $0.006/call</div>
+    <ul class="tier-features">
+      <li>~160 prepaid API calls</li>
+      <li>All 244 tools unlocked</li>
+      <li>15 frontier models</li>
+      <li>Personal API key</li>
+      <li>MCP &amp; REST access</li>
+      <li class="disabled">Priority support</li>
+      <li class="disabled">Higher rate limits</li>
+    </ul>
+    <a href="/buy-credits" class="btn-tier primary">$1 to Start &rarr;</a>
+  </div>
+
+  <!-- Pro -->
+  <div class="tier featured fade-up delay-2">
+    <div class="tier-badge">Most Popular</div>
+    <div class="tier-name">Pro</div>
     <div class="tier-price"><span class="currency">$</span>5 <span class="period">prepaid</span></div>
     <div class="tier-desc">~830 calls &middot; $0.006/call</div>
     <ul class="tier-features">
@@ -486,19 +504,19 @@
       <li>Personal API key</li>
       <li>MCP &amp; REST access</li>
       <li>Priority support</li>
-      <li class="disabled">Higher rate limits</li>
+      <li>600 req/min rate limit</li>
     </ul>
     <a href="/buy-credits" class="btn-tier primary">Buy Credits &rarr;</a>
   </div>
 
-  <!-- Pro -->
-  <div class="tier featured fade-up delay-2">
-    <div class="tier-badge">Best Value</div>
-    <div class="tier-name">Pro</div>
+  <!-- Team -->
+  <div class="tier fade-up delay-3">
+    <div class="tier-badge" style="background:var(--cyan);color:#000">Best Value</div>
+    <div class="tier-name">Team</div>
     <div class="tier-price"><span class="currency">$</span>20 <span class="period">prepaid</span></div>
-    <div class="tier-desc">~4,000 calls &middot; $0.005/call &middot; 20% off</div>
+    <div class="tier-desc">~3,300 calls &middot; $0.006/call &middot; bulk discount</div>
     <ul class="tier-features">
-      <li>~4,000 prepaid API calls</li>
+      <li>~3,300 prepaid API calls</li>
       <li>All 244 tools unlocked</li>
       <li>15 frontier models</li>
       <li>Personal API key</li>
@@ -507,23 +525,6 @@
       <li>600 req/min rate limit</li>
     </ul>
     <a href="/buy-credits" class="btn-tier primary">Buy Credits &rarr;</a>
-  </div>
-
-  <!-- Enterprise -->
-  <div class="tier fade-up delay-3">
-    <div class="tier-name">Enterprise</div>
-    <div class="tier-price" style="font-size:2.2rem">Custom</div>
-    <div class="tier-desc">Volume pricing &middot; SLAs &middot; dedicated support</div>
-    <ul class="tier-features">
-      <li>Custom call volume</li>
-      <li>All 244 tools unlocked</li>
-      <li>Custom model routing</li>
-      <li>Dedicated API key</li>
-      <li>Dedicated support channel</li>
-      <li>Custom rate limits</li>
-      <li>SLA guarantees</li>
-    </ul>
-    <a href="mailto:hello@aipaygen.com" class="btn-tier outline">Contact Us</a>
   </div>
 </div>
 
@@ -538,18 +539,18 @@
       <tr>
         <th style="text-align:left">Feature</th>
         <th>Free</th>
-        <th>Starter ($5)</th>
-        <th>Pro ($20)</th>
-        <th>Enterprise</th>
+        <th>Starter ($1)</th>
+        <th>Pro ($5)</th>
+        <th>Team ($20)</th>
       </tr>
     </thead>
     <tbody>
       <tr>
         <td>API calls</td>
         <td>10/day</td>
+        <td>~160 prepaid</td>
         <td>~830 prepaid</td>
-        <td>~4,000 prepaid</td>
-        <td>Custom</td>
+        <td>~3,300 prepaid</td>
       </tr>
       <tr>
         <td>AI tools available</td>
@@ -563,7 +564,7 @@
         <td class="check">15 models</td>
         <td class="check">15 models</td>
         <td class="check">15 models</td>
-        <td class="check">15+ models</td>
+        <td class="check">15 models</td>
       </tr>
       <tr>
         <td>MCP &amp; REST access</td>
@@ -589,23 +590,23 @@
       <tr>
         <td>Rate limit</td>
         <td>60/min</td>
+        <td>120/min</td>
         <td>600/min</td>
         <td>600/min</td>
-        <td>Custom</td>
       </tr>
       <tr>
         <td>Support</td>
         <td>Community</td>
+        <td>Community</td>
         <td>Priority</td>
         <td>Premium</td>
-        <td>Dedicated</td>
       </tr>
       <tr>
         <td>Cost per call</td>
         <td class="check">Free</td>
         <td>$0.006</td>
-        <td>$0.005</td>
-        <td>Volume discount</td>
+        <td>$0.006</td>
+        <td>$0.006</td>
       </tr>
       <tr>
         <td>Credits expire?</td>
@@ -614,16 +615,209 @@
         <td class="check">Never</td>
         <td class="check">Never</td>
       </tr>
+    </tbody>
+  </table>
+  <p style="color:var(--muted);font-size:0.78rem;margin-top:12px;font-family:'IBM Plex Sans',sans-serif">Paid tiers use prepaid credits, not daily limits. Call counts are approximate &mdash; actual usage varies by tool (see per-tool pricing below).</p>
+</section>
+
+<!-- Per-Tool Pricing -->
+<section class="compare-section">
+  <div class="section-header">
+    <span>// Per-Tool Pricing</span>
+    <div class="section-header-line"></div>
+  </div>
+  <table class="compare-table">
+    <thead>
       <tr>
-        <td>SLA</td>
-        <td class="dash">&mdash;</td>
-        <td class="dash">&mdash;</td>
-        <td class="dash">&mdash;</td>
-        <td class="check">&#10003;</td>
+        <th style="text-align:left">Tool</th>
+        <th>Cost / Call</th>
+        <th>Calls per $1</th>
+        <th>Category</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>sentiment</td>
+        <td class="check">$0.01</td>
+        <td>100</td>
+        <td>Analysis</td>
+      </tr>
+      <tr>
+        <td>summarize</td>
+        <td>$0.02</td>
+        <td>50</td>
+        <td>Writing</td>
+      </tr>
+      <tr>
+        <td>translate</td>
+        <td>$0.02</td>
+        <td>50</td>
+        <td>Writing</td>
+      </tr>
+      <tr>
+        <td>scrape (any site)</td>
+        <td>$0.03</td>
+        <td>33</td>
+        <td>Data</td>
+      </tr>
+      <tr>
+        <td>code</td>
+        <td>$0.05</td>
+        <td>20</td>
+        <td>Dev</td>
+      </tr>
+      <tr>
+        <td>research</td>
+        <td>$0.15</td>
+        <td>6</td>
+        <td>Premium</td>
+      </tr>
+      <tr>
+        <td>ask / chat</td>
+        <td class="check">$0.004</td>
+        <td>250</td>
+        <td>General</td>
+      </tr>
+      <tr>
+        <td>classify / keywords</td>
+        <td class="check">$0.006</td>
+        <td>166</td>
+        <td>Analysis</td>
       </tr>
     </tbody>
   </table>
-  <p style="color:var(--muted);font-size:0.78rem;margin-top:12px;font-family:'IBM Plex Sans',sans-serif">Paid tiers use prepaid credits, not daily limits. Call counts shown are approximate totals at each credit level.</p>
+  <p style="color:var(--muted);font-size:0.78rem;margin-top:12px;font-family:'IBM Plex Sans',sans-serif">Most tools cost $0.004&ndash;$0.02 per call. Premium tools (research, vision, scraping) cost more because they use multiple model calls or external APIs.</p>
+</section>
+
+<!-- vs Direct API Costs -->
+<section class="compare-section">
+  <div class="section-header">
+    <span>// vs Direct API Costs &mdash; 5-10x Cheaper</span>
+    <div class="section-header-line"></div>
+  </div>
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th style="text-align:left">Task</th>
+        <th>AiPayGen Cost</th>
+        <th>Direct API Cost</th>
+        <th>Savings</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Summarize a document (~1K tokens)</td>
+        <td class="check">$0.02</td>
+        <td>$0.10&ndash;$0.15</td>
+        <td class="check">5&ndash;7x cheaper</td>
+      </tr>
+      <tr>
+        <td>Sentiment analysis</td>
+        <td class="check">$0.01</td>
+        <td>$0.05&ndash;$0.08</td>
+        <td class="check">5&ndash;8x cheaper</td>
+      </tr>
+      <tr>
+        <td>Code generation</td>
+        <td class="check">$0.05</td>
+        <td>$0.30&ndash;$0.50</td>
+        <td class="check">6&ndash;10x cheaper</td>
+      </tr>
+      <tr>
+        <td>Translation</td>
+        <td class="check">$0.02</td>
+        <td>$0.10&ndash;$0.15</td>
+        <td class="check">5&ndash;7x cheaper</td>
+      </tr>
+      <tr>
+        <td>Deep research (multi-source)</td>
+        <td class="check">$0.15</td>
+        <td>$1.00&ndash;$2.00</td>
+        <td class="check">7&ndash;13x cheaper</td>
+      </tr>
+      <tr>
+        <td>Web scrape + extract</td>
+        <td class="check">$0.03</td>
+        <td>$0.15&ndash;$0.30</td>
+        <td class="check">5&ndash;10x cheaper</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="color:var(--muted);font-size:0.78rem;margin-top:12px;font-family:'IBM Plex Sans',sans-serif">Direct API costs include OpenAI GPT-4o, Anthropic Claude, or Google Gemini at standard per-token rates for equivalent tasks. AiPayGen batches, caches, and routes to the most cost-effective model automatically.</p>
+</section>
+
+<!-- Competitor Comparison -->
+<section class="compare-section">
+  <div class="section-header">
+    <span>// AiPayGen vs Alternatives</span>
+    <div class="section-header-line"></div>
+  </div>
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th style="text-align:left">Feature</th>
+        <th style="color:var(--green)">AiPayGen</th>
+        <th>OpenRouter</th>
+        <th>BlockRun</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Tools available</td>
+        <td class="check">244 tools</td>
+        <td>0 (models only)</td>
+        <td>600+</td>
+      </tr>
+      <tr>
+        <td>Pay-per-use</td>
+        <td class="check">Yes ($0.006/call)</td>
+        <td>Yes (per token)</td>
+        <td class="dash">Monthly plans</td>
+      </tr>
+      <tr>
+        <td>MCP support</td>
+        <td class="check">Native</td>
+        <td class="dash">No</td>
+        <td class="dash">No</td>
+      </tr>
+      <tr>
+        <td>Free tier</td>
+        <td class="check">10 calls/day</td>
+        <td class="dash">No</td>
+        <td class="dash">No</td>
+      </tr>
+      <tr>
+        <td>Tool chaining</td>
+        <td class="check">Yes ($prev.result)</td>
+        <td class="dash">No</td>
+        <td class="dash">No</td>
+      </tr>
+      <tr>
+        <td>Crypto payments</td>
+        <td class="check">x402 USDC</td>
+        <td class="dash">No</td>
+        <td>Crypto</td>
+      </tr>
+      <tr>
+        <td>Minimum purchase</td>
+        <td class="check">$1</td>
+        <td>Varies</td>
+        <td>$20/mo</td>
+      </tr>
+      <tr>
+        <td>Agent memory</td>
+        <td class="check">Built-in</td>
+        <td class="dash">No</td>
+        <td class="dash">No</td>
+      </tr>
+      <tr>
+        <td>Credits expire?</td>
+        <td class="check">Never</td>
+        <td>N/A</td>
+        <td>Monthly reset</td>
+      </tr>
+    </tbody>
+  </table>
 </section>
 
 <!-- Payment Methods -->

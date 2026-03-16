@@ -1083,6 +1083,58 @@ def check_query_param_lengths():
             return jsonify({"error": "param_too_long", "message": f"Query parameter '{key}' exceeds 10,000 character limit"}), 400
 
 
+# ── Gzip compression ────────────────────────────────────────────────────────────
+
+import gzip as _gzip
+import io as _io
+
+_GZIP_MIN_SIZE = 500  # Only compress responses larger than 500 bytes
+
+@app.after_request
+def gzip_response(response):
+    """Compress responses with gzip if the client supports it."""
+    if (response.status_code < 200 or response.status_code >= 300
+            or response.direct_passthrough
+            or "Content-Encoding" in response.headers
+            or "gzip" not in request.headers.get("Accept-Encoding", "")):
+        return response
+    content_type = response.content_type or ""
+    if not any(ct in content_type for ct in ("text/", "application/json", "application/javascript", "image/svg")):
+        return response
+    data = response.get_data()
+    if len(data) < _GZIP_MIN_SIZE:
+        return response
+    buf = _io.BytesIO()
+    with _gzip.GzipFile(fileobj=buf, mode="wb", compresslevel=6) as f:
+        f.write(data)
+    compressed = buf.getvalue()
+    if len(compressed) >= len(data):
+        return response
+    response.set_data(compressed)
+    response.headers["Content-Encoding"] = "gzip"
+    response.headers["Content-Length"] = len(compressed)
+    response.headers["Vary"] = "Accept-Encoding"
+    return response
+
+
+# ── Cache-Control headers for specific routes ──────────────────────────────────
+
+_CACHE_PUBLIC_1H = frozenset({"/pricing", "/docs", "/discover", "/docs/api", "/sell", "/sdk"})
+_CACHE_NO_CACHE = frozenset({"/health", "/status"})
+
+@app.after_request
+def set_cache_headers(response):
+    """Set Cache-Control for static-ish pages. Dynamic/API routes keep default no-store."""
+    path = request.path
+    if path in _CACHE_PUBLIC_1H:
+        response.headers["Cache-Control"] = "public, max-age=3600"
+    elif path in _CACHE_NO_CACHE:
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    elif path.startswith("/static/"):
+        response.headers["Cache-Control"] = "public, max-age=604800"
+    return response
+
+
 _ALLOWED_ORIGINS = {"https://aipaygen.com", "https://api.aipaygen.com", "https://mcp.aipaygen.com", "https://app.aipaygen.com"}
 
 @app.after_request
@@ -1261,12 +1313,47 @@ def bad_request(e):
     return _api_error(400, "bad_request", "Bad request")
 
 
+_COMMON_MISSPELLINGS = {
+    "dicovery": "/discover", "disover": "/discover", "discovr": "/discover",
+    "documention": "/docs", "doc": "/docs", "documentation": "/docs",
+    "priceing": "/pricing", "prices": "/pricing", "price": "/pricing",
+    "healthcheck": "/health", "heatlh": "/health",
+    "tryit": "/try", "demo": "/try", "playground": "/playground",
+    "api": "/docs/api", "swagger": "/docs/api", "openapi": "/openapi.json",
+    "staus": "/status", "statsu": "/status",
+    "catalog": "/discover", "tools": "/discover",
+    "signin": "/buy-credits", "login": "/buy-credits", "signup": "/buy-credits",
+}
+
+
 @app.errorhandler(404)
 def not_found(e):
-    if request.accept_mimetypes.best == 'text/html' and os.path.exists('templates/404.html'):
-        from flask import render_template
-        return render_template('404.html'), 404
-    return jsonify({"error": "not_found", "message": "The requested endpoint does not exist.", "discover": "https://api.aipaygen.com/discover"}), 404
+    path = request.path.strip("/").lower()
+    suggestion = _COMMON_MISSPELLINGS.get(path)
+    suggested_pages = [
+        {"name": "Try Tools", "url": "https://aipaygen.com/try"},
+        {"name": "Documentation", "url": "https://aipaygen.com/docs"},
+        {"name": "Pricing", "url": "https://aipaygen.com/pricing"},
+        {"name": "Discover", "url": "https://aipaygen.com/discover"},
+    ]
+    if request.accept_mimetypes.best == 'text/html':
+        hint = f'<p>Did you mean <a href="{suggestion}">{suggestion}</a>?</p>' if suggestion else ""
+        links = "".join(f'<li><a href="{p["url"]}">{p["name"]}</a></li>' for p in suggested_pages)
+        html = f"""<!DOCTYPE html><html><head><title>404 — Not Found</title>
+<style>body{{font-family:sans-serif;background:#0d1117;color:#c9d1d9;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}}
+.box{{text-align:center;max-width:480px;padding:40px}}h1{{color:#f85149;font-size:3rem}}a{{color:#58a6ff}}</style></head>
+<body><div class="box"><h1>404</h1><p>This page does not exist.</p>{hint}<h3>Try these instead:</h3><ul style="list-style:none;padding:0">{links}</ul>
+<p style="margin-top:24px;color:#8b949e"><a href="/">Back to home</a></p></div></body></html>"""
+        return html, 404
+    resp = {
+        "error": "not_found",
+        "message": "The requested endpoint does not exist.",
+        "discover": "https://api.aipaygen.com/discover",
+        "suggested_pages": suggested_pages,
+    }
+    if suggestion:
+        resp["did_you_mean"] = suggestion
+    return jsonify(resp), 404
 
 
 @app.errorhandler(405)
@@ -1286,7 +1373,20 @@ def rate_limited(e):
 
 @app.errorhandler(500)
 def internal_error(e):
-    return jsonify({"error": "internal_server_error", "message": "An unexpected error occurred. If this persists, check https://aipaygen.com/health"}), 500
+    if request.accept_mimetypes.best == 'text/html':
+        html = """<!DOCTYPE html><html><head><title>500 — Server Error</title>
+<style>body{font-family:sans-serif;background:#0d1117;color:#c9d1d9;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}
+.box{text-align:center;max-width:480px;padding:40px}h1{color:#f85149;font-size:3rem}a{color:#58a6ff}</style></head>
+<body><div class="box"><h1>500</h1><p>Something went wrong on our end.</p>
+<p>Check <a href="/status">service status</a> for live health info.</p>
+<p style="margin-top:24px;color:#8b949e"><a href="/">Back to home</a></p></div></body></html>"""
+        return html, 500
+    return jsonify({
+        "error": "internal_server_error",
+        "message": "An unexpected error occurred.",
+        "status_page": "https://aipaygen.com/status",
+        "health": "https://aipaygen.com/health",
+    }), 500
 
 
 @app.before_request

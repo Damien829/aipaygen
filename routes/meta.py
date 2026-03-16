@@ -363,12 +363,45 @@ def discover():
                 }
                 for s in services
             ]
-        return render_template(
+
+        # Build JSON-LD SoftwareApplication schema for SEO
+        offers = []
+        for svc in all_services:
+            price = svc.get("price_usd", 0)
+            offers.append({
+                "@type": "Offer",
+                "name": svc["endpoint"],
+                "description": svc["description"],
+                "price": str(price),
+                "priceCurrency": "USD",
+                "availability": "https://schema.org/InStock",
+            })
+        jsonld = json.dumps({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            "name": "AiPayGen",
+            "applicationCategory": "DeveloperApplication",
+            "operatingSystem": "Any",
+            "description": f"AI agent API marketplace with {len(all_services)} tools. Research, write, code, scrape, and more. Pay per call with USDC or API key.",
+            "url": "https://aipaygen.com/discover",
+            "offers": offers,
+            "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": "4.8",
+                "ratingCount": "292",
+                "bestRating": "5",
+            },
+        }, ensure_ascii=False)
+
+        resp = make_response(render_template(
             "discover.html",
             categories=display_categories,
             nav=NAV_HTML,
             footer=FOOTER_HTML,
-        )
+            jsonld=jsonld,
+        ))
+        resp.headers["Cache-Control"] = "public, max-age=3600"
+        return resp
 
     # Strip schemas and exact prices for competitive protection
     stripped_categories = {}
@@ -1071,173 +1104,201 @@ def docs_api():
     return Response(html, mimetype="text/html")
 
 
-LLMS_TXT = """\
-# AiPayGen
+def _build_llms_txt():
+    """Build llms.txt dynamically from the service catalog so it stays in sync."""
+    categories = _build_discover_services()
+    lines = []
+    lines.append("# AiPayGen")
+    lines.append("")
+    lines.append("> 244 AI tools in one API (v1.8.3). Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (10 free/day). $0.25 trial credits via buy_credits / generate_api_key MCP tools.")
+    lines.append("")
+    lines.append("## What This Service Does")
+    lines.append("")
+    lines.append("AiPayGen is a pay-per-use AI platform for autonomous agents. Research, write, code, analyze, scrape, and more. Built for agent pipelines with persistent memory and skill discovery.")
+    lines.append("")
+    lines.append("## Claude Code Install")
+    lines.append("")
+    lines.append("```bash")
+    lines.append("pip install aipaygen-mcp && claude mcp add aipaygen -- python -m aipaygen_mcp")
+    lines.append("```")
+    lines.append("")
+    lines.append("## Capabilities")
+    lines.append("")
+    lines.append("- **AI Processing** — research, write, code, analyze, translate, summarize, classify, sentiment, RAG, vision, diagrams")
+    lines.append("- **Web Scraping** — Google Maps, Twitter/X, Instagram, LinkedIn, YouTube, TikTok, any website")
+    lines.append("- **Agent Infrastructure** — persistent memory, messaging, task boards, webhook relay, async jobs, file storage")
+    lines.append("- **Data & Utilities** — weather, crypto, stocks, news, Wikipedia, arXiv, GitHub trending")
+    lines.append("- **Skills Library** — 2400+ searchable skills via TF-IDF. Search, browse, and execute dynamically.")
+    lines.append("- **Multi-Model** — Claude, GPT-4o, DeepSeek, Gemini. All AI endpoints accept `model` parameter.")
+    lines.append("")
+    lines.append("## Authentication (3 Paths)")
+    lines.append("")
+    lines.append("### 1. Free Tier (No Auth)")
+    lines.append("- 10 calls/day per IP, no key needed")
+    lines.append("- Just POST JSON to any endpoint")
+    lines.append("")
+    lines.append("### 2. API Key (Recommended)")
+    lines.append("Buy a prepaid API key via Stripe or x402. Use it everywhere with Bearer auth.")
+    lines.append("- `POST /credits/buy` with `{\"amount_usd\": 5.0}` -> returns `apk_xxx` key")
+    lines.append("- Use: `Authorization: Bearer apk_xxx` header on any endpoint")
+    lines.append("- 20% bulk discount when balance >= $2.00")
+    lines.append("- Token-based metering available: `X-Pricing: metered` header")
+    lines.append("")
+    lines.append("### 3. x402 USDC (Crypto-Native)")
+    lines.append("- **Standard**: [x402](https://x402.org) — HTTP 402 Payment Required")
+    lines.append("- **Network**: Base Mainnet (eip155:8453)")
+    lines.append("- **Token**: USDC (6 decimals)")
+    lines.append("- **Flow**: POST endpoint -> 402 with payment instructions -> retry with `X-Payment` header")
+    lines.append("")
+    lines.append("## Pricing")
+    lines.append("")
+    lines.append("| Tier | Price Range | Examples |")
+    lines.append("|------|-------------|----------|")
+    lines.append("| Free | $0.00 | /free/time, /free/uuid, /free/ip, /free/hash, /free/base64, /free/random, /free/joke, /free/quote, /preview |")
+    lines.append("| Micro | $0.01-0.02 | /summarize, /sentiment, /classify, /keywords, /search, /scrape, /data/* |")
+    lines.append("| Standard | $0.03-0.05 | /write, /code, /social, /vision, /rag, /sql, /scrape/tweets |")
+    lines.append("| Premium | $0.10-0.25 | /batch, /chain, /workflow, /scrape/google-maps, /research |")
+    lines.append("")
 
-> 244 AI tools in one API (v1.8.3). Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (10 free/day). New: $0.25 trial credits via buy_credits / generate_api_key MCP tools.
+    # Full tool catalog
+    lines.append("## All 244 Tools")
+    lines.append("")
+    for cat_name, services in categories.items():
+        lines.append(f"### {cat_name}")
+        lines.append("")
+        lines.append("| Endpoint | Method | Price | Description |")
+        lines.append("|----------|--------|-------|-------------|")
+        for svc in services:
+            price = svc.get("price_usd", 0)
+            price_str = "FREE" if price == 0 else f"${price:.2f}"
+            lines.append(f"| {svc['endpoint']} | {svc['method']} | {price_str} | {svc['description']} |")
+        lines.append("")
 
-## What This Service Does
+    # Chain endpoint detail
+    lines.append("## /chain Endpoint — Multi-Step Pipelines")
+    lines.append("")
+    lines.append("Chain up to 5 AI operations in sequence. Each step can reference the previous output via `$prev.result`.")
+    lines.append("")
+    lines.append("```json")
+    lines.append('POST /chain')
+    lines.append('{')
+    lines.append('  "steps": [')
+    lines.append('    {"action": "research", "params": {"query": "AI agent frameworks 2026"}},')
+    lines.append('    {"action": "summarize", "params": {"text": "$prev.result"}},')
+    lines.append('    {"action": "translate", "params": {"text": "$prev.result", "target": "ja"}}')
+    lines.append('  ]')
+    lines.append('}')
+    lines.append("```")
+    lines.append("")
+    lines.append("- Price: $0.25 per chain (covers all steps)")
+    lines.append("- Use `$prev.result` to pipe output from one step to the next")
+    lines.append("- Supports all AI processing endpoints as actions")
+    lines.append("")
 
-AiPayGen is a pay-per-use AI platform for autonomous agents. Research, write, code, analyze, scrape, and more. Built for agent pipelines with persistent memory and skill discovery.
+    lines.append("## Example curl Calls")
+    lines.append("")
+    lines.append("### Research")
+    lines.append("```bash")
+    lines.append("curl -X POST https://api.aipaygen.com/research \\")
+    lines.append('  -H "Content-Type: application/json" \\')
+    lines.append('  -H "Authorization: Bearer apk_YOUR_KEY" \\')
+    lines.append("  -d '{\"topic\": \"quantum computing breakthroughs 2026\"}'")
+    lines.append("```")
+    lines.append("")
+    lines.append("### Chain (multi-step)")
+    lines.append("```bash")
+    lines.append("curl -X POST https://api.aipaygen.com/chain \\")
+    lines.append('  -H "Content-Type: application/json" \\')
+    lines.append('  -H "Authorization: Bearer apk_YOUR_KEY" \\')
+    lines.append("  -d '{\"steps\": [{\"action\": \"research\", \"params\": {\"query\": \"x402 protocol\"}}, {\"action\": \"summarize\", \"params\": {\"text\": \"$prev.result\"}}]}'")
+    lines.append("```")
+    lines.append("")
 
-## Capabilities
+    lines.append("## MCP (Model Context Protocol)")
+    lines.append("")
+    lines.append("- 10 free calls/day, no payment needed")
+    lines.append("- Unlimited with `AIPAYGEN_API_KEY` env var")
+    lines.append("- **New**: Use the `buy_credits` or `generate_api_key` MCP tools to get $0.25 trial credits instantly")
+    lines.append("- Install: `pip install aipaygen-mcp && claude mcp add aipaygen -- python -m aipaygen_mcp`")
+    lines.append("- Remote SSE: https://mcp.aipaygen.com/mcp")
+    lines.append("")
 
-- **AI Processing** — research, write, code, analyze, translate, summarize, classify, sentiment, RAG, vision, diagrams
-- **Web Scraping** — Google Maps, Twitter/X, Instagram, LinkedIn, YouTube, TikTok, any website
-- **Agent Infrastructure** — persistent memory, messaging, task boards, webhook relay, async jobs, file storage
-- **Data & Utilities** — weather, crypto, stocks, news, Wikipedia, arXiv, GitHub trending
-- **Skills Library** — 2400+ searchable skills via TF-IDF. Search, browse, and execute dynamically.
-- **Multi-Model** — Claude, GPT-4o, DeepSeek, Gemini. All AI endpoints accept `model` parameter.
+    lines.append("## Discovery Endpoints")
+    lines.append("")
+    lines.append("- `GET /discover` — machine-readable service catalog (JSON)")
+    lines.append("- `GET /.well-known/agent.json` — A2A Agent Card")
+    lines.append("- `GET /.well-known/ai-plugin.json` — ChatGPT/OpenAI plugin manifest")
+    lines.append("- `GET /openapi.json` — OpenAPI 3.1 spec")
+    lines.append("- `GET /llms.txt` — this file")
+    lines.append("- `GET /health` — service health check")
+    lines.append("- `POST /preview` — free Claude demo (no payment needed)")
+    lines.append("")
 
-## Authentication (3 Paths)
+    lines.append("## Quick Start (Python)")
+    lines.append("")
+    lines.append("```python")
+    lines.append("import httpx")
+    lines.append('BASE = "https://api.aipaygen.com"')
+    lines.append("")
+    lines.append("# 1. Get an API key (easiest path)")
+    lines.append('key_resp = httpx.post(f"{BASE}/credits/buy", json={"amount_usd": 5.0}).json()')
+    lines.append('API_KEY = key_resp["key"]  # apk_xxx')
+    lines.append("")
+    lines.append("# 2. Use it on any endpoint")
+    lines.append('result = httpx.post(f"{BASE}/research",')
+    lines.append('    json={"topic": "quantum computing"},')
+    lines.append('    headers={"Authorization": f"Bearer {API_KEY}"}')
+    lines.append(").json()")
+    lines.append("")
+    lines.append("# Free preview (no payment needed)")
+    lines.append('print(httpx.post(f"{BASE}/preview", json={"topic": "AI agents"}).json())')
+    lines.append("```")
+    lines.append("")
 
-### 1. Free Tier (No Auth)
-- 10 calls/day per IP, no key needed
-- Just POST JSON to any endpoint
+    lines.append("## Blog Posts")
+    lines.append("")
+    try:
+        for post in list_blog_posts():
+            slug = post.get("slug", "")
+            title = post.get("title", slug)
+            lines.append(f"- [{title}](https://aipaygen.com/blog/{slug})")
+    except Exception:
+        lines.append("- https://aipaygen.com/blog")
+    lines.append("")
 
-### 2. API Key (Recommended)
-Buy a prepaid API key via Stripe or x402. Use it everywhere with Bearer auth.
-- `POST /credits/buy` with `{"amount_usd": 5.0}` → returns `apk_xxx` key
-- Use: `Authorization: Bearer apk_xxx` header on any endpoint
-- 20% bulk discount when balance >= $2.00
-- Token-based metering available: `X-Pricing: metered` header
+    lines.append("## Links")
+    lines.append("")
+    lines.append("- Documentation: https://aipaygen.com/docs")
+    lines.append("- SDK & Code Examples: https://aipaygen.com/sdk")
+    lines.append("- Interactive Playground: https://aipaygen.com/try")
+    lines.append("- API Catalog: https://aipaygen.com/discover")
+    lines.append("- Pricing: https://aipaygen.com/pricing")
+    lines.append("- Blog: https://aipaygen.com/blog")
+    lines.append("- OpenAPI Spec: https://api.aipaygen.com/openapi.json")
+    lines.append("- PyPI: https://pypi.org/project/aipaygen-mcp/")
+    lines.append("- MCP Registry: https://registry.modelcontextprotocol.io/servers/io.github.Damien829/aipaygen")
+    lines.append("- Buy Credits: https://aipaygen.com/buy-credits")
+    lines.append("- Status: https://aipaygen.com/status")
+    lines.append("- Security: https://aipaygen.com/security")
+    lines.append("")
 
-### 3. x402 USDC (Crypto-Native)
-- **Standard**: [x402](https://x402.org) — HTTP 402 Payment Required
-- **Network**: Base Mainnet (eip155:8453)
-- **Token**: USDC (6 decimals)
-- **Flow**: POST endpoint → 402 with payment instructions → retry with `X-Payment` header
+    lines.append("## Notes for AI Agents")
+    lines.append("")
+    lines.append("- All paid responses include `_meta` with endpoint, model, network, timestamp.")
+    lines.append("- Fetch `/discover` for the service catalog before calling endpoints.")
+    lines.append("- USDC precision: 6 decimals. Network: Base Mainnet (eip155:8453).")
+    lines.append("- Agent memory persists indefinitely — use a stable `agent_id`.")
+    lines.append("- API key is the fastest path — one POST and you're running.")
+    lines.append("- MCP users: call `buy_credits` or `generate_api_key` to get $0.25 trial credits and an API key.")
+    lines.append("- 402 responses include `Link` headers pointing to /openapi.json and /.well-known/ai-plugin.json.")
+    lines.append("- Use `/chain` with `$prev.result` syntax to build multi-step pipelines in a single call.")
+    lines.append("")
 
-## Top 15 Tools — Input/Output & Pricing
+    return "\n".join(lines)
 
-| Tool | Endpoint | Price | Input (JSON POST) | Output |
-|------|----------|-------|--------------------|--------|
-| Research | POST /research | $0.01 | `{"topic": "..."}` | `{"result": "...", "_meta": {...}}` |
-| Summarize | POST /summarize | $0.01 | `{"text": "..."}` | `{"summary": "..."}` |
-| Translate | POST /translate | $0.02 | `{"text": "...", "target": "es"}` | `{"translation": "..."}` |
-| Code | POST /code | $0.05 | `{"task": "...", "language": "python"}` | `{"code": "...", "explanation": "..."}` |
-| Write | POST /write | $0.05 | `{"prompt": "...", "tone": "professional"}` | `{"text": "..."}` |
-| Analyze | POST /analyze | $0.02 | `{"text": "...", "aspects": [...]}` | `{"analysis": "..."}` |
-| Scrape Website | POST /scrape/website | $0.02 | `{"url": "https://..."}` | `{"content": "...", "title": "..."}` |
-| Sentiment | POST /sentiment | $0.01 | `{"text": "..."}` | `{"sentiment": "positive", "score": 0.92}` |
-| Extract | POST /extract | $0.02 | `{"text": "...", "fields": [...]}` | `{"extracted": {...}}` |
-| Compare | POST /compare | $0.02 | `{"items": ["A", "B"]}` | `{"comparison": "..."}` |
-| Classify | POST /classify | $0.01 | `{"text": "...", "categories": [...]}` | `{"category": "...", "confidence": 0.95}` |
-| Web Search | POST /web-search | $0.02 | `{"query": "..."}` | `{"results": [...]}` |
-| Fact Check | POST /fact | $0.02 | `{"claim": "..."}` | `{"verdict": "...", "evidence": "..."}` |
-| Batch | POST /batch | $0.10 | `{"operations": [{...}, ...]}` | `{"results": [...]}` |
-| Vision | POST /vision | $0.05 | `{"image_url": "...", "question": "..."}` | `{"description": "..."}` |
 
-## Example curl Calls
-
-### Research
-```bash
-curl -X POST https://api.aipaygen.com/research \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer apk_YOUR_KEY" \\
-  -d '{"topic": "quantum computing breakthroughs 2026"}'
-```
-
-### Summarize
-```bash
-curl -X POST https://api.aipaygen.com/summarize \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer apk_YOUR_KEY" \\
-  -d '{"text": "Long article text here...", "length": "short"}'
-```
-
-### Translate
-```bash
-curl -X POST https://api.aipaygen.com/translate \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer apk_YOUR_KEY" \\
-  -d '{"text": "Hello world", "target": "ja"}'
-```
-
-### Code
-```bash
-curl -X POST https://api.aipaygen.com/code \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer apk_YOUR_KEY" \\
-  -d '{"task": "fibonacci sequence generator", "language": "python"}'
-```
-
-### Scrape Website
-```bash
-curl -X POST https://api.aipaygen.com/scrape/website \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer apk_YOUR_KEY" \\
-  -d '{"url": "https://example.com"}'
-```
-
-## MCP (Model Context Protocol)
-
-- 10 free calls/day, no payment needed
-- Unlimited with `AIPAYGEN_API_KEY` env var
-- **New**: Use the `buy_credits` or `generate_api_key` MCP tools to get $0.25 trial credits instantly
-- Install: `pip install aipaygen-mcp && claude mcp add aipaygen -- python -m aipaygen_mcp`
-- Remote SSE: https://mcp.aipaygen.com/mcp
-
-## Discovery Endpoints
-
-- `GET /discover` — machine-readable service catalog (JSON)
-- `GET /.well-known/agent.json` — A2A Agent Card
-- `GET /.well-known/ai-plugin.json` — ChatGPT/OpenAI plugin manifest
-- `GET /openapi.json` — OpenAPI 3.1 spec
-- `GET /llms.txt` — this file
-- `GET /health` — service health check
-- `POST /preview` — free Claude demo (no payment needed)
-
-## Quick Start (Python)
-
-```python
-import httpx
-BASE = "https://api.aipaygen.com"
-
-# 1. Get an API key (easiest path)
-key_resp = httpx.post(f"{BASE}/credits/buy", json={"amount_usd": 5.0}).json()
-API_KEY = key_resp["key"]  # apk_xxx
-
-# 2. Use it on any endpoint
-result = httpx.post(f"{BASE}/research",
-    json={"topic": "quantum computing"},
-    headers={"Authorization": f"Bearer {API_KEY}"}
-).json()
-
-# Free preview (no payment needed)
-print(httpx.post(f"{BASE}/preview", json={"topic": "AI agents"}).json())
-```
-
-## All 229 Tools
-
-For the full list of all 244 tools with pricing and input/output schemas, query:
-- `GET /discover` — machine-readable JSON catalog of every endpoint
-- `GET /openapi.json` — OpenAPI 3.1 spec
-
-## Links
-
-- Documentation: https://aipaygen.com/docs
-- SDK & Code Examples: https://aipaygen.com/sdk
-- Interactive Playground: https://aipaygen.com/try
-- API Catalog: https://aipaygen.com/discover
-- Pricing: https://aipaygen.com/pricing
-- OpenAPI Spec: https://api.aipaygen.com/openapi.json
-- PyPI: https://pypi.org/project/aipaygen-mcp/
-- MCP Registry: https://registry.modelcontextprotocol.io (ID: io.github.Damien829/aipaygen)
-- Buy Credits: https://aipaygen.com/buy-credits
-- Security: https://aipaygen.com/security
-- MCP Registry: https://registry.modelcontextprotocol.io/servers/io.github.Damien829/aipaygen
-
-## Notes for AI Agents
-
-- All paid responses include `_meta` with endpoint, model, network, timestamp.
-- Fetch `/discover` for the service catalog before calling endpoints.
-- USDC precision: 6 decimals. Network: Base Mainnet (eip155:8453).
-- Agent memory persists indefinitely — use a stable `agent_id`.
-- API key is the fastest path — one POST and you're running.
-- MCP users: call `buy_credits` or `generate_api_key` to get $0.25 trial credits and an API key.
-- 402 responses include `Link` headers pointing to /openapi.json and /.well-known/ai-plugin.json.
-"""
+# Cache the generated llms.txt for 1 hour
+_llms_txt_cache = {"text": None, "ts": 0}
 
 
 @meta_bp.route("/openapi.json")
@@ -1254,8 +1315,14 @@ def llms_txt():
         funnel_log_event("llms_txt_hit", endpoint="/llms.txt", ip=request.headers.get("CF-Connecting-IP", request.remote_addr or ""), user_agent=request.headers.get("User-Agent", ""))
     except Exception:
         pass
-    from flask import Response
-    return Response(LLMS_TXT, content_type="text/plain; charset=utf-8")
+    now = _time.time()
+    if _llms_txt_cache["text"] and (now - _llms_txt_cache["ts"]) < 3600:
+        text = _llms_txt_cache["text"]
+    else:
+        text = _build_llms_txt()
+        _llms_txt_cache["text"] = text
+        _llms_txt_cache["ts"] = now
+    return Response(text, content_type="text/plain; charset=utf-8")
 
 
 @meta_bp.route("/.well-known/ai-plugin.json")

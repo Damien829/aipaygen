@@ -395,7 +395,16 @@ setTimeout(() => location.reload(), 300000);
 @admin_bp.route("/blog", methods=["GET"])
 def blog_index():
     from security import sanitize_html
-    posts = list_blog_posts()
+    # Static (hand-written) posts — shown first
+    static_posts = [
+        {"slug": "launch", "title": "Why I Built AiPayGen: 244 AI Tools for the Price of One API Call", "generated_at": "2026-03-15"},
+        {"slug": "5-things-you-can-build", "title": "5 Things You Can Build with 244 AI Tools", "generated_at": "2026-03-15"},
+        {"slug": "x402-explained", "title": "How x402 Makes AI APIs Pay-Per-Use", "generated_at": "2026-03-15"},
+    ]
+    db_posts = list_blog_posts()
+    # Merge: static first, then DB posts (skip duplicates by slug)
+    static_slugs = {p["slug"] for p in static_posts}
+    posts = static_posts + [p for p in db_posts if p["slug"] not in static_slugs]
     items = "".join(
         f'<li style="margin:0.6rem 0"><a href="/blog/{sanitize_html(p["slug"])}">{sanitize_html(p["title"])}</a> <small style="color:#888">· {sanitize_html(p.get("generated_at","")[:10])}</small></li>'
         for p in posts
@@ -435,6 +444,18 @@ def blog_index():
 def blog_launch():
     """Static launch blog post — served from Jinja template."""
     return render_template("blog_launch.html")
+
+
+@admin_bp.route("/blog/5-things-you-can-build", methods=["GET"])
+def blog_5_things():
+    """Static blog post — 5 things you can build with 244 AI tools."""
+    return render_template("blog_5_things.html")
+
+
+@admin_bp.route("/blog/x402-explained", methods=["GET"])
+def blog_x402():
+    """Static blog post — how x402 makes AI APIs pay-per-use."""
+    return render_template("blog_x402.html")
 
 
 @admin_bp.route("/blog/<slug>", methods=["GET"])

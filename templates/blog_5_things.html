@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}5 Things You Can Build with 244 AI Tools{% endblock %}
+{% block description %}Practical projects you can build today with AiPayGen's 244 AI tools — content pipelines, competitor monitors, code reviewers, chatbots, and research assistants. Includes working code examples.{% endblock %}
+{% block canonical %}/blog/5-things-you-can-build{% endblock %}
+
+{% block head %}
+<meta property="og:type" content="article">
+<meta property="og:title" content="5 Things You Can Build with 244 AI Tools">
+<meta property="og:description" content="Practical projects with working code examples — content pipelines, competitor monitors, code reviewers, chatbots, and research assistants.">
+<meta property="og:url" content="https://aipaygen.com/blog/5-things-you-can-build">
+<meta property="og:image" content="https://aipaygen.com/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="5 Things You Can Build with 244 AI Tools">
+<meta name="twitter:description" content="Practical projects with working code examples — content pipelines, competitor monitors, and more.">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "5 Things You Can Build with 244 AI Tools",
+  "description": "Practical projects you can build today with AiPayGen's 244 AI tools.",
+  "url": "https://aipaygen.com/blog/5-things-you-can-build",
+  "datePublished": "2026-03-15",
+  "author": {"@type": "Person", "name": "Damien"},
+  "publisher": {"@type": "Organization", "name": "AiPayGen", "url": "https://aipaygen.com"}
+}
+</script>
+<style>
+  .blog-post { max-width: 740px; margin: 0 auto; padding: 3rem 1.5rem; }
+  .blog-post h1 { font-family: 'IBM Plex Sans', sans-serif; font-size: 2.2rem; font-weight: 700; color: #fff; line-height: 1.25; margin-bottom: 0.5rem; }
+  .blog-meta { color: var(--text-muted, #4a6070); font-size: 0.85rem; margin-bottom: 2.5rem; }
+  .blog-post h2 { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.4rem; color: #fff; margin: 2.5rem 0 1rem; }
+  .blog-post h3 { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.1rem; color: var(--green, #00ff9d); margin: 2rem 0 0.75rem; }
+  .blog-post p { line-height: 1.75; margin-bottom: 1.25rem; color: var(--text, #c8d8e8); }
+  .blog-post ul, .blog-post ol { margin: 1rem 0 1.5rem 1.5rem; line-height: 1.75; color: var(--text, #c8d8e8); }
+  .blog-post li { margin-bottom: 0.5rem; }
+  .blog-post a { color: var(--green, #00ff9d); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+  .blog-post a:hover { border-bottom-color: var(--green, #00ff9d); }
+  .blog-post code { background: rgba(0,136,255,0.1); padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
+  .blog-post pre { background: var(--bg2, #070d14); border: 1px solid var(--border, #0d2030); border-radius: 8px; padding: 1.25rem; overflow-x: auto; margin: 1.25rem 0; }
+  .blog-post pre code { background: none; padding: 0; }
+  .blog-callout { background: rgba(0,255,157,0.05); border: 1px solid rgba(0,255,157,0.15); border-radius: 8px; padding: 1.25rem 1.5rem; margin: 2rem 0; }
+  .blog-callout strong { color: var(--green, #00ff9d); }
+  .blog-cta { display: inline-block; background: var(--green, #00ff9d); color: #020408; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; border: none; margin: 0.5rem 0.5rem 0.5rem 0; transition: opacity 0.2s; }
+  .blog-cta:hover { opacity: 0.85; border-bottom: none; }
+  .blog-cta-secondary { display: inline-block; border: 1px solid var(--green, #00ff9d); color: var(--green, #00ff9d); font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; margin: 0.5rem 0.5rem 0.5rem 0; transition: background 0.2s; }
+  .blog-cta-secondary:hover { background: rgba(0,255,157,0.1); border-bottom: none; }
+  .blog-nav { color: var(--text-muted, #4a6070); font-size: 0.9rem; margin-bottom: 2rem; }
+  .blog-nav a { color: var(--text-muted, #4a6070); }
+  .blog-nav a:hover { color: var(--green, #00ff9d); }
+  .project-num { display: inline-block; background: var(--green, #00ff9d); color: #020408; font-weight: 700; width: 2rem; height: 2rem; line-height: 2rem; text-align: center; border-radius: 50%; margin-right: 0.5rem; font-size: 0.95rem; }
+  @media (max-width: 600px) {
+    .blog-post h1 { font-size: 1.6rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<article class="blog-post">
+  <div class="blog-nav">
+    <a href="/blog">&larr; All posts</a> &middot; <a href="/">AiPayGen</a>
+  </div>
+
+  <h1>5 Things You Can Build with 244 AI Tools</h1>
+  <p class="blog-meta">March 15, 2026 &middot; 7 min read</p>
+
+  <p>AiPayGen gives you 244 tools behind a single API. But what do you actually <em>build</em> with that? Here are five practical projects, each with working code you can run today.</p>
+
+  <p>Every example uses the same API base: <code>https://api.aipaygen.com</code>. The first 10 calls per day are free, no key needed. For heavier usage, <a href="/buy-credits">grab an API key from $1</a>.</p>
+
+  <h2><span class="project-num">1</span> Content Pipeline</h2>
+
+  <p>Scrape a source, summarize it, translate it, and email the result. This is the bread and butter of content automation, and it takes four API calls (or one chain call with a 15% discount).</p>
+
+  <h3>The flow</h3>
+  <p>Scrape article &rarr; Summarize &rarr; Translate to Spanish &rarr; Email to team</p>
+
+  <pre><code class="language-bash"># Step 1: Scrape the source
+curl -X POST "https://api.aipaygen.com/scrape/website" \
+  -H "x-api-key: apk_your_key" \
+  -H "Content-Type: application/json" \
+  -d '{"url": "https://example.com/article"}'
+
+# Step 2: Summarize (paste the scraped text)
+curl -X POST "https://api.aipaygen.com/summarize" \
+  -H "x-api-key: apk_your_key" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "...", "length": "short"}'
+
+# Step 3: Translate to Spanish
+curl -X POST "https://api.aipaygen.com/translate" \
+  -H "x-api-key: apk_your_key" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "...", "target_language": "Spanish"}'
+
+# Step 4: Email the result
+curl -X POST "https://api.aipaygen.com/email" \
+  -H "x-api-key: apk_your_key" \
+  -H "Content-Type: application/json" \
+  -d '{"to": "team@company.com", "subject": "Daily digest", "body": "..."}'</code></pre>
+
+  <p>Or use the <code>/chain</code> endpoint to run all four in sequence with a single request and get 15% off:</p>
+
+  <pre><code class="language-bash">curl -X POST "https://api.aipaygen.com/chain" \
+  -H "x-api-key: apk_your_key" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "steps": [
+      {"tool": "scrape_website", "input": {"url": "https://example.com/article"}},
+      {"tool": "summarize", "input": {"text": "$prev", "length": "short"}},
+      {"tool": "translate", "input": {"text": "$prev", "target_language": "Spanish"}},
+      {"tool": "email", "input": {"to": "team@co.com", "subject": "Digest", "body": "$prev"}}
+    ]
+  }'</code></pre>
+
+  <h2><span class="project-num">2</span> Competitor Monitor</h2>
+
+  <p>Scrape your competitors' websites daily. Compare what changed. Get a summary of the differences. Run it as a cron job.</p>
+
+  <pre><code class="language-python">import httpx, json
+
+API = "https://api.aipaygen.com"
+KEY = {"x-api-key": "apk_your_key", "Content-Type": "application/json"}
+
+# Scrape competitor page
+page = httpx.post(f"{API}/scrape/website", headers=KEY,
+    json={"url": "https://competitor.com/pricing"}).json()
+
+# Compare with yesterday's snapshot (you store these locally)
+with open("yesterday.txt") as f:
+    yesterday = f.read()
+
+diff = httpx.post(f"{API}/compare", headers=KEY,
+    json={"text_a": yesterday, "text_b": page["text"]}).json()
+
+# Summarize the changes
+summary = httpx.post(f"{API}/summarize", headers=KEY,
+    json={"text": diff["comparison"], "length": "short"}).json()
+
+print(summary["summary"])
+
+# Save today's snapshot
+with open("yesterday.txt", "w") as f:
+    f.write(page["text"])</code></pre>
+
+  <p>Total cost: ~$0.02 per competitor per day. Compare that to a $49/month SaaS monitoring tool.</p>
+
+  <h2><span class="project-num">3</span> AI Code Reviewer</h2>
+
+  <p>Hook this into your CI pipeline. When a PR opens, send the diff to <code>/code</code> for analysis, then post the review as a comment.</p>
+
+  <pre><code class="language-bash"># In your GitHub Action or CI script:
+DIFF=$(gh pr diff $PR_NUMBER)
+
+REVIEW=$(curl -s -X POST "https://api.aipaygen.com/code" \
+  -H "x-api-key: apk_your_key" \
+  -H "Content-Type: application/json" \
+  -d "{\"code\": $(echo "$DIFF" | jq -Rs .),
+       \"task\": \"Review this PR diff. Flag bugs, security issues, and style problems. Be specific about line numbers.\"}")
+
+# Post as PR comment
+gh pr comment $PR_NUMBER --body "## AI Code Review
+$REVIEW"</code></pre>
+
+  <p>The <code>/code</code> endpoint uses Claude for deep code understanding. It catches real bugs, not just lint warnings.</p>
+
+  <h2><span class="project-num">4</span> Multi-Language Chatbot</h2>
+
+  <p>Detect what language the user is writing in, translate to English, process with your AI, then translate the response back. Works for support bots, community tools, or any global product.</p>
+
+  <pre><code class="language-python">import httpx
+
+API = "https://api.aipaygen.com"
+KEY = {"x-api-key": "apk_your_key", "Content-Type": "application/json"}
+
+def chat(user_message: str) -> str:
+    # Detect language
+    lang = httpx.post(f"{API}/classify", headers=KEY,
+        json={"text": user_message,
+              "categories": ["English", "Spanish", "French", "German",
+                             "Japanese", "Chinese", "Korean", "Portuguese"]}).json()
+    detected = lang["classification"]
+
+    # Translate to English if needed
+    if detected != "English":
+        en = httpx.post(f"{API}/translate", headers=KEY,
+            json={"text": user_message, "target_language": "English"}).json()
+        user_message = en["translation"]
+
+    # Get AI response (your business logic here)
+    resp = httpx.post(f"{API}/chat", headers=KEY,
+        json={"message": user_message,
+              "system": "You are a helpful support agent for Acme Corp."}).json()
+
+    # Translate response back
+    if detected != "English":
+        back = httpx.post(f"{API}/translate", headers=KEY,
+            json={"text": resp["response"],
+                  "target_language": detected}).json()
+        return back["translation"]
+
+    return resp["response"]
+
+# Works with any language
+print(chat("Comment puis-je reinitialiser mon mot de passe?"))
+# -> "Pour reinitialiser votre mot de passe, allez dans..."</code></pre>
+
+  <p>Cost per conversation turn: ~$0.02 (4 API calls). No separate translation service subscription needed.</p>
+
+  <h2><span class="project-num">5</span> Research Assistant with Knowledge Graph</h2>
+
+  <p>Deep research on a topic, extract named entities, then build a structured knowledge base. Perfect for competitive intelligence, academic research, or market analysis.</p>
+
+  <pre><code class="language-python">import httpx
+
+API = "https://api.aipaygen.com"
+KEY = {"x-api-key": "apk_your_key", "Content-Type": "application/json"}
+
+topic = "AI agent frameworks 2026"
+
+# Step 1: Deep research
+research = httpx.post(f"{API}/research", headers=KEY,
+    json={"topic": topic}).json()
+
+# Step 2: Extract entities (people, companies, tools, concepts)
+entities = httpx.post(f"{API}/extract", headers=KEY,
+    json={"text": research["research"],
+          "fields": ["companies", "tools", "people", "concepts"]}).json()
+
+# Step 3: Store in knowledge base for future queries
+for category, items in entities["extracted"].items():
+    httpx.post(f"{API}/memory/store", headers=KEY,
+        json={"key": f"{topic}/{category}",
+              "value": items})
+
+# Step 4: Query the knowledge base later
+recall = httpx.post(f"{API}/memory/find", headers=KEY,
+    json={"query": "what companies are building agent frameworks?"}).json()
+
+print(recall)</code></pre>
+
+  <p>The <code>/research</code> endpoint does multi-source web research with AI synthesis. Combined with <code>/extract</code> and the memory endpoints, you get a persistent, queryable knowledge graph.</p>
+
+  <div class="blog-callout">
+    <strong>All five projects use the same API key.</strong> No separate subscriptions for translation, scraping, code analysis, or research. One key, one balance, 244 tools.
+  </div>
+
+  <h2>What's the cost?</h2>
+
+  <ul>
+    <li><strong>Content pipeline</strong> (4 calls/day): ~$0.72/month</li>
+    <li><strong>Competitor monitor</strong> (3 calls/competitor/day): ~$0.60/competitor/month</li>
+    <li><strong>Code reviewer</strong> (1 call/PR): ~$0.006/review</li>
+    <li><strong>Chatbot</strong> (4 calls/turn, 100 turns/day): ~$60/month</li>
+    <li><strong>Research assistant</strong> (4 calls/topic): ~$0.03/research session</li>
+  </ul>
+
+  <p>Compare that to maintaining separate subscriptions for a scraping tool ($49/mo), a translation API ($20/mo), a code analysis tool ($15/mo), and an AI provider ($20/mo). That's $104/month in fixed costs before you make a single call.</p>
+
+  <h2>Start building</h2>
+
+  <p>Every example above works today. The first 10 calls per day are free, and you can <a href="/try">test any tool in the browser</a> without signing up.</p>
+
+  <div style="margin: 2.5rem 0;">
+    <a href="/try" class="blog-cta">Try Free in Browser</a>
+    <a href="/buy-credits" class="blog-cta-secondary">Get API Key ($1)</a>
+    <a href="/discover" class="blog-cta-secondary">Browse All 244 Tools</a>
+  </div>
+
+  <p style="color:var(--text-muted);font-size:0.85rem;">Published March 15, 2026 &middot; <a href="/blog">All posts</a> &middot; <a href="/feed.xml">RSS feed</a></p>
+</article>
+{% endblock %}

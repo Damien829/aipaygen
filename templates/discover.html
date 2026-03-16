@@ -70,6 +70,7 @@ a:hover{text-decoration:underline}
 #demoResult{margin-top:14px;padding:12px;background:var(--bg);border:1px solid var(--card-border);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;white-space:pre-wrap;max-height:240px;overflow-y:auto;display:none;color:var(--green)}
 #demoClose{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer}
 </style>
+{% if jsonld %}<script type="application/ld+json">{{ jsonld|safe }}</script>{% endif %}
 </head>
 <body>
 {{ nav|safe }}
