@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Support — AiPayGen</title>
+<meta name="description" content="Get help with AiPayGen. Contact support, browse FAQs, or report a bug.">
+<link rel="icon" href="/static/icon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020408;
+    --bg2: #070d14;
+    --green: #00ff9d;
+    --blue: #0088ff;
+    --cyan: #00d4ff;
+    --text: #c8d8e8;
+    --muted: #4a6070;
+    --border: #0d2030;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    overflow-x: hidden;
+    padding-top: 70px;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,136,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,136,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .noise {
+    position: fixed; inset: -200%; width: 400%; height: 400%;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.4; pointer-events: none; z-index: 0;
+  }
+  .content { position: relative; z-index: 2; max-width: 800px; margin: 0 auto; padding: 60px 24px 100px; }
+  h1 {
+    font-size: clamp(1.8rem, 4vw, 2.6rem);
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
+  }
+  h1 .accent { color: var(--green); }
+  .subtitle {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 1rem;
+    color: var(--muted);
+    margin-bottom: 48px;
+    font-weight: 300;
+  }
+  h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #fff;
+    margin: 48px 0 16px;
+    letter-spacing: 0.02em;
+  }
+  h2:first-of-type { margin-top: 0; }
+
+  /* Contact */
+  .contact-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 28px;
+    margin-bottom: 32px;
+  }
+  .contact-card p {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.9rem;
+    color: var(--text);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+  .contact-card a {
+    color: var(--cyan);
+    text-decoration: none;
+  }
+  .contact-card a:hover { text-decoration: underline; }
+  .email-link {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 10px 24px;
+    background: var(--green);
+    color: #000;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-decoration: none;
+    letter-spacing: 0.03em;
+    transition: all 0.2s;
+  }
+  .email-link:hover {
+    background: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,255,157,0.3);
+  }
+
+  /* FAQ */
+  .faq-item {
+    border: 1px solid var(--border);
+    margin-bottom: -1px;
+    background: var(--bg);
+    transition: background 0.2s;
+  }
+  .faq-item:hover { background: var(--bg2); }
+  .faq-q {
+    display: flex;
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 18px 24px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    text-align: left;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .faq-q::after {
+    content: '+';
+    color: var(--green);
+    font-size: 1.2rem;
+    font-weight: 700;
+    transition: transform 0.2s;
+  }
+  .faq-item.open .faq-q::after { transform: rotate(45deg); }
+  .faq-a {
+    display: none;
+    padding: 0 24px 18px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+  .faq-a a { color: var(--cyan); text-decoration: none; }
+  .faq-a a:hover { text-decoration: underline; }
+  .faq-item.open .faq-a { display: block; }
+
+  /* Bug report */
+  .bug-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    padding: 28px;
+    margin-top: 32px;
+  }
+  .bug-card p {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.88rem;
+    color: var(--text);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+  .bug-card code {
+    font-family: 'IBM Plex Mono', monospace;
+    color: var(--cyan);
+    font-size: 0.82rem;
+    background: rgba(0,212,255,0.08);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  /* Links row */
+  .links-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 32px;
+  }
+  .links-row a {
+    display: inline-block;
+    padding: 10px 22px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: 1px solid var(--green);
+    color: var(--green);
+    transition: all 0.2s;
+  }
+  .links-row a:hover {
+    background: rgba(0,255,157,0.08);
+    transform: translateY(-2px);
+  }
+
+  @media (max-width: 768px) {
+    .content { padding: 40px 16px 60px; }
+  }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+{{ nav|safe }}
+<div class="content">
+
+<h1>Get <span class="accent">Support</span></h1>
+<p class="subtitle">Questions, issues, or feature requests — we are here to help.</p>
+
+<!-- Contact -->
+<h2>Contact Us</h2>
+<div class="contact-card">
+  <p>For questions, billing issues, or partnership inquiries, reach out via email. We typically respond within 24 hours.</p>
+  <a href="mailto:support@aipaygen.com" class="email-link">support@aipaygen.com</a>
+</div>
+
+<!-- FAQ -->
+<h2>Frequently Asked Questions</h2>
+
+<div class="faq-item open">
+  <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">How do I get an API key?</button>
+  <div class="faq-a">
+    Visit <a href="/get-key">/get-key</a> and enter your email address. You will receive a free API key with $0.25 trial credits instantly. No credit card required.
+  </div>
+</div>
+
+<div class="faq-item">
+  <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">My API key is not working. What do I do?</button>
+  <div class="faq-a">
+    First, check your balance at <a href="/auth/status">/auth/status</a> by passing your key in the <code>X-API-Key</code> header. If your balance is zero, top up at <a href="/buy-credits">/buy-credits</a>. If you are still getting errors, email us with your <code>request_id</code> from the error response.
+  </div>
+</div>
+
+<div class="faq-item">
+  <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">How does billing and pricing work?</button>
+  <div class="faq-a">
+    AiPayGen uses prepaid credits, not subscriptions. Buy credits via Stripe and each call deducts from your balance. See full details on the <a href="/pricing">pricing page</a>. You can also pay per call with USDC via the x402 protocol.
+  </div>
+</div>
+
+<div class="faq-item">
+  <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What are the rate limits?</button>
+  <div class="faq-a">
+    Free tier: 3 calls/day, 60 requests/minute. Paid tier: unlimited calls (until balance runs out), 120-600 requests/minute depending on your tier. See the <a href="/pricing">pricing page</a> for details.
+  </div>
+</div>
+
+<div class="faq-item">
+  <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Can I use AiPayGen with Claude Code, Cursor, or other MCP clients?</button>
+  <div class="faq-a">
+    Yes. Install via <code>pip install aipaygen-mcp</code> or connect to the remote MCP server at <code>https://mcp.aipaygen.com/mcp</code>. See the <a href="/docs">documentation</a> for setup instructions for each client.
+  </div>
+</div>
+
+<!-- Report a Bug -->
+<h2>Report a Bug</h2>
+<div class="bug-card">
+  <p>Found something broken? Please email <a href="mailto:support@aipaygen.com" style="color:var(--cyan)">support@aipaygen.com</a> with:</p>
+  <ul style="margin:12px 0 0 20px;font-family:'IBM Plex Sans',sans-serif;font-size:0.88rem;color:var(--text);line-height:2">
+    <li>The endpoint you called (e.g. <code>/research</code>)</li>
+    <li>The <code>request_id</code> from the error response</li>
+    <li>Your request body (redact sensitive data)</li>
+    <li>The error message you received</li>
+  </ul>
+  <p style="margin-top:12px">Including the <code>request_id</code> helps us find your request in our logs and resolve issues faster.</p>
+</div>
+
+<!-- Quick Links -->
+<h2>Useful Links</h2>
+<div class="links-row">
+  <a href="/docs">Documentation</a>
+  <a href="/status">System Status</a>
+  <a href="/playground">API Playground</a>
+  <a href="/pricing">Pricing</a>
+  <a href="/blog">Developer Blog</a>
+</div>
+
+</div>
+{{ footer|safe }}
+</body>
+</html>

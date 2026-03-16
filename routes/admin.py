@@ -401,10 +401,8 @@ def blog_index():
         {"slug": "5-things-you-can-build", "title": "5 Things You Can Build with 250 AI Tools", "generated_at": "2026-03-15"},
         {"slug": "x402-explained", "title": "How x402 Makes AI APIs Pay-Per-Use", "generated_at": "2026-03-15"},
     ]
-    db_posts = list_blog_posts()
-    # Merge: static first, then DB posts (skip duplicates by slug)
-    static_slugs = {p["slug"] for p in static_posts}
-    posts = static_posts + [p for p in db_posts if p["slug"] not in static_slugs]
+    # Show only the 3 hand-written posts — hide auto-generated trending topic posts
+    posts = static_posts
     items = "".join(
         f'<li style="margin:0.6rem 0"><a href="/blog/{sanitize_html(p["slug"])}">{sanitize_html(p["title"])}</a> <small style="color:#888">· {sanitize_html(p.get("generated_at","")[:10])}</small></li>'
         for p in posts

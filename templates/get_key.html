@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Get API Key — AiPayGen</title>
+<meta name="description" content="Get a free AiPayGen API key with $0.25 trial credits. No credit card required.">
+<link rel="icon" href="/static/icon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020408;
+    --bg2: #070d14;
+    --green: #00ff9d;
+    --cyan: #00d4ff;
+    --text: #c8d8e8;
+    --muted: #4a6070;
+    --border: #0d2030;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    overflow-x: hidden;
+    padding-top: 70px;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,136,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,136,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .noise {
+    position: fixed; inset: -200%; width: 400%; height: 400%;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.4; pointer-events: none; z-index: 0;
+  }
+  .content {
+    position: relative; z-index: 2;
+    max-width: 520px; margin: 0 auto; padding: 80px 24px 120px;
+    text-align: center;
+  }
+  h1 {
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 12px;
+  }
+  h1 .accent { color: var(--green); }
+  .subtitle {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.95rem;
+    color: var(--muted);
+    margin-bottom: 40px;
+    font-weight: 300;
+    line-height: 1.6;
+  }
+  .key-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .key-form input {
+    flex: 1;
+    padding: 14px 18px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.9rem;
+    font-family: 'IBM Plex Sans', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .key-form input:focus { border-color: var(--green); }
+  .key-form button {
+    padding: 14px 28px;
+    background: var(--green);
+    color: #000;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .key-form button:hover {
+    background: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0,255,157,0.3);
+  }
+  .key-form button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  .key-result {
+    display: none;
+    background: var(--bg2);
+    border: 1px solid var(--green);
+    padding: 20px;
+    text-align: left;
+    margin-bottom: 20px;
+  }
+  .key-result .label {
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .key-result .key-value {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .key-result code {
+    flex: 1;
+    font-size: 0.88rem;
+    color: var(--green);
+    word-break: break-all;
+  }
+  .key-result .copy-btn {
+    background: var(--green);
+    color: #000;
+    border: none;
+    padding: 6px 16px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .key-result .info {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-top: 10px;
+  }
+  .key-result .info a { color: var(--cyan); text-decoration: none; }
+  .key-result .info a:hover { text-decoration: underline; }
+  .error-msg {
+    display: none;
+    font-size: 0.82rem;
+    color: #ef4444;
+    margin-bottom: 16px;
+  }
+  .links {
+    margin-top: 32px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 2;
+  }
+  .links a { color: var(--cyan); text-decoration: none; }
+  .links a:hover { text-decoration: underline; }
+  .features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-top: 40px;
+    text-align: left;
+  }
+  .feature {
+    background: var(--bg);
+    padding: 20px;
+  }
+  .feature h3 {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .feature p {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-weight: 300;
+  }
+  @media (max-width: 600px) {
+    .key-form { flex-direction: column; }
+    .features { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+{{ nav|safe }}
+<div class="content">
+
+<h1>Get your <span class="accent">free API key</span></h1>
+<p class="subtitle">Enter your email to generate a key instantly. Includes $0.25 trial credits (~40 AI calls). No credit card required.</p>
+
+<form id="keyForm" onsubmit="return generateKey(event)">
+  <div class="key-form">
+    <input type="email" id="emailInput" required placeholder="you@example.com" autocomplete="email">
+    <button type="submit" id="genBtn">Generate Key</button>
+  </div>
+</form>
+
+<div class="error-msg" id="errorMsg"></div>
+
+<div class="key-result" id="keyResult">
+  <div class="label">Your API Key</div>
+  <div class="key-value">
+    <code id="keyValue"></code>
+    <button class="copy-btn" onclick="copyKey()">Copy</button>
+  </div>
+  <div class="info">$0.25 trial credits loaded. <a href="/docs">Read the docs</a> or <a href="/playground">open the playground</a>.</div>
+</div>
+
+<div class="links">
+  Already have a key? <a href="/buy-credits">Top up credits</a><br>
+  Need more? <a href="/pricing">See pricing</a>
+</div>
+
+<div class="features">
+  <div class="feature">
+    <h3>250 Tools</h3>
+    <p>Research, write, code, scrape, translate, and more</p>
+  </div>
+  <div class="feature">
+    <h3>15 AI Models</h3>
+    <p>Claude, GPT-4o, Gemini, DeepSeek, Grok</p>
+  </div>
+  <div class="feature">
+    <h3>$0.25 Free</h3>
+    <p>Trial credits loaded instantly on key creation</p>
+  </div>
+  <div class="feature">
+    <h3>No Expiry</h3>
+    <p>Credits never expire. Use at your own pace</p>
+  </div>
+</div>
+
+</div>
+{{ footer|safe }}
+
+<script>
+function generateKey(e) {
+  e.preventDefault();
+  var email = document.getElementById('emailInput').value.trim();
+  if (!email) return false;
+  var btn = document.getElementById('genBtn');
+  var errEl = document.getElementById('errorMsg');
+  btn.disabled = true; btn.textContent = 'Generating...';
+  errEl.style.display = 'none';
+  fetch('/auth/generate-key', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({email: email, source: 'get_key_page'})
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if (d.key) {
+      document.getElementById('keyValue').textContent = d.key;
+      document.getElementById('keyResult').style.display = 'block';
+      document.getElementById('keyForm').style.display = 'none';
+    } else {
+      errEl.textContent = d.error || d.message || 'Something went wrong';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Generate Key';
+    }
+  }).catch(function(){
+    errEl.textContent = 'Network error. Please try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Generate Key';
+  });
+  return false;
+}
+function copyKey() {
+  var key = document.getElementById('keyValue').textContent;
+  navigator.clipboard.writeText(key).then(function(){
+    var btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(function(){ btn.textContent = 'Copy'; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

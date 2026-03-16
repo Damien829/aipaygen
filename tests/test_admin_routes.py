@@ -168,13 +168,11 @@ class TestFunnelDashboard:
 # ══════════════════════════════════════════════════════════════════════════════
 
 class TestBlog:
-    @patch("routes.admin.list_blog_posts", return_value=[
-        {"slug": "test-post", "title": "Test Post", "generated_at": "2026-01-01T00:00:00"},
-    ])
-    def test_blog_index(self, mock_posts, client):
+    def test_blog_index(self, client):
         r = client.get("/blog")
         assert r.status_code == 200
-        assert b"Test Post" in r.data
+        # Only static hand-written posts are shown (auto-generated hidden)
+        assert b"Why I Built AiPayGen" in r.data
         assert b"text/html" in r.content_type.encode()
 
     @patch("routes.admin.get_blog_post", return_value={

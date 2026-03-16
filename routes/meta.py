@@ -100,7 +100,7 @@ NAV_HTML = '''
       <a href="/playground" style="color:#00d4ff;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600">Playground</a>
       <a href="/examples" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Examples</a>
       <a href="/status" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Status</a>
-      <a href="/buy-credits" style="color:#000;text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:700;background:linear-gradient(135deg,#00ff9d,#00d4ff);padding:7px 16px;border-radius:4px;margin-left:8px;letter-spacing:0.03em;transition:all .2s;box-shadow:0 0 12px rgba(0,255,157,0.2)">GET API KEY</a>
+      <a href="/get-key" style="color:#000;text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:700;background:linear-gradient(135deg,#00ff9d,#00d4ff);padding:7px 16px;border-radius:4px;margin-left:8px;letter-spacing:0.03em;transition:all .2s;box-shadow:0 0 12px rgba(0,255,157,0.2)">GET API KEY</a>
     </div>
   </div>
 </nav>
@@ -121,6 +121,7 @@ FOOTER_HTML = '''
       <a href="/.well-known/agent.json" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">agent.json</a>
       <a href="/health" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Health</a>
       <a href="/status" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Status</a>
+      <a href="/support" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Support</a>
     </div>
     <div style="color:#4a5568;font-size:0.8rem;font-family:'IBM Plex Mono',monospace">
       Powered by x402 &middot; USDC on Base &middot; Built for autonomous agents
@@ -1333,6 +1334,24 @@ def robots_txt():
 @meta_bp.route("/pricing")
 def pricing_page():
     return render_template("pricing.html", nav=NAV_HTML, footer=FOOTER_HTML)
+
+
+@meta_bp.route("/get-key")
+def get_key_page():
+    return render_template("get_key.html", nav=NAV_HTML, footer=FOOTER_HTML)
+
+
+@meta_bp.route("/support")
+@meta_bp.route("/contact")
+@meta_bp.route("/help")
+def support_page():
+    return render_template("support.html", nav=NAV_HTML, footer=FOOTER_HTML)
+
+
+@meta_bp.route("/seller")
+def seller_redirect():
+    from flask import redirect
+    return redirect("/sell", code=301)
 
 
 @meta_bp.route("/docs")

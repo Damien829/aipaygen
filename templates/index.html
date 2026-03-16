@@ -25,7 +25,7 @@
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": "Any",
   "offers": [
-    {"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free", "description": "10 API calls per day"},
+    {"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free", "description": "3 API calls per day"},
     {"@type": "Offer", "price": "5.00", "priceCurrency": "USD", "name": "Starter", "description": "~830 prepaid API calls"},
     {"@type": "Offer", "price": "20.00", "priceCurrency": "USD", "name": "Pro", "description": "~4,000 prepaid API calls"}
   ],
@@ -140,22 +140,6 @@
 }
 .live-stat-label { font-size: 0.72rem; color: var(--text-muted, #666); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px; }
 
-/* Testimonial */
-.testimonial-card {
-  max-width: 680px; margin: 0 auto;
-  background: var(--bg-elevated, #141414); border: 1px solid var(--border, #2a2a2a);
-  border-radius: var(--radius-md, 12px); padding: 32px; position: relative;
-}
-.testimonial-card::before {
-  content: '\201C'; position: absolute; top: 12px; left: 20px;
-  font-size: 3rem; color: var(--accent, #6366f1); opacity: 0.25; line-height: 1;
-}
-.testimonial-quote { font-size: 0.95rem; line-height: 1.7; color: var(--text, #e8e8e8); margin-bottom: 16px; padding-left: 8px; font-style: italic; }
-.testimonial-author { display: flex; align-items: center; gap: 12px; padding-left: 8px; }
-.testimonial-author-info .name { font-weight: 600; font-size: 0.85rem; }
-.testimonial-author-info .role { font-size: 0.75rem; color: var(--text-muted, #666); }
-.testimonial-proof { margin-top: 16px; padding: 10px 14px; background: #0a0a0a; border-radius: 8px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent2, #00d4ff); overflow-x: auto; }
-
 /* Trust badges enhanced */
 .trust-badges { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; max-width: 800px; margin: 0 auto; }
 .trust-badge {
@@ -187,7 +171,7 @@
     </p>
     <div class="hero-actions fade-in delay-3">
       <a href="/try" class="btn btn-primary" style="padding:18px 44px;font-size:1.05rem;" onclick="trackABClick('try_click')">Try Free — No Signup</a>
-      <a href="/buy-credits" class="btn btn-secondary" onclick="trackABClick('key_click')">Get API Key</a>
+      <a href="/get-key" class="btn btn-secondary" onclick="trackABClick('key_click')">Get API Key</a>
     </div>
     <p class="hero-tag fade-in delay-3">
       <span>3 free calls/day</span> &middot; <span style="color:var(--accent2)">$0.25 trial credits</span> &middot; Pay only for what you use
@@ -204,7 +188,7 @@
     </p>
     <div class="hero-actions fade-in delay-3">
       <a href="/try" class="btn btn-primary" onclick="trackABClick('try_click')">Try Free</a>
-      <a href="/buy-credits" class="btn btn-secondary" onclick="trackABClick('key_click')">Get API Key</a>
+      <a href="/get-key" class="btn btn-secondary" onclick="trackABClick('key_click')">Get API Key</a>
     </div>
     <p class="hero-tag fade-in delay-3">
       <span>3 free calls/day</span> &middot; <span style="color:var(--accent2)">$0.25 trial credits</span> &middot; No sign-up required &middot;
@@ -233,13 +217,13 @@
   </div>
 </section>
 
-<!-- Animated Live Stats -->
+<!-- Stats -->
 <div class="section fade-in" id="liveStatsSection" style="padding-top:0;padding-bottom:40px">
   <div class="live-stats-grid">
     <div class="live-stat"><div class="live-stat-value" data-counter="0" id="stat-tools">250</div><div class="live-stat-label">Tools Available</div></div>
-    <div class="live-stat"><div class="live-stat-value" data-counter="0" id="stat-calls">0</div><div class="live-stat-label">API Calls Served</div></div>
-    <div class="live-stat"><div class="live-stat-value" data-counter="0" id="stat-agents">0</div><div class="live-stat-label">Agents Registered</div></div>
-    <div class="live-stat"><div class="live-stat-value" data-counter="0" id="stat-skills">0</div><div class="live-stat-label">Skills in Catalog</div></div>
+    <div class="live-stat"><div class="live-stat-value" data-counter="0" id="stat-models">15</div><div class="live-stat-label">AI Models</div></div>
+    <div class="live-stat"><div class="live-stat-value" data-counter="0" id="stat-skills">2,400</div><div class="live-stat-label">Skills</div></div>
+    <div class="live-stat"><div class="live-stat-value" data-counter="0" id="stat-apis">4,100</div><div class="live-stat-label">API Catalog</div></div>
   </div>
 </div>
 
@@ -353,7 +337,7 @@
       <div class="pricing-amount">$0</div>
       <div class="pricing-period">forever</div>
       <ul class="pricing-features">
-        <li>10 AI calls per day</li>
+        <li>3 AI calls per day</li>
         <li>No sign-up required</li>
         <li>All 250 tools</li>
         <li>MCP access</li>
@@ -631,22 +615,14 @@ function updateCalc(){var s=document.getElementById('calc-slider'),n=parseInt(s.
   </div>
 </section>
 
-<!-- Testimonial -->
-<section class="section fade-in" style="padding-bottom:40px">
-  <div class="section-title text-center" style="max-width:none;font-size:var(--text-xl, 1.25rem);margin-bottom:32px">From the builder</div>
-  <div class="testimonial-card">
-    <div class="testimonial-quote">
-      I built AiPayGen to power my own Claude Code workflow. 250 tools, one MCP server, zero context switching. Every feature exists because I needed it first.
-    </div>
-    <div class="testimonial-author">
-      <div class="testimonial-author-info">
-        <div class="name">Damien</div>
-        <div class="role">Creator of AiPayGen &middot; Daily user</div>
-      </div>
-    </div>
-    <div class="testimonial-proof">
-      <code>$ claude mcp add aipaygen -- npx -y @anthropic-ai/mcp-proxy https://mcp.aipaygen.com/mcp</code>
-    </div>
+<!-- Trusted By -->
+<section class="section fade-in" style="padding-bottom:40px;text-align:center">
+  <p style="font-size:var(--text-sm);color:var(--text-muted);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:20px">Trusted by developers on</p>
+  <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;align-items:center">
+    <a href="https://registry.modelcontextprotocol.io" target="_blank" rel="noopener" class="trust-badge" style="text-decoration:none"><span class="check">&#10003;</span> MCP Registry</a>
+    <a href="https://smithery.ai/servers/Damien829/Aipaygen" target="_blank" rel="noopener" class="trust-badge" style="text-decoration:none"><span class="check">&#10003;</span> Smithery</a>
+    <a href="https://glama.ai" target="_blank" rel="noopener" class="trust-badge" style="text-decoration:none"><span class="check">&#10003;</span> Glama</a>
+    <a href="https://pypi.org/project/aipaygen-mcp/" target="_blank" rel="noopener" class="trust-badge" style="text-decoration:none"><span class="check">&#10003;</span> PyPI</a>
   </div>
 </section>
 
@@ -680,47 +656,28 @@ function animateCounter(el, target) {
   requestAnimationFrame(step);
 }
 
-// Fetch stats and animate on scroll
+// Animate stats on scroll (hardcoded meaningful values)
 var statsAnimated = false;
-fetch('/api/stats').then(function(r){return r.json()}).then(function(d){
-  var statMap = {
-    'stat-tools': d.mcp_tools || 250,
-    'stat-calls': d.total_calls || 0,
-    'stat-agents': d.agents || 0,
-    'stat-skills': d.skills || 0
-  };
-  // Store targets on elements
-  Object.keys(statMap).forEach(function(id){
-    var el = document.getElementById(id);
-    if (el) el.setAttribute('data-target', statMap[id]);
-  });
-  // Observe section for scroll-into-view animation
-  var section = document.getElementById('liveStatsSection');
-  if (section && 'IntersectionObserver' in window) {
-    var obs = new IntersectionObserver(function(entries) {
-      if (entries[0].isIntersecting && !statsAnimated) {
-        statsAnimated = true;
-        Object.keys(statMap).forEach(function(id){
-          var el = document.getElementById(id);
-          if (el) animateCounter(el, statMap[id]);
-        });
-        obs.disconnect();
-      }
-    }, {threshold: 0.3});
-    obs.observe(section);
-  } else {
-    // Fallback: just set values
-    Object.keys(statMap).forEach(function(id){
-      var el = document.getElementById(id);
-      if (el) el.textContent = Number(statMap[id]).toLocaleString();
-    });
-  }
-}).catch(function(){
-  ['stat-tools','stat-calls','stat-agents','stat-skills'].forEach(function(id) {
-    var el = document.getElementById(id);
-    if (el) el.textContent = '\u2014';
-  });
-});
+var statMap = {
+  'stat-tools': 250,
+  'stat-models': 15,
+  'stat-skills': 2400,
+  'stat-apis': 4100
+};
+var section = document.getElementById('liveStatsSection');
+if (section && 'IntersectionObserver' in window) {
+  var obs = new IntersectionObserver(function(entries) {
+    if (entries[0].isIntersecting && !statsAnimated) {
+      statsAnimated = true;
+      Object.keys(statMap).forEach(function(id){
+        var el = document.getElementById(id);
+        if (el) animateCounter(el, statMap[id]);
+      });
+      obs.disconnect();
+    }
+  }, {threshold: 0.3});
+  obs.observe(section);
+}
 
 // Newsletter
 function submitNewsletter(e) {

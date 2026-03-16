@@ -52,9 +52,25 @@ echo ""
 info "Started at $(date '+%Y-%m-%d %H:%M:%S')"
 
 # ──────────────────────────────────────────────
+# Step 0: Pre-deploy consistency check
+# ──────────────────────────────────────────────
+step "Step 0/7: Consistency Check"
+
+if [ -f "$LOCAL_DIR/consistency_check.sh" ]; then
+  if bash "$LOCAL_DIR/consistency_check.sh"; then
+    pass "Consistency check passed"
+  else
+    fail "Consistency check FAILED — fix issues before deploying"
+    exit 1
+  fi
+else
+  warn "consistency_check.sh not found — skipping"
+fi
+
+# ──────────────────────────────────────────────
 # Step 1: Run tests locally
 # ──────────────────────────────────────────────
-step "Step 1/6: Local Tests"
+step "Step 1/7: Local Tests"
 
 if [ "$SKIP_TESTS" = true ]; then
   warn "Skipping tests (--skip-tests)"
@@ -74,7 +90,7 @@ fi
 # ──────────────────────────────────────────────
 # Step 2: Rsync to Oracle
 # ──────────────────────────────────────────────
-step "Step 2/6: Sync to Oracle"
+step "Step 2/7: Sync to Oracle"
 
 RSYNC_FLAGS="-avz --checksum --delete"
 if [ "$DRY_RUN" = true ]; then
@@ -121,7 +137,7 @@ fi
 # ──────────────────────────────────────────────
 # Step 3: Install dependencies on Oracle
 # ──────────────────────────────────────────────
-step "Step 3/6: Dependencies"
+step "Step 3/7: Dependencies"
 
 DEP_OUTPUT=$($SSH_CMD "cd $REMOTE_DIR && source venv/bin/activate && pip install -q -r requirements.txt 2>&1 | grep -v 'already satisfied'" || true)
 if [ -n "$DEP_OUTPUT" ]; then
@@ -134,7 +150,7 @@ fi
 # ──────────────────────────────────────────────
 # Step 4: Restart services
 # ──────────────────────────────────────────────
-step "Step 4/6: Restart Services"
+step "Step 4/7: Restart Services"
 
 $SSH_CMD "sudo systemctl restart aipaygent.service" 2>&1
 pass "aipaygent.service restarted"
@@ -145,7 +161,7 @@ pass "aipaygen-mcp.service restarted"
 # ──────────────────────────────────────────────
 # Step 5: Wait for services to come up
 # ──────────────────────────────────────────────
-step "Step 5/6: Waiting for Services"
+step "Step 5/7: Waiting for Services"
 info "Waiting 5 seconds for services to initialize..."
 sleep 5
 
@@ -162,7 +178,7 @@ done
 # ──────────────────────────────────────────────
 # Step 6: Smoke tests
 # ──────────────────────────────────────────────
-step "Step 6/6: Smoke Tests"
+step "Step 6/7: Smoke Tests"
 
 if [ -f "$LOCAL_DIR/smoke_tests.sh" ]; then
   if bash "$LOCAL_DIR/smoke_tests.sh"; then
@@ -188,6 +204,21 @@ else
   else
     fail "Health endpoint returned $HTTP_CODE"
   fi
+fi
+
+# ──────────────────────────────────────────────
+# Step 7/7: Post-deploy site audit
+# ──────────────────────────────────────────────
+step "Step 7/7: Site Audit"
+
+if [ -f "$LOCAL_DIR/site_audit.sh" ]; then
+  if bash "$LOCAL_DIR/site_audit.sh"; then
+    pass "Site audit passed"
+  else
+    warn "Site audit detected issues — review above (not rolling back)"
+  fi
+else
+  warn "site_audit.sh not found — skipping"
 fi
 
 # ──────────────────────────────────────────────
