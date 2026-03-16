@@ -459,7 +459,7 @@ def discover():
     return jsonify({
         "meta": {
             "name": "AiPayGen",
-            "description": "AI agent API marketplace with 250 tools (v1.9.0) and 2400+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day). $0.25 trial credits available.",
+            "description": "AI agent API marketplace with 250 tools (v1.9.0) and 2400+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (3 free/day). $0.25 trial credits available.",
             "categories": list(categories.keys()),
         },
         "payment": {
@@ -1373,7 +1373,7 @@ def _build_llms_txt():
     lines = []
     lines.append("# AiPayGen")
     lines.append("")
-    lines.append("> 250 AI tools in one API (v1.9.0). Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (10 free/day). $0.25 trial credits via buy_credits / generate_api_key MCP tools.")
+    lines.append("> 250 AI tools in one API (v1.9.0). Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (3 free/day). $0.25 trial credits via buy_credits / generate_api_key MCP tools.")
     lines.append("")
     lines.append("## What This Service Does")
     lines.append("")
@@ -1645,7 +1645,7 @@ def agent_manifest():
             "AI agent API marketplace with 250 tools (v1.9.0) and 2400+ searchable skills. "
             "Research, writing, coding, analysis, web scraping, real-time data, agent memory, "
             "and multi-model AI (Claude, GPT-4o, DeepSeek, Gemini). "
-            "Three payment paths: API key (recommended), x402 USDC, or MCP (10 free/day). "
+            "Three payment paths: API key (recommended), x402 USDC, or MCP (3 free/day). "
             "$0.25 trial credits available via buy_credits/generate_api_key."
         ),
         "url": base,

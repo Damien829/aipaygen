@@ -172,14 +172,14 @@ echo ""
 # ──────────────────────────────────────────────
 echo -e "${CYAN}[Free Tier Demo]${NC}"
 
-check_endpoint "POST /sentiment" "$BASE_URL/sentiment" 200 POST '{"text":"AiPayGen is great!"}' "application/json"
-if [ -f /tmp/smoke_body.txt ]; then
-  SENTIMENT=$(python3 -c "import json; d=json.load(open('/tmp/smoke_body.txt')); print(d.get('sentiment', d.get('result', {}).get('sentiment', '?')))" 2>/dev/null || echo "?")
-  if [ "$SENTIMENT" != "?" ] && [ -n "$SENTIMENT" ]; then
-    pass "/sentiment returned: $SENTIMENT"
-  else
-    warn "/sentiment response format unexpected"
-  fi
+# Free tier may be exhausted (3 calls/day) — accept 200 or 402
+DEMO_STATUS=$(curl -s -o /tmp/smoke_body.txt -w '%{http_code}' -X POST "$BASE_URL/sentiment" -H "Content-Type: application/json" -d '{"text":"AiPayGen is great!"}' 2>/dev/null)
+if [ "$DEMO_STATUS" = "200" ]; then
+  pass "POST /sentiment (HTTP 200 — free tier active)"
+elif [ "$DEMO_STATUS" = "402" ]; then
+  pass "POST /sentiment (HTTP 402 — free tier exhausted, payment required working)"
+else
+  fail "POST /sentiment — expected 200 or 402, got $DEMO_STATUS"
 fi
 
 echo ""
