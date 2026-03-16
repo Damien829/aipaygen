@@ -2,6 +2,7 @@
 import hashlib as _hashlib
 import json
 import os
+import psutil as _psutil
 import requests as _requests
 import time as _time
 from datetime import datetime
@@ -9,6 +10,8 @@ from flask import Blueprint, request, jsonify, Response, render_template, make_r
 from helpers import require_admin, agent_response, get_client_ip, call_llm as _call_llm, cache_get as _cache_get, cache_set as _cache_set
 from model_router import call_model, list_models, get_all_perf
 from discovery_engine import get_blog_post, list_blog_posts, get_health_history, get_daily_cost
+from uptime_tracker import record_check as _record_uptime, get_uptime_stats as _get_uptime_stats, get_recent_checks as _get_recent_checks
+from alerting import process_health_result as _process_alerts, get_recent_alerts as _get_recent_alerts
 import logging
 
 from funnel_tracker import log_event as funnel_log_event
@@ -85,6 +88,7 @@ NAV_HTML = '''
       <a href="/docs" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Docs</a>
       <a href="/pricing" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Pricing</a>
       <a href="/playground" style="color:#00d4ff;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600">Playground</a>
+      <a href="/examples" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Examples</a>
       <a href="/status" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Status</a>
       <a href="/buy-credits" style="color:#000;text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:700;background:linear-gradient(135deg,#00ff9d,#00d4ff);padding:7px 16px;border-radius:4px;margin-left:8px;letter-spacing:0.03em;transition:all .2s;box-shadow:0 0 12px rgba(0,255,157,0.2)">GET API KEY</a>
     </div>
@@ -456,11 +460,57 @@ def discover():
 _app_start_time = _time.time()
 _health_cache = {"data": None, "ts": 0}
 
+# Core DBs to check in health endpoints
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+_CORE_DBS = ["api_keys", "skills", "agent_network", "agent_memory", "funnel"]
+
+
+def _check_db(db_name: str) -> str:
+    """Check a single SQLite DB with SELECT 1. Returns 'ok' or error string."""
+    db_path = os.path.join(_PROJECT_ROOT, f"{db_name}.db")
+    if db_name == "skills" and _skills_db_path:
+        db_path = _skills_db_path
+    try:
+        c = _sqlite3.connect(db_path, timeout=2)
+        c.execute("SELECT 1")
+        c.close()
+        return "ok"
+    except Exception as exc:
+        return f"error: {type(exc).__name__}"
+
+
+def _get_disk_info() -> dict:
+    """Return disk space info."""
+    try:
+        st = os.statvfs(_PROJECT_ROOT)
+        free_mb = (st.f_bavail * st.f_frsize) / (1024 * 1024)
+        total_mb = (st.f_blocks * st.f_frsize) / (1024 * 1024)
+        return {"free_mb": round(free_mb, 1), "total_mb": round(total_mb, 1), "warning": free_mb < 1024}
+    except Exception:
+        return {"free_mb": "unknown", "total_mb": "unknown", "warning": False}
+
+
+def _get_memory_info() -> dict:
+    """Return memory usage info."""
+    try:
+        mem = _psutil.virtual_memory()
+        return {
+            "used_pct": round(mem.percent, 1),
+            "available_mb": round(mem.available / (1024 * 1024), 1),
+            "total_mb": round(mem.total / (1024 * 1024), 1),
+        }
+    except Exception:
+        return {"used_pct": "unknown", "available_mb": "unknown", "total_mb": "unknown"}
+
+
 @meta_bp.route("/health")
 def health():
-    now = _time.time()
-    # Cache health for 60s to avoid hammering checks on every call
-    if _health_cache["data"] and (now - _health_cache["ts"]) < 60:
+    """Fast health check — basic status, cached 30s."""
+    t0 = _time.time()
+    now = t0
+
+    # Cache for 30s
+    if _health_cache["data"] and (now - _health_cache["ts"]) < 30:
         cached = _health_cache["data"]
         code = 200 if cached.get("status") == "healthy" else 503
         return jsonify(cached), code
@@ -468,75 +518,187 @@ def health():
     checks = {}
     degraded = False
 
-    # 1. SQLite DBs writable
-    _project_root = os.path.dirname(os.path.dirname(__file__))
-    for db_name, db_path in [("skills", _skills_db_path), ("agent_network", os.path.join(_project_root, "agent_network.db"))]:
-        try:
-            import sqlite3 as _sq
-            c = _sq.connect(db_path, timeout=2)
-            c.execute("SELECT 1")
-            c.close()
-            checks[db_name] = "ok"
-        except Exception as exc:
-            checks[db_name] = f"error: {exc}"
-            degraded = True
-
-    # 2. Facilitator reachable (cached via _health_cache TTL)
-    try:
-        r = _requests.get(FACILITATOR_URL, timeout=5)
-        checks["facilitator"] = "ok" if r.status_code < 500 else f"http {r.status_code}"
-        if r.status_code >= 500:
-            degraded = True
-    except Exception as exc:
-        checks["facilitator"] = f"unreachable: {exc}"
+    # 1. Quick DB check (just api_keys — the critical one)
+    db_status = _check_db("api_keys")
+    checks["db_api_keys"] = db_status
+    if db_status != "ok":
         degraded = True
 
-    # 3. Disk space
-    try:
-        st = os.statvfs(os.path.dirname(__file__))
-        free_mb = (st.f_bavail * st.f_frsize) / (1024 * 1024)
-        checks["disk_free_mb"] = round(free_mb, 1)
-        if free_mb < 100:
-            degraded = True
-    except Exception:
-        checks["disk_free_mb"] = "unknown"
+    # 2. Disk space (with 1GB warning threshold)
+    disk = _get_disk_info()
+    checks["disk_free_mb"] = disk["free_mb"]
+    if disk["warning"]:
+        degraded = True
 
-    # 4. Daily cost
-    try:
-        checks["daily_cost_usd"] = round(get_daily_cost(), 4)
-    except Exception:
-        checks["daily_cost_usd"] = "unknown"
+    # 3. Memory usage
+    mem = _get_memory_info()
+    checks["memory_used_pct"] = mem["used_pct"]
 
-    # 5. Uptime
+    # 4. Uptime
     checks["uptime_seconds"] = round(now - _app_start_time, 1)
 
-    # 6. Circuit breaker status
-    from model_router import _circuit_state, get_all_perf
-    if _circuit_state:
-        checks["circuit_breakers"] = {k: {"failures": v["failures"], "open": v.get("opened_at") is not None} for k, v in _circuit_state.items() if v["failures"] > 0}
+    # 5. Response time of this check
+    elapsed_ms = round((_time.time() - t0) * 1000, 1)
+    checks["health_check_ms"] = elapsed_ms
 
-    # 7. MCP server reachable
-    try:
-        mcp_r = _requests.get("http://127.0.0.1:5002/health", timeout=2)
-        checks["mcp_server"] = "ok" if mcp_r.status_code == 200 else f"http {mcp_r.status_code}"
-    except Exception:
-        checks["mcp_server"] = "not running"
-
-    # 8. Model performance stats
-    perf = get_all_perf()
-    if perf:
-        checks["model_performance"] = perf
-
+    status = "degraded" if degraded else "healthy"
     result = {
-        "status": "degraded" if degraded else "healthy",
+        "status": status,
         "wallet": WALLET_ADDRESS,
         "network": EVM_NETWORK,
         "checks": checks,
     }
     _health_cache["data"] = result
     _health_cache["ts"] = now
+
+    # Record uptime + process alerts
+    checks_passed = sum(1 for v in [db_status, "ok" if not disk["warning"] else "warn"] if v == "ok")
+    _record_uptime("ok" if not degraded else "degraded", elapsed_ms, checks_passed, 2)
+    _process_alerts("ok" if not degraded else "degraded", checks, elapsed_ms)
+
     code = 200 if not degraded else 503
     return jsonify(result), code
+
+
+@meta_bp.route("/health/deep")
+def health_deep():
+    """Deep health check — all DBs, model availability, disk, memory, MCP."""
+    t0 = _time.time()
+    checks = {}
+    degraded = False
+    checks_passed = 0
+    checks_total = 0
+
+    # 1. All core databases
+    for db_name in _CORE_DBS:
+        checks_total += 1
+        status = _check_db(db_name)
+        checks[f"db_{db_name}"] = status
+        if status == "ok":
+            checks_passed += 1
+        else:
+            degraded = True
+
+    # 2. Model availability — verify at least one AI model responds
+    checks_total += 1
+    try:
+        from model_router import _circuit_state, _CIRCUIT_MAX_FAILURES
+        available_providers = []
+        for p in ["anthropic", "openai", "google", "deepseek", "together", "xai", "mistral"]:
+            state = _circuit_state.get(p, {})
+            if state.get("failures", 0) < _CIRCUIT_MAX_FAILURES or state.get("opened_at") is None:
+                available_providers.append(p)
+        checks["model_providers_available"] = len(available_providers)
+        checks["model_providers_list"] = available_providers
+        if available_providers:
+            checks_passed += 1
+        else:
+            degraded = True
+            checks["model_providers_available"] = 0
+    except Exception:
+        checks["model_providers_available"] = "error"
+        degraded = True
+
+    # 3. Disk space
+    checks_total += 1
+    disk = _get_disk_info()
+    checks["disk_free_mb"] = disk["free_mb"]
+    checks["disk_total_mb"] = disk["total_mb"]
+    if disk["warning"]:
+        degraded = True
+    else:
+        checks_passed += 1
+
+    # 4. Memory usage
+    checks_total += 1
+    mem = _get_memory_info()
+    checks["memory_used_pct"] = mem["used_pct"]
+    checks["memory_available_mb"] = mem["available_mb"]
+    checks["memory_total_mb"] = mem["total_mb"]
+    if isinstance(mem["used_pct"], (int, float)) and mem["used_pct"] < 95:
+        checks_passed += 1
+    else:
+        degraded = True
+
+    # 5. Facilitator reachable
+    checks_total += 1
+    try:
+        r = _requests.get(FACILITATOR_URL, timeout=5)
+        checks["facilitator"] = "ok" if r.status_code < 500 else f"http {r.status_code}"
+        if r.status_code < 500:
+            checks_passed += 1
+        else:
+            degraded = True
+    except Exception:
+        checks["facilitator"] = "unreachable"
+        degraded = True
+
+    # 6. MCP server reachable
+    checks_total += 1
+    try:
+        mcp_r = _requests.get("http://127.0.0.1:5002/health", timeout=2)
+        checks["mcp_server"] = "ok" if mcp_r.status_code == 200 else f"http {mcp_r.status_code}"
+        if mcp_r.status_code == 200:
+            checks_passed += 1
+    except Exception:
+        checks["mcp_server"] = "not running"
+
+    # 7. Daily cost
+    try:
+        checks["daily_cost_usd"] = round(get_daily_cost(), 4)
+    except Exception:
+        checks["daily_cost_usd"] = "unknown"
+
+    # 8. Circuit breaker status
+    from model_router import _circuit_state as cs2
+    if cs2:
+        checks["circuit_breakers"] = {
+            k: {"failures": v["failures"], "open": v.get("opened_at") is not None}
+            for k, v in cs2.items() if v["failures"] > 0
+        }
+
+    # 9. Model performance stats
+    perf = get_all_perf()
+    if perf:
+        checks["model_performance"] = perf
+
+    # 10. Uptime
+    checks["uptime_seconds"] = round(_time.time() - _app_start_time, 1)
+
+    # Response time
+    elapsed_ms = round((_time.time() - t0) * 1000, 1)
+    checks["health_check_ms"] = elapsed_ms
+
+    overall = "down" if checks_passed == 0 else ("degraded" if degraded else "healthy")
+    result = {
+        "status": overall,
+        "checks_passed": checks_passed,
+        "checks_total": checks_total,
+        "wallet": WALLET_ADDRESS,
+        "network": EVM_NETWORK,
+        "checks": checks,
+    }
+
+    # Record uptime + alerts
+    _record_uptime(
+        "ok" if overall == "healthy" else overall,
+        elapsed_ms, checks_passed, checks_total,
+    )
+    _process_alerts(
+        "ok" if overall == "healthy" else overall,
+        checks, elapsed_ms,
+    )
+
+    code = 200 if overall == "healthy" else 503
+    return jsonify(result), code
+
+
+@meta_bp.route("/api/uptime")
+def api_uptime():
+    """Return uptime percentages for 24h, 7d, 30d."""
+    stats = _get_uptime_stats()
+    recent = _get_recent_checks(limit=20)
+    return jsonify({"uptime": stats, "recent_checks": recent})
 
 
 @meta_bp.route("/status")
@@ -649,6 +811,15 @@ def status_page():
     rt_avg = rt_stats["avg_ms"]
     rt_p95 = rt_stats["p95_ms"]
 
+    # --- Uptime stats ---
+    uptime_stats = _get_uptime_stats()
+    uptime_24h = uptime_stats.get("24h", {}).get("uptime_pct", 100.0)
+    uptime_7d = uptime_stats.get("7d", {}).get("uptime_pct", 100.0)
+    uptime_30d = uptime_stats.get("30d", {}).get("uptime_pct", 100.0)
+
+    # --- Recent alerts ---
+    recent_alerts = _get_recent_alerts(limit=10, include_resolved=True)
+
     # --- Build HTML ---
     def _dot(status):
         colors = {"healthy": "#00ff9d", "degraded": "#ffb800", "down": "#ff4444"}
@@ -692,6 +863,31 @@ def status_page():
             </tr>'''
         return f'''<table>
           <tr><th>Endpoint</th><th>Avg Response Time</th><th>Calls (1h)</th></tr>
+          {rows}
+        </table>'''
+
+    def _build_alerts_html(alerts):
+        if not alerts:
+            return '<p style="color:#00ff9d;font-size:0.9rem">No recent alerts — all clear.</p>'
+        rows = ""
+        for a in alerts:
+            ts = _time.strftime("%Y-%m-%d %H:%M", _time.gmtime(a.get("timestamp", 0)))
+            sev = a.get("severity", "info")
+            sev_color = {"critical": "#ff4444", "warning": "#ffb800", "info": "#00d4ff"}.get(sev, "#8b949e")
+            resolved = a.get("resolved", 0)
+            status_txt = '<span style="color:#00ff9d">Resolved</span>' if resolved else '<span style="color:#ff4444">Active</span>'
+            rows += f'''
+            <tr>
+              <td style="padding:8px 16px;border-bottom:1px solid rgba(255,255,255,0.06);color:#8b949e;font-size:0.8rem">{ts}</td>
+              <td style="padding:8px 16px;border-bottom:1px solid rgba(255,255,255,0.06)">
+                <span style="color:{sev_color};font-weight:600;font-size:0.8rem;text-transform:uppercase">{sev}</span>
+              </td>
+              <td style="padding:8px 16px;border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.85rem">{a.get("alert_type", "")}</td>
+              <td style="padding:8px 16px;border-bottom:1px solid rgba(255,255,255,0.06);color:#8b949e;font-size:0.85rem">{a.get("message", "")}</td>
+              <td style="padding:8px 16px;border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.85rem">{status_txt}</td>
+            </tr>'''
+        return f'''<table>
+          <tr><th>Time</th><th>Severity</th><th>Type</th><th>Message</th><th>Status</th></tr>
           {rows}
         </table>'''
 
@@ -783,6 +979,24 @@ def status_page():
   </div>
 
   <div class="card">
+    <h2>Uptime</h2>
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="stat-val" style="color:{'#00ff9d' if uptime_24h >= 99 else '#ffb800' if uptime_24h >= 95 else '#ff4444'}">{uptime_24h}%</div>
+        <div class="stat-label">Last 24 Hours</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:{'#00ff9d' if uptime_7d >= 99 else '#ffb800' if uptime_7d >= 95 else '#ff4444'}">{uptime_7d}%</div>
+        <div class="stat-label">Last 7 Days</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" style="color:{'#00ff9d' if uptime_30d >= 99 else '#ffb800' if uptime_30d >= 95 else '#ff4444'}">{uptime_30d}%</div>
+        <div class="stat-label">Last 30 Days</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
     <h2>Core Services</h2>
     <table>
       <tr><th>Service</th><th>Status</th><th>Details</th></tr>
@@ -808,6 +1022,11 @@ def status_page():
       <div class="stat-box"><div class="stat-val" style="font-size:1.3rem">{rt_stats["count"]:,}</div><div class="stat-label">Requests Tracked</div></div>
     </div>
     {_build_endpoint_speed_rows(rt_endpoints)}
+  </div>
+
+  <div class="card">
+    <h2>Recent Alerts</h2>
+    {_build_alerts_html(recent_alerts)}
   </div>
 
   <p class="updated">Auto-refreshes every 60 seconds &middot; Last checked: {datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")} UTC</p>
@@ -2604,188 +2823,10 @@ def public_changelog():
 @meta_bp.route("/playground", methods=["GET"])
 def playground():
     """Interactive API playground — test any endpoint from the browser."""
-    html = f'''<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>API Playground — AiPayGen</title>
-<meta name="description" content="Test any AiPayGen API endpoint directly from your browser. Interactive request builder with live responses.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<style>
-*{{margin:0;padding:0;box-sizing:border-box}}
-body{{background:#020408;color:#e6edf3;font-family:'IBM Plex Sans',sans-serif;min-height:100vh}}
-a{{color:#00d4ff;text-decoration:none}}
-.pg-wrap{{max-width:1100px;margin:0 auto;padding:100px 24px 60px}}
-.pg-title{{font-family:'IBM Plex Mono',monospace;font-size:1.8rem;font-weight:700;margin-bottom:6px}}
-.pg-sub{{color:#8b949e;font-size:0.95rem;margin-bottom:24px}}
-.pg-banner{{background:rgba(0,255,157,0.06);border:1px solid rgba(0,255,157,0.15);border-radius:8px;padding:12px 20px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;font-size:0.88rem;flex-wrap:wrap;gap:8px}}
-.pg-banner .cl{{color:#00ff9d;font-family:'IBM Plex Mono',monospace;font-weight:700}}
-.pg-banner .cta{{color:#00d4ff;font-weight:600}}
-.pg-grid{{display:grid;grid-template-columns:1fr 1fr;gap:20px}}
-@media(max-width:768px){{.pg-grid{{grid-template-columns:1fr}}}}
-.pg-pnl{{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}}
-.pg-ph{{background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.06);padding:12px 18px;display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;color:#8b949e;font-weight:600;text-transform:uppercase;letter-spacing:0.05em}}
-.pg-pb{{padding:18px;flex:1;display:flex;flex-direction:column;gap:14px}}
-.pg-row{{display:flex;gap:10px;align-items:center}}
-.pg-sel,.pg-inp{{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#e6edf3;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;padding:10px 14px;outline:none;transition:border-color .2s}}
-.pg-sel:focus,.pg-inp:focus,.pg-ta:focus{{border-color:#00ff9d}}
-.pg-sel{{flex:1;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238b949e' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}}
-.pg-ms{{width:90px;flex:none}}
-.pg-ta{{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#e6edf3;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;padding:12px 14px;outline:none;resize:vertical;min-height:140px;line-height:1.5;flex:1;transition:border-color .2s;tab-size:2}}
-.pg-lbl{{color:#8b949e;font-size:0.78rem;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.04em}}
-.pg-run{{background:linear-gradient(135deg,#00ff9d,#00d4ff);color:#020408;border:none;border-radius:6px;padding:12px 28px;font-family:'IBM Plex Mono',monospace;font-size:0.9rem;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:0.03em}}
-.pg-run:hover{{box-shadow:0 0 20px rgba(0,255,157,0.3);transform:translateY(-1px)}}
-.pg-run:disabled{{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none}}
-.pg-run.ld{{background:linear-gradient(135deg,#8b949e,#4a5568)}}
-.pg-st{{display:flex;gap:16px;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)}}
-.pg-sc{{font-weight:700;padding:3px 10px;border-radius:4px;font-size:0.85rem}}
-.pg-sc.s2{{background:rgba(0,255,157,0.15);color:#00ff9d}}
-.pg-sc.s4{{background:rgba(255,183,0,0.15);color:#ffb700}}
-.pg-sc.s5{{background:rgba(255,68,68,0.15);color:#ff4444}}
-.pg-rb{{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:14px;font-family:'IBM Plex Mono',monospace;font-size:0.8rem;line-height:1.6;overflow:auto;white-space:pre-wrap;word-break:break-word;flex:1;min-height:200px;max-height:500px;color:#c9d1d9}}
-.pg-dot{{display:inline-block;width:6px;height:6px;background:#00ff9d;border-radius:50%;margin-right:4px}}
-.pg-desc{{color:#8b949e;font-size:0.82rem;padding:8px 0;min-height:20px}}
-.pg-hr{{display:flex;gap:8px;align-items:center}}
-.pg-hr input{{flex:1}}
-.pg-bs{{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:#8b949e;font-size:0.75rem;padding:4px 10px;cursor:pointer;font-family:'IBM Plex Mono',monospace}}
-.pg-bs:hover{{border-color:#00ff9d;color:#00ff9d}}
-</style>
-</head>
-<body>
-{NAV_HTML}
-<div class="pg-wrap">
-  <h1 class="pg-title"><span class="pg-dot"></span> API Playground</h1>
-  <p class="pg-sub">Test any AiPayGen endpoint directly from your browser &middot; <kbd style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:3px;font-size:0.8rem">Ctrl+Enter</kbd> to run</p>
+    return render_template("playground.html")
 
-  <div class="pg-banner" id="pgBanner">
-    <span>Free tier: <span class="cl" id="pgCalls">...</span> calls remaining today</span>
-    <a class="cta" href="/buy-credits">Need more? Get an API key &rarr;</a>
-  </div>
 
-  <div class="pg-grid">
-    <div class="pg-pnl">
-      <div class="pg-ph"><span class="pg-dot"></span> Request</div>
-      <div class="pg-pb">
-        <div class="pg-row">
-          <select id="pgM" class="pg-sel pg-ms">
-            <option value="GET">GET</option>
-            <option value="POST" selected>POST</option>
-          </select>
-          <select id="pgE" class="pg-sel">
-            <option value="">— select endpoint —</option>
-          </select>
-        </div>
-        <div class="pg-desc" id="pgD"></div>
-        <div>
-          <div class="pg-lbl">Headers</div>
-          <div id="pgH" style="margin-top:6px">
-            <div class="pg-hr">
-              <input class="pg-inp" value="Content-Type" style="flex:0.8" readonly>
-              <input class="pg-inp" value="application/json" style="flex:1" readonly>
-            </div>
-            <div class="pg-hr" style="margin-top:6px">
-              <input class="pg-inp hk" placeholder="X-API-Key" style="flex:0.8">
-              <input class="pg-inp hv" placeholder="your-api-key (optional)" style="flex:1">
-              <button class="pg-bs" onclick="addH()" title="Add header">+</button>
-            </div>
-          </div>
-        </div>
-        <div style="flex:1;display:flex;flex-direction:column">
-          <div class="pg-lbl">Request Body <span style="color:#4a5568">(JSON)</span></div>
-          <textarea id="pgB" class="pg-ta" spellcheck="false">{{}}</textarea>
-        </div>
-        <button class="pg-run" id="pgR" onclick="run()">&#9654; Run</button>
-      </div>
-    </div>
-    <div class="pg-pnl">
-      <div class="pg-ph"><span class="pg-dot"></span> Response</div>
-      <div class="pg-pb">
-        <div class="pg-st" id="pgSt" style="display:none">
-          <span class="pg-sc" id="pgSc"></span>
-          <span style="color:#8b949e" id="pgTm"></span>
-        </div>
-        <div class="pg-rb" id="pgRb">Hit "Run" to send a request...</div>
-      </div>
-    </div>
-  </div>
-</div>
-{FOOTER_HTML}
-<script>
-const EP=[
-  {{ep:"/sentiment",m:"POST",d:"Deep sentiment — polarity, score, emotions, confidence",b:{{"text":"I love building with AI agents!"}}}},
-  {{ep:"/summarize",m:"POST",d:"Summarize long text into key points",b:{{"text":"Paste your text here...","length":"short"}}}},
-  {{ep:"/translate",m:"POST",d:"Translate text to any language",b:{{"text":"Hello world","language":"Spanish"}}}},
-  {{ep:"/analyze",m:"POST",d:"Analyze data or text with structured insights",b:{{"content":"Your content here","question":"What are the key themes?"}}}},
-  {{ep:"/chat",m:"POST",d:"Multi-turn chat with Claude",b:{{"messages":[{{"role":"user","content":"What is x402?"}}]}}}},
-  {{ep:"/code",m:"POST",d:"Generate code in any language",b:{{"description":"fibonacci function","language":"python"}}}},
-  {{ep:"/write",m:"POST",d:"Write articles, copy, or content to spec",b:{{"spec":"Write a tweet about AI payments","type":"post"}}}},
-  {{ep:"/search",m:"POST",d:"Web search — returns top N results",b:{{"query":"x402 protocol","n":3}}}},
-  {{ep:"/scrape",m:"POST",d:"Fetch any URL, return clean text",b:{{"url":"https://example.com"}}}},
-  {{ep:"/research",m:"POST",d:"Deep research with citations",b:{{"question":"What is the x402 payment protocol?"}}}},
-  {{ep:"/extract",m:"POST",d:"Extract structured data from text or URL",b:{{"text":"John Smith, CEO of Acme Inc, announced $5M funding.","fields":["name","title","company","amount"]}}}},
-  {{ep:"/classify",m:"POST",d:"Classify text into categories",b:{{"text":"The stock market rallied today","categories":["business","sports","tech","politics"]}}}},
-  {{ep:"/keywords",m:"POST",d:"Extract keywords and topics from text",b:{{"text":"AI agents that pay for APIs using blockchain micropayments","max_keywords":5}}}},
-  {{ep:"/compare",m:"POST",d:"Compare two texts — similarities and differences",b:{{"text_a":"Python is great for AI","text_b":"JavaScript is great for web"}}}},
-  {{ep:"/qa",m:"POST",d:"Q&A over a document",b:{{"context":"AiPayGen is an AI agent payment platform using x402.","question":"What protocol does AiPayGen use?"}}}},
-  {{ep:"/plan",m:"POST",d:"Step-by-step action plan",b:{{"goal":"Launch an AI SaaS product","steps":5}}}},
-  {{ep:"/decide",m:"POST",d:"Decision framework with pros/cons",b:{{"decision":"Which cloud provider to use?","options":["AWS","GCP","Azure"]}}}},
-  {{ep:"/mock",m:"POST",d:"Generate realistic mock data",b:{{"description":"user profiles with name, email, age","count":3,"format":"json"}}}},
-  {{ep:"/explain",m:"POST",d:"Explain any concept",b:{{"concept":"blockchain","level":"beginner"}}}},
-  {{ep:"/social",m:"POST",d:"Generate social media posts",b:{{"topic":"AI payments","platforms":["twitter","linkedin"],"tone":"professional"}}}},
-  {{ep:"/preview",m:"POST",d:"Free 120-token Claude preview (no payment needed)",b:{{"topic":"AI agents"}}}},
-  {{ep:"/sql",m:"POST",d:"Natural language to SQL query",b:{{"description":"find users who signed up this week","dialect":"postgresql"}}}},
-  {{ep:"/regex",m:"POST",d:"Regex pattern from description",b:{{"description":"email address","language":"python"}}}},
-  {{ep:"/diagram",m:"POST",d:"Generate Mermaid diagrams from description",b:{{"description":"user login flow","type":"flowchart"}}}},
-  {{ep:"/email",m:"POST",d:"Compose professional emails",b:{{"purpose":"follow up after a meeting","tone":"professional"}}}},
-  {{ep:"/data/weather",m:"GET",d:"Real-time weather data",b:null,q:"city=London"}},
-  {{ep:"/data/crypto",m:"GET",d:"Live crypto prices",b:null,q:"symbol=bitcoin"}},
-  {{ep:"/data/joke",m:"GET",d:"Random joke",b:null}},
-  {{ep:"/data/quote",m:"GET",d:"Random inspirational quote",b:null}},
-  {{ep:"/free/time",m:"GET",d:"Current UTC time (free)",b:null}},
-  {{ep:"/free/uuid",m:"GET",d:"Generate UUID (free)",b:null}},
-  {{ep:"/free/ip",m:"GET",d:"Your IP info (free)",b:null}},
-  {{ep:"/health",m:"GET",d:"Service health check",b:null}},
-  {{ep:"/models",m:"GET",d:"List all supported LLM models",b:null}},
-  {{ep:"/discover",m:"GET",d:"Full service catalog",b:null}}
-];
-const eS=document.getElementById("pgE"),mS=document.getElementById("pgM"),bA=document.getElementById("pgB"),dE=document.getElementById("pgD");
-EP.forEach((e,i)=>{{const o=document.createElement("option");o.value=i;o.textContent=e.m+" "+e.ep+" — "+e.d.slice(0,48);eS.appendChild(o)}});
-eS.addEventListener("change",()=>{{const i=eS.value;if(i==="")return;const e=EP[i];mS.value=e.m;dE.textContent=e.d;if(e.b){{bA.value=JSON.stringify(e.b,null,2);bA.style.display=""}}else{{bA.value="";bA.style.display=e.m==="GET"?"none":""}}}});
-mS.addEventListener("change",()=>{{bA.style.display=mS.value==="GET"?"none":""}});
-function addH(){{
-  const a=document.getElementById("pgH"),r=document.createElement("div");
-  r.className="pg-hr";r.style.marginTop="6px";
-  const k=document.createElement("input");k.className="pg-inp hk";k.placeholder="Header";k.style.flex="0.8";
-  const v=document.createElement("input");v.className="pg-inp hv";v.placeholder="Value";v.style.flex="1";
-  const x=document.createElement("button");x.className="pg-bs";x.textContent="x";x.onclick=function(){{r.remove()}};
-  r.appendChild(k);r.appendChild(v);r.appendChild(x);a.appendChild(r);
-}}
-function gH(){{const h={{"Content-Type":"application/json"}};document.querySelectorAll(".pg-hr").forEach(r=>{{const ins=r.querySelectorAll("input");if(ins.length>=2){{const k=ins[0].value.trim(),v=ins[1].value.trim();if(k&&v)h[k]=v}}}});return h}}
-async function run(){{
-  const btn=document.getElementById("pgR"),rb=document.getElementById("pgRb"),st=document.getElementById("pgSt"),sc=document.getElementById("pgSc"),tm=document.getElementById("pgTm");
-  const method=mS.value,idx=eS.value;
-  if(idx===""){{rb.textContent="Select an endpoint first.";return}}
-  const e=EP[idx];let path=e.ep,qs=e.q||"";
-  btn.disabled=true;btn.classList.add("ld");btn.textContent="Running...";rb.textContent="Sending request...";st.style.display="none";
-  const headers=gH(),url=location.origin+path+(qs?"?"+qs:""),opts={{method,headers}};
-  if(method==="POST"){{try{{const raw=bA.value.trim();if(raw)JSON.parse(raw);opts.body=raw||undefined}}catch(er){{rb.textContent="Invalid JSON:\\n"+er.message;btn.disabled=false;btn.classList.remove("ld");btn.textContent="Run";return}}}}
-  const t0=performance.now();
-  try{{
-    const resp=await fetch(url,opts),elapsed=Math.round(performance.now()-t0),ct=resp.headers.get("content-type")||"";
-    let body;if(ct.includes("json")){{body=JSON.stringify(await resp.json(),null,2)}}else{{body=await resp.text();try{{body=JSON.stringify(JSON.parse(body),null,2)}}catch(_){{}}}}
-    st.style.display="flex";sc.textContent=resp.status+" "+resp.statusText;sc.className="pg-sc "+(resp.status<300?"s2":resp.status<500?"s4":"s5");tm.textContent=elapsed+"ms";rb.textContent=body;
-    ftFree();
-  }}catch(err){{st.style.display="flex";sc.textContent="ERR";sc.className="pg-sc s5";tm.textContent="";rb.textContent="Network error:\\n"+err.message}}
-  btn.disabled=false;btn.classList.remove("ld");btn.textContent="Run";
-}}
-async function ftFree(){{try{{const r=await fetch("/free-tier/status"),d=await r.json(),rem=d.remaining??d.calls_remaining??"?",lim=d.limit??d.daily_limit??10;document.getElementById("pgCalls").textContent=rem+" / "+lim;if(rem===0){{const b=document.getElementById("pgBanner");b.style.borderColor="rgba(255,68,68,0.3)";b.style.background="rgba(255,68,68,0.06)";document.getElementById("pgCalls").style.color="#ff4444"}}}}catch(_){{document.getElementById("pgCalls").textContent="—"}}}}
-ftFree();
-document.addEventListener("keydown",e=>{{if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){{e.preventDefault();run()}}}});
-</script>
-</body>
-</html>'''
-    resp = make_response(html)
-    resp.headers["Content-Type"] = "text/html"
-    return resp
+@meta_bp.route("/examples", methods=["GET"])
+def sdk_examples():
+    """SDK quick-start examples — copy-paste code for every language."""
+    return render_template("sdk_examples.html")

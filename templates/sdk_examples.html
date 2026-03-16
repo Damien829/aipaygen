@@ -1,0 +1,522 @@
+{% extends "base.html" %}
+{% block title %}SDK Examples{% endblock %}
+{% block description %}Copy-paste code examples for AiPayGen API. Python, JavaScript, curl, LangChain, and Claude Code MCP integration.{% endblock %}
+
+{% block head %}
+<style>
+.ex-wrap{max-width:900px;margin:0 auto;padding:24px 24px 60px}
+.ex-title{font-family:'IBM Plex Mono',monospace;font-size:1.8rem;font-weight:700;margin-bottom:6px}
+.ex-sub{color:#8b949e;font-size:0.95rem;margin-bottom:32px}
+.ex-sub a{color:#00d4ff}
+
+/* Language tabs */
+.lang-tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:0;flex-wrap:wrap}
+.lang-tab{padding:12px 20px;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;font-weight:600;color:#8b949e;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;background:none;border-top:none;border-left:none;border-right:none}
+.lang-tab:hover{color:#e6edf3}
+.lang-tab.active{color:#00ff9d;border-bottom-color:#00ff9d}
+.lang-content{display:none;padding-top:24px}
+.lang-content.active{display:block}
+
+/* Code blocks */
+.ex-block{background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.06);border-radius:10px;margin-bottom:24px;overflow:hidden}
+.ex-block-head{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.06)}
+.ex-block-title{font-family:'IBM Plex Mono',monospace;font-size:0.82rem;color:#00d4ff;font-weight:600}
+.ex-block-desc{font-size:0.78rem;color:#8b949e;margin-left:12px}
+.ex-copy{background:rgba(0,255,157,0.1);border:1px solid rgba(0,255,157,0.2);border-radius:4px;padding:4px 12px;color:#00ff9d;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;cursor:pointer;transition:all .2s;white-space:nowrap}
+.ex-copy:hover{background:rgba(0,255,157,0.2);border-color:#00ff9d}
+.ex-copy.copied{background:rgba(0,255,157,0.3);color:#fff}
+.ex-block pre{margin:0;padding:16px;overflow-x:auto;font-size:0.82rem;line-height:1.6}
+.ex-block code{font-family:'IBM Plex Mono','Fira Code',monospace;font-size:0.82rem}
+
+/* Section headers */
+.ex-section{margin-top:32px;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.ex-section h3{font-family:'IBM Plex Mono',monospace;font-size:1rem;color:#e6edf3;font-weight:600}
+.ex-section p{color:#8b949e;font-size:0.85rem;margin-top:4px}
+
+/* Install badge */
+.ex-install{background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.15);border-radius:8px;padding:12px 20px;margin-bottom:24px;font-family:'IBM Plex Mono',monospace;font-size:0.88rem;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ex-install code{background:rgba(0,0,0,0.3);padding:4px 10px;border-radius:4px;color:#00ff9d}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ex-wrap">
+  <h1 class="ex-title"><span style="display:inline-block;width:6px;height:6px;background:#00ff9d;border-radius:50%;margin-right:8px"></span>SDK Examples</h1>
+  <p class="ex-sub">Copy-paste examples to get started in seconds. All endpoints work with the <a href="/buy-credits">free tier</a> (10 calls/day) -- no API key needed to try.</p>
+
+  <div class="lang-tabs">
+    <button class="lang-tab active" data-lang="python">Python (requests)</button>
+    <button class="lang-tab" data-lang="sdk">Python (SDK)</button>
+    <button class="lang-tab" data-lang="javascript">JavaScript</button>
+    <button class="lang-tab" data-lang="curl">curl</button>
+    <button class="lang-tab" data-lang="langchain">LangChain</button>
+    <button class="lang-tab" data-lang="claude">Claude Code</button>
+  </div>
+
+  <!-- ═══════════════════════════════════ Python (requests) ═══════════════════════════════════ -->
+  <div class="lang-content active" id="lang-python">
+    <div class="ex-install">Install: <code>pip install requests</code></div>
+
+    <div class="ex-section"><h3>1. Single Tool Call</h3><p>Call any endpoint with a simple POST request.</p></div>
+    <div class="ex-block">
+      <div class="ex-block-head">
+        <div><span class="ex-block-title">sentiment.py</span><span class="ex-block-desc">Analyze sentiment of any text</span></div>
+        <button class="ex-copy" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre><code class="language-python">import requests
+
+BASE = "https://aipaygen.com"
+# API_KEY = "your-api-key"  # Optional: omit for free tier (10/day)
+
+resp = requests.post(f"{BASE}/sentiment", json={
+    "text": "I love building with AI agents! The future is bright."
+}, headers={
+    # "X-API-Key": API_KEY,  # Uncomment for paid tier
+})
+
+data = resp.json()
+print(f"Polarity: {data['polarity']}")
+print(f"Score:    {data['score']}")
+print(f"Emotions: {data.get('emotions', [])}")</code></pre>
+    </div>
+
+    <div class="ex-section"><h3>2. Tool Chain</h3><p>Chain multiple AI operations. Each step can use <code>$prev.result</code> from the previous step.</p></div>
+    <div class="ex-block">
+      <div class="ex-block-head">
+        <div><span class="ex-block-title">chain.py</span><span class="ex-block-desc">Research, summarize, then translate</span></div>
+        <button class="ex-copy" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre><code class="language-python">import requests
+
+BASE = "https://aipaygen.com"
+
+resp = requests.post(f"{BASE}/chain", json={
+    "steps": [
+        {"tool": "research", "input": {"query": "x402 payment protocol"}},
+        {"tool": "summarize", "input": {"text": "$prev.result", "format": "bullets"}},
+        {"tool": "translate", "input": {"text": "$prev.result", "target": "Spanish"}}
+    ]
+})
+
+data = resp.json()
+for step in data["chain"]:
+    print(f"Step {step['step']} ({step['tool']}): {step['time_ms']}ms")
+
+print(f"\nFinal result:\n{data['final_result']}")</code></pre>
+    </div>
+
+    <div class="ex-section"><h3>3. Streaming Response</h3><p>Stream long responses token-by-token for real-time output.</p></div>
+    <div class="ex-block">
+      <div class="ex-block-head">
+        <div><span class="ex-block-title">stream.py</span><span class="ex-block-desc">Stream a chat response</span></div>
+        <button class="ex-copy" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre><code class="language-python">import requests
+
+BASE = "https://aipaygen.com"
+
+resp = requests.post(f"{BASE}/chat", json={
+    "messages": [{"role": "user", "content": "Explain quantum computing"}],
+    "stream": True
+}, stream=True)
+
+for line in resp.iter_lines():
+    if line:
+        text = line.decode("utf-8")
+        if text.startswith("data: "):
+            print(text[6:], end="", flush=True)
+print()  # Final newline</code></pre>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════ Python (SDK) ═══════════════════════════════════ -->
+  <div class="lang-content" id="lang-sdk">
+    <div class="ex-install">Install: <code>pip install aipaygen-mcp</code></div>
+
+    <div class="ex-section"><h3>1. Quick Start</h3><p>The SDK wraps all 244 tools as Python methods.</p></div>
+    <div class="ex-block">
+      <div class="ex-block-head">
+        <div><span class="ex-block-title">quickstart.py</span><span class="ex-block-desc">SDK basics</span></div>
+        <button class="ex-copy" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre><code class="language-python">from aipaygen_mcp import AiPayGenClient
+
+client = AiPayGenClient(
+    base_url="https://aipaygen.com",
+    api_key="your-api-key"  # Or omit for free tier
+)
+
+# Sentiment analysis
+result = client.sentiment("I love this product!")
+print(result)
+
+# Web search
+results = client.search("x402 protocol", n=5)
+for r in results:
+    print(f"  {r['title']}: {r['url']}")
+
+# Code generation
+code = client.code("fibonacci function", language="python")
+print(code)</code></pre>
+    </div>
+
+    <div class="ex-section"><h3>2. Chain Operations</h3><p>Build multi-step workflows with the SDK.</p></div>
+    <div class="ex-block">
+      <div class="ex-block-head">
+        <div><span class="ex-block-title">sdk_chain.py</span><span class="ex-block-desc">Chain with the SDK</span></div>
+        <button class="ex-copy" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre><code class="language-python">from aipaygen_mcp import AiPayGenClient
+
+client = AiPayGenClient(base_url="https://aipaygen.com")
+
+# Chain: research -> summarize -> translate
+result = client.chain([
+    {"tool": "research", "input": {"query": "AI agent payments"}},
+    {"tool": "summarize", "input": {"text": "$prev.result"}},
+    {"tool": "translate", "input": {"text": "$prev.result", "target": "French"}}
+])
+
+print(f"Completed in {result['total_time_ms']}ms")
+print(result["final_result"])</code></pre>
+    </div>
+
+    <div class="ex-section"><h3>3. MCP Server Mode</h3><p>Run as an MCP server for Claude Desktop, Cursor, or any MCP client.</p></div>
+    <div class="ex-block">
+      <div class="ex-block-head">
+        <div><span class="ex-block-title">Terminal</span><span class="ex-block-desc">Start the MCP server</span></div>
+        <button class="ex-copy" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre><code class="language-bash"># Install and run
+pip install aipaygen-mcp
+aipaygen-mcp --api-key YOUR_KEY
+
+# Or connect to remote MCP
+# URL: https://mcp.aipaygen.com/mcp</code></pre>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════ JavaScript ═══════════════════════════════════ -->
+  <div class="lang-content" id="lang-javascript">
+    <div class="ex-install">No dependencies needed -- uses built-in <code>fetch</code></div>
+
+    <div class="ex-section"><h3>1. Single Tool Call</h3></div>
+    <div class="ex-block">
+      <div class="ex-block-head">
+        <div><span class="ex-block-title">sentiment.js</span><span class="ex-block-desc">Analyze sentiment</span></div>
+        <button class="ex-copy" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre><code class="language-javascript">const BASE = "https://aipaygen.com";
+// const API_KEY = "your-api-key";  // Optional
+
+const resp = await fetch(`${BASE}/sentiment`, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    // "X-API-Key": API_KEY,  // Uncomment for paid tier
+  },
+  body: JSON.stringify({
+    text: "I love building with AI agents!"
+  })
+});
+
+const data = await resp.json();
+console.log(`Polarity: ${data.polarity}, Score: ${data.score}`);</code></pre>
+    </div>
+
+    <div class="ex-section"><h3>2. Tool Chain</h3></div>
+    <div class="ex-block">
+      <div class="ex-block-head">
+        <div><span class="ex-block-title">chain.js</span><span class="ex-block-desc">Multi-step chain</span></div>
+        <button class="ex-copy" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre><code class="language-javascript">const resp = await fetch("https://aipaygen.com/chain", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    steps: [
+      { tool: "research", input: { query: "x402 payment protocol" } },
+      { tool: "summarize", input: { text: "$prev.result", format: "bullets" } },
+      { tool: "translate", input: { text: "$prev.result", target: "Japanese" } }
+    ]
+  })
+});
+
+const { chain, final_result, total_time_ms } = await resp.json();
+chain.forEach(s => console.log(`Step ${s.step} (${s.tool}): ${s.time_ms}ms`));
+console.log(`\nResult (${total_time_ms}ms):\n${final_result}`);</code></pre>
+    </div>
+
+    <div class="ex-section"><h3>3. Streaming</h3></div>
+    <div class="ex-block">
+      <div class="ex-block-head">
+        <div><span class="ex-block-title">stream.js</span><span class="ex-block-desc">Stream chat responses</span></div>
+        <button class="ex-copy" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre><code class="language-javascript">const resp = await fetch("https://aipaygen.com/chat", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    messages: [{ role: "user", content: "Explain quantum computing" }],
+    stream: true
+  })
+});
+
+const reader = resp.body.getReader();
+const decoder = new TextDecoder();
+
+while (true) {
+  const { done, value } = await reader.read();
+  if (done) break;
+  const text = decoder.decode(value);
+  for (const line of text.split("\n")) {
+    if (line.startsWith("data: ")) {
+      process.stdout.write(line.slice(6));
+    }
+  }
+}</code></pre>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════ curl ═══════════════════════════════════ -->
+  <div class="lang-content" id="lang-curl">
+    <div class="ex-install">Works with any terminal. No API key needed for free tier.</div>
+
+    <div class="ex-section"><h3>1. Sentiment Analysis</h3></div>
+    <div class="ex-block">
+      <div class="ex-block-head">
+        <div><span class="ex-block-title">sentiment</span></div>
+        <button class="ex-copy" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre><code class="language-bash">curl -s https://aipaygen.com/sentiment \
+  -H "Content-Type: application/json" \
+  -d '{"text": "AI agents are the future!"}' | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="ex-section"><h3>2. Web Search</h3></div>
+    <div class="ex-block">
+      <div class="ex-block-head">
+        <div><span class="ex-block-title">search</span></div>
+        <button class="ex-copy" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre><code class="language-bash">curl -s https://aipaygen.com/search \
+  -H "Content-Type: application/json" \
+  -d '{"query": "x402 protocol", "n": 3}' | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="ex-section"><h3>3. Code Generation</h3></div>
+    <div class="ex-block">
+      <div class="ex-block-head">
+        <div><span class="ex-block-title">code</span></div>
+        <button class="ex-copy" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre><code class="language-bash">curl -s https://aipaygen.com/code \
+  -H "Content-Type: application/json" \
+  -d '{"description": "REST API server with Express", "language": "javascript"}'</code></pre>
+    </div>
+
+    <div class="ex-section"><h3>4. Chain Operations</h3></div>
+    <div class="ex-block">
+      <div class="ex-block-head">
+        <div><span class="ex-block-title">chain</span></div>
+        <button class="ex-copy" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre><code class="language-bash">curl -s https://aipaygen.com/chain \
+  -H "Content-Type: application/json" \
+  -d '{
+    "steps": [
+      {"tool": "research", "input": {"query": "quantum computing"}},
+      {"tool": "summarize", "input": {"text": "$prev.result"}}
+    ]
+  }' | python3 -m json.tool</code></pre>
+    </div>
+
+    <div class="ex-section"><h3>5. With API Key</h3></div>
+    <div class="ex-block">
+      <div class="ex-block-head">
+        <div><span class="ex-block-title">authenticated</span><span class="ex-block-desc">Use your API key for higher limits</span></div>
+        <button class="ex-copy" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre><code class="language-bash"># Generate an API key first
+curl -s https://aipaygen.com/auth/generate-key \
+  -H "Content-Type: application/json" \
+  -d '{"name": "my-app"}'
+
+# Then use it in requests
+curl -s https://aipaygen.com/research \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_KEY_HERE" \
+  -d '{"question": "What is the x402 payment protocol?"}'</code></pre>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════ LangChain ═══════════════════════════════════ -->
+  <div class="lang-content" id="lang-langchain">
+    <div class="ex-install">Install: <code>pip install langchain requests</code></div>
+
+    <div class="ex-section"><h3>Custom Tool Integration</h3><p>Wrap AiPayGen endpoints as LangChain tools for use in agents.</p></div>
+    <div class="ex-block">
+      <div class="ex-block-head">
+        <div><span class="ex-block-title">langchain_tools.py</span><span class="ex-block-desc">AiPayGen as LangChain tools</span></div>
+        <button class="ex-copy" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre><code class="language-python">import requests
+from langchain.tools import Tool
+from langchain.agents import initialize_agent, AgentType
+from langchain_openai import ChatOpenAI
+
+BASE = "https://aipaygen.com"
+API_KEY = "your-api-key"
+HEADERS = {"Content-Type": "application/json", "X-API-Key": API_KEY}
+
+
+def aipaygen_search(query: str) -> str:
+    """Search the web using AiPayGen."""
+    r = requests.post(f"{BASE}/search", json={"query": query, "n": 5}, headers=HEADERS)
+    return str(r.json())
+
+
+def aipaygen_summarize(text: str) -> str:
+    """Summarize text using AiPayGen."""
+    r = requests.post(f"{BASE}/summarize", json={"text": text}, headers=HEADERS)
+    return r.json().get("summary", str(r.json()))
+
+
+def aipaygen_sentiment(text: str) -> str:
+    """Analyze sentiment using AiPayGen."""
+    r = requests.post(f"{BASE}/sentiment", json={"text": text}, headers=HEADERS)
+    return str(r.json())
+
+
+# Define LangChain tools
+tools = [
+    Tool(name="WebSearch", func=aipaygen_search,
+         description="Search the web for current information"),
+    Tool(name="Summarize", func=aipaygen_summarize,
+         description="Summarize a long text into key points"),
+    Tool(name="Sentiment", func=aipaygen_sentiment,
+         description="Analyze the sentiment of text"),
+]
+
+# Create an agent
+llm = ChatOpenAI(model="gpt-4")
+agent = initialize_agent(tools, llm, agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION)
+
+# Run it
+result = agent.run("Search for 'x402 protocol', then summarize what you find")
+print(result)</code></pre>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════ Claude Code ═══════════════════════════════════ -->
+  <div class="lang-content" id="lang-claude">
+    <div class="ex-install">Works with Claude Desktop, Cursor, Windsurf, and any MCP client</div>
+
+    <div class="ex-section"><h3>1. MCP Setup (claude_desktop_config.json)</h3><p>Add AiPayGen as an MCP server in your Claude Desktop config.</p></div>
+    <div class="ex-block">
+      <div class="ex-block-head">
+        <div><span class="ex-block-title">claude_desktop_config.json</span><span class="ex-block-desc">Add to your MCP config</span></div>
+        <button class="ex-copy" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre><code class="language-json">{
+  "mcpServers": {
+    "aipaygen": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://mcp.aipaygen.com/mcp"
+      ]
+    }
+  }
+}</code></pre>
+    </div>
+
+    <div class="ex-section"><h3>2. Local MCP Server</h3><p>Install and run locally for lower latency.</p></div>
+    <div class="ex-block">
+      <div class="ex-block-head">
+        <div><span class="ex-block-title">Local install</span></div>
+        <button class="ex-copy" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre><code class="language-bash"># Install from PyPI
+pip install aipaygen-mcp
+
+# Run the MCP server
+aipaygen-mcp --api-key YOUR_KEY
+
+# Or add to claude_desktop_config.json:
+# {
+#   "mcpServers": {
+#     "aipaygen": {
+#       "command": "aipaygen-mcp",
+#       "args": ["--api-key", "YOUR_KEY"]
+#     }
+#   }
+# }</code></pre>
+    </div>
+
+    <div class="ex-section"><h3>3. Usage in Claude</h3><p>Once configured, just ask Claude to use AiPayGen tools naturally.</p></div>
+    <div class="ex-block">
+      <div class="ex-block-head">
+        <div><span class="ex-block-title">Example prompts</span><span class="ex-block-desc">What to say to Claude</span></div>
+        <button class="ex-copy" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre><code class="language-bash"># In Claude Desktop / Cursor / Claude Code, just say:
+
+"Use aipaygen to search for the latest AI agent news"
+
+"Analyze the sentiment of this customer review: ..."
+
+"Research x402 protocol, summarize it, and translate to French"
+
+"Generate a Python REST API with authentication"
+
+"Scrape https://example.com and extract the main topics"
+
+# Claude will automatically call the right AiPayGen MCP tools!</code></pre>
+    </div>
+
+    <div class="ex-section"><h3>4. Smithery (One-Click Install)</h3></div>
+    <div class="ex-block">
+      <div class="ex-block-head">
+        <div><span class="ex-block-title">Smithery</span><span class="ex-block-desc">Install via Smithery registry</span></div>
+        <button class="ex-copy" onclick="copyCode(this)">Copy</button>
+      </div>
+      <pre><code class="language-bash"># Install via Smithery CLI
+npx @smithery/cli install Damien829/Aipaygen
+
+# Or visit: https://smithery.ai/servers/Damien829/Aipaygen</code></pre>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Tab switching
+document.querySelectorAll('.lang-tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.lang-tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.lang-content').forEach(function(c) { c.classList.remove('active'); });
+    tab.classList.add('active');
+    document.getElementById('lang-' + tab.dataset.lang).classList.add('active');
+  });
+});
+
+// Copy button
+function copyCode(btn) {
+  var block = btn.closest('.ex-block');
+  var code = block.querySelector('code');
+  var text = code.textContent;
+  navigator.clipboard.writeText(text).then(function() {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// Re-highlight with Prism if available
+if (window.Prism) {
+  Prism.highlightAll();
+}
+</script>
+{% endblock %}

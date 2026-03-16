@@ -1,0 +1,652 @@
+{% extends "base.html" %}
+{% block title %}API Playground{% endblock %}
+{% block description %}Test any AiPayGen API endpoint directly from your browser. Interactive request builder with live responses, chain builder, and shareable URLs.{% endblock %}
+
+{% block head %}
+<style>
+/* ── Playground Layout ── */
+.pg-wrap{max-width:1200px;margin:0 auto;padding:24px 24px 60px}
+.pg-title{font-family:'IBM Plex Mono',monospace;font-size:1.8rem;font-weight:700;margin-bottom:6px}
+.pg-sub{color:#8b949e;font-size:0.95rem;margin-bottom:24px}
+.pg-banner{background:rgba(0,255,157,0.06);border:1px solid rgba(0,255,157,0.15);border-radius:8px;padding:12px 20px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;font-size:0.88rem;flex-wrap:wrap;gap:8px}
+.pg-banner .cl{color:#00ff9d;font-family:'IBM Plex Mono',monospace;font-weight:700}
+.pg-banner .cta{color:#00d4ff;font-weight:600}
+
+/* ── Tabs ── */
+.pg-tabs{display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.pg-tab{padding:12px 24px;font-family:'IBM Plex Mono',monospace;font-size:0.88rem;font-weight:600;color:#8b949e;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;background:none;border-top:none;border-left:none;border-right:none}
+.pg-tab:hover{color:#e6edf3}
+.pg-tab.active{color:#00ff9d;border-bottom-color:#00ff9d}
+.pg-tab-content{display:none}
+.pg-tab-content.active{display:block}
+
+/* ── Grid ── */
+.pg-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:768px){.pg-grid{grid-template-columns:1fr}}
+.pg-pnl{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.pg-ph{background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.06);padding:12px 18px;display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;color:#8b949e;font-weight:600;text-transform:uppercase;letter-spacing:0.05em}
+.pg-pb{padding:18px;flex:1;display:flex;flex-direction:column;gap:14px}
+
+/* ── Inputs ── */
+.pg-row{display:flex;gap:10px;align-items:center}
+.pg-sel,.pg-inp{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#e6edf3;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;padding:10px 14px;outline:none;transition:border-color .2s}
+.pg-sel:focus,.pg-inp:focus,.pg-ta:focus{border-color:#00ff9d}
+.pg-sel{flex:1;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238b949e' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.pg-ms{width:90px;flex:none}
+.pg-ta{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;color:#e6edf3;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;padding:12px 14px;outline:none;resize:vertical;min-height:140px;line-height:1.5;flex:1;transition:border-color .2s;tab-size:2}
+.pg-lbl{color:#8b949e;font-size:0.78rem;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:0.04em}
+.pg-run{background:linear-gradient(135deg,#00ff9d,#00d4ff);color:#020408;border:none;border-radius:6px;padding:12px 28px;font-family:'IBM Plex Mono',monospace;font-size:0.9rem;font-weight:700;cursor:pointer;transition:all .2s;letter-spacing:0.03em}
+.pg-run:hover{box-shadow:0 0 20px rgba(0,255,157,0.3);transform:translateY(-1px)}
+.pg-run:disabled{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none}
+.pg-run.ld{background:linear-gradient(135deg,#8b949e,#4a5568)}
+
+/* ── Response ── */
+.pg-st{display:flex;gap:16px;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.pg-sc{font-weight:700;padding:3px 10px;border-radius:4px;font-size:0.85rem}
+.pg-sc.s2{background:rgba(0,255,157,0.15);color:#00ff9d}
+.pg-sc.s4{background:rgba(255,183,0,0.15);color:#ffb700}
+.pg-sc.s5{background:rgba(255,68,68,0.15);color:#ff4444}
+.pg-rb{background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:14px;font-family:'IBM Plex Mono',monospace;font-size:0.8rem;line-height:1.6;overflow:auto;white-space:pre-wrap;word-break:break-word;flex:1;min-height:200px;max-height:500px;color:#c9d1d9}
+.pg-dot{display:inline-block;width:6px;height:6px;background:#00ff9d;border-radius:50%;margin-right:4px}
+.pg-desc{color:#8b949e;font-size:0.82rem;padding:8px 0;min-height:20px}
+.pg-hr{display:flex;gap:8px;align-items:center}
+.pg-hr input{flex:1}
+.pg-bs{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:#8b949e;font-size:0.75rem;padding:4px 10px;cursor:pointer;font-family:'IBM Plex Mono',monospace}
+.pg-bs:hover{border-color:#00ff9d;color:#00ff9d}
+.pg-time{color:#00d4ff;font-weight:600;font-size:0.85rem}
+.pg-actions{display:flex;gap:8px;margin-top:8px}
+.pg-share-btn{background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.2);border-radius:6px;padding:8px 16px;color:#00d4ff;font-family:'IBM Plex Mono',monospace;font-size:0.8rem;cursor:pointer;transition:all .2s}
+.pg-share-btn:hover{background:rgba(0,212,255,0.2);border-color:#00d4ff}
+
+/* ── JSON Syntax Highlighting ── */
+.json-key{color:#7ee787}
+.json-string{color:#a5d6ff}
+.json-number{color:#d2a8ff}
+.json-bool{color:#ff7b72}
+.json-null{color:#8b949e;font-style:italic}
+
+/* ── Chain Builder ── */
+.chain-steps{display:flex;flex-direction:column;gap:12px;margin-bottom:16px}
+.chain-step{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:14px;position:relative}
+.chain-step-head{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+.chain-step-num{background:rgba(0,255,157,0.15);color:#00ff9d;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;font-weight:700;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.chain-step .pg-sel{flex:1}
+.chain-step-rm{background:none;border:1px solid rgba(255,68,68,0.2);color:#ff4444;border-radius:4px;padding:2px 8px;font-size:0.75rem;cursor:pointer;font-family:'IBM Plex Mono',monospace}
+.chain-step-rm:hover{background:rgba(255,68,68,0.1);border-color:#ff4444}
+.chain-step .pg-ta{min-height:80px;font-size:0.78rem}
+.chain-wire{text-align:center;color:#4a5568;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;padding:4px 0}
+.chain-wire::before{content:"";display:block;width:1px;height:8px;background:rgba(0,255,157,0.2);margin:0 auto 4px}
+.chain-add{background:rgba(255,255,255,0.04);border:1px dashed rgba(255,255,255,0.1);border-radius:8px;padding:10px;text-align:center;cursor:pointer;color:#8b949e;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;transition:all .2s}
+.chain-add:hover{border-color:#00ff9d;color:#00ff9d}
+.chain-result-step{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:6px;padding:12px;margin-bottom:8px}
+.chain-result-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-family:'IBM Plex Mono',monospace;font-size:0.78rem}
+.chain-result-head .step-name{color:#00ff9d;font-weight:600}
+.chain-result-head .step-time{color:#00d4ff}
+.chain-result-body{font-family:'IBM Plex Mono',monospace;font-size:0.75rem;line-height:1.5;color:#c9d1d9;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pg-wrap">
+  <h1 class="pg-title"><span class="pg-dot"></span> API Playground</h1>
+  <p class="pg-sub">Test any AiPayGen endpoint directly from your browser &middot; <kbd style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:3px;font-size:0.8rem">Ctrl+Enter</kbd> to run</p>
+
+  <div class="pg-banner" id="pgBanner">
+    <span>Free tier: <span class="cl" id="pgCalls">...</span> calls remaining today</span>
+    <a class="cta" href="/buy-credits">Need more? Get an API key &rarr;</a>
+  </div>
+
+  <!-- Tabs -->
+  <div class="pg-tabs">
+    <button class="pg-tab active" data-tab="single">Single Request</button>
+    <button class="pg-tab" data-tab="chain">Chain Builder</button>
+  </div>
+
+  <!-- Tab 1: Single Request -->
+  <div class="pg-tab-content active" id="tab-single">
+    <div class="pg-grid">
+      <div class="pg-pnl">
+        <div class="pg-ph"><span class="pg-dot"></span> Request</div>
+        <div class="pg-pb">
+          <div class="pg-row">
+            <select id="pgM" class="pg-sel pg-ms">
+              <option value="GET">GET</option>
+              <option value="POST" selected>POST</option>
+            </select>
+            <select id="pgE" class="pg-sel">
+              <option value="">-- select endpoint --</option>
+            </select>
+          </div>
+          <div class="pg-desc" id="pgD"></div>
+          <div>
+            <div class="pg-lbl">Headers</div>
+            <div id="pgH" style="margin-top:6px">
+              <div class="pg-hr">
+                <input class="pg-inp" value="Content-Type" style="flex:0.8" readonly>
+                <input class="pg-inp" value="application/json" style="flex:1" readonly>
+              </div>
+              <div class="pg-hr" style="margin-top:6px">
+                <input class="pg-inp hk" placeholder="X-API-Key" style="flex:0.8">
+                <input class="pg-inp hv" placeholder="your-api-key (optional)" style="flex:1">
+                <button class="pg-bs" onclick="addH()" title="Add header">+</button>
+              </div>
+            </div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column">
+            <div class="pg-lbl">Request Body <span style="color:#4a5568">(JSON)</span></div>
+            <textarea id="pgB" class="pg-ta" spellcheck="false">{}</textarea>
+          </div>
+          <div class="pg-row">
+            <button class="pg-run" id="pgR" onclick="run()" style="flex:1">&#9654; Run</button>
+            <button class="pg-share-btn" onclick="shareRequest()" title="Copy shareable URL">Share</button>
+          </div>
+        </div>
+      </div>
+      <div class="pg-pnl">
+        <div class="pg-ph"><span class="pg-dot"></span> Response</div>
+        <div class="pg-pb">
+          <div class="pg-st" id="pgSt" style="display:none">
+            <span class="pg-sc" id="pgSc"></span>
+            <span class="pg-time" id="pgTm"></span>
+          </div>
+          <div class="pg-rb" id="pgRb">Hit "Run" to send a request...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 2: Chain Builder -->
+  <div class="pg-tab-content" id="tab-chain">
+    <div class="pg-grid">
+      <div class="pg-pnl">
+        <div class="pg-ph"><span class="pg-dot"></span> Chain Steps</div>
+        <div class="pg-pb">
+          <p style="color:#8b949e;font-size:0.82rem;margin-bottom:8px">Build multi-step chains. Use <code style="background:rgba(0,255,157,0.1);padding:2px 6px;border-radius:3px;color:#00ff9d;font-size:0.78rem">$prev.result</code> in any field to pipe the previous step's output.</p>
+          <div>
+            <div class="pg-lbl">API Key <span style="color:#4a5568">(optional)</span></div>
+            <input class="pg-inp" id="chainKey" placeholder="your-api-key" style="width:100%;margin-top:4px">
+          </div>
+          <div class="chain-steps" id="chainSteps">
+          </div>
+          <div class="chain-add" onclick="addChainStep()">+ Add Step</div>
+          <div style="margin-top:14px">
+            <div class="pg-row">
+              <button class="pg-run" id="chainRun" onclick="runChain()" style="flex:1">&#9654; Run Chain</button>
+              <button class="pg-share-btn" onclick="shareChain()" title="Copy shareable chain URL">Share</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pg-pnl">
+        <div class="pg-ph"><span class="pg-dot"></span> Chain Results</div>
+        <div class="pg-pb">
+          <div class="pg-st" id="chainSt" style="display:none">
+            <span class="pg-sc" id="chainSc"></span>
+            <span class="pg-time" id="chainTm"></span>
+          </div>
+          <div id="chainRb" style="flex:1;min-height:200px;max-height:600px;overflow:auto">
+            <div style="color:#8b949e;font-family:'IBM Plex Mono',monospace;font-size:0.82rem">Add steps and hit "Run Chain" to execute...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// ── Endpoint catalog ──
+const EP=[
+  {ep:"/sentiment",m:"POST",d:"Deep sentiment -- polarity, score, emotions, confidence",b:{text:"I love building with AI agents!"}},
+  {ep:"/summarize",m:"POST",d:"Summarize long text into key points",b:{text:"Paste your text here...","length":"short"}},
+  {ep:"/translate",m:"POST",d:"Translate text to any language",b:{text:"Hello world",language:"Spanish"}},
+  {ep:"/analyze",m:"POST",d:"Analyze data or text with structured insights",b:{content:"Your content here",question:"What are the key themes?"}},
+  {ep:"/chat",m:"POST",d:"Multi-turn chat with Claude",b:{messages:[{role:"user",content:"What is x402?"}]}},
+  {ep:"/code",m:"POST",d:"Generate code in any language",b:{description:"fibonacci function",language:"python"}},
+  {ep:"/write",m:"POST",d:"Write articles, copy, or content to spec",b:{spec:"Write a tweet about AI payments",type:"post"}},
+  {ep:"/search",m:"POST",d:"Web search -- returns top N results",b:{query:"x402 protocol",n:3}},
+  {ep:"/scrape",m:"POST",d:"Fetch any URL, return clean text",b:{url:"https://example.com"}},
+  {ep:"/research",m:"POST",d:"Deep research with citations",b:{question:"What is the x402 payment protocol?"}},
+  {ep:"/extract",m:"POST",d:"Extract structured data from text or URL",b:{text:"John Smith, CEO of Acme Inc, announced $5M funding.",fields:["name","title","company","amount"]}},
+  {ep:"/classify",m:"POST",d:"Classify text into categories",b:{text:"The stock market rallied today",categories:["business","sports","tech","politics"]}},
+  {ep:"/keywords",m:"POST",d:"Extract keywords and topics from text",b:{text:"AI agents that pay for APIs using blockchain micropayments",max_keywords:5}},
+  {ep:"/compare",m:"POST",d:"Compare two texts -- similarities and differences",b:{text_a:"Python is great for AI",text_b:"JavaScript is great for web"}},
+  {ep:"/qa",m:"POST",d:"Q&A over a document",b:{context:"AiPayGen is an AI agent payment platform using x402.",question:"What protocol does AiPayGen use?"}},
+  {ep:"/plan",m:"POST",d:"Step-by-step action plan",b:{goal:"Launch an AI SaaS product",steps:5}},
+  {ep:"/decide",m:"POST",d:"Decision framework with pros/cons",b:{decision:"Which cloud provider to use?",options:["AWS","GCP","Azure"]}},
+  {ep:"/mock",m:"POST",d:"Generate realistic mock data",b:{description:"user profiles with name, email, age",count:3,format:"json"}},
+  {ep:"/explain",m:"POST",d:"Explain any concept",b:{concept:"blockchain",level:"beginner"}},
+  {ep:"/social",m:"POST",d:"Generate social media posts",b:{topic:"AI payments",platforms:["twitter","linkedin"],tone:"professional"}},
+  {ep:"/preview",m:"POST",d:"Free 120-token Claude preview (no payment needed)",b:{topic:"AI agents"}},
+  {ep:"/sql",m:"POST",d:"Natural language to SQL query",b:{description:"find users who signed up this week",dialect:"postgresql"}},
+  {ep:"/regex",m:"POST",d:"Regex pattern from description",b:{description:"email address",language:"python"}},
+  {ep:"/diagram",m:"POST",d:"Generate Mermaid diagrams from description",b:{description:"user login flow",type:"flowchart"}},
+  {ep:"/email",m:"POST",d:"Compose professional emails",b:{purpose:"follow up after a meeting",tone:"professional"}},
+  {ep:"/data/weather",m:"GET",d:"Real-time weather data",b:null,q:"city=London"},
+  {ep:"/data/crypto",m:"GET",d:"Live crypto prices",b:null,q:"symbol=bitcoin"},
+  {ep:"/data/joke",m:"GET",d:"Random joke",b:null},
+  {ep:"/data/quote",m:"GET",d:"Random inspirational quote",b:null},
+  {ep:"/free/time",m:"GET",d:"Current UTC time (free)",b:null},
+  {ep:"/free/uuid",m:"GET",d:"Generate UUID (free)",b:null},
+  {ep:"/free/ip",m:"GET",d:"Your IP info (free)",b:null},
+  {ep:"/health",m:"GET",d:"Service health check",b:null},
+  {ep:"/models",m:"GET",d:"List all supported LLM models",b:null},
+  {ep:"/discover",m:"GET",d:"Full service catalog",b:null}
+];
+
+// Chain-available tools
+const CHAIN_TOOLS = [
+  "research","summarize","analyze","translate","sentiment","keywords",
+  "classify","rewrite","extract","qa","compare","outline","diagram",
+  "json_schema","workflow","write","code","social","proofread",
+  "explain","pitch","fact","scrape_website","search"
+];
+
+// ── Tab switching ──
+document.querySelectorAll('.pg-tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    document.querySelectorAll('.pg-tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.pg-tab-content').forEach(function(c) { c.classList.remove('active'); });
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
+
+// ── Single Request Tab ──
+var eS=document.getElementById("pgE"),mS=document.getElementById("pgM"),bA=document.getElementById("pgB"),dE=document.getElementById("pgD");
+EP.forEach(function(e,i){var o=document.createElement("option");o.value=i;o.textContent=e.m+" "+e.ep+" -- "+e.d.slice(0,48);eS.appendChild(o)});
+eS.addEventListener("change",function(){var i=eS.value;if(i==="")return;var e=EP[i];mS.value=e.m;dE.textContent=e.d;if(e.b){bA.value=JSON.stringify(e.b,null,2);bA.style.display=""}else{bA.value="";bA.style.display=e.m==="GET"?"none":""}});
+mS.addEventListener("change",function(){bA.style.display=mS.value==="GET"?"none":""});
+
+function addH(){
+  var a=document.getElementById("pgH"),r=document.createElement("div");
+  r.className="pg-hr";r.style.marginTop="6px";
+  var k=document.createElement("input");k.className="pg-inp hk";k.placeholder="Header";k.style.flex="0.8";
+  var v=document.createElement("input");v.className="pg-inp hv";v.placeholder="Value";v.style.flex="1";
+  var x=document.createElement("button");x.className="pg-bs";x.textContent="x";x.onclick=function(){r.remove()};
+  r.appendChild(k);r.appendChild(v);r.appendChild(x);a.appendChild(r);
+}
+
+function gH(){var h={"Content-Type":"application/json"};document.querySelectorAll(".pg-hr").forEach(function(r){var ins=r.querySelectorAll("input");if(ins.length>=2){var k=ins[0].value.trim(),v=ins[1].value.trim();if(k&&v)h[k]=v}});return h}
+
+// ── JSON Syntax Highlighting ──
+function highlightJSON(str) {
+  if (!str) return '';
+  return str.replace(/("(?:\\.|[^"\\])*")\s*:/g, '<span class="json-key">$1</span>:')
+    .replace(/:\s*("(?:\\.|[^"\\])*")/g, ': <span class="json-string">$1</span>')
+    .replace(/:\s*(\d+\.?\d*)/g, ': <span class="json-number">$1</span>')
+    .replace(/:\s*(true|false)/g, ': <span class="json-bool">$1</span>')
+    .replace(/:\s*(null)/g, ': <span class="json-null">$1</span>')
+    .replace(/\[\s*("(?:\\.|[^"\\])*")/g, '[<span class="json-string">$1</span>')
+    .replace(/,\s*("(?:\\.|[^"\\])*")(?=\s*[,\]])/g, ', <span class="json-string">$1</span>');
+}
+
+function escapeHtml(s) {
+  var d = document.createElement('div');
+  d.appendChild(document.createTextNode(s));
+  return d.innerHTML;
+}
+
+function setResponseContent(el, text) {
+  // For JSON responses, use syntax highlighting (content is escaped first)
+  try {
+    JSON.parse(text);
+    el.textContent = '';
+    var pre = document.createElement('span');
+    // escapeHtml first, then apply highlighting classes to the escaped content
+    pre.innerHTML = highlightJSON(escapeHtml(text));
+    el.appendChild(pre);
+  } catch(_) {
+    el.textContent = text;
+  }
+}
+
+async function run(){
+  var btn=document.getElementById("pgR"),rb=document.getElementById("pgRb"),st=document.getElementById("pgSt"),sc=document.getElementById("pgSc"),tm=document.getElementById("pgTm");
+  var method=mS.value,idx=eS.value;
+  if(idx===""){rb.textContent="Select an endpoint first.";return}
+  var e=EP[idx],path=e.ep,qs=e.q||"";
+  btn.disabled=true;btn.classList.add("ld");btn.textContent="Running...";rb.textContent="Sending request...";st.style.display="none";
+  var headers=gH(),url=location.origin+path+(qs?"?"+qs:""),opts={method:method,headers:headers};
+  if(method==="POST"){try{var raw=bA.value.trim();if(raw)JSON.parse(raw);opts.body=raw||undefined}catch(er){rb.textContent="Invalid JSON:\n"+er.message;btn.disabled=false;btn.classList.remove("ld");btn.textContent="\u25B6 Run";return}}
+  var t0=performance.now();
+  try{
+    var resp=await fetch(url,opts),elapsed=Math.round(performance.now()-t0),ct=resp.headers.get("content-type")||"";
+    var body;if(ct.includes("json")){body=JSON.stringify(await resp.json(),null,2)}else{body=await resp.text();try{body=JSON.stringify(JSON.parse(body),null,2)}catch(_){}}
+    st.style.display="flex";sc.textContent=resp.status+" "+resp.statusText;sc.className="pg-sc "+(resp.status<300?"s2":resp.status<500?"s4":"s5");tm.textContent=elapsed+"ms";
+    setResponseContent(rb, body);
+    ftFree();
+  }catch(err){st.style.display="flex";sc.textContent="ERR";sc.className="pg-sc s5";tm.textContent="";rb.textContent="Network error:\n"+err.message}
+  btn.disabled=false;btn.classList.remove("ld");btn.textContent="\u25B6 Run";
+}
+
+async function ftFree(){try{var r=await fetch("/free-tier/status"),d=await r.json(),rem=d.remaining!=null?d.remaining:(d.calls_remaining!=null?d.calls_remaining:"?"),lim=d.limit||d.daily_limit||10;document.getElementById("pgCalls").textContent=rem+" / "+lim;if(rem===0){var b=document.getElementById("pgBanner");b.style.borderColor="rgba(255,68,68,0.3)";b.style.background="rgba(255,68,68,0.06)";document.getElementById("pgCalls").style.color="#ff4444"}}catch(_){document.getElementById("pgCalls").textContent="--"}}
+ftFree();
+
+document.addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){e.preventDefault();var active=document.querySelector('.pg-tab.active');if(active&&active.dataset.tab==='chain')runChain();else run()}});
+
+// ── Share ──
+function shareRequest(){
+  var idx=eS.value;if(idx===""){if(window.showToast)showToast("Select an endpoint first");return}
+  var params={tab:"single",ep:idx,method:mS.value};
+  if(mS.value==="POST"){try{params.body=btoa(bA.value)}catch(_){}}
+  var hv=document.querySelector('.hv');
+  if(hv&&hv.value.trim())params.key=hv.value.trim();
+  var hash="#"+new URLSearchParams(params).toString();
+  var url=location.origin+"/playground"+hash;
+  navigator.clipboard.writeText(url).then(function(){if(window.showToast)showToast("Shareable URL copied to clipboard!")});
+}
+
+// ── Chain Builder ──
+var chainStepCount = 0;
+
+function addChainStep(tool, inputJson) {
+  chainStepCount++;
+  var container = document.getElementById('chainSteps');
+  var num = container.querySelectorAll('.chain-step').length + 1;
+
+  // Add wire connector if not the first step
+  if (num > 1) {
+    var wire = document.createElement('div');
+    wire.className = 'chain-wire';
+    wire.textContent = '$prev.result';
+    container.appendChild(wire);
+  }
+
+  var step = document.createElement('div');
+  step.className = 'chain-step';
+  step.dataset.idx = chainStepCount;
+
+  var optionsHtml = '<option value="">-- select tool --</option>';
+  CHAIN_TOOLS.forEach(function(t) {
+    optionsHtml += '<option value="' + t + '"' + (t===tool?' selected':'') + '>' + t + '</option>';
+  });
+
+  var defaultInput = inputJson || '{}';
+
+  // Build step DOM safely
+  var head = document.createElement('div');
+  head.className = 'chain-step-head';
+
+  var numSpan = document.createElement('span');
+  numSpan.className = 'chain-step-num';
+  numSpan.textContent = num;
+  head.appendChild(numSpan);
+
+  var sel = document.createElement('select');
+  sel.className = 'pg-sel chain-tool-sel';
+  sel.innerHTML = optionsHtml;
+  sel.addEventListener('change', function() { chainToolChanged(sel); });
+  head.appendChild(sel);
+
+  var rmBtn = document.createElement('button');
+  rmBtn.className = 'chain-step-rm';
+  rmBtn.textContent = 'remove';
+  rmBtn.addEventListener('click', function() { removeChainStep(rmBtn); });
+  head.appendChild(rmBtn);
+
+  var lbl = document.createElement('div');
+  lbl.className = 'pg-lbl';
+  lbl.textContent = 'Input (JSON)';
+
+  var ta = document.createElement('textarea');
+  ta.className = 'pg-ta chain-step-input';
+  ta.spellcheck = false;
+  ta.value = defaultInput;
+
+  step.appendChild(head);
+  step.appendChild(lbl);
+  step.appendChild(ta);
+  container.appendChild(step);
+  renumberChainSteps();
+}
+
+function removeChainStep(btn) {
+  var step = btn.closest('.chain-step');
+  var prev = step.previousElementSibling;
+  if (prev && prev.classList.contains('chain-wire')) prev.remove();
+  else {
+    var next = step.nextElementSibling;
+    if (next && next.classList.contains('chain-wire')) next.remove();
+  }
+  step.remove();
+  renumberChainSteps();
+}
+
+function renumberChainSteps() {
+  document.querySelectorAll('.chain-step').forEach(function(s, i) {
+    s.querySelector('.chain-step-num').textContent = i + 1;
+  });
+}
+
+// Tool-specific default inputs
+var TOOL_DEFAULTS = {
+  research: {query: "What is x402?"},
+  summarize: {text: "$prev.result", format: "bullets"},
+  analyze: {text: "$prev.result", question: "What are the key insights?"},
+  translate: {text: "$prev.result", target: "Spanish"},
+  sentiment: {text: "$prev.result"},
+  keywords: {text: "$prev.result", n: 5},
+  classify: {text: "$prev.result", categories: ["tech","business","science"]},
+  rewrite: {text: "$prev.result", tone: "professional"},
+  extract: {text: "$prev.result", fields: ["name","date","amount"]},
+  qa: {context: "$prev.result", question: "What is the main point?"},
+  compare: {text_a: "First text", text_b: "Second text"},
+  outline: {topic: "$prev.result", depth: 2},
+  diagram: {description: "$prev.result", diagram_type: "flowchart"},
+  json_schema: {description: "$prev.result"},
+  workflow: {goal: "$prev.result"},
+  write: {spec: "$prev.result", type: "article"},
+  code: {description: "$prev.result", language: "python"},
+  social: {topic: "$prev.result", platforms: ["twitter"]},
+  proofread: {text: "$prev.result", style: "professional"},
+  explain: {concept: "$prev.result", level: "beginner"},
+  pitch: {product: "$prev.result", audience: "investors"},
+  fact: {text: "$prev.result", count: 5},
+  scrape_website: {url: "https://example.com"},
+  search: {query: "x402 protocol", n: 3}
+};
+
+function chainToolChanged(sel) {
+  var tool = sel.value;
+  var step = sel.closest('.chain-step');
+  var ta = step.querySelector('.chain-step-input');
+  if (tool && TOOL_DEFAULTS[tool]) {
+    ta.value = JSON.stringify(TOOL_DEFAULTS[tool], null, 2);
+  }
+}
+
+function renderChainResults(rb, data) {
+  // Clear and build results using DOM methods
+  while (rb.firstChild) rb.removeChild(rb.firstChild);
+
+  if (data.chain) {
+    data.chain.forEach(function(s) {
+      var stepDiv = document.createElement('div');
+      stepDiv.className = 'chain-result-step';
+
+      var headDiv = document.createElement('div');
+      headDiv.className = 'chain-result-head';
+
+      var nameSpan = document.createElement('span');
+      nameSpan.className = 'step-name';
+      nameSpan.textContent = 'Step ' + s.step + ': ' + s.tool;
+      headDiv.appendChild(nameSpan);
+
+      var timeSpan = document.createElement('span');
+      timeSpan.className = 'step-time';
+      timeSpan.textContent = s.time_ms + 'ms';
+      headDiv.appendChild(timeSpan);
+
+      stepDiv.appendChild(headDiv);
+
+      var bodyDiv = document.createElement('div');
+      bodyDiv.className = 'chain-result-body';
+      if (s.error) {
+        var errSpan = document.createElement('span');
+        errSpan.style.color = '#ff4444';
+        errSpan.textContent = s.error;
+        bodyDiv.appendChild(errSpan);
+      } else {
+        var resStr = typeof s.result === 'string' ? s.result : JSON.stringify(s.result, null, 2);
+        setChainResultContent(bodyDiv, resStr);
+      }
+      stepDiv.appendChild(bodyDiv);
+      rb.appendChild(stepDiv);
+    });
+  }
+
+  if (data.final_result) {
+    var finalDiv = document.createElement('div');
+    finalDiv.className = 'chain-result-step';
+    finalDiv.style.borderColor = 'rgba(0,255,157,0.2)';
+
+    var finalHead = document.createElement('div');
+    finalHead.className = 'chain-result-head';
+    var finalName = document.createElement('span');
+    finalName.className = 'step-name';
+    finalName.style.color = '#00d4ff';
+    finalName.textContent = 'Final Result';
+    finalHead.appendChild(finalName);
+    var finalTime = document.createElement('span');
+    finalTime.className = 'step-time';
+    finalTime.textContent = data.total_time_ms + 'ms total';
+    finalHead.appendChild(finalTime);
+    finalDiv.appendChild(finalHead);
+
+    var finalBody = document.createElement('div');
+    finalBody.className = 'chain-result-body';
+    finalBody.textContent = typeof data.final_result === 'string' ? data.final_result : JSON.stringify(data.final_result, null, 2);
+    finalDiv.appendChild(finalBody);
+    rb.appendChild(finalDiv);
+  }
+
+  if (!rb.firstChild) {
+    var empty = document.createElement('span');
+    empty.style.color = '#8b949e';
+    empty.textContent = 'No results.';
+    rb.appendChild(empty);
+  }
+}
+
+function setChainResultContent(el, text) {
+  try {
+    JSON.parse(text);
+    var span = document.createElement('span');
+    span.innerHTML = highlightJSON(escapeHtml(text));
+    el.appendChild(span);
+  } catch(_) {
+    el.textContent = text;
+  }
+}
+
+async function runChain() {
+  var btn = document.getElementById('chainRun');
+  var rb = document.getElementById('chainRb');
+  var st = document.getElementById('chainSt');
+  var sc = document.getElementById('chainSc');
+  var tm = document.getElementById('chainTm');
+
+  var steps = [];
+  var stepEls = document.querySelectorAll('.chain-step');
+  for (var idx = 0; idx < stepEls.length; idx++) {
+    var el = stepEls[idx];
+    var tool = el.querySelector('.chain-tool-sel').value;
+    var inputRaw = el.querySelector('.chain-step-input').value.trim();
+    if (!tool) { rb.textContent = 'Select a tool for each step.'; return; }
+    var input;
+    try { input = JSON.parse(inputRaw); } catch(e) { rb.textContent = 'Invalid JSON in step ' + (steps.length+1) + ': ' + e.message; return; }
+    steps.push({tool: tool, input: input});
+  }
+
+  if (steps.length === 0) { rb.textContent = 'Add at least one step.'; return; }
+
+  btn.disabled = true; btn.classList.add('ld'); btn.textContent = 'Running...';
+  rb.textContent = 'Executing chain...';
+  st.style.display = 'none';
+
+  var headers = {"Content-Type": "application/json"};
+  var apiKey = document.getElementById('chainKey').value.trim();
+  if (apiKey) headers["X-API-Key"] = apiKey;
+
+  var t0 = performance.now();
+  try {
+    var resp = await fetch('/chain', {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({steps: steps})
+    });
+    var elapsed = Math.round(performance.now() - t0);
+    var data = await resp.json();
+
+    st.style.display = 'flex';
+    sc.textContent = resp.status + ' ' + resp.statusText;
+    sc.className = 'pg-sc ' + (resp.status < 300 ? 's2' : resp.status < 500 ? 's4' : 's5');
+    tm.textContent = elapsed + 'ms total';
+
+    renderChainResults(rb, data);
+    ftFree();
+  } catch(err) {
+    st.style.display = 'flex'; sc.textContent = 'ERR'; sc.className = 'pg-sc s5'; tm.textContent = '';
+    rb.textContent = 'Network error: ' + err.message;
+  }
+  btn.disabled = false; btn.classList.remove('ld'); btn.textContent = '\u25B6 Run Chain';
+}
+
+function shareChain() {
+  var steps = [];
+  document.querySelectorAll('.chain-step').forEach(function(el) {
+    var tool = el.querySelector('.chain-tool-sel').value;
+    var input = el.querySelector('.chain-step-input').value.trim();
+    if (tool) steps.push({tool: tool, input: input});
+  });
+  if (steps.length === 0) { if(window.showToast) showToast("Add at least one step"); return; }
+  var hash = '#' + new URLSearchParams({tab:'chain', chain: btoa(JSON.stringify(steps))}).toString();
+  var url = location.origin + '/playground' + hash;
+  navigator.clipboard.writeText(url).then(function() { if(window.showToast) showToast('Chain URL copied to clipboard!'); });
+}
+
+// ── Restore from URL hash ──
+function restoreFromHash() {
+  if (!location.hash) return;
+  try {
+    var params = new URLSearchParams(location.hash.slice(1));
+    var tab = params.get('tab');
+
+    if (tab === 'chain' && params.get('chain')) {
+      document.querySelectorAll('.pg-tab').forEach(function(t) { t.classList.remove('active'); });
+      document.querySelectorAll('.pg-tab-content').forEach(function(c) { c.classList.remove('active'); });
+      document.querySelector('[data-tab="chain"]').classList.add('active');
+      document.getElementById('tab-chain').classList.add('active');
+
+      // Clear default steps
+      document.getElementById('chainSteps').textContent = '';
+
+      var steps = JSON.parse(atob(params.get('chain')));
+      steps.forEach(function(s) { addChainStep(s.tool, s.input); });
+    } else if (tab === 'single' || params.get('ep')) {
+      var idx = params.get('ep');
+      if (idx !== null) {
+        eS.value = idx;
+        eS.dispatchEvent(new Event('change'));
+      }
+      if (params.get('body')) {
+        try { bA.value = atob(params.get('body')); } catch(_) {}
+      }
+      if (params.get('key')) {
+        var hv = document.querySelector('.hv');
+        if (hv) hv.value = params.get('key');
+      }
+    }
+  } catch(_) {}
+}
+
+// Initialize with 2 default chain steps
+addChainStep('research', JSON.stringify({query: "What is x402 protocol?"}, null, 2));
+addChainStep('summarize', JSON.stringify({text: "$prev.result", format: "bullets"}, null, 2));
+
+// Restore from hash (overrides defaults if present)
+restoreFromHash();
+</script>
+{% endblock %}

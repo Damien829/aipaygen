@@ -62,6 +62,24 @@ def check_rate_limit(ip: str) -> bool:
     return True
 
 
+def get_rate_limit_info(ip: str) -> dict:
+    """Return current rate limit state for the given IP.
+
+    Returns dict with limit, remaining, and reset (unix timestamp).
+    """
+    now = _time.time()
+    times = [t for t in _ip_rate.get(ip, []) if t > now - _RATE_WINDOW]
+    remaining = max(0, _RATE_LIMIT - len(times))
+    # Reset = when the oldest request in the window expires
+    reset_ts = int(times[0] + _RATE_WINDOW) if times else int(now + _RATE_WINDOW)
+    return {
+        "limit": _RATE_LIMIT,
+        "remaining": remaining,
+        "reset": reset_ts,
+        "window": _RATE_WINDOW,
+    }
+
+
 def check_identity_rate_limit(ip: str) -> bool:
     """Stricter rate limit for identity endpoints (10 req/min)."""
     now = _time.time()
@@ -168,8 +186,15 @@ def agent_response(data: dict, endpoint: str, network: str = "eip155:8453", mode
 
 
 def api_error(code: int, error_type: str, message: str, **extra):
-    """Standard JSON error response."""
+    """Standard JSON error response with request ID for support reference."""
     body = {"error": error_type, "message": message}
+    # Include request_id if available (set by before_request hook in app.py)
+    try:
+        req_id = getattr(request, '_request_id', None)
+        if req_id:
+            body["request_id"] = req_id
+    except RuntimeError:
+        pass  # Outside request context
     body.update(extra)
     return jsonify(body), code
 

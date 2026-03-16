@@ -19,6 +19,7 @@ from helpers import (
     check_rate_limit as _check_rate_limit,
     check_identity_rate_limit as _check_identity_rate_limit,
     get_client_ip as _get_client_ip,
+    get_rate_limit_info as _get_rate_limit_info,
     log_payment, parse_json_from_claude, agent_response,
     api_error as _api_error, require_admin, call_llm,
 )
@@ -124,6 +125,31 @@ app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10MB max request body
 app.secret_key = os.getenv("ADMIN_SECRET") or os.urandom(32).hex()
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = True
+
+# ── Request-ID aware logging ───────────────────────────────────────────────
+import logging as _logging
+
+
+class _RequestIdFilter(_logging.Filter):
+    """Inject request_id into every log record for correlation."""
+    def filter(self, record):
+        try:
+            record.request_id = getattr(request, '_request_id', '-')
+        except RuntimeError:
+            record.request_id = '-'
+        return True
+
+
+_handler = _logging.StreamHandler()
+_handler.setFormatter(_logging.Formatter(
+    '%(asctime)s [%(levelname)s] [%(request_id)s] %(name)s: %(message)s'
+))
+_handler.addFilter(_RequestIdFilter())
+app.logger.handlers = [_handler]
+app.logger.setLevel(_logging.INFO)
+# Also apply to the root logger so blueprint/module logs get request IDs
+_logging.root.handlers = [_handler]
+_logging.root.setLevel(_logging.INFO)
 
 PAYMENTS_LOG = os.path.join(os.path.dirname(__file__), "payments.jsonl")
 ADMIN_SECRET = os.getenv("ADMIN_SECRET", "")
@@ -1008,6 +1034,14 @@ _response_times = _collections.deque(maxlen=5000)
 def _start_timer():
     request._start_time = _time.time()
 
+
+@app.before_request
+def _assign_request_id():
+    """Generate a unique request ID for every request (used in headers, logs, errors)."""
+    req_id = request.headers.get("X-Request-Id") or str(uuid.uuid4())
+    request._request_id = req_id
+
+
 @app.after_request
 def _record_response_time(response):
     start = getattr(request, '_start_time', None)
@@ -1055,6 +1089,43 @@ def get_endpoint_response_times(window_seconds=3600, top_n=10):
         })
     result.sort(key=lambda x: x["calls"], reverse=True)
     return result[:top_n]
+
+
+# ── Graceful Degradation: Maintenance Mode + DB Retry ────────────────────────
+from circuit_breaker import (
+    is_maintenance_mode as _is_maintenance,
+    get_maintenance_retry_after as _get_retry_after,
+    set_maintenance_mode as _set_maintenance,
+    db_execute_with_retry,  # noqa: F401 — exported for use by routes
+    all_providers_down as _all_providers_down,
+    get_model_fallback_response as _get_fallback,
+)
+
+# Endpoints exempt from maintenance mode
+_MAINTENANCE_EXEMPT = frozenset(["/health", "/health/deep", "/status", "/api/uptime"])
+
+
+@app.before_request
+def check_maintenance_mode():
+    """Return 503 with Retry-After if maintenance mode is active."""
+    if _is_maintenance() and request.path not in _MAINTENANCE_EXEMPT:
+        retry = _get_retry_after()
+        return jsonify({
+            "error": "maintenance",
+            "message": "Service is undergoing scheduled maintenance. Please retry later.",
+            "retry_after_seconds": retry,
+        }), 503, {"Retry-After": str(retry)}
+
+
+@app.route("/admin/maintenance", methods=["POST"])
+@require_admin
+def toggle_maintenance():
+    """Toggle maintenance mode. POST {"enabled": true/false, "retry_after": 300}"""
+    data = request.get_json() or {}
+    enabled = data.get("enabled", False)
+    retry = min(max(int(data.get("retry_after", 300)), 60), 86400)
+    _set_maintenance(enabled, retry)
+    return jsonify({"maintenance_mode": enabled, "retry_after": retry})
 
 
 @app.before_request
@@ -1139,7 +1210,6 @@ _ALLOWED_ORIGINS = {"https://aipaygen.com", "https://api.aipaygen.com", "https:/
 
 @app.after_request
 def add_cors(response):
-    import uuid
     origin = request.headers.get("Origin", "")
     if origin in _ALLOWED_ORIGINS:
         response.headers["Access-Control-Allow-Origin"] = origin
@@ -1147,11 +1217,46 @@ def add_cors(response):
         # Allow agent-to-agent calls (no browser origin) but block random browser origins
         response.headers["Access-Control-Allow-Origin"] = "https://aipaygen.com"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Payment, Authorization, Accept, X-Idempotency-Key"
-    response.headers["Access-Control-Expose-Headers"] = "X-Request-ID, X-Payment-Info, X-Payment-Receipt, X-Free-Calls-Remaining, X-Upgrade-Hint, X-Payment-Required, X-Price-USDC, X-Pay-To, X-Network, X-Facilitator-URL"
-    # Full UUID correlation ID per request
-    req_id = request.headers.get("X-Idempotency-Key") or str(uuid.uuid4())
-    response.headers["X-Request-ID"] = req_id
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Payment, Authorization, Accept, X-Idempotency-Key, X-Request-Id"
+    response.headers["Access-Control-Expose-Headers"] = (
+        "X-Request-Id, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, "
+        "X-API-Version, X-Powered-By, "
+        "X-Payment-Info, X-Payment-Receipt, X-Free-Calls-Remaining, X-Upgrade-Hint, "
+        "X-Payment-Required, X-Price-USDC, X-Pay-To, X-Network, X-Facilitator-URL, "
+        "Deprecation, Sunset, Link"
+    )
+
+    # ── Request ID (use pre-generated from before_request, or idempotency key) ──
+    req_id = getattr(request, '_request_id', None) or str(uuid.uuid4())
+    if request.headers.get("X-Idempotency-Key"):
+        req_id = request.headers["X-Idempotency-Key"]
+    response.headers["X-Request-Id"] = req_id
+
+    # ── API Version + Powered-By ───────────────────────────────────────────────
+    response.headers["X-API-Version"] = "1.8.3"
+    response.headers["X-Powered-By"] = "AiPayGen"
+
+    # ── Rate Limit Headers ─────────────────────────────────────────────────────
+    try:
+        ip = _get_client_ip()
+        rl = _get_rate_limit_info(ip)
+        response.headers["X-RateLimit-Limit"] = str(rl["limit"])
+        response.headers["X-RateLimit-Remaining"] = str(rl["remaining"])
+        response.headers["X-RateLimit-Reset"] = str(rl["reset"])
+    except Exception:
+        pass
+
+    # ── Deprecation headers for legacy duplicate routes ────────────────────────
+    _deprecated = {
+        "/free/joke": "/data/joke",
+        "/free/quote": "/data/quote",
+    }
+    canonical = _deprecated.get(request.path)
+    if canonical:
+        response.headers["Deprecation"] = "true"
+        response.headers["Sunset"] = "2026-09-01T00:00:00Z"
+        response.headers["Link"] = f'<https://api.aipaygen.com{canonical}>; rel="successor-version"'
+
     # Payment receipt header on paid 2xx responses
     if request.headers.get("X-Payment") and 200 <= response.status_code < 300:
         response.headers["X-Payment-Receipt"] = f"paid:{req_id}"
@@ -1175,7 +1280,6 @@ def add_cors(response):
     response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; object-src 'none'; frame-ancestors 'none'"
     if "Cache-Control" not in response.headers:
         response.headers["Cache-Control"] = "no-store"
-    response.headers.pop("X-Powered-By", None)
     response.headers.pop("Server", None)
     return response
 
@@ -1345,9 +1449,11 @@ def not_found(e):
 <body><div class="box"><h1>404</h1><p>This page does not exist.</p>{hint}<h3>Try these instead:</h3><ul style="list-style:none;padding:0">{links}</ul>
 <p style="margin-top:24px;color:#8b949e"><a href="/">Back to home</a></p></div></body></html>"""
         return html, 404
+    req_id = getattr(request, '_request_id', None)
     resp = {
         "error": "not_found",
         "message": "The requested endpoint does not exist.",
+        "request_id": req_id,
         "discover": "https://api.aipaygen.com/discover",
         "suggested_pages": suggested_pages,
     }
@@ -1358,32 +1464,38 @@ def not_found(e):
 
 @app.errorhandler(405)
 def method_not_allowed(e):
-    return jsonify({"error": "method_not_allowed", "message": "This HTTP method is not supported for this endpoint.", "docs": "https://aipaygen.com/docs"}), 405
+    req_id = getattr(request, '_request_id', None)
+    return jsonify({"error": "method_not_allowed", "message": "This HTTP method is not supported for this endpoint.", "request_id": req_id, "docs": "https://aipaygen.com/docs"}), 405
 
 
 @app.errorhandler(415)
 def unsupported_media_type(e):
-    return jsonify({"error": "unsupported_media_type", "message": "Content-Type must be application/json for POST requests.", "docs": "https://aipaygen.com/docs#quickstart"}), 415
+    req_id = getattr(request, '_request_id', None)
+    return jsonify({"error": "unsupported_media_type", "message": "Content-Type must be application/json for POST requests.", "request_id": req_id, "docs": "https://aipaygen.com/docs#quickstart"}), 415
 
 
 @app.errorhandler(429)
 def rate_limited(e):
-    return jsonify({"error": "rate_limited", "message": "Rate limit exceeded. Upgrade to a paid plan for higher limits.", "pricing": "https://aipaygen.com/pricing", "buy_credits": "https://aipaygen.com/buy-credits"}), 429
+    req_id = getattr(request, '_request_id', None)
+    return jsonify({"error": "rate_limited", "message": "Rate limit exceeded. Upgrade to a paid plan for higher limits.", "request_id": req_id, "pricing": "https://aipaygen.com/pricing", "buy_credits": "https://aipaygen.com/buy-credits"}), 429
 
 
 @app.errorhandler(500)
 def internal_error(e):
+    req_id = getattr(request, '_request_id', None)
     if request.accept_mimetypes.best == 'text/html':
-        html = """<!DOCTYPE html><html><head><title>500 — Server Error</title>
-<style>body{font-family:sans-serif;background:#0d1117;color:#c9d1d9;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}
-.box{text-align:center;max-width:480px;padding:40px}h1{color:#f85149;font-size:3rem}a{color:#58a6ff}</style></head>
+        html = f"""<!DOCTYPE html><html><head><title>500 — Server Error</title>
+<style>body{{font-family:sans-serif;background:#0d1117;color:#c9d1d9;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}}
+.box{{text-align:center;max-width:480px;padding:40px}}h1{{color:#f85149;font-size:3rem}}a{{color:#58a6ff}}.rid{{font-family:monospace;color:#8b949e;font-size:0.8rem}}</style></head>
 <body><div class="box"><h1>500</h1><p>Something went wrong on our end.</p>
 <p>Check <a href="/status">service status</a> for live health info.</p>
+<p class="rid">Request ID: {req_id}</p>
 <p style="margin-top:24px;color:#8b949e"><a href="/">Back to home</a></p></div></body></html>"""
         return html, 500
     return jsonify({
         "error": "internal_server_error",
         "message": "An unexpected error occurred.",
+        "request_id": req_id,
         "status_page": "https://aipaygen.com/status",
         "health": "https://aipaygen.com/health",
     }), 500
