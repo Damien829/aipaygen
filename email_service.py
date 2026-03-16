@@ -230,6 +230,117 @@ def send_usage_digest(email: str, api_key: str) -> bool:
         return False
 
 
+def send_onboarding_day2(to: str, api_key: str) -> bool:
+    """Day-2 onboarding email: 3 things to try with your API key."""
+    if not to or not api_key:
+        return False
+    safe_key = _html.escape(api_key)
+    try:
+        resend.Emails.send({
+            "from": FROM_EMAIL,
+            "to": [to],
+            "subject": "3 things to try with your AiPayGen API key",
+            "html": f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#0a0a0a;color:#e8e8e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<div style="max-width:520px;margin:40px auto;background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:40px;">
+  <h1 style="font-size:1.5rem;margin-bottom:8px;">Here are 3 things to try with your API key</h1>
+  <p style="color:#888;margin-bottom:24px;">You created your key 24 hours ago. Here are the most popular starting points:</p>
+
+  <h2 style="font-size:1rem;color:#a78bfa;margin-bottom:8px;">1. Sentiment Analysis</h2>
+  <div style="background:#1a1a1a;border-radius:8px;padding:14px;font-size:0.8rem;color:#888;margin-bottom:20px;">
+    <pre style="margin:0;white-space:pre-wrap;">curl -X POST https://api.aipaygen.com/sentiment \\
+  -H "Authorization: Bearer {safe_key}" \\
+  -H "Content-Type: application/json" \\
+  -d '{{"text": "This product is absolutely amazing!"}}'</pre>
+  </div>
+
+  <h2 style="font-size:1rem;color:#a78bfa;margin-bottom:8px;">2. Research Any Topic</h2>
+  <div style="background:#1a1a1a;border-radius:8px;padding:14px;font-size:0.8rem;color:#888;margin-bottom:20px;">
+    <pre style="margin:0;white-space:pre-wrap;">curl -X POST https://api.aipaygen.com/research \\
+  -H "Authorization: Bearer {safe_key}" \\
+  -H "Content-Type: application/json" \\
+  -d '{{"topic": "AI agent frameworks 2026"}}'</pre>
+  </div>
+
+  <h2 style="font-size:1rem;color:#a78bfa;margin-bottom:8px;">3. Chain Multiple Tools</h2>
+  <div style="background:#1a1a1a;border-radius:8px;padding:14px;font-size:0.8rem;color:#888;margin-bottom:20px;">
+    <pre style="margin:0;white-space:pre-wrap;">curl -X POST https://api.aipaygen.com/chain \\
+  -H "Authorization: Bearer {safe_key}" \\
+  -H "Content-Type: application/json" \\
+  -d '{{"steps": [
+    {{"tool": "research", "input": {{"topic": "quantum computing"}}}},
+    {{"tool": "summarize", "input": {{"text": "$prev.result"}}}}
+  ]}}'</pre>
+  </div>
+
+  <p style="color:#888;font-size:0.85rem;margin-bottom:20px;">You still have <span style="color:#34d399;font-weight:700;">$0.25 in trial credits</span> (~40 AI calls). No credit card needed to start.</p>
+
+  <div style="margin-bottom:24px;">
+    <a href="https://aipaygen.com/docs" style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;border-radius:10px;padding:12px 24px;font-weight:600;margin-right:10px;">View Docs</a>
+    <a href="https://aipaygen.com/playground" style="display:inline-block;background:#2a2a2a;color:#e8e8e8;text-decoration:none;border-radius:10px;padding:12px 24px;font-weight:600;">Open Playground</a>
+  </div>
+  <p style="color:#555;font-size:0.8rem;">Questions? Reply to this email.</p>
+</div>
+</body></html>"""
+        })
+        return True
+    except Exception as e:
+        logger.error("send_onboarding_day2 to=%s failed: %s", to, e)
+        return False
+
+
+def send_low_balance_reminder(to: str, api_key: str, balance: float) -> bool:
+    """Send low-balance reminder when balance drops below $0.10."""
+    if not to or not api_key:
+        return False
+    safe_key = _html.escape(api_key)
+    try:
+        # Try to get usage stats
+        calls = 0
+        spent = 0.0
+        try:
+            from api_keys import get_key_status
+            status = get_key_status(api_key)
+            if status:
+                calls = status.get("call_count", 0)
+                spent = status.get("total_spent", 0.0)
+        except Exception:
+            pass
+
+        resend.Emails.send({
+            "from": FROM_EMAIL,
+            "to": [to],
+            "subject": "Your AiPayGen balance is running low",
+            "html": f"""<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#0a0a0a;color:#e8e8e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<div style="max-width:520px;margin:40px auto;background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:40px;">
+  <h1 style="font-size:1.5rem;margin-bottom:8px;">Your balance is running low</h1>
+  <p style="color:#888;margin-bottom:24px;">Your AiPayGen balance is below $0.10. Top up to keep your tools running.</p>
+
+  <table style="width:100%;border-collapse:collapse;margin-bottom:24px;">
+    <tr><td style="padding:10px 0;color:#888;border-bottom:1px solid #222;">Current Balance</td><td style="padding:10px 0;text-align:right;font-weight:700;color:#f59e0b;border-bottom:1px solid #222;">${balance:.4f}</td></tr>
+    <tr><td style="padding:10px 0;color:#888;border-bottom:1px solid #222;">API Calls Made</td><td style="padding:10px 0;text-align:right;font-weight:700;border-bottom:1px solid #222;">{calls:,}</td></tr>
+    <tr><td style="padding:10px 0;color:#888;">Total Spent</td><td style="padding:10px 0;text-align:right;color:#34d399;font-weight:700;">${spent:.2f}</td></tr>
+  </table>
+
+  <p style="color:#888;font-size:0.85rem;margin-bottom:20px;">At ~$0.006/call, <strong style="color:#e8e8e8;">$5 gets you ~830 more calls</strong>.</p>
+
+  <a href="https://aipaygen.com/buy-credits" style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;border-radius:10px;padding:14px 32px;font-weight:600;font-size:1rem;">Top Up Now</a>
+
+  <div style="margin-top:20px;background:#1a1a1a;border-radius:8px;padding:12px;font-size:0.8rem;color:#666;">
+    API Key: <span style="color:#a78bfa;font-family:monospace;">{safe_key[:12]}...{safe_key[-4:]}</span>
+  </div>
+</div>
+</body></html>"""
+        })
+        return True
+    except Exception as e:
+        logger.error("send_low_balance_reminder to=%s failed: %s", to, e)
+        return False
+
+
 def send_weekly_digest(to: str, calls: int = 0, top_tools: list = None, spent: float = 0.0) -> bool:
     top_tools = top_tools or []
     tools_html = ", ".join(_html.escape(t) for t in top_tools) if top_tools else "None"

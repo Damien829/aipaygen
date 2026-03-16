@@ -107,6 +107,66 @@
 
 /* Badges row */
 .badges-row { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; }
+
+/* Built-With terminal cards */
+.built-with-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; max-width: 1100px; margin: 0 auto; }
+.demo-card { background: #0a0a0a; border: 1px solid var(--border, #2a2a2a); border-radius: var(--radius-md, 12px); overflow: hidden; }
+.demo-card-header {
+  display: flex; align-items: center; gap: 6px; padding: 10px 16px;
+  background: #111; border-bottom: 1px solid var(--border, #2a2a2a);
+}
+.demo-card-header .dot { width: 10px; height: 10px; border-radius: 50%; }
+.demo-card-header .dot.r { background: #ff5f57; }
+.demo-card-header .dot.y { background: #febc2e; }
+.demo-card-header .dot.g { background: #28c840; }
+.demo-card-header .title { margin-left: auto; font-size: 0.72rem; color: var(--text-muted, #666); font-family: var(--font-mono); }
+.demo-card-label { padding: 16px 16px 0; font-family: var(--font-mono); font-size: 0.95rem; font-weight: 600; }
+.demo-card-desc { padding: 4px 16px 0; font-size: 0.82rem; color: var(--text-secondary, #888); }
+.demo-card-body { padding: 12px 16px 16px; font-family: var(--font-mono); font-size: 0.75rem; line-height: 1.65; }
+.demo-card-body pre { margin: 0; white-space: pre-wrap; word-break: break-all; }
+.demo-card-body .req-tag { color: var(--accent, #6366f1); font-weight: 600; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 6px; }
+.demo-card-body .req { color: var(--accent2, #00d4ff); }
+.demo-card-body .res-tag { color: #28c840; font-weight: 600; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; margin-top: 10px; margin-bottom: 6px; }
+.demo-card-body .res { color: var(--text-secondary, #888); }
+@media (max-width: 1024px) { .built-with-grid { grid-template-columns: 1fr; max-width: 520px; } }
+
+/* Animated live stats counter */
+.live-stats-grid { display: flex; justify-content: center; gap: 48px; flex-wrap: wrap; }
+.live-stat { text-align: center; min-width: 110px; }
+.live-stat-value {
+  font-family: var(--font-mono); font-size: 2.2rem; font-weight: 700;
+  background: linear-gradient(135deg, var(--accent, #6366f1), var(--accent2, #00d4ff));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.live-stat-label { font-size: 0.72rem; color: var(--text-muted, #666); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px; }
+
+/* Testimonial */
+.testimonial-card {
+  max-width: 680px; margin: 0 auto;
+  background: var(--bg-elevated, #141414); border: 1px solid var(--border, #2a2a2a);
+  border-radius: var(--radius-md, 12px); padding: 32px; position: relative;
+}
+.testimonial-card::before {
+  content: '\201C'; position: absolute; top: 12px; left: 20px;
+  font-size: 3rem; color: var(--accent, #6366f1); opacity: 0.25; line-height: 1;
+}
+.testimonial-quote { font-size: 0.95rem; line-height: 1.7; color: var(--text, #e8e8e8); margin-bottom: 16px; padding-left: 8px; font-style: italic; }
+.testimonial-author { display: flex; align-items: center; gap: 12px; padding-left: 8px; }
+.testimonial-author-info .name { font-weight: 600; font-size: 0.85rem; }
+.testimonial-author-info .role { font-size: 0.75rem; color: var(--text-muted, #666); }
+.testimonial-proof { margin-top: 16px; padding: 10px 14px; background: #0a0a0a; border-radius: 8px; font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent2, #00d4ff); overflow-x: auto; }
+
+/* Trust badges enhanced */
+.trust-badges { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; max-width: 800px; margin: 0 auto; }
+.trust-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border: 1px solid var(--border, #2a2a2a); border-radius: 20px;
+  font-size: 0.78rem; font-family: var(--font-mono); color: var(--text-secondary, #888);
+  background: var(--bg-elevated, #141414);
+}
+.trust-badge .check { color: #28c840; font-weight: 700; }
+.trust-badge a { color: var(--accent2, #00d4ff); text-decoration: none; }
+.trust-badge a:hover { text-decoration: underline; }
 </style>
 {% endblock %}
 
@@ -131,17 +191,35 @@
       <span>10 free calls/day</span> &middot; <span style="color:var(--accent2)">$0.25 trial credits</span> &middot; No sign-up required &middot;
       <code>pip install aipaygen-mcp</code>
     </p>
+
+    <!-- Instant API Key Form -->
+    <div class="fade-in delay-3" id="heroKeyForm" style="margin-top:28px;max-width:460px;margin-left:auto;margin-right:auto;">
+      <div style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:10px;">Get an instant API key with $0.25 free credits</div>
+      <form id="heroKeyGen" onsubmit="return heroGenKey(event)" style="display:flex;gap:8px;">
+        <input type="email" id="heroEmail" required placeholder="you@example.com" aria-label="Email for API key"
+          style="flex:1;padding:12px 16px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text);font-size:var(--text-sm);outline:none;font-family:var(--font-sans);">
+        <button type="submit" class="btn btn-primary" id="heroKeyBtn" style="white-space:nowrap;padding:12px 20px;">Get Free Key</button>
+      </form>
+      <div id="heroKeyResult" style="display:none;margin-top:12px;background:var(--bg-elevated);border:1px solid var(--accent);border-radius:var(--radius-md);padding:14px;text-align:left;">
+        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">YOUR API KEY</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <code id="heroKeyValue" style="flex:1;font-size:0.85rem;color:var(--accent);word-break:break-all;"></code>
+          <button type="button" onclick="copyHeroKey()" id="heroKeyCopy" style="background:var(--accent);color:#000;border:none;border-radius:6px;padding:6px 14px;font-size:0.75rem;font-weight:600;cursor:pointer;white-space:nowrap;">Copy</button>
+        </div>
+        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:8px;">$0.25 trial credits loaded. <a href="/docs" style="color:var(--accent);">View docs</a> or <a href="/playground" style="color:var(--accent);">open playground</a>.</div>
+      </div>
+      <div id="heroKeyError" style="display:none;margin-top:8px;font-size:var(--text-xs);color:#ef4444;"></div>
+    </div>
   </div>
 </section>
 
-<!-- Live Stats -->
-<div class="section fade-in" style="padding-top:0;padding-bottom:40px">
-  <div class="stats-bar" id="statsBar">
-    <div class="stat-item"><div class="stat-value" id="stat-agents"><div class="stat-skeleton"></div></div><div class="stat-label">Agents</div></div>
-    <div class="stat-item"><div class="stat-value" id="stat-keys"><div class="stat-skeleton"></div></div><div class="stat-label">API Keys</div></div>
-    <div class="stat-item"><div class="stat-value" id="stat-skills"><div class="stat-skeleton"></div></div><div class="stat-label">Skills</div></div>
-    <div class="stat-item"><div class="stat-value" id="stat-apis"><div class="stat-skeleton"></div></div><div class="stat-label">APIs Indexed</div></div>
-    <div class="stat-item"><div class="stat-value" id="stat-tools"><div class="stat-skeleton"></div></div><div class="stat-label">MCP Tools</div></div>
+<!-- Animated Live Stats -->
+<div class="section fade-in" id="liveStatsSection" style="padding-top:0;padding-bottom:40px">
+  <div class="live-stats-grid">
+    <div class="live-stat"><div class="live-stat-value" data-counter="0" id="stat-tools">244</div><div class="live-stat-label">Tools Available</div></div>
+    <div class="live-stat"><div class="live-stat-value" data-counter="0" id="stat-calls">0</div><div class="live-stat-label">API Calls Served</div></div>
+    <div class="live-stat"><div class="live-stat-value" data-counter="0" id="stat-agents">0</div><div class="live-stat-label">Agents Registered</div></div>
+    <div class="live-stat"><div class="live-stat-value" data-counter="0" id="stat-skills">0</div><div class="live-stat-label">Skills in Catalog</div></div>
   </div>
 </div>
 
@@ -307,15 +385,105 @@
 function updateCalc(){var s=document.getElementById('calc-slider'),n=parseInt(s.value);document.getElementById('calc-calls').textContent=n;var monthly=(n*30*0.006);document.getElementById('calc-cost').textContent='$'+monthly.toFixed(2);}
 </script>
 
-<!-- Social Proof / Badges -->
+<!-- Built with AiPayGen -->
+<section class="section fade-in">
+  <div class="section-title text-center" style="max-width:none">Built with AiPayGen</div>
+  <div class="section-subtitle text-center" style="max-width:none;margin:0 auto 48px">Real requests, real responses. See what one API call looks like.</div>
+  <div class="built-with-grid">
+
+    <!-- Content Pipeline -->
+    <div class="demo-card">
+      <div class="demo-card-header">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="title">POST /chain</span>
+      </div>
+      <div class="demo-card-label">Content Pipeline</div>
+      <div class="demo-card-desc">Scrape, summarize, and translate in one API call</div>
+      <div class="demo-card-body">
+        <div class="req-tag">Request</div>
+        <pre class="req">{"steps": [
+  {"tool": "scrape_website",
+   "input": {"url": "https://blog.example.com/ai"}},
+  {"tool": "summarize",
+   "input": {"text": "$prev.result"}},
+  {"tool": "translate",
+   "input": {"text": "$prev.result",
+             "target": "es"}}
+]}</pre>
+        <div class="res-tag">Response</div>
+        <pre class="res">{"steps_completed": 3,
+ "result": "La IA generativa est&aacute;
+  transformando la industria del
+  software con nuevos paradigmas...",
+ "_billing": {"cost": 0.018}}</pre>
+      </div>
+    </div>
+
+    <!-- Research Agent -->
+    <div class="demo-card">
+      <div class="demo-card-header">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="title">POST /research</span>
+      </div>
+      <div class="demo-card-label">Research Agent</div>
+      <div class="demo-card-desc">Ask any question, get sourced answers</div>
+      <div class="demo-card-body">
+        <div class="req-tag">Request</div>
+        <pre class="req">{"query": "What is the x402
+  payment protocol and how
+  does it work?"}</pre>
+        <div class="res-tag">Response</div>
+        <pre class="res">{"summary": "x402 is an HTTP-native
+  payment protocol that uses
+  status code 402. Clients pay
+  with signed USDC transactions
+  via the X-Payment header...",
+ "sources": [
+   "x402.org",
+   "docs.cdp.coinbase.com"
+ ],
+ "_billing": {"cost": 0.006}}</pre>
+      </div>
+    </div>
+
+    <!-- Code Generator -->
+    <div class="demo-card">
+      <div class="demo-card-header">
+        <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
+        <span class="title">POST /code</span>
+      </div>
+      <div class="demo-card-label">Code Generator</div>
+      <div class="demo-card-desc">Describe what you want, get working code</div>
+      <div class="demo-card-body">
+        <div class="req-tag">Request</div>
+        <pre class="req">{"prompt": "Python function that
+  fetches crypto prices from
+  CoinGecko and returns a
+  formatted table"}</pre>
+        <div class="res-tag">Response</div>
+        <pre class="res">{"language": "python",
+ "code": "import requests\n\ndef
+  get_prices(coins=['bitcoin',
+  'ethereum']):\n  url = 'https://
+  api.coingecko.com/...'",
+ "explanation": "Uses requests
+  to fetch from CoinGecko...",
+ "_billing": {"cost": 0.008}}</pre>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- Trust Badges -->
 <section class="section fade-in" style="padding-top:0">
-  <div class="badges-row">
-    <span class="badge">MCP Registry Listed</span>
-    <span class="badge">PyPI Published</span>
-    <span class="badge badge-cyan">Smithery Listed</span>
-    <span class="badge badge-cyan">Glama Listed</span>
-    <span class="badge">1382 Tests Passing</span>
-    <span class="badge badge-cyan">Base Mainnet</span>
+  <div class="trust-badges">
+    <span class="trust-badge"><span class="check">&#10003;</span> MCP Registry Listed</span>
+    <span class="trust-badge"><span class="check">&#10003;</span> 1,263 Tests Passing</span>
+    <span class="trust-badge"><span class="check">&#10003;</span> Smithery Verified</span>
+    <span class="trust-badge"><span class="check">&#10003;</span> Glama Listed</span>
+    <span class="trust-badge"><span class="check">&#10003;</span> <a href="https://pypi.org/project/aipaygen-mcp/" target="_blank" rel="noopener">Open Source SDK on PyPI</a></span>
+    <span class="trust-badge"><span class="check">&#10003;</span> Base Mainnet (USDC)</span>
   </div>
 </section>
 
@@ -443,6 +611,25 @@ function updateCalc(){var s=document.getElementById('calc-slider'),n=parseInt(s.
   </div>
 </section>
 
+<!-- Testimonial -->
+<section class="section fade-in" style="padding-bottom:40px">
+  <div class="section-title text-center" style="max-width:none;font-size:var(--text-xl, 1.25rem);margin-bottom:32px">From the builder</div>
+  <div class="testimonial-card">
+    <div class="testimonial-quote">
+      I built AiPayGen to power my own Claude Code workflow. 244 tools, one MCP server, zero context switching. Every feature exists because I needed it first.
+    </div>
+    <div class="testimonial-author">
+      <div class="testimonial-author-info">
+        <div class="name">Damien</div>
+        <div class="role">Creator of AiPayGen &middot; Daily user</div>
+      </div>
+    </div>
+    <div class="testimonial-proof">
+      <code>$ claude mcp add aipaygen -- npx -y @anthropic-ai/mcp-proxy https://mcp.aipaygen.com/mcp</code>
+    </div>
+  </div>
+</section>
+
 <!-- CTA -->
 <section class="cta-section fade-in">
   <div class="section-title" style="margin-bottom:16px">Start building in 30 seconds</div>
@@ -456,22 +643,62 @@ function updateCalc(){var s=document.getElementById('calc-slider'),n=parseInt(s.
 
 {% block scripts %}
 <script>
-// Fetch live stats
+// Animated counter - counts up when scrolled into view
+function animateCounter(el, target) {
+  var start = 0;
+  var duration = 1800;
+  var startTime = null;
+  function step(ts) {
+    if (!startTime) startTime = ts;
+    var progress = Math.min((ts - startTime) / duration, 1);
+    var eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+    var current = Math.floor(eased * target);
+    el.textContent = current.toLocaleString();
+    if (progress < 1) requestAnimationFrame(step);
+    else el.textContent = target.toLocaleString();
+  }
+  requestAnimationFrame(step);
+}
+
+// Fetch stats and animate on scroll
+var statsAnimated = false;
 fetch('/api/stats').then(function(r){return r.json()}).then(function(d){
-  var map = {
+  var statMap = {
+    'stat-tools': d.mcp_tools || 244,
+    'stat-calls': d.total_calls || 0,
     'stat-agents': d.agents || 0,
-    'stat-keys': d.api_keys || 0,
-    'stat-skills': d.skills || 0,
-    'stat-apis': d.apis || 0,
-    'stat-tools': d.mcp_tools || 244
+    'stat-skills': d.skills || 0
   };
-  Object.keys(map).forEach(function(id){
+  // Store targets on elements
+  Object.keys(statMap).forEach(function(id){
     var el = document.getElementById(id);
-    if (el) el.textContent = Number(map[id]).toLocaleString();
+    if (el) el.setAttribute('data-target', statMap[id]);
   });
+  // Observe section for scroll-into-view animation
+  var section = document.getElementById('liveStatsSection');
+  if (section && 'IntersectionObserver' in window) {
+    var obs = new IntersectionObserver(function(entries) {
+      if (entries[0].isIntersecting && !statsAnimated) {
+        statsAnimated = true;
+        Object.keys(statMap).forEach(function(id){
+          var el = document.getElementById(id);
+          if (el) animateCounter(el, statMap[id]);
+        });
+        obs.disconnect();
+      }
+    }, {threshold: 0.3});
+    obs.observe(section);
+  } else {
+    // Fallback: just set values
+    Object.keys(statMap).forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.textContent = Number(statMap[id]).toLocaleString();
+    });
+  }
 }).catch(function(){
-  document.querySelectorAll('.stat-skeleton').forEach(function(s) {
-    s.parentElement.textContent = '\u2014';
+  ['stat-tools','stat-calls','stat-agents','stat-skills'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = '\u2014';
   });
 });
 
@@ -504,6 +731,45 @@ document.getElementById('ctaCopy').addEventListener('click', function() {
   var text = 'claude mcp add aipaygen -- npx -y @anthropic-ai/mcp-proxy https://mcp.aipaygen.com/mcp';
   navigator.clipboard.writeText(text).then(function(){ showToast('Copied to clipboard!'); });
 });
+
+// Hero instant API key
+function heroGenKey(e) {
+  e.preventDefault();
+  var email = document.getElementById('heroEmail').value.trim();
+  if (!email) return false;
+  var btn = document.getElementById('heroKeyBtn');
+  var errEl = document.getElementById('heroKeyError');
+  btn.disabled = true; btn.textContent = 'Generating...';
+  errEl.style.display = 'none';
+  fetch('/auth/generate-key', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({email: email, source: 'landing_hero'})
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if (d.key) {
+      document.getElementById('heroKeyValue').textContent = d.key;
+      document.getElementById('heroKeyResult').style.display = 'block';
+      document.getElementById('heroKeyGen').style.display = 'none';
+    } else {
+      errEl.textContent = d.error || d.message || 'Something went wrong';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Get Free Key';
+    }
+  }).catch(function(){
+    errEl.textContent = 'Network error. Try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Get Free Key';
+  });
+  return false;
+}
+function copyHeroKey() {
+  var key = document.getElementById('heroKeyValue').textContent;
+  navigator.clipboard.writeText(key).then(function(){
+    document.getElementById('heroKeyCopy').textContent = 'Copied!';
+    setTimeout(function(){ document.getElementById('heroKeyCopy').textContent = 'Copy'; }, 2000);
+    if (typeof showToast === 'function') showToast('API key copied!');
+  });
+}
 
 // Install section copy buttons
 function copyInstall(id, btn) {

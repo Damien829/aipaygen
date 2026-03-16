@@ -255,6 +255,12 @@ def metered_tool(tier: str = "standard"):
                     _create_notification(
                         api_key, "low_balance",
                         f"Low balance: ${remaining:.2f} remaining. Top up at /buy-credits")
+                # Fire low_balance webhooks if configured
+                try:
+                    from webhook_dispatch import check_low_balance_webhooks
+                    check_low_balance_webhooks(api_key, remaining)
+                except Exception:
+                    pass
 
                 if isinstance(result, dict):
                     result["_billing"] = {

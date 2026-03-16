@@ -387,3 +387,131 @@ def test_send_deposit_confirmation_conn_closed():
         mock_db.execute.return_value.fetchone.return_value = {"email": "user@example.com"}
         send_deposit_confirmation("apk_close", 1.0, "base", "0x000")
         mock_db.__enter__.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# send_onboarding_day2
+# ---------------------------------------------------------------------------
+
+def test_send_onboarding_day2_success():
+    from email_service import send_onboarding_day2
+    with patch("email_service.resend.Emails.send") as mock_send:
+        mock_send.return_value = {"id": "day2-ok"}
+        result = send_onboarding_day2("user@example.com", "apk_day2key")
+        assert result is True
+        mock_send.assert_called_once()
+        call_args = mock_send.call_args[0][0]
+        assert call_args["to"] == ["user@example.com"]
+
+def test_send_onboarding_day2_contains_curl_examples():
+    from email_service import send_onboarding_day2
+    with patch("email_service.resend.Emails.send") as mock_send:
+        mock_send.return_value = {"id": "day2-curl"}
+        send_onboarding_day2("user@example.com", "apk_curltest")
+        html = mock_send.call_args[0][0]["html"]
+        assert "sentiment" in html
+        assert "research" in html
+        assert "chain" in html
+        assert "apk_curltest" in html
+
+def test_send_onboarding_day2_contains_links():
+    from email_service import send_onboarding_day2
+    with patch("email_service.resend.Emails.send") as mock_send:
+        mock_send.return_value = {"id": "day2-links"}
+        send_onboarding_day2("user@example.com", "apk_links")
+        html = mock_send.call_args[0][0]["html"]
+        assert "aipaygen.com/docs" in html
+        assert "aipaygen.com/playground" in html
+
+def test_send_onboarding_day2_mentions_trial_credits():
+    from email_service import send_onboarding_day2
+    with patch("email_service.resend.Emails.send") as mock_send:
+        mock_send.return_value = {"id": "day2-credits"}
+        send_onboarding_day2("user@example.com", "apk_credits")
+        html = mock_send.call_args[0][0]["html"]
+        assert "$0.25" in html
+
+def test_send_onboarding_day2_empty_to():
+    from email_service import send_onboarding_day2
+    result = send_onboarding_day2("", "apk_key")
+    assert result is False
+
+def test_send_onboarding_day2_empty_key():
+    from email_service import send_onboarding_day2
+    result = send_onboarding_day2("user@example.com", "")
+    assert result is False
+
+def test_send_onboarding_day2_resend_failure():
+    from email_service import send_onboarding_day2
+    with patch("email_service.resend.Emails.send", side_effect=Exception("API error")):
+        result = send_onboarding_day2("user@example.com", "apk_fail")
+        assert result is False
+
+def test_send_onboarding_day2_subject():
+    from email_service import send_onboarding_day2
+    with patch("email_service.resend.Emails.send") as mock_send:
+        mock_send.return_value = {"id": "day2-subj"}
+        send_onboarding_day2("user@example.com", "apk_subj")
+        subject = mock_send.call_args[0][0]["subject"]
+        assert "3 things" in subject
+
+
+# ---------------------------------------------------------------------------
+# send_low_balance_reminder
+# ---------------------------------------------------------------------------
+
+def test_send_low_balance_reminder_success():
+    from email_service import send_low_balance_reminder
+    with patch("email_service.resend.Emails.send") as mock_send, \
+         patch("api_keys.get_key_status", return_value={"call_count": 50, "total_spent": 0.20}):
+        mock_send.return_value = {"id": "low-ok"}
+        result = send_low_balance_reminder("user@example.com", "apk_lowbal", 0.05)
+        assert result is True
+        html = mock_send.call_args[0][0]["html"]
+        assert "$0.0500" in html
+        assert "50" in html
+
+def test_send_low_balance_reminder_buy_credits_link():
+    from email_service import send_low_balance_reminder
+    with patch("email_service.resend.Emails.send") as mock_send, \
+         patch("api_keys.get_key_status", return_value=None):
+        mock_send.return_value = {"id": "low-link"}
+        send_low_balance_reminder("user@example.com", "apk_link", 0.08)
+        html = mock_send.call_args[0][0]["html"]
+        assert "buy-credits" in html
+
+def test_send_low_balance_reminder_subject():
+    from email_service import send_low_balance_reminder
+    with patch("email_service.resend.Emails.send") as mock_send, \
+         patch("api_keys.get_key_status", return_value=None):
+        mock_send.return_value = {"id": "low-subj"}
+        send_low_balance_reminder("user@example.com", "apk_subj", 0.03)
+        subject = mock_send.call_args[0][0]["subject"]
+        assert "low" in subject.lower()
+
+def test_send_low_balance_reminder_empty_to():
+    from email_service import send_low_balance_reminder
+    result = send_low_balance_reminder("", "apk_key", 0.05)
+    assert result is False
+
+def test_send_low_balance_reminder_empty_key():
+    from email_service import send_low_balance_reminder
+    result = send_low_balance_reminder("user@example.com", "", 0.05)
+    assert result is False
+
+def test_send_low_balance_reminder_resend_failure():
+    from email_service import send_low_balance_reminder
+    with patch("email_service.resend.Emails.send", side_effect=Exception("down")), \
+         patch("api_keys.get_key_status", return_value=None):
+        result = send_low_balance_reminder("user@example.com", "apk_fail", 0.01)
+        assert result is False
+
+def test_send_low_balance_reminder_shows_masked_key():
+    from email_service import send_low_balance_reminder
+    with patch("email_service.resend.Emails.send") as mock_send, \
+         patch("api_keys.get_key_status", return_value=None):
+        mock_send.return_value = {"id": "low-mask"}
+        send_low_balance_reminder("user@example.com", "apk_test1234567890", 0.05)
+        html = mock_send.call_args[0][0]["html"]
+        assert "apk_test1234" in html
+        assert "7890" in html

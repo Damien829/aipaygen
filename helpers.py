@@ -270,6 +270,12 @@ def call_llm(messages, system="", max_tokens=1024, endpoint="unknown", model_ove
                 result["balance_remaining"] = deduction["balance_remaining"]
                 if deduction["balance_remaining"] < 0.10:
                     result["metered_warning"] = f"Low balance: ${deduction['balance_remaining']:.4f} remaining"
+                # Fire low_balance webhooks if configured
+                try:
+                    from webhook_dispatch import check_low_balance_webhooks
+                    check_low_balance_webhooks(api_key, deduction["balance_remaining"])
+                except Exception:
+                    pass
     return result, None
 
 

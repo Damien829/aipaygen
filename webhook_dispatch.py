@@ -41,22 +41,28 @@ def init_webhooks_dispatch_db():
             api_key TEXT NOT NULL,
             url TEXT NOT NULL,
             events TEXT NOT NULL,
+            threshold REAL DEFAULT 0.0,
             created_at TEXT NOT NULL DEFAULT (datetime('now'))
         )
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_uw_api_key ON user_webhooks(api_key)")
+    # Migration: add threshold column if missing
+    try:
+        conn.execute("ALTER TABLE user_webhooks ADD COLUMN threshold REAL DEFAULT 0.0")
+    except sqlite3.OperationalError:
+        pass
     conn.commit()
     _close_conn(conn)
 
 
-def register_webhook(api_key, url, events):
+def register_webhook(api_key, url, events, threshold=0.0):
     """Register a webhook. Returns ID or None if URL is not HTTPS."""
     if not url or not url.startswith("https://"):
         return None
     conn = _get_conn()
     cur = conn.execute(
-        "INSERT INTO user_webhooks (api_key, url, events) VALUES (?, ?, ?)",
-        (api_key, url, json.dumps(events)),
+        "INSERT INTO user_webhooks (api_key, url, events, threshold) VALUES (?, ?, ?, ?)",
+        (api_key, url, json.dumps(events), float(threshold)),
     )
     conn.commit()
     wh_id = cur.lastrowid
@@ -66,9 +72,10 @@ def register_webhook(api_key, url, events):
 
 def list_webhooks(api_key):
     conn = _get_conn()
-    rows = conn.execute("SELECT id, api_key, url, events, created_at FROM user_webhooks WHERE api_key = ?", (api_key,)).fetchall()
+    rows = conn.execute("SELECT id, api_key, url, events, threshold, created_at FROM user_webhooks WHERE api_key = ?", (api_key,)).fetchall()
     _close_conn(conn)
-    return [{"id": r["id"], "url": r["url"], "events": json.loads(r["events"]), "created_at": r["created_at"]} for r in rows]
+    return [{"id": r["id"], "url": r["url"], "events": json.loads(r["events"]),
+             "threshold": r["threshold"] or 0.0, "created_at": r["created_at"]} for r in rows]
 
 
 def delete_webhook(webhook_id, api_key):
@@ -78,6 +85,31 @@ def delete_webhook(webhook_id, api_key):
     deleted = cur.rowcount > 0
     _close_conn(conn)
     return deleted
+
+
+def check_low_balance_webhooks(api_key, current_balance):
+    """Fire low_balance webhooks if balance is below the configured threshold."""
+    try:
+        conn = _get_conn()
+        rows = conn.execute(
+            "SELECT id, url, events, threshold FROM user_webhooks WHERE api_key = ?",
+            (api_key,),
+        ).fetchall()
+        _close_conn(conn)
+        for row in rows:
+            events = json.loads(row["events"])
+            if "low_balance" not in events:
+                continue
+            threshold = row["threshold"] or 0.50
+            if current_balance <= threshold:
+                dispatch_event("low_balance", api_key, {
+                    "balance_usd": round(current_balance, 4),
+                    "threshold": threshold,
+                    "message": f"Balance ${current_balance:.4f} is at or below threshold ${threshold:.2f}",
+                    "top_up_url": "https://aipaygen.com/buy-credits",
+                })
+    except Exception as e:
+        logger.error("check_low_balance_webhooks error: %s", e)
 
 
 def dispatch_event(event_type, api_key, payload=None):

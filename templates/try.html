@@ -156,6 +156,28 @@
     </div>
   </div>
 
+  <!-- Inline conversion banner (shown after 5 demos) -->
+  <div id="inline-convert" style="display:none;background:#141414;border:1px solid #6366f1;border-radius:14px;padding:24px;margin-top:16px;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <span style="font-size:0.95rem;font-weight:600;">You've used <span id="inline-convert-count">5</span> demos</span>
+      <span style="font-size:0.75rem;color:#888;">Get an API key to keep going — starts from $1</span>
+    </div>
+    <form id="inlineKeyForm" onsubmit="return inlineGenKey(event)" style="display:flex;gap:8px;flex-wrap:wrap;">
+      <input type="email" id="inlineEmail" required placeholder="you@example.com" aria-label="Email for API key"
+        style="flex:1;min-width:180px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:10px 14px;color:#e8e8e8;font-size:0.9rem;outline:none;">
+      <button type="submit" id="inlineKeyBtn" style="background:#6366f1;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-weight:600;cursor:pointer;white-space:nowrap;">Get Free Key</button>
+    </form>
+    <div id="inlineKeyResult" style="display:none;margin-top:12px;background:#0d0d0d;border:1px solid #6366f1;border-radius:8px;padding:12px;">
+      <div style="font-size:0.7rem;color:#666;margin-bottom:4px;">YOUR API KEY</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <code id="inlineKeyValue" style="flex:1;font-size:0.85rem;color:#a78bfa;word-break:break-all;"></code>
+        <button type="button" onclick="copyInlineKey()" id="inlineKeyCopy" style="background:#6366f1;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:0.72rem;cursor:pointer;">Copy</button>
+      </div>
+      <div style="font-size:0.7rem;color:#555;margin-top:6px;">$0.25 trial credits loaded. <a href="/docs" style="color:#818cf8;">Docs</a> | <a href="/playground" style="color:#818cf8;">Playground</a></div>
+    </div>
+    <div id="inlineKeyError" style="display:none;margin-top:8px;font-size:0.75rem;color:#ef4444;"></div>
+  </div>
+
   <div class="cta">
     <a href="/buy-credits">Get API Key — From $1</a>
     <p>244 tools &middot; 15 AI models &middot; Credits never expire</p>
@@ -383,6 +405,20 @@ function updateNudge() {
   const remaining = MAX_DEMOS - demoCount;
   const warn = document.getElementById('nudge-warn');
   const urgent = document.getElementById('nudge-urgent');
+  // Update progress bar
+  const pFill = document.getElementById('demo-progress-fill');
+  const pText = document.getElementById('demo-progress-text');
+  const pPct = document.getElementById('demo-progress-pct');
+  if (pFill) { pFill.style.width = (demoCount / MAX_DEMOS * 100) + '%'; if (remaining <= 3) pFill.style.background = '#f59e0b'; if (remaining <= 1) pFill.style.background = '#ef4444'; }
+  if (pText) pText.textContent = demoCount + ' / ' + MAX_DEMOS + ' demos used';
+  if (pPct) pPct.textContent = Math.round(demoCount / MAX_DEMOS * 100) + '%';
+
+  // Show inline conversion banner at 5 demos
+  if (demoCount >= 5) {
+    const ic = document.getElementById('inline-convert');
+    if (ic) { ic.style.display = 'block'; document.getElementById('inline-convert-count').textContent = demoCount; }
+  }
+
   if (remaining <= 2) {
     warn.classList.remove('show');
     urgent.textContent = remaining + ' free demo' + (remaining !== 1 ? 's' : '') + ' remaining \u2014 ';
@@ -401,6 +437,44 @@ function updateNudge() {
     warn.classList.remove('show');
     urgent.classList.remove('show');
   }
+}
+
+// Inline key generation on /try page
+function inlineGenKey(e) {
+  e.preventDefault();
+  const email = document.getElementById('inlineEmail').value.trim();
+  if (!email) return false;
+  const btn = document.getElementById('inlineKeyBtn');
+  const errEl = document.getElementById('inlineKeyError');
+  btn.disabled = true; btn.textContent = 'Generating...';
+  errEl.style.display = 'none';
+  fetch('/auth/generate-key', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({email: email, source: 'try_inline'})
+  }).then(r => r.json()).then(d => {
+    if (d.key) {
+      document.getElementById('inlineKeyValue').textContent = d.key;
+      document.getElementById('inlineKeyResult').style.display = 'block';
+      document.getElementById('inlineKeyForm').style.display = 'none';
+    } else {
+      errEl.textContent = d.error || d.message || 'Something went wrong';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Get Free Key';
+    }
+  }).catch(() => {
+    errEl.textContent = 'Network error. Try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Get Free Key';
+  });
+  return false;
+}
+function copyInlineKey() {
+  const key = document.getElementById('inlineKeyValue').textContent;
+  navigator.clipboard.writeText(key).then(() => {
+    document.getElementById('inlineKeyCopy').textContent = 'Copied!';
+    setTimeout(() => { document.getElementById('inlineKeyCopy').textContent = 'Copy'; }, 2000);
+  });
 }
 
 function copyCurl() {

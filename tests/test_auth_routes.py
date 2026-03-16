@@ -868,6 +868,109 @@ class TestWebhookEdgeCases:
         assert data["webhooks"][0]["id"] == 1
 
 
+# ── Dashboard & Usage API ─────────────────────────────────────────────────
+
+class TestDashboard:
+    def test_dashboard_no_key(self, client):
+        r = client.get("/dashboard")
+        assert r.status_code == 200
+        assert b"Enter your API key" in r.data
+
+    def test_dashboard_invalid_key(self, client):
+        r = client.get("/dashboard?key=invalid")
+        assert r.status_code == 200
+        assert b"Enter your API key" in r.data
+
+    @patch("routes.auth.get_key_status")
+    def test_dashboard_key_not_found(self, mock_status, client):
+        mock_status.return_value = None
+        r = client.get("/dashboard?key=apk_notfound")
+        assert r.status_code == 200
+        assert b"not found" in r.data
+
+    @patch("routes.auth.get_key_status")
+    def test_dashboard_valid_key(self, mock_status, client):
+        mock_status.return_value = {
+            "key": "apk_test123", "balance_usd": 4.23, "total_spent": 0.77,
+            "call_count": 147, "is_active": 1, "created_at": "2026-03-15T00:00:00",
+            "last_used_at": "2026-03-15T12:00:00", "label": "test", "source": "api",
+            "first_used_at": None, "referral_code": "",
+        }
+        r = client.get("/dashboard?key=apk_test123")
+        assert r.status_code == 200
+        assert b"4.23" in r.data
+        assert b"147" in r.data
+
+
+class TestUsageAPI:
+    def test_usage_no_key(self, client):
+        r = client.get("/api/usage")
+        assert r.status_code == 401
+
+    def test_usage_invalid_key(self, client):
+        r = client.get("/api/usage?key=bad")
+        assert r.status_code == 401
+
+    @patch("routes.auth.get_key_status")
+    def test_usage_key_not_found(self, mock_status, client):
+        mock_status.return_value = None
+        r = client.get("/api/usage?key=apk_notfound")
+        assert r.status_code == 404
+
+    @patch("routes.auth.get_key_status")
+    def test_usage_valid_key(self, mock_status, client):
+        mock_status.return_value = {
+            "key": "apk_testusage", "balance_usd": 2.50, "total_spent": 0.50,
+            "call_count": 50, "is_active": 1, "created_at": "2026-03-15T00:00:00",
+            "last_used_at": "2026-03-15T12:00:00", "label": "test", "source": "api",
+            "first_used_at": None, "referral_code": "",
+        }
+        r = client.get("/api/usage?key=apk_testusage")
+        assert r.status_code == 200
+        data = r.get_json()
+        assert data["balance_usd"] == 2.50
+        assert data["total_calls"] == 50
+        assert "key" in data
+        assert "apk_testusage" not in data["key"]  # key should be masked
+
+    @patch("routes.auth.get_key_status")
+    def test_usage_via_bearer(self, mock_status, client):
+        mock_status.return_value = {
+            "key": "apk_bearer123", "balance_usd": 1.00, "total_spent": 0.10,
+            "call_count": 10, "is_active": 1, "created_at": "2026-03-15T00:00:00",
+            "last_used_at": None, "label": "", "source": "api",
+            "first_used_at": None, "referral_code": "",
+        }
+        r = client.get("/api/usage", headers={"Authorization": "Bearer apk_bearer123"})
+        assert r.status_code == 200
+        data = r.get_json()
+        assert data["balance_usd"] == 1.00
+
+
+class TestApiWebhooksRoute:
+    @patch("webhook_dispatch.register_webhook", return_value=99)
+    def test_api_webhooks_post(self, mock_reg, client):
+        r = client.post("/api/webhooks",
+                        json={"url": "https://example.com/hook", "event": "low_balance", "threshold": 0.50},
+                        headers={"Authorization": "Bearer apk_testkey"})
+        assert r.status_code == 200
+        data = r.get_json()
+        assert data["webhook_id"] == 99
+        assert data["threshold"] == 0.50
+
+    def test_api_webhooks_no_auth(self, client):
+        r = client.post("/api/webhooks",
+                        json={"url": "https://example.com/hook", "event": "low_balance"})
+        assert r.status_code == 401
+
+    @patch("webhook_dispatch.register_webhook", return_value=100)
+    def test_api_webhooks_with_events_list(self, mock_reg, client):
+        r = client.post("/api/webhooks",
+                        json={"url": "https://example.com/hook", "events": ["low_balance", "payment_received"]},
+                        headers={"Authorization": "Bearer apk_testkey"})
+        assert r.status_code == 200
+
+
 # ── In-Memory Session Map ────────────────────────────────────────────────
 
 class TestSessionKeyMap:

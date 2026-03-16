@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block description %}View your API usage, balance, and top tools.{% endblock %}
+
+{% block content %}
+<section style="max-width:900px;margin:2rem auto;padding:0 1.5rem">
+  <h1 style="font-family:'IBM Plex Mono',monospace;font-size:2rem;margin-bottom:0.5rem">Usage Dashboard</h1>
+  <p style="color:var(--text-muted);margin-bottom:2rem">Monitor your API key balance, calls, and top tools.</p>
+
+  {% if error %}
+  <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:2rem;text-align:center">
+    <p style="color:var(--text-muted);margin-bottom:1.5rem">{{ error }}</p>
+    <form method="get" action="/dashboard" style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap">
+      <input type="text" name="key" placeholder="apk_..."
+             style="background:#0d1a2a;border:1px solid #1a2a3a;color:#c8d8e8;padding:0.6rem 1rem;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.9rem;width:320px">
+      <button type="submit" style="background:var(--green,#00ff9d);color:#020408;border:none;padding:0.6rem 1.5rem;border-radius:8px;font-weight:600;cursor:pointer">View Dashboard</button>
+    </form>
+    <p style="color:var(--text-muted);margin-top:1rem;font-size:0.85rem">Don't have a key? <a href="/buy-credits" style="color:var(--green,#00ff9d)">Get one here</a></p>
+  </div>
+  {% endif %}
+
+  {% if data %}
+  <!-- Balance Card -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:2rem">
+    <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem">
+      <div style="color:var(--text-muted);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Balance</div>
+      <div style="font-size:2rem;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--green,#00ff9d)">${{ "%.2f"|format(data.balance_usd) }}</div>
+    </div>
+    <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem">
+      <div style="color:var(--text-muted);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Total Calls</div>
+      <div style="font-size:2rem;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--cyan,#00d4ff)">{{ data.total_calls }}</div>
+    </div>
+    <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem">
+      <div style="color:var(--text-muted);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Calls Today</div>
+      <div style="font-size:2rem;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--blue,#0088ff)">{{ data.calls_today }}</div>
+    </div>
+    <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem">
+      <div style="color:var(--text-muted);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Total Spent</div>
+      <div style="font-size:2rem;font-weight:700;font-family:'IBM Plex Mono',monospace">${{ "%.4f"|format(data.total_spent) }}</div>
+    </div>
+  </div>
+
+  <!-- Key Info -->
+  <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem;margin-bottom:2rem;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem">
+    <div>
+      <span style="color:var(--text-muted);font-size:0.85rem">Key: </span>
+      <code style="font-family:'IBM Plex Mono',monospace;color:var(--text,#c8d8e8)">{{ data.key }}</code>
+      {% if data.label %}<span style="color:var(--text-muted);margin-left:0.5rem">({{ data.label }})</span>{% endif %}
+    </div>
+    <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
+      <a href="/buy-credits" style="background:var(--green,#00ff9d);color:#020408;padding:0.5rem 1.2rem;border-radius:8px;font-weight:600;text-decoration:none;font-size:0.9rem">Top Up</a>
+      <a href="/api/usage?key={{ data.key_full }}" style="background:transparent;border:1px solid var(--border,#1a2a3a);color:var(--text,#c8d8e8);padding:0.5rem 1.2rem;border-radius:8px;text-decoration:none;font-size:0.9rem">JSON API</a>
+    </div>
+  </div>
+
+  <!-- Top Tools -->
+  {% if data.top_tools %}
+  <h2 style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem;margin-bottom:1rem">Top Tools</h2>
+  <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;overflow:hidden;margin-bottom:2rem">
+    <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+      <thead>
+        <tr style="border-bottom:1px solid var(--border,#1a2a3a)">
+          <th style="text-align:left;padding:0.75rem 1rem;color:var(--text-muted);font-weight:500">#</th>
+          <th style="text-align:left;padding:0.75rem 1rem;color:var(--text-muted);font-weight:500">Tool</th>
+          <th style="text-align:right;padding:0.75rem 1rem;color:var(--text-muted);font-weight:500">Calls</th>
+          <th style="text-align:right;padding:0.75rem 1rem;color:var(--text-muted);font-weight:500">Last Used</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for tool in data.top_tools %}
+        <tr style="border-bottom:1px solid var(--border,#1a2a3a)">
+          <td style="padding:0.75rem 1rem;color:var(--text-muted)">{{ loop.index }}</td>
+          <td style="padding:0.75rem 1rem;font-family:'IBM Plex Mono',monospace;color:var(--cyan,#00d4ff)">{{ tool.tool }}</td>
+          <td style="padding:0.75rem 1rem;text-align:right;font-family:'IBM Plex Mono',monospace">{{ tool.calls }}</td>
+          <td style="padding:0.75rem 1rem;text-align:right;color:var(--text-muted);font-size:0.8rem">{{ tool.last_used[:16] if tool.last_used else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Recent Activity -->
+  {% if data.recent %}
+  <h2 style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem;margin-bottom:1rem">Recent Activity</h2>
+  <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;overflow:hidden;margin-bottom:2rem">
+    <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+      <thead>
+        <tr style="border-bottom:1px solid var(--border,#1a2a3a)">
+          <th style="text-align:left;padding:0.75rem 1rem;color:var(--text-muted);font-weight:500">Tool</th>
+          <th style="text-align:right;padding:0.75rem 1rem;color:var(--text-muted);font-weight:500">Calls</th>
+          <th style="text-align:right;padding:0.75rem 1rem;color:var(--text-muted);font-weight:500">Last Used</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in data.recent %}
+        <tr style="border-bottom:1px solid var(--border,#1a2a3a)">
+          <td style="padding:0.75rem 1rem;font-family:'IBM Plex Mono',monospace;color:var(--text,#c8d8e8)">{{ item.tool }}</td>
+          <td style="padding:0.75rem 1rem;text-align:right;font-family:'IBM Plex Mono',monospace">{{ item.calls }}</td>
+          <td style="padding:0.75rem 1rem;text-align:right;color:var(--text-muted);font-size:0.8rem">{{ item.last_used[:19] if item.last_used else '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Account Info -->
+  <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
+    <h3 style="font-family:'IBM Plex Mono',monospace;font-size:1rem;margin-bottom:1rem;color:var(--text-muted)">Account Details</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;font-size:0.85rem">
+      <span style="color:var(--text-muted)">Created</span>
+      <span style="font-family:'IBM Plex Mono',monospace">{{ data.created_at[:19] if data.created_at else '—' }}</span>
+      <span style="color:var(--text-muted)">Last Used</span>
+      <span style="font-family:'IBM Plex Mono',monospace">{{ data.last_used_at[:19] if data.last_used_at else 'Never' }}</span>
+      <span style="color:var(--text-muted)">Status</span>
+      <span style="color:{% if data.is_active %}var(--green,#00ff9d){% else %}#ff4444{% endif %}">{{ 'Active' if data.is_active else 'Inactive' }}</span>
+    </div>
+  </div>
+
+  {% endif %}
+</section>
+{% endblock %}

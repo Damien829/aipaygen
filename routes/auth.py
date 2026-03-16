@@ -276,11 +276,35 @@ def register_user_webhook():
         return jsonify({"error": "url and events required"}), 400
     if not url.startswith("https://"):
         return jsonify({"error": "Invalid URL — must be HTTPS"}), 400
+    threshold = float(data.get("threshold", 0.50))
     from webhook_dispatch import register_webhook
-    wh_id = register_webhook(api_key, url, events)
+    wh_id = register_webhook(api_key, url, events, threshold=threshold)
     if wh_id is None:
         return jsonify({"error": "Failed to register webhook"}), 400
-    return jsonify({"webhook_id": wh_id, "url": url, "events": events})
+    return jsonify({"webhook_id": wh_id, "url": url, "events": events, "threshold": threshold})
+
+
+@auth_bp.route("/api/webhooks", methods=["POST"])
+def api_register_webhook():
+    """Convenience alias: POST /api/webhooks with {url, event, threshold}."""
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer apk_"):
+        return jsonify({"error": "API key required"}), 401
+    api_key = auth[7:]
+    data = request.get_json(silent=True) or {}
+    url = data.get("url", "")
+    event = data.get("event", "")
+    events = data.get("events", [event] if event else [])
+    if not url or not events:
+        return jsonify({"error": "url and event(s) required"}), 400
+    if not url.startswith("https://"):
+        return jsonify({"error": "Invalid URL — must be HTTPS"}), 400
+    threshold = float(data.get("threshold", 0.50))
+    from webhook_dispatch import register_webhook
+    wh_id = register_webhook(api_key, url, events, threshold=threshold)
+    if wh_id is None:
+        return jsonify({"error": "Failed to register webhook"}), 400
+    return jsonify({"webhook_id": wh_id, "url": url, "events": events, "threshold": threshold})
 
 
 @auth_bp.route("/webhooks", methods=["GET"])
@@ -520,3 +544,110 @@ def auth_usage_digest():
 @auth_bp.route("/buy-credits/success", methods=["GET"])
 def buy_credits_success():
     return render_template("buy_credits_success.html"), 200, {"Content-Type": "text/html"}
+
+
+# ── Usage Dashboard & API ────────────────────────────────────────────────────
+
+
+def _get_usage_data(api_key):
+    """Fetch usage data for an API key from api_keys.db and tool_usage.db."""
+    import sqlite3
+    status = get_key_status(api_key)
+    if not status:
+        return None
+
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    tool_usage_db = os.path.join(base_dir, "tool_usage.db")
+
+    # Top tools for this key
+    top_tools = []
+    try:
+        conn = sqlite3.connect(tool_usage_db)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT tool_name, count, last_used FROM tool_usage WHERE api_key = ? ORDER BY count DESC LIMIT 10",
+            (api_key,),
+        ).fetchall()
+        top_tools = [{"tool": r["tool_name"], "calls": r["count"], "last_used": r["last_used"]} for r in rows]
+        conn.close()
+    except Exception:
+        pass
+
+    # Calls today for this key
+    calls_today = 0
+    try:
+        conn = sqlite3.connect(tool_usage_db)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT SUM(count) as today_count FROM tool_usage WHERE api_key = ? AND date(last_used) = date('now')",
+            (api_key,),
+        ).fetchone()
+        calls_today = row["today_count"] or 0
+        conn.close()
+    except Exception:
+        pass
+
+    # Recent call history (last 20 tools used)
+    recent = []
+    try:
+        conn = sqlite3.connect(tool_usage_db)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            "SELECT tool_name, count, last_used FROM tool_usage WHERE api_key = ? ORDER BY last_used DESC LIMIT 20",
+            (api_key,),
+        ).fetchall()
+        recent = [{"tool": r["tool_name"], "calls": r["count"], "last_used": r["last_used"]} for r in rows]
+        conn.close()
+    except Exception:
+        pass
+
+    return {
+        "key": api_key[:8] + "..." + api_key[-4:],
+        "key_full": api_key,
+        "balance_usd": status.get("balance_usd", 0),
+        "total_spent": status.get("total_spent", 0),
+        "total_calls": status.get("call_count", 0),
+        "calls_today": calls_today,
+        "top_tools": top_tools,
+        "recent": recent,
+        "created_at": status.get("created_at", ""),
+        "last_used_at": status.get("last_used_at", ""),
+        "is_active": status.get("is_active", 1),
+        "label": status.get("label", ""),
+    }
+
+
+@auth_bp.route("/api/usage", methods=["GET"])
+def api_usage():
+    """JSON usage data for an API key. ?key=APK_xxx or Authorization header."""
+    api_key = request.args.get("key", "")
+    if not api_key:
+        auth = request.headers.get("Authorization", "")
+        if auth.startswith("Bearer "):
+            api_key = auth[7:]
+    if not api_key or not api_key.startswith("apk_"):
+        return jsonify({"error": "Valid API key required (query param ?key= or Authorization header)"}), 401
+    data = _get_usage_data(api_key)
+    if not data:
+        return jsonify({"error": "key_not_found"}), 404
+    # Return masked key in JSON response
+    return jsonify({
+        "key": data["key"],
+        "balance_usd": data["balance_usd"],
+        "total_calls": data["total_calls"],
+        "calls_today": data["calls_today"],
+        "top_tools": data["top_tools"],
+        "created_at": data["created_at"],
+    })
+
+
+@auth_bp.route("/dashboard", methods=["GET"])
+def usage_dashboard():
+    """Self-serve usage dashboard. Accepts ?key=APK_xxx."""
+    api_key = request.args.get("key", "")
+    if not api_key or not api_key.startswith("apk_"):
+        return render_template("dashboard.html", error="Enter your API key to view usage.", data=None)
+    data = _get_usage_data(api_key)
+    if not data:
+        return render_template("dashboard.html", error="API key not found.", data=None)
+    return render_template("dashboard.html", error=None, data=data)
