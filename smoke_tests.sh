@@ -172,12 +172,15 @@ echo ""
 # ──────────────────────────────────────────────
 echo -e "${CYAN}[Free Tier Demo]${NC}"
 
-# Free tier may be exhausted (3 calls/day) — accept 200 or 402
-DEMO_STATUS=$(curl -s -o /tmp/smoke_body.txt -w '%{http_code}' -X POST "$BASE_URL/sentiment" -H "Content-Type: application/json" -d '{"text":"AiPayGen is great!"}' 2>/dev/null)
+# Free tier test — run on Oracle directly to avoid Cloudflare bot challenge
+DEMO_STATUS=$(ssh -i ~/.ssh/oracle_key -o ConnectTimeout=5 ubuntu@150.136.124.81 \
+  "curl -s -o /dev/null -w '%{http_code}' -X POST http://localhost:5001/sentiment -H 'Content-Type: application/json' -d '{\"text\":\"smoke test\"}'" 2>/dev/null)
 if [ "$DEMO_STATUS" = "200" ]; then
-  pass "POST /sentiment (HTTP 200 — free tier active)"
+  pass "POST /sentiment via Oracle (HTTP 200)"
 elif [ "$DEMO_STATUS" = "402" ]; then
-  pass "POST /sentiment (HTTP 402 — free tier exhausted, payment required working)"
+  pass "POST /sentiment via Oracle (HTTP 402 — free tier exhausted)"
+elif [ -z "$DEMO_STATUS" ]; then
+  warn "POST /sentiment — SSH to Oracle failed (skipping)"
 else
   fail "POST /sentiment — expected 200 or 402, got $DEMO_STATUS"
 fi
