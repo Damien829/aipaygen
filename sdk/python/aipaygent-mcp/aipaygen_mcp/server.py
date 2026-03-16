@@ -1,5 +1,5 @@
 """
-AiPayGen MCP Server — thin client that proxies 244 AI tools via api.aipaygen.com.
+AiPayGen MCP Server — thin client that proxies 250 AI tools via api.aipaygen.com.
 
 Install:
     pip install aipaygen-mcp
@@ -35,7 +35,7 @@ API_KEY = os.environ.get("AIPAYGEN_API_KEY", "")
 mcp = FastMCP(
     "AiPayGen",
     instructions=(
-        "AiPayGen provides 244 AI-powered tools: research, write, code, translate, "
+        "AiPayGen provides 250 AI-powered tools: research, write, code, translate, "
         "analyze, summarize, vision, RAG, web scraping, custom agent builder, agent memory, marketplace, "
         "utility APIs (geocode, WHOIS, SSL, security, math, finance, NLP, transforms), and more. "
         "Free tier: 10 calls/day. Set AIPAYGEN_API_KEY for unlimited access."
@@ -564,7 +564,7 @@ def ask(question: str) -> dict:
 
 @mcp.tool()
 def list_skills(category: str = "") -> dict:
-    """List all available skills. AiPayGen has 244 built-in tools and absorbs new ones dynamically."""
+    """List all available skills. AiPayGen has 250 built-in tools and absorbs new ones dynamically."""
     params = {}
     if category:
         params["category"] = category
@@ -1168,7 +1168,7 @@ def _run_self_test():
             sys.exit(1)
         temp = result.get("temperature_c", "?")
         print(f"  OK: London weather = {temp}°C")
-        print(f"  244 tools ready. Run 'aipaygen-mcp' to start the server.")
+        print(f"  250 tools ready. Run 'aipaygen-mcp' to start the server.")
     except Exception as e:
         print(f"  FAIL: {e}")
         sys.exit(1)

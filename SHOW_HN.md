@@ -1,14 +1,14 @@
-# Show HN: AiPayGen — 244 AI tools, one API, pay per call ($0.006/request vs $0.03 direct)
+# Show HN: AiPayGen — 250 AI tools, one API, pay per call ($0.006/request vs $0.03 direct)
 
-I built a pay-per-call AI API with 244 tools behind a single endpoint. Instead of managing API keys for OpenAI, Google, scraping services, etc., you make one request and the system routes to the best model for the task.
+I built a pay-per-call AI API with 250 tools behind a single endpoint. Instead of managing API keys for OpenAI, Google, scraping services, etc., you make one request and the system routes to the best model for the task.
 
 **Why:** Calling AI models directly costs ~$0.03/request. Monthly subscriptions waste money if you only need occasional calls. AiPayGen charges ~$0.006/call by batching and routing across 15 models from 7 providers (Claude, GPT-4o, Gemini, DeepSeek, Grok, Mistral, Llama).
 
 **What's different from OpenRouter / API aggregators:**
-- Not just model proxying — 244 ready-made tools (research, summarize, scrape, code, analyze, extract, translate, classify, etc.)
+- Not just model proxying — 250 ready-made tools (research, summarize, scrape, code, analyze, extract, translate, classify, etc.)
 - x402 protocol support — AI agents pay per call in USDC on Base/Solana/Stellar with no signup or API key. The payment travels with the HTTP request.
 - Multi-step workflows — chain tools together (research -> summarize -> translate) in one call with 15% discount
-- MCP native — `pip install aipaygen-mcp` adds all 244 tools to Claude Code / Cursor / Cline
+- MCP native — `pip install aipaygen-mcp` adds all 250 tools to Claude Code / Cursor / Cline
 - Seller marketplace — register your own APIs, set prices, get paid via escrow (3% fee)
 
 **Architecture:**

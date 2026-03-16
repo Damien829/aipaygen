@@ -1,13 +1,13 @@
 # Reddit Launch Post — r/SideProject
 
 ## Title
-I built an AI API with 244 tools that costs 10x less than calling models directly
+I built an AI API with 250 tools that costs 10x less than calling models directly
 
 ## Body
 
 Six months ago I started building an AI tool API on a Raspberry Pi 5 in my apartment. The idea was simple: I kept paying $20/month for OpenAI, $20 for Anthropic, $10 for various scraping tools — and using maybe 2% of what I was paying for. Why isn't there a pay-per-call option that just works?
 
-So I built one. **AiPayGen** is a single API with 244 tools — research, summarize, translate, code generation, web scraping, sentiment analysis, data extraction, and more. 15 AI models from 7 providers (Claude, GPT-4o, Gemini, DeepSeek, Grok, Mistral, Llama) auto-routed behind the scenes. You pay per call, starting at $0.004.
+So I built one. **AiPayGen** is a single API with 250 tools — research, summarize, translate, code generation, web scraping, sentiment analysis, data extraction, and more. 15 AI models from 7 providers (Claude, GPT-4o, Gemini, DeepSeek, Grok, Mistral, Llama) auto-routed behind the scenes. You pay per call, starting at $0.004.
 
 The whole thing started on a Raspberry Pi 5 and now runs on Oracle Cloud. SQLite for everything, Cloudflare tunnel for TLS, zero external database dependencies. It handles 292 registered agents, 4183 APIs in the catalog, and 2439 skills.
 
@@ -78,11 +78,11 @@ I'm a solo dev, $0 revenue so far, looking for honest feedback. What would make 
 ## Shorter version (r/ClaudeAI)
 
 ### Title
-I built an MCP server with 244 tools — research, code, scraping, vision, and 43 utility APIs in one install
+I built an MCP server with 250 tools — research, code, scraping, vision, and 43 utility APIs in one install
 
 Just `pip install aipaygen-mcp` and `claude mcp add aipaygen -- aipaygen-mcp`. Or connect to `https://mcp.aipaygen.com/mcp`.
 
-244 tools. 15 AI models auto-routed. Web scraping (Maps, Twitter, YouTube), 43 utility APIs (WHOIS, SSL, geocoding, stocks), vision, RAG, diagrams, workflows.
+250 tools. 15 AI models auto-routed. Web scraping (Maps, Twitter, YouTube), 43 utility APIs (WHOIS, SSL, geocoding, stocks), vision, RAG, diagrams, workflows.
 
 Free: 10 calls/day. Paid: $0.006/call for AI, $0.002 for utilities. Also supports x402 crypto payments (USDC on Base/Solana/Stellar).
 
@@ -95,7 +95,7 @@ Try without installing: https://aipaygen.com/try
 ## One-liner (r/selfhosted)
 
 ### Title
-I run a 244-tool AI API on Oracle Cloud (started on a Raspberry Pi 5) — MCP server, 15 models, SQLite, Cloudflare tunnel
+I run a 250-tool AI API on Oracle Cloud (started on a Raspberry Pi 5) — MCP server, 15 models, SQLite, Cloudflare tunnel
 
 Full write-up in comments. `pip install aipaygen-mcp` to try it. Free tier: 10 calls/day. Serves 292 agents, 4183 APIs, 2439 skills. SQLite WAL mode, Gunicorn with 2 workers, 4 cron jobs for auto-maintenance. 1260 tests passing.
 

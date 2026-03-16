@@ -305,7 +305,7 @@ def generate_openapi_spec(routes=None):
             "title": "AiPayGen API",
             "version": "1.9.0",
             "description": (
-                "244 AI tools in one API. Research, write, code, translate, analyze, scrape — "
+                "250 AI tools in one API. Research, write, code, translate, analyze, scrape — "
                 "pay per call with USDC on Base via x402, use a prepaid API key, or get $0.25 trial credits.\n\n"
                 "## Authentication\n"
                 "Three options:\n"

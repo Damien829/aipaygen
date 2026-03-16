@@ -857,3 +857,73 @@ def extract_text_from_url(url: Annotated[str, Field(description="URL to extract 
         return resp.json()
     except Exception:
         return {"error": "Tool execution failed"}
+
+
+# ── HTML / CSV Utilities ─────────────────────────────────────────────────────
+
+@metered_tool("standard")
+def html_to_text(html: Annotated[str, Field(description="HTML content to convert to plain text")]) -> dict:
+    """Strip HTML tags and extract clean plain text. Handles entities, scripts, and styles."""
+    from html.parser import HTMLParser
+    import html as _html_mod
+    try:
+        class _TextExtractor(HTMLParser):
+            def __init__(self):
+                super().__init__()
+                self._parts = []
+                self._skip = False
+
+            def handle_starttag(self, tag, attrs):
+                if tag in ("script", "style", "noscript"):
+                    self._skip = True
+                elif tag in ("br", "p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li", "tr"):
+                    self._parts.append("\n")
+
+            def handle_endtag(self, tag):
+                if tag in ("script", "style", "noscript"):
+                    self._skip = False
+                elif tag in ("p", "div", "h1", "h2", "h3", "h4", "h5", "h6"):
+                    self._parts.append("\n")
+
+            def handle_data(self, data):
+                if not self._skip:
+                    self._parts.append(data)
+
+            def handle_entityref(self, name):
+                self._parts.append(_html_mod.unescape(f"&{name};"))
+
+            def handle_charref(self, name):
+                self._parts.append(_html_mod.unescape(f"&#{name};"))
+
+        parser = _TextExtractor()
+        parser.feed(html)
+        text = "".join(parser._parts)
+        import re
+        text = re.sub(r'\n{3,}', '\n\n', text).strip()
+        words = len(text.split())
+        return {"text": text, "word_count": words, "char_count": len(text)}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def csv_to_json(csv_text: Annotated[str, Field(description="CSV text content to convert")], delimiter: Annotated[str, Field(description="Column delimiter character")] = ",", has_header: Annotated[bool, Field(description="Whether the first row is a header")] = True) -> dict:
+    """Convert CSV text to JSON. Returns array of objects (with headers) or array of arrays."""
+    import csv
+    import io
+    try:
+        reader = csv.reader(io.StringIO(csv_text), delimiter=delimiter)
+        rows = list(reader)
+        if not rows:
+            return {"error": "Empty CSV input"}
+
+        if has_header and len(rows) > 1:
+            headers = rows[0]
+            data = [dict(zip(headers, row)) for row in rows[1:]]
+            return {"data": data, "row_count": len(data), "columns": headers}
+        else:
+            return {"data": rows, "row_count": len(rows), "columns": len(rows[0]) if rows else 0}
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}

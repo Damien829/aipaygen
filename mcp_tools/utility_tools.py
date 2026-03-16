@@ -212,3 +212,168 @@ def cidr_expand(cidr: Annotated[str, Field(description="CIDR notation (e.g. 192.
         }
     except Exception as e:
         return {"error": str(e)}
+
+
+# ── Cron / Color / Lorem / Password ─────────────────────────────────────────
+
+@metered_tool("standard")
+def cron_explain(expression: Annotated[str, Field(description="Cron expression to explain (e.g. '*/5 * * * *')")]) -> dict:
+    """Explain a cron expression in plain English. Supports standard 5-field cron syntax."""
+    try:
+        parts = expression.strip().split()
+        if len(parts) != 5:
+            return {"error": "Invalid cron expression. Expected 5 fields: minute hour day_of_month month day_of_week"}
+
+        field_names = ["minute", "hour", "day_of_month", "month", "day_of_week"]
+        month_names = {1: "January", 2: "February", 3: "March", 4: "April", 5: "May", 6: "June",
+                       7: "July", 8: "August", 9: "September", 10: "October", 11: "November", 12: "December"}
+        dow_names = {0: "Sunday", 1: "Monday", 2: "Tuesday", 3: "Wednesday", 4: "Thursday", 5: "Friday", 6: "Saturday", 7: "Sunday"}
+
+        def _explain_field(val, name):
+            if val == "*":
+                return f"every {name}"
+            if val.startswith("*/"):
+                return f"every {val[2:]} {name}s"
+            if "," in val:
+                return f"{name} {val}"
+            if "-" in val:
+                lo, hi = val.split("-", 1)
+                return f"{name} {lo} through {hi}"
+            if name == "month" and val.isdigit():
+                return month_names.get(int(val), f"month {val}")
+            if name == "day_of_week" and val.isdigit():
+                return dow_names.get(int(val), f"day {val}")
+            return f"at {name} {val}"
+
+        explanations = [_explain_field(p, n) for p, n in zip(parts, field_names)]
+        summary = ", ".join(explanations)
+
+        # Build a more natural description
+        minute, hour, dom, month, dow = parts
+        natural = "Runs "
+        if minute == "*" and hour == "*":
+            natural += "every minute"
+        elif minute.startswith("*/"):
+            natural += f"every {minute[2:]} minutes"
+        elif hour == "*":
+            natural += f"at minute {minute} of every hour"
+        elif minute == "0":
+            natural += f"at {hour}:00"
+        else:
+            natural += f"at {hour}:{minute.zfill(2)}"
+
+        if dom != "*":
+            natural += f" on day {dom} of the month"
+        if month != "*":
+            m = month_names.get(int(month), month) if month.isdigit() else month
+            natural += f" in {m}"
+        if dow != "*":
+            d = dow_names.get(int(dow), dow) if dow.isdigit() else dow
+            natural += f" on {d}"
+
+        return {
+            "expression": expression,
+            "fields": dict(zip(field_names, parts)),
+            "explanation": summary,
+            "natural": natural,
+        }
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("standard")
+def color_palette(base_color: Annotated[str, Field(description="Base color in hex format (e.g. '#3498db' or '3498db')")], count: Annotated[int, Field(description="Number of colors to generate (max 20)")] = 5, palette_type: Annotated[str, Field(description="Palette type: complementary, analogous, or monochromatic")] = "monochromatic") -> dict:
+    """Generate a color palette from a base color. Returns hex color codes."""
+    import colorsys
+    try:
+        hex_str = base_color.lstrip("#")
+        if len(hex_str) != 6:
+            return {"error": "Invalid hex color. Use format '#RRGGBB' or 'RRGGBB'."}
+        r, g, b = int(hex_str[:2], 16) / 255, int(hex_str[2:4], 16) / 255, int(hex_str[4:6], 16) / 255
+        h, s, v = colorsys.rgb_to_hsv(r, g, b)
+        n = min(count, 20)
+        colors = []
+
+        if palette_type == "complementary":
+            for i in range(n):
+                new_h = (h + (i / n)) % 1.0
+                nr, ng, nb = colorsys.hsv_to_rgb(new_h, s, v)
+                colors.append("#{:02x}{:02x}{:02x}".format(int(nr * 255), int(ng * 255), int(nb * 255)))
+        elif palette_type == "analogous":
+            spread = 0.083  # ~30 degrees
+            for i in range(n):
+                offset = (i - n // 2) * spread / max(n - 1, 1)
+                new_h = (h + offset) % 1.0
+                nr, ng, nb = colorsys.hsv_to_rgb(new_h, s, v)
+                colors.append("#{:02x}{:02x}{:02x}".format(int(nr * 255), int(ng * 255), int(nb * 255)))
+        else:  # monochromatic
+            for i in range(n):
+                new_v = max(0.1, min(1.0, v - 0.3 + (0.6 * i / max(n - 1, 1))))
+                nr, ng, nb = colorsys.hsv_to_rgb(h, s, new_v)
+                colors.append("#{:02x}{:02x}{:02x}".format(int(nr * 255), int(ng * 255), int(nb * 255)))
+
+        return {
+            "base_color": f"#{hex_str}",
+            "palette_type": palette_type,
+            "colors": colors,
+            "count": len(colors),
+        }
+    except Exception:
+        _log.exception("Tool execution failed")
+        return {"error": "Tool execution failed"}
+
+
+@metered_tool("free")
+def lorem_ipsum(paragraphs: Annotated[int, Field(description="Number of paragraphs to generate (max 10)")] = 1, style: Annotated[str, Field(description="Style: classic, short, or words")] = "classic") -> dict:
+    """Generate Lorem Ipsum placeholder text. Free, no payment needed."""
+    _CLASSIC = (
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore "
+        "et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut "
+        "aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse "
+        "cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in "
+        "culpa qui officia deserunt mollit anim id est laborum."
+    )
+    _EXTRAS = [
+        "Curabitur pretium tincidunt lacus. Nulla gravida orci a odio. Nullam varius, turpis et commodo pharetra.",
+        "Praesent dapibus, neque id cursus faucibus, tortor neque egestas augue, eu vulputate magna eros eu erat.",
+        "Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.",
+        "Vestibulum tortor quam, feugiat vitae, ultricies eget, tempor sit amet, ante. Donec eu libero sit amet.",
+        "Fusce vulputate eleifend sapien. Vestibulum purus quam, scelerisque ut, mollis sed, nonummy id, metus.",
+        "Aenean tellus metus, bibendum sed, posuere ac, mattis non, nunc. Vestibulum fringilla pede sit amet augue.",
+        "Morbi in sem quis dui placerat ornare. Pellentesque odio nisi, euismod in, pharetra a, ultricies in, diam.",
+        "Maecenas malesuada elit lectus felis, malesuada ultricies. Curabitur et ligula. Ut molestie a, ultricies.",
+        "Nam adipiscing. Etiam laoreet. Nullam luctus, est a gravida dictum, metus risus vehicula leo, at auctor est.",
+    ]
+    import random
+    n = min(max(paragraphs, 1), 10)
+    if style == "words":
+        words = _CLASSIC.split()
+        return {"text": " ".join(words[:n * 10]), "word_count": min(n * 10, len(words))}
+    paras = [_CLASSIC]
+    pool = list(_EXTRAS)
+    random.shuffle(pool)
+    for i in range(1, n):
+        paras.append(pool[i % len(pool)])
+    return {"text": "\n\n".join(paras[:n]), "paragraphs": n}
+
+
+@metered_tool("free")
+def password_generate(length: Annotated[int, Field(description="Password length (8-128)")] = 16, include_symbols: Annotated[bool, Field(description="Include special characters")] = True, count: Annotated[int, Field(description="Number of passwords to generate (max 20)")] = 1) -> dict:
+    """Generate cryptographically secure random passwords. Free, no payment needed."""
+    import secrets
+    import string
+    length = max(8, min(length, 128))
+    n = max(1, min(count, 20))
+    chars = string.ascii_letters + string.digits
+    if include_symbols:
+        chars += "!@#$%^&*()-_=+[]{}|;:,.<>?"
+    passwords = []
+    for _ in range(n):
+        pw = "".join(secrets.choice(chars) for _ in range(length))
+        passwords.append(pw)
+    if n == 1:
+        pw = passwords[0]
+        strength = "weak" if length < 12 else "moderate" if length < 16 else "strong"
+        return {"password": pw, "length": length, "includes_symbols": include_symbols, "strength": strength}
+    return {"passwords": passwords, "count": n, "length": length, "includes_symbols": include_symbols}

@@ -1,5 +1,5 @@
 """
-AiPayGen MCP Server — 244 tools (metered + free)
+AiPayGen MCP Server — 250 tools (metered + free)
 
 Exposes all AiPayGen capabilities as MCP tools with usage metering.
 10 free calls/day without an API key. Unlimited with a prepaid key.
@@ -37,7 +37,7 @@ def main():
         starlette_app = mcp.streamable_http_app()
 
         async def health(request):
-            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 244, "version": "1.9.0"})
+            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 250, "version": "1.9.0"})
 
         _tracked_sessions = set()
 

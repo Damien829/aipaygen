@@ -397,8 +397,8 @@ def blog_index():
     from security import sanitize_html
     # Static (hand-written) posts — shown first
     static_posts = [
-        {"slug": "launch", "title": "Why I Built AiPayGen: 244 AI Tools for the Price of One API Call", "generated_at": "2026-03-15"},
-        {"slug": "5-things-you-can-build", "title": "5 Things You Can Build with 244 AI Tools", "generated_at": "2026-03-15"},
+        {"slug": "launch", "title": "Why I Built AiPayGen: 250 AI Tools for the Price of One API Call", "generated_at": "2026-03-15"},
+        {"slug": "5-things-you-can-build", "title": "5 Things You Can Build with 250 AI Tools", "generated_at": "2026-03-15"},
         {"slug": "x402-explained", "title": "How x402 Makes AI APIs Pay-Per-Use", "generated_at": "2026-03-15"},
     ]
     db_posts = list_blog_posts()
@@ -415,12 +415,12 @@ def blog_index():
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AiPayGen Blog — AI Agent & API Developer Tutorials</title>
-<meta name="description" content="Developer tutorials for building with AiPayGen — 244 tools and 140+ Claude-powered AI API endpoints. Covers AI agents, scraping, x402 payments, real-time data, and more. First 10 calls/day free.">
+<meta name="description" content="Developer tutorials for building with AiPayGen — 250 tools and 140+ Claude-powered AI API endpoints. Covers AI agents, scraping, x402 payments, real-time data, and more. First 10 calls/day free.">
 <link rel="canonical" href="https://api.aipaygen.com/blog">
 <link rel="alternate" type="application/rss+xml" title="AiPayGen Blog RSS" href="/feed.xml">
 <meta property="og:type" content="website">
 <meta property="og:title" content="AiPayGen Developer Blog">
-<meta property="og:description" content="Tutorials for building AI agents and automations with AiPayGen's 244 tools and 140+ Claude-powered endpoints.">
+<meta property="og:description" content="Tutorials for building AI agents and automations with AiPayGen's 250 tools and 140+ Claude-powered endpoints.">
 <meta property="og:url" content="https://aipaygen.com/blog">
 <meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
@@ -439,9 +439,9 @@ def blog_index():
 </nav>
 <a class="rss" href="/feed.xml">RSS feed</a>
 <h1>AiPayGen Developer Blog</h1>
-<p>Tutorials for building AI agents with AiPayGen — 244 tools and 140+ Claude-powered endpoints. <strong>First 10 calls/day free.</strong></p>
+<p>Tutorials for building AI agents with AiPayGen — 250 tools and 140+ Claude-powered endpoints. <strong>First 10 calls/day free.</strong></p>
 <ul style="padding-left:1.2rem">{items}</ul>
-<p><a href="https://api.aipaygen.com/discover">Browse all 244 tools and 140+ endpoints →</a> · <a href="https://api.aipaygen.com/buy-credits">Buy credits ($5+) →</a></p>
+<p><a href="https://api.aipaygen.com/discover">Browse all 250 tools and 140+ endpoints →</a> · <a href="https://api.aipaygen.com/buy-credits">Buy credits ($5+) →</a></p>
 </body>
 </html>"""
     resp = Response(html, content_type="text/html")
@@ -457,7 +457,7 @@ def blog_launch():
 
 @admin_bp.route("/blog/5-things-you-can-build", methods=["GET"])
 def blog_5_things():
-    """Static blog post — 5 things you can build with 244 AI tools."""
+    """Static blog post — 5 things you can build with 250 AI tools."""
     return render_template("blog_5_things.html")
 
 
@@ -476,7 +476,7 @@ def blog_post(slug):
     # Sanitize title for use in HTML attributes and text (content is trusted AI-generated HTML)
     safe_title = sanitize_html(post['title'])
     canonical = f"https://api.aipaygen.com/blog/{sanitize_html(slug)}"
-    desc = f"{safe_title} — Developer tutorial for AiPayGen, the pay-per-use Claude AI API with 244 tools and 140+ endpoints."
+    desc = f"{safe_title} — Developer tutorial for AiPayGen, the pay-per-use Claude AI API with 250 tools and 140+ endpoints."
     jsonld = json.dumps({
         "@context": "https://schema.org",
         "@type": "TechArticle",
@@ -527,11 +527,11 @@ pre{{padding:16px;overflow-x:auto;display:block}}a{{color:#6366f1}}h1{{color:#1e
 <a href="/status" style="margin-right:12px">Status</a>
 <a href="/buy-credits" style="font-weight:600">Get API Key</a>
 </nav>
-<div class="nav"><a href="/blog">← All posts</a> · <a href="https://aipaygen.com">AiPayGen API</a> · <a href="/discover">244 tools</a></div>
+<div class="nav"><a href="/blog">← All posts</a> · <a href="https://aipaygen.com">AiPayGen API</a> · <a href="/discover">250 tools</a></div>
 <h1>{safe_title}</h1>
 {post['content']}
 <div class="cta">
-  <strong>Try it free →</strong> First 10 calls/day free, no credit card. <a href="https://api.aipaygen.com/discover">Browse all 244 tools and 140+ endpoints</a> or <a href="https://api.aipaygen.com/buy-credits">buy credits ($5+)</a>.
+  <strong>Try it free →</strong> First 10 calls/day free, no credit card. <a href="https://api.aipaygen.com/discover">Browse all 250 tools and 140+ endpoints</a> or <a href="https://api.aipaygen.com/buy-credits">buy credits ($5+)</a>.
 </div>
 <p style="color:#888;font-size:0.85rem">Published: {post.get('generated_at','')[:10]} · <a href="/feed.xml">RSS feed</a></p>
 </body>
@@ -1028,7 +1028,7 @@ _KNOWLEDGE_SEEDS = [
     {
         "topic": "aipaygen-api-reference",
         "content": (
-            "AiPayGen API (https://api.aipaygen.com) has 244 tools and 140+ endpoints. "
+            "AiPayGen API (https://api.aipaygen.com) has 250 tools and 140+ endpoints. "
             "Key endpoints: /research ($0.01), /write ($0.05), /analyze ($0.02), /code ($0.05), "
             "/scrape/google-maps ($0.10), /chain ($0.25 for 5-step pipelines), /rag ($0.05). "
             "Free tier: 10 calls/day per IP. Prepaid keys: /buy-credits. "
@@ -1248,7 +1248,7 @@ def rss_feed():
   <channel>
     <title>AiPayGen Developer Blog</title>
     <link>https://api.aipaygen.com/blog</link>
-    <description>Developer tutorials for building AI agents with AiPayGen — 244 tools and 140+ Claude-powered API endpoints. First 10 calls/day free.</description>
+    <description>Developer tutorials for building AI agents with AiPayGen — 250 tools and 140+ Claude-powered API endpoints. First 10 calls/day free.</description>
     <language>en-us</language>
     <atom:link href="https://api.aipaygen.com/feed.xml" rel="self" type="application/rss+xml"/>
     <image>
@@ -1277,7 +1277,7 @@ _OG_SVG = """<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" v
   <rect x="60" y="60" width="1080" height="510" rx="20" fill="#141414" opacity="0.8"/>
   <text x="600" y="220" font-family="system-ui,sans-serif" font-size="72" font-weight="800" fill="#ffffff" text-anchor="middle">AiPayGen</text>
   <text x="600" y="310" font-family="system-ui,sans-serif" font-size="32" fill="#a78bfa" text-anchor="middle">Pay-per-use Claude AI API</text>
-  <text x="600" y="390" font-family="system-ui,sans-serif" font-size="26" fill="#888" text-anchor="middle">244 tools · 15 models · 4100+ APIs · No signup</text>
+  <text x="600" y="390" font-family="system-ui,sans-serif" font-size="26" fill="#888" text-anchor="middle">250 tools · 15 models · 4100+ APIs · No signup</text>
   <text x="600" y="460" font-family="system-ui,sans-serif" font-size="22" fill="#6366f1" text-anchor="middle">api.aipaygen.com</text>
   <rect x="440" y="490" width="320" height="48" rx="24" fill="#6366f1"/>
   <text x="600" y="521" font-family="system-ui,sans-serif" font-size="20" font-weight="600" fill="#fff" text-anchor="middle">Try free — no credit card</text>
@@ -1328,7 +1328,7 @@ def _generate_og_png():
         # Subtitle
         draw.text((600, 280), "Pay-per-use Claude AI API", fill=(167, 139, 250), font=sub_font, anchor="mm")
         # Details
-        draw.text((600, 360), "244 tools \u00b7 15 models \u00b7 4100+ APIs \u00b7 No signup",
+        draw.text((600, 360), "250 tools \u00b7 15 models \u00b7 4100+ APIs \u00b7 No signup",
                   fill=(136, 136, 136), font=detail_font, anchor="mm")
         # URL
         draw.text((600, 430), "api.aipaygen.com", fill=(99, 102, 241), font=small_font, anchor="mm")
@@ -1439,7 +1439,7 @@ a{{color:#6366f1}}h1,h2{{color:#1e1b4b}}.stat{{display:inline-block;background:#
   <li><strong>Mar 2026</strong> — Referral system (10% commission), discovery engine (GitHub outreach, sitemap pings)</li>
   <li><strong>Mar 2026</strong> — Async jobs, file storage, webhook relay, free data tier (14+ endpoints)</li>
   <li><strong>Mar 2026</strong> — Prepaid API keys (Stripe), SSE streaming, MCP server (79 tools)</li>
-  <li><strong>Mar 2026</strong> — 244 tools and 140+ endpoints: AI, scraping, code execution, agent messaging, task board, knowledge base</li>
+  <li><strong>Mar 2026</strong> — 250 tools and 140+ endpoints: AI, scraping, code execution, agent messaging, task board, knowledge base</li>
 </ul>
 
 <p style="color:#888;font-size:0.85rem">Auto-updated · <a href="https://api.aipaygen.com/health">Health status</a> · <a href="https://api.aipaygen.com/self-test">Canary test</a></p>
@@ -1530,8 +1530,8 @@ def reddit_posts():
     subreddits = [
         {
             "subreddit": "r/MachineLearning",
-            "title": "[P] AiPayGen — Pay-per-use Claude API with 244 tools and 140+ endpoints. Free tier (10/day), x402 crypto payments, MCP tools.",
-            "body": f"""I built a pay-per-use AI API on top of Claude with 244 tools and 140+ endpoints — research, write, code, analyze, scrape, RAG, vision, diagrams, and more.
+            "title": "[P] AiPayGen — Pay-per-use Claude API with 250 tools and 140+ endpoints. Free tier (10/day), x402 crypto payments, MCP tools.",
+            "body": f"""I built a pay-per-use AI API on top of Claude with 250 tools and 140+ endpoints — research, write, code, analyze, scrape, RAG, vision, diagrams, and more.
 
 **Key features:**
 - First 10 calls/day completely free (no signup, no key)
@@ -1565,12 +1565,12 @@ Try it: https://api.aipaygen.com/preview (no auth needed)""",
         },
         {
             "subreddit": "r/selfhosted",
-            "title": "I built a pay-per-use AI API (Claude-powered) that runs on a Raspberry Pi — x402 payments, 244 tools",
+            "title": "I built a pay-per-use AI API (Claude-powered) that runs on a Raspberry Pi — x402 payments, 250 tools",
             "body": f"""Running on a Raspberry Pi 5 at home behind Cloudflare tunnel.
 
 Stack: Flask + Gunicorn + SQLite + APScheduler + Cloudflare tunnel + systemd
 
-It handles x402 payment verification, API key management, referral tracking, scheduled blog generation, and 244 tools and 140+ Claude-powered endpoints — all on a Pi.
+It handles x402 payment verification, API key management, referral tracking, scheduled blog generation, and 250 tools and 140+ Claude-powered endpoints — all on a Pi.
 
 What surprised me: SQLite handles this fine for the traffic volume a self-hosted project gets.
 
@@ -1606,22 +1606,186 @@ def admin_crypto_deposits():
 @admin_bp.route("/admin/clear-cache", methods=["POST"])
 @require_admin
 def admin_clear_cache():
-    from model_router import clear_cache
-    clear_cache()
-    return jsonify({"status": "ok", "message": "Response cache cleared"})
+    from model_router import clear_cache as _clear_model_cache
+    from helpers import _ttl_cache, _ip_rate, _identity_rate
+    _clear_model_cache()
+    _ttl_cache.clear()
+    _ip_rate.clear()
+    _identity_rate.clear()
+    return jsonify({"status": "ok", "message": "All caches cleared (model, TTL, rate limiters)"})
+
+
+@admin_bp.route("/admin/restart", methods=["POST"])
+@require_admin
+def admin_restart_workers():
+    """Gracefully restart gunicorn workers by sending HUP to the master process."""
+    import signal
+    try:
+        master_pid = os.getppid()
+        os.kill(master_pid, signal.SIGHUP)
+        return jsonify({"status": "ok", "message": f"HUP sent to gunicorn master (pid {master_pid})"})
+    except Exception:
+        logger.exception("Failed to restart workers")
+        return jsonify({"status": "error", "message": "Failed to restart workers"}), 500
+
+
+@admin_bp.route("/admin/export")
+@require_admin
+def admin_export_data():
+    """Export CSV of api_keys, funnel events, and tool usage."""
+    import sqlite3 as _sq
+    import csv
+    import io
+
+    export_type = request.args.get("type", "all")
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    output = io.StringIO()
+
+    if export_type in ("keys", "all"):
+        output.write("=== API KEYS ===\n")
+        try:
+            with _sq.connect(os.path.join(base_dir, "api_keys.db")) as conn:
+                conn.row_factory = _sq.Row
+                rows = conn.execute("SELECT id, key, label, balance_usd, total_spent, call_count, is_active, created_at, last_used_at, source FROM api_keys ORDER BY id").fetchall()
+                writer = csv.writer(output)
+                writer.writerow(["id", "key_prefix", "label", "balance_usd", "total_spent", "call_count", "is_active", "created_at", "last_used_at", "source"])
+                for r in rows:
+                    writer.writerow([r["id"], r["key"][:12] + "...", r["label"], r["balance_usd"], r["total_spent"], r["call_count"], r["is_active"], r["created_at"], r["last_used_at"], r["source"]])
+        except Exception:
+            output.write("(no api_keys data)\n")
+        output.write("\n")
+
+    if export_type in ("funnel", "all"):
+        output.write("=== FUNNEL EVENTS ===\n")
+        try:
+            with _sq.connect(os.path.join(base_dir, "funnel.db")) as conn:
+                conn.row_factory = _sq.Row
+                rows = conn.execute("SELECT id, event_type, endpoint, ip, is_bot, created_at FROM funnel_events ORDER BY id DESC LIMIT 5000").fetchall()
+                writer = csv.writer(output)
+                writer.writerow(["id", "event_type", "endpoint", "ip", "is_bot", "created_at"])
+                for r in rows:
+                    writer.writerow([r["id"], r["event_type"], r["endpoint"], r["ip"], r["is_bot"], r["created_at"]])
+        except Exception:
+            output.write("(no funnel data)\n")
+        output.write("\n")
+
+    if export_type in ("tools", "all"):
+        output.write("=== TOOL USAGE ===\n")
+        try:
+            with _sq.connect(os.path.join(base_dir, "tool_usage.db")) as conn:
+                conn.row_factory = _sq.Row
+                rows = conn.execute("SELECT tool_name, api_key, count, last_used FROM tool_usage ORDER BY count DESC LIMIT 5000").fetchall()
+                writer = csv.writer(output)
+                writer.writerow(["tool_name", "api_key_prefix", "count", "last_used"])
+                for r in rows:
+                    writer.writerow([r["tool_name"], (r["api_key"] or "")[:12] + "...", r["count"], r["last_used"]])
+        except Exception:
+            output.write("(no tool_usage data)\n")
+
+    now_str = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=aipaygen_export_{now_str}.csv"},
+    )
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ANALYTICS — Bot filtering, tool usage, funnel conversion
+# ANALYTICS — Comprehensive admin dashboard
 # ══════════════════════════════════════════════════════════════════════════════
+
+def _query_db(db_path, query, params=()):
+    """Helper: run a query on a SQLite DB, return list of dicts."""
+    import sqlite3 as _sq
+    try:
+        with _sq.connect(db_path) as conn:
+            conn.row_factory = _sq.Row
+            return [dict(r) for r in conn.execute(query, params).fetchall()]
+    except Exception:
+        return []
+
+
+def _query_one(db_path, query, params=()):
+    """Helper: run a query returning a single row dict."""
+    import sqlite3 as _sq
+    try:
+        with _sq.connect(db_path) as conn:
+            conn.row_factory = _sq.Row
+            row = conn.execute(query, params).fetchone()
+            return dict(row) if row else {}
+    except Exception:
+        return {}
+
 
 @admin_bp.route("/admin/analytics")
 @require_admin
 def admin_analytics():
-    """Analytics dashboard: bot stats, unique IPs, tool usage, funnel conversion."""
-    import sqlite3 as _sq
+    """Comprehensive analytics dashboard with revenue, users, usage, funnel, tools, activity, response times, and geo."""
+    from datetime import timedelta
 
-    # Gather stats for 24h, 7d, 30d
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    keys_db = os.path.join(base_dir, "api_keys.db")
+    funnel_db = os.path.join(base_dir, "funnel.db")
+    tool_usage_db = os.path.join(base_dir, "tool_usage.db")
+
+    now = datetime.utcnow()
+    week_ago = (now - timedelta(days=7)).isoformat()
+    month_ago = (now - timedelta(days=30)).isoformat()
+
+    # ── 1. Revenue Card ──────────────────────────────────────────────────────
+    rev_total = _query_one(keys_db, "SELECT COALESCE(SUM(total_spent), 0) as v FROM api_keys").get("v", 0)
+    rev_today = _query_one(keys_db, "SELECT COALESCE(SUM(total_spent), 0) as v FROM api_keys WHERE date(last_used_at) = date('now')").get("v", 0)
+    rev_week = _query_one(keys_db, "SELECT COALESCE(SUM(total_spent), 0) as v FROM api_keys WHERE last_used_at >= ?", (week_ago,)).get("v", 0)
+    rev_month = _query_one(keys_db, "SELECT COALESCE(SUM(total_spent), 0) as v FROM api_keys WHERE last_used_at >= ?", (month_ago,)).get("v", 0)
+
+    # ── 2. Users Card ────────────────────────────────────────────────────────
+    users_total = _query_one(keys_db, "SELECT COUNT(*) as v FROM api_keys").get("v", 0)
+    users_today = _query_one(keys_db, "SELECT COUNT(*) as v FROM api_keys WHERE date(created_at) = date('now')").get("v", 0)
+    users_active = _query_one(keys_db, "SELECT COUNT(*) as v FROM api_keys WHERE balance_usd > 0 AND is_active = 1").get("v", 0)
+
+    # ── 3. Usage Card ────────────────────────────────────────────────────────
+    usage_total = _query_one(keys_db, "SELECT COALESCE(SUM(call_count), 0) as v FROM api_keys").get("v", 0)
+    usage_today = _query_one(tool_usage_db, "SELECT COALESCE(SUM(count), 0) as v FROM tool_usage WHERE date(last_used) = date('now')").get("v", 0)
+    usage_week = _query_one(tool_usage_db, "SELECT COALESCE(SUM(count), 0) as v FROM tool_usage WHERE last_used >= ?", (week_ago,)).get("v", 0)
+    usage_avg = round(usage_total / users_total, 1) if users_total > 0 else 0
+
+    # ── 4. Conversion Funnel (30d, humans only) ─────────────────────────────
+    funnel_stages = ["discover_hit", "catalog_browse", "demo_used", "key_generated", "credits_bought"]
+    human_30d = get_funnel_stats(days=30, exclude_bots=True)
+    by_type = human_30d.get("by_type", {})
+    funnel = []
+    first_count = None
+    prev = None
+    for stage in funnel_stages:
+        count = by_type.get(stage, 0)
+        step_conv = round(100 * count / prev, 1) if prev and prev > 0 else None
+        if first_count is None and count > 0:
+            first_count = count
+        overall_conv = round(100 * count / first_count, 1) if first_count and first_count > 0 and stage != funnel_stages[0] else None
+        funnel.append({"stage": stage, "count": count, "step_pct": step_conv, "overall_pct": overall_conv})
+        prev = count if count > 0 else prev
+
+    # ── 5. Top Tools (bar chart data) ────────────────────────────────────────
+    top_tools = _query_db(tool_usage_db,
+        "SELECT tool_name, SUM(count) as total_calls, MAX(last_used) as last_used FROM tool_usage GROUP BY tool_name ORDER BY total_calls DESC LIMIT 10")
+    max_tool_calls = max((t["total_calls"] for t in top_tools), default=1) or 1
+
+    # ── 6. Recent Activity Feed ──────────────────────────────────────────────
+    recent_events = _query_db(funnel_db,
+        "SELECT event_type, endpoint, ip, created_at, metadata FROM funnel_events WHERE is_bot = 0 ORDER BY id DESC LIMIT 20")
+
+    # ── 7. Response Time Stats ───────────────────────────────────────────────
+    try:
+        from app import get_response_time_stats
+        rt_stats = get_response_time_stats(window_seconds=3600)
+    except Exception:
+        rt_stats = {"avg_ms": 0, "p50_ms": 0, "p95_ms": 0, "p99_ms": 0, "count": 0}
+
+    # ── 8. Geographic / IP Distribution ──────────────────────────────────────
+    top_ips = _query_db(funnel_db,
+        "SELECT ip, COUNT(*) as cnt FROM funnel_events WHERE is_bot = 0 AND ip != '' GROUP BY ip ORDER BY cnt DESC LIMIT 10")
+
+    # ── Traffic periods ──────────────────────────────────────────────────────
     periods = {"24h": 1, "7d": 7, "30d": 30}
     period_stats = {}
     for label, days in periods.items():
@@ -1634,96 +1798,266 @@ def admin_analytics():
             "unique_ips": human_stats.get("unique_ips", 0),
         }
 
-    # Top tools by usage
-    tool_usage_db = os.path.join(os.path.dirname(os.path.dirname(__file__)), "tool_usage.db")
-    top_tools = []
-    try:
-        with _sq.connect(tool_usage_db) as conn:
-            conn.row_factory = _sq.Row
-            rows = conn.execute(
-                """SELECT tool_name, SUM(count) as total_calls, MAX(last_used) as last_used
-                   FROM tool_usage GROUP BY tool_name ORDER BY total_calls DESC LIMIT 20"""
-            ).fetchall()
-            top_tools = [{"tool": r["tool_name"], "calls": r["total_calls"], "last_used": r["last_used"]} for r in rows]
-    except Exception:
-        pass
-
-    # Funnel conversion (human only, 30d)
-    funnel_stages = [
-        "discover_hit", "catalog_browse", "demo_used",
-        "key_generated", "credits_bought",
-    ]
-    human_30d = get_funnel_stats(days=30, exclude_bots=True)
-    by_type = human_30d.get("by_type", {})
-    funnel = []
-    prev = None
-    for stage in funnel_stages:
-        count = by_type.get(stage, 0)
-        conv = round(100 * count / prev, 1) if prev and prev > 0 else None
-        funnel.append({"stage": stage, "count": count, "conversion_pct": conv})
-        prev = count if count > 0 else prev
-
-    # Check if request wants JSON
+    # ── JSON mode ────────────────────────────────────────────────────────────
     if request.args.get("format") == "json":
         return jsonify({
-            "periods": period_stats,
-            "top_tools": top_tools,
+            "revenue": {"total": rev_total, "today": rev_today, "week": rev_week, "month": rev_month},
+            "users": {"total": users_total, "today": users_today, "active_paying": users_active},
+            "usage": {"total": usage_total, "today": usage_today, "week": usage_week, "avg_per_user": usage_avg},
             "funnel_30d": funnel,
+            "top_tools": top_tools,
+            "recent_events": recent_events,
+            "response_times": rt_stats,
+            "top_ips": top_ips,
+            "periods": period_stats,
         })
 
-    # HTML dashboard
+    # ── Build HTML Dashboard ─────────────────────────────────────────────────
+    def _fmt_usd(v):
+        return f"${v:,.2f}" if v else "$0.00"
+
+    def _fmt_num(v):
+        return f"{v:,}" if v else "0"
+
+    # Top tools bar chart (CSS only)
+    tool_bars = ""
+    for t in top_tools:
+        pct = round(100 * t["total_calls"] / max_tool_calls)
+        tool_bars += (
+            f'<div class="bar-row">'
+            f'<span class="bar-label">{t["tool_name"]}</span>'
+            f'<div class="bar-track"><div class="bar-fill" style="width:{pct}%"></div></div>'
+            f'<span class="bar-value">{_fmt_num(t["total_calls"])}</span>'
+            f'</div>'
+        )
+    if not tool_bars:
+        tool_bars = '<p class="muted">No tool usage recorded yet</p>'
+
+    # Funnel rows
+    funnel_html = ""
+    stage_colors = {"discover_hit": "#6366f1", "catalog_browse": "#818cf8", "demo_used": "#a78bfa", "key_generated": "#34d399", "credits_bought": "#fbbf24"}
+    for f_item in funnel:
+        color = stage_colors.get(f_item["stage"], "#888")
+        step_str = f'{f_item["step_pct"]}%' if f_item["step_pct"] is not None else "-"
+        bar_w = round(100 * f_item["count"] / (first_count or 1)) if first_count else 0
+        funnel_html += (
+            f'<div class="funnel-row">'
+            f'<span class="funnel-label">{f_item["stage"].replace("_", " ").title()}</span>'
+            f'<div class="funnel-bar-track"><div class="funnel-bar" style="width:{bar_w}%;background:{color}"></div></div>'
+            f'<span class="funnel-count">{_fmt_num(f_item["count"])}</span>'
+            f'<span class="funnel-conv">{step_str}</span>'
+            f'</div>'
+        )
+
+    # Recent activity
+    activity_rows = ""
+    event_icons = {"key_generated": "&#128273;", "credits_bought": "&#128176;", "402_shown": "&#128274;",
+                   "discover_hit": "&#128270;", "demo_used": "&#127918;", "free_tier_exhausted": "&#9888;",
+                   "catalog_browse": "&#128218;", "mcp_free_exhausted": "&#9888;"}
+    for ev in recent_events:
+        icon = event_icons.get(ev["event_type"], "&#8226;")
+        ts = ev["created_at"][:16].replace("T", " ")
+        activity_rows += (
+            f'<div class="activity-item">'
+            f'<span class="activity-icon">{icon}</span>'
+            f'<span class="activity-type">{ev["event_type"]}</span>'
+            f'<span class="activity-detail">{ev.get("endpoint", "")}</span>'
+            f'<span class="activity-ip">{ev.get("ip", "")}</span>'
+            f'<span class="activity-time">{ts}</span>'
+            f'</div>'
+        )
+    if not activity_rows:
+        activity_rows = '<p class="muted">No recent activity</p>'
+
+    # IP distribution
+    ip_rows = ""
+    for ip_row in top_ips:
+        ip_rows += f'<tr><td><code>{ip_row["ip"]}</code></td><td>{_fmt_num(ip_row["cnt"])}</td></tr>'
+    if not ip_rows:
+        ip_rows = '<tr><td colspan="2" class="muted">No IP data yet</td></tr>'
+
+    # Traffic period rows
     period_rows = ""
     for label, data in period_stats.items():
         period_rows += (
-            f'<tr><td>{label}</td><td>{data["total_events"]}</td>'
-            f'<td style="color:#f87171">{data["bot_events"]}</td>'
-            f'<td style="color:#34d399">{data["human_events"]}</td>'
-            f'<td>{data["unique_ips"]}</td></tr>'
+            f'<tr><td>{label}</td><td>{_fmt_num(data["total_events"])}</td>'
+            f'<td style="color:#f87171">{_fmt_num(data["bot_events"])}</td>'
+            f'<td style="color:#34d399">{_fmt_num(data["human_events"])}</td>'
+            f'<td>{_fmt_num(data["unique_ips"])}</td></tr>'
         )
 
-    tool_rows = ""
-    for t in top_tools:
-        tool_rows += f'<tr><td>{t["tool"]}</td><td>{t["calls"]}</td><td style="color:#888">{(t["last_used"] or "")[:16]}</td></tr>'
-    if not tool_rows:
-        tool_rows = '<tr><td colspan="3" style="color:#555">No tool usage recorded yet</td></tr>'
+    admin_token = request.headers.get("Authorization", "").replace("Bearer ", "") or request.headers.get("X-Admin-Key", "")
 
-    funnel_rows = ""
-    for f in funnel:
-        conv_str = f'{f["conversion_pct"]}%' if f["conversion_pct"] is not None else "-"
-        funnel_rows += f'<tr><td>{f["stage"]}</td><td>{f["count"]}</td><td>{conv_str}</td></tr>'
+    # Quick actions JS
+    actions_js = (
+        "function adminAction(url, method) {"
+        "  if (!confirm('Are you sure?')) return;"
+        "  fetch(url, {method: method || 'POST', headers: {'Authorization': 'Bearer ' + document.querySelector('meta[name=admin-token]').content}})"
+        "  .then(function(r) { return r.json(); }).then(function(d) { alert(d.message || JSON.stringify(d)); location.reload(); })"
+        "  .catch(function(e) { alert('Error: ' + e); });"
+        "}"
+    )
+
+    activation_rate = round(100 * users_active / users_total, 1) if users_total > 0 else 0
 
     html = (
         '<!DOCTYPE html><html lang="en"><head>'
         '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-        '<title>Analytics - AiPayGen</title>'
+        f'<meta name="admin-token" content="{admin_token}">'
+        '<meta http-equiv="refresh" content="60">'
+        '<title>Admin Dashboard - AiPayGen</title>'
         '<style>'
         '*{box-sizing:border-box;margin:0;padding:0}'
-        'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0a0a0a;color:#e8e8e8;padding:32px 16px}'
-        '.wrap{max-width:900px;margin:0 auto}'
-        'h1{font-size:1.5rem;margin-bottom:4px}'
-        '.sub{color:#888;font-size:0.85rem;margin-bottom:24px}'
-        '.card{background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:24px;margin-bottom:20px}'
-        'h2{font-size:1.1rem;margin:0 0 12px}'
-        'table{width:100%;border-collapse:collapse;font-size:0.82rem}'
-        'th,td{padding:8px 12px;text-align:left;border-bottom:1px solid #222}'
-        'th{color:#888;font-weight:600}'
-        'a{color:#6366f1}'
+        'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0a0a0a;color:#e8e8e8;padding:24px 16px}'
+        '.wrap{max-width:1200px;margin:0 auto}'
+        'h1{font-size:1.6rem;margin-bottom:4px;color:#fff}'
+        '.sub{color:#888;font-size:0.82rem;margin-bottom:20px}'
+        '.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:20px}'
+        '.card{background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:20px}'
+        '.card-wide{grid-column:1/-1}'
+        '.card-half{grid-column:span 2}'
+        'h2{font-size:1rem;margin:0 0 14px;color:#a5b4fc;font-weight:600}'
+        '.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}'
+        '.stat{text-align:center}'
+        '.stat-value{font-size:1.5rem;font-weight:700;color:#fff}'
+        '.stat-value.green{color:#34d399}'
+        '.stat-value.blue{color:#6366f1}'
+        '.stat-value.amber{color:#fbbf24}'
+        '.stat-label{font-size:0.7rem;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin-top:2px}'
+        'table{width:100%;border-collapse:collapse;font-size:0.8rem}'
+        'th,td{padding:7px 10px;text-align:left;border-bottom:1px solid #1e1e1e}'
+        'th{color:#666;font-weight:600;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px}'
+        'code{background:#1e1e1e;padding:2px 6px;border-radius:4px;font-size:0.78rem;color:#a5b4fc}'
+        '.muted{color:#555;font-size:0.82rem}'
+        'a{color:#6366f1;text-decoration:none}'
+        'a:hover{text-decoration:underline}'
+        '.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:0.8rem}'
+        '.bar-label{width:140px;text-align:right;color:#ccc;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}'
+        '.bar-track{flex:1;height:20px;background:#1e1e1e;border-radius:4px;overflow:hidden}'
+        '.bar-fill{height:100%;background:linear-gradient(90deg,#6366f1,#818cf8);border-radius:4px;transition:width 0.3s}'
+        '.bar-value{width:50px;color:#888;font-size:0.75rem;flex-shrink:0}'
+        '.funnel-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:0.8rem}'
+        '.funnel-label{width:120px;color:#ccc;flex-shrink:0;font-size:0.78rem}'
+        '.funnel-bar-track{flex:1;height:18px;background:#1e1e1e;border-radius:4px;overflow:hidden}'
+        '.funnel-bar{height:100%;border-radius:4px;transition:width 0.3s}'
+        '.funnel-count{width:50px;color:#fff;font-weight:600;flex-shrink:0;text-align:right;font-size:0.78rem}'
+        '.funnel-conv{width:50px;color:#888;font-size:0.72rem;flex-shrink:0;text-align:right}'
+        '.activity-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #1a1a1a;font-size:0.78rem}'
+        '.activity-icon{font-size:0.9rem;width:20px;text-align:center;flex-shrink:0}'
+        '.activity-type{color:#a5b4fc;font-weight:600;width:150px;flex-shrink:0}'
+        '.activity-detail{color:#888;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
+        '.activity-ip{color:#555;width:110px;flex-shrink:0;font-family:monospace;font-size:0.72rem}'
+        '.activity-time{color:#444;width:120px;flex-shrink:0;text-align:right;font-size:0.72rem}'
+        '.actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}'
+        '.btn{padding:8px 16px;border:1px solid #333;border-radius:8px;background:#1a1a1a;color:#e8e8e8;cursor:pointer;font-size:0.8rem;transition:background 0.2s;text-decoration:none}'
+        '.btn:hover{background:#2a2a2a}'
+        '.btn-danger{border-color:#7f1d1d;color:#fca5a5}.btn-danger:hover{background:#7f1d1d}'
+        '.btn-green{border-color:#064e3b;color:#6ee7b7}.btn-green:hover{background:#064e3b}'
+        '.btn-blue{border-color:#1e3a5f;color:#93c5fd}.btn-blue:hover{background:#1e3a5f}'
+        '.rt-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}'
+        '.rt-item{text-align:center;padding:10px;background:#1a1a1a;border-radius:8px}'
+        '.rt-val{font-size:1.2rem;font-weight:700;color:#fff}'
+        '.rt-label{font-size:0.68rem;color:#888;margin-top:2px;text-transform:uppercase}'
+        '@media(max-width:768px){'
+        '  .grid{grid-template-columns:1fr}'
+        '  .card-half{grid-column:span 1}'
+        '  .bar-label,.funnel-label{width:80px;font-size:0.7rem}'
+        '  .activity-ip,.activity-detail{display:none}'
+        '  .rt-grid{grid-template-columns:repeat(2,1fr)}'
+        '}'
         '</style></head><body>'
         '<div class="wrap">'
-        '<h1>Analytics</h1>'
-        '<p class="sub">Bot filtering &middot; Tool usage &middot; Funnel conversion &middot; <a href="?format=json">JSON</a></p>'
-        '<div class="card"><h2>Traffic (total vs bot)</h2>'
-        '<table><thead><tr><th>Period</th><th>Total</th><th>Bot</th><th>Human</th><th>Unique IPs</th></tr></thead>'
-        f'<tbody>{period_rows}</tbody></table></div>'
-        '<div class="card"><h2>Top Tools by Usage</h2>'
-        '<table><thead><tr><th>Tool</th><th>Calls</th><th>Last Used</th></tr></thead>'
-        f'<tbody>{tool_rows}</tbody></table></div>'
-        '<div class="card"><h2>Funnel Conversion (30d, humans only)</h2>'
-        '<table><thead><tr><th>Stage</th><th>Count</th><th>Conv %</th></tr></thead>'
-        f'<tbody>{funnel_rows}</tbody></table></div>'
-        '<p style="text-align:center;margin-top:20px;font-size:0.75rem;color:#444">'
-        '<a href="/admin/funnel" style="color:#555">Funnel dashboard</a> &middot; '
-        '<a href="/stats" style="color:#555">Payment stats</a></p>'
-        '</div></body></html>'
+        '<h1>Admin Dashboard</h1>'
+        f'<p class="sub">Auto-refreshes every 60s &middot; <a href="?format=json">JSON API</a> &middot; Updated {now.strftime("%H:%M:%S UTC")}</p>'
+        '<!-- Quick Actions -->'
+        '<div class="actions">'
+        '  <button class="btn btn-green" onclick="adminAction(\'/admin/clear-cache\',\'POST\')">Clear Cache</button>'
+        '  <button class="btn btn-danger" onclick="adminAction(\'/admin/restart\',\'POST\')">Restart Workers</button>'
+        '  <button class="btn" onclick="adminAction(\'/admin/run?job=maintenance\',\'POST\')">Run Maintenance</button>'
+        '  <a class="btn btn-blue" href="/admin/export">Export Data (CSV)</a>'
+        '</div>'
+        '<!-- Row 1: KPI Cards -->'
+        '<div class="grid">'
+        '  <div class="card">'
+        '    <h2>Revenue</h2>'
+        '    <div class="stat-grid">'
+        f'      <div class="stat"><div class="stat-value green">{_fmt_usd(rev_total)}</div><div class="stat-label">Total</div></div>'
+        f'      <div class="stat"><div class="stat-value">{_fmt_usd(rev_today)}</div><div class="stat-label">Today</div></div>'
+        f'      <div class="stat"><div class="stat-value">{_fmt_usd(rev_week)}</div><div class="stat-label">This Week</div></div>'
+        f'      <div class="stat"><div class="stat-value">{_fmt_usd(rev_month)}</div><div class="stat-label">This Month</div></div>'
+        '    </div>'
+        '  </div>'
+        '  <div class="card">'
+        '    <h2>Users</h2>'
+        '    <div class="stat-grid">'
+        f'      <div class="stat"><div class="stat-value blue">{_fmt_num(users_total)}</div><div class="stat-label">Total Keys</div></div>'
+        f'      <div class="stat"><div class="stat-value">{_fmt_num(users_today)}</div><div class="stat-label">Created Today</div></div>'
+        f'      <div class="stat"><div class="stat-value green">{_fmt_num(users_active)}</div><div class="stat-label">Active (Balance &gt; 0)</div></div>'
+        f'      <div class="stat"><div class="stat-value">{activation_rate}%</div><div class="stat-label">Activation Rate</div></div>'
+        '    </div>'
+        '  </div>'
+        '  <div class="card">'
+        '    <h2>Usage</h2>'
+        '    <div class="stat-grid">'
+        f'      <div class="stat"><div class="stat-value amber">{_fmt_num(usage_total)}</div><div class="stat-label">Total Calls</div></div>'
+        f'      <div class="stat"><div class="stat-value">{_fmt_num(usage_today)}</div><div class="stat-label">Today</div></div>'
+        f'      <div class="stat"><div class="stat-value">{_fmt_num(usage_week)}</div><div class="stat-label">This Week</div></div>'
+        f'      <div class="stat"><div class="stat-value">{usage_avg}</div><div class="stat-label">Avg/User</div></div>'
+        '    </div>'
+        '  </div>'
+        '  <div class="card">'
+        '    <h2>Response Times (1h)</h2>'
+        '    <div class="rt-grid">'
+        f'      <div class="rt-item"><div class="rt-val">{rt_stats["avg_ms"]:.0f}ms</div><div class="rt-label">Average</div></div>'
+        f'      <div class="rt-item"><div class="rt-val">{rt_stats["p50_ms"]:.0f}ms</div><div class="rt-label">P50</div></div>'
+        f'      <div class="rt-item"><div class="rt-val">{rt_stats["p95_ms"]:.0f}ms</div><div class="rt-label">P95</div></div>'
+        f'      <div class="rt-item"><div class="rt-val">{rt_stats["p99_ms"]:.0f}ms</div><div class="rt-label">P99</div></div>'
+        '    </div>'
+        f'    <p class="muted" style="margin-top:8px;text-align:center;font-size:0.72rem">{_fmt_num(rt_stats["count"])} requests tracked</p>'
+        '  </div>'
+        '</div>'
+        '<!-- Row 2: Charts -->'
+        '<div class="grid">'
+        '  <div class="card card-half">'
+        '    <h2>Top 10 Tools by Usage</h2>'
+        f'    {tool_bars}'
+        '  </div>'
+        '  <div class="card">'
+        '    <h2>Conversion Funnel (30d)</h2>'
+        f'    {funnel_html}'
+        '  </div>'
+        '</div>'
+        '<!-- Row 3: Activity + Traffic + IPs -->'
+        '<div class="grid">'
+        '  <div class="card card-half">'
+        '    <h2>Recent Activity (Last 20 events)</h2>'
+        f'    {activity_rows}'
+        '  </div>'
+        '  <div class="card">'
+        '    <h2>Traffic Overview</h2>'
+        '    <table>'
+        '      <thead><tr><th>Period</th><th>Total</th><th>Bot</th><th>Human</th><th>IPs</th></tr></thead>'
+        f'      <tbody>{period_rows}</tbody>'
+        '    </table>'
+        '  </div>'
+        '</div>'
+        '<div class="grid">'
+        '  <div class="card">'
+        '    <h2>Top IPs (non-bot)</h2>'
+        '    <table>'
+        '      <thead><tr><th>IP Address</th><th>Events</th></tr></thead>'
+        f'      <tbody>{ip_rows}</tbody>'
+        '    </table>'
+        '  </div>'
+        '</div>'
+        '<p style="text-align:center;margin-top:20px;font-size:0.72rem;color:#444">'
+        '  <a href="/admin/funnel" style="color:#555">Funnel dashboard</a> &middot;'
+        '  <a href="/stats" style="color:#555">Payment stats</a> &middot;'
+        '  <a href="/status" style="color:#555">Status</a> &middot;'
+        '  <a href="/admin/export" style="color:#555">Export CSV</a>'
+        '</p>'
+        '</div>'
+        f'<script>{actions_js}</script>'
+        '</body></html>'
     )
     return html, 200, {"Content-Type": "text/html"}

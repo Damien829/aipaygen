@@ -422,8 +422,8 @@ def create_agent():
         return jsonify({"error": "system_prompt must be 5000 characters or less"}), 400
 
     tools = data.get("tools", [])
-    if not isinstance(tools, list) or len(tools) > 244:
-        return jsonify({"error": "tools must be a list of up to 244 tool names"}), 400
+    if not isinstance(tools, list) or len(tools) > 250:
+        return jsonify({"error": "tools must be a list of up to 250 tool names"}), 400
 
     # Validate tool names are alphanumeric/underscore only
     import re
@@ -560,9 +560,9 @@ def update_custom_agent(agent_id):
         if not isinstance(tools, list):
             conn.close()
             return jsonify({"error": "tools must be a list"}), 400
-        if len(tools) > 244:
+        if len(tools) > 250:
             conn.close()
-            return jsonify({"error": "maximum 244 tools allowed"}), 400
+            return jsonify({"error": "maximum 250 tools allowed"}), 400
         import re as _re_tools
         for t in tools:
             if not isinstance(t, str) or not _re_tools.match(r'^[a-zA-Z0-9_\-]+$', t):

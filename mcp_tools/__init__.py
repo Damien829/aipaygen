@@ -1,5 +1,5 @@
 """
-AiPayGen MCP Tools Package — 244 tools (metered + free)
+AiPayGen MCP Tools Package — 250 tools (metered + free)
 
 Split from monolithic mcp_server.py into modular files by category.
 All tools register themselves on the shared `mcp` FastMCP instance.
@@ -66,7 +66,7 @@ _skills_engine = SkillsSearchEngine(_skills_db_path)
 mcp = FastMCP(
     "AiPayGen",
     instructions=(
-        "AiPayGen lets you build, run, and schedule AI agents with 244 tools. "
+        "AiPayGen lets you build, run, and schedule AI agents with 250 tools. "
         "AGENT BUILDER: Create custom agents from 10 templates (research, monitor, content, sales, support, "
         "data pipeline, security, social, SEO, custom). Schedule agents on loops, cron, or event triggers. "
         "TOOLS: research, write, code, translate, analyze, summarize, vision (image analysis), "

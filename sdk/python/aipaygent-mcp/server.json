@@ -1,8 +1,8 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.Damien829/aipaygen",
-  "title": "AiPayGen — 244 AI tools for Agents",
-  "description": "244 AI tools — research, write, code, translate, analyze, scrape, utility APIs, agent memory, seller marketplace",
+  "title": "AiPayGen — 250 AI tools for Agents",
+  "description": "250 AI tools — research, write, code, translate, analyze, scrape, utility APIs, agent memory, seller marketplace",
   "repository": {
     "url": "https://github.com/Damien829/aipaygen",
     "source": "github"
