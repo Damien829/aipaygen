@@ -415,7 +415,7 @@ def blog_index():
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AiPayGen Blog — AI Agent & API Developer Tutorials</title>
-<meta name="description" content="Developer tutorials for building with AiPayGen — 250 tools and 140+ Claude-powered AI API endpoints. Covers AI agents, scraping, x402 payments, real-time data, and more. First 10 calls/day free.">
+<meta name="description" content="Developer tutorials for building with AiPayGen — 250 tools and 140+ Claude-powered AI API endpoints. Covers AI agents, scraping, x402 payments, real-time data, and more. First 3 calls/day free.">
 <link rel="canonical" href="https://api.aipaygen.com/blog">
 <link rel="alternate" type="application/rss+xml" title="AiPayGen Blog RSS" href="/feed.xml">
 <meta property="og:type" content="website">
@@ -439,7 +439,7 @@ def blog_index():
 </nav>
 <a class="rss" href="/feed.xml">RSS feed</a>
 <h1>AiPayGen Developer Blog</h1>
-<p>Tutorials for building AI agents with AiPayGen — 250 tools and 140+ Claude-powered endpoints. <strong>First 10 calls/day free.</strong></p>
+<p>Tutorials for building AI agents with AiPayGen — 250 tools and 140+ Claude-powered endpoints. <strong>First 3 calls/day free.</strong></p>
 <ul style="padding-left:1.2rem">{items}</ul>
 <p><a href="https://api.aipaygen.com/discover">Browse all 250 tools and 140+ endpoints →</a> · <a href="https://api.aipaygen.com/buy-credits">Buy credits ($5+) →</a></p>
 </body>
@@ -531,7 +531,7 @@ pre{{padding:16px;overflow-x:auto;display:block}}a{{color:#6366f1}}h1{{color:#1e
 <h1>{safe_title}</h1>
 {post['content']}
 <div class="cta">
-  <strong>Try it free →</strong> First 10 calls/day free, no credit card. <a href="https://api.aipaygen.com/discover">Browse all 250 tools and 140+ endpoints</a> or <a href="https://api.aipaygen.com/buy-credits">buy credits ($5+)</a>.
+  <strong>Try it free →</strong> First 3 calls/day free, no credit card. <a href="https://api.aipaygen.com/discover">Browse all 250 tools and 140+ endpoints</a> or <a href="https://api.aipaygen.com/buy-credits">buy credits ($5+)</a>.
 </div>
 <p style="color:#888;font-size:0.85rem">Published: {post.get('generated_at','')[:10]} · <a href="/feed.xml">RSS feed</a></p>
 </body>
@@ -1252,7 +1252,7 @@ _KNOWLEDGE_SEEDS = [
             "AiPayGen API (https://api.aipaygen.com) has 250 tools and 140+ endpoints. "
             "Key endpoints: /research ($0.01), /write ($0.05), /analyze ($0.02), /code ($0.05), "
             "/scrape/google-maps ($0.10), /chain ($0.25 for 5-step pipelines), /rag ($0.05). "
-            "Free tier: 10 calls/day per IP. Prepaid keys: /buy-credits. "
+            "Free tier: 3 calls/day per IP. Prepaid keys: /buy-credits. "
             "OpenAPI spec: /openapi.json. MCP tools: /sdk."
         ),
         "tags": ["api", "aipaygen", "reference"],
@@ -1469,7 +1469,7 @@ def rss_feed():
   <channel>
     <title>AiPayGen Developer Blog</title>
     <link>https://api.aipaygen.com/blog</link>
-    <description>Developer tutorials for building AI agents with AiPayGen — 250 tools and 140+ Claude-powered API endpoints. First 10 calls/day free.</description>
+    <description>Developer tutorials for building AI agents with AiPayGen — 250 tools and 140+ Claude-powered API endpoints. First 3 calls/day free.</description>
     <language>en-us</language>
     <atom:link href="https://api.aipaygen.com/feed.xml" rel="self" type="application/rss+xml"/>
     <image>
@@ -1715,7 +1715,7 @@ def crosspost_to_devto(title: str, content_html: str, slug: str, tags: list = No
                 "body_markdown": (
                     f"{markdown_body}\n\n"
                     f"---\n"
-                    f"*Try it free at [api.aipaygen.com](https://api.aipaygen.com) — 10 calls/day, no credit card.*\n"
+                    f"*Try it free at [api.aipaygen.com](https://api.aipaygen.com) — 3 calls/day, no credit card.*\n"
                     f"*Original post: [api.aipaygen.com/blog/{slug}](https://api.aipaygen.com/blog/{slug})*"
                 ),
                 "tags": (tags or ["ai", "api", "python"])[:4],
@@ -1755,7 +1755,7 @@ def reddit_posts():
             "body": f"""I built a pay-per-use AI API on top of Claude with 250 tools and 140+ endpoints — research, write, code, analyze, scrape, RAG, vision, diagrams, and more.
 
 **Key features:**
-- First 10 calls/day completely free (no signup, no key)
+- First 3 calls/day completely free (no signup, no key)
 - Pay per call with Stripe ($5 for ~500 calls) or USDC via x402 V2 (Base, Solana, Stellar)
 - 79 MCP tools for Claude Code/Desktop
 - Agent infrastructure: messaging, task board, file storage, webhook relay, async jobs
@@ -1773,7 +1773,7 @@ Blog: https://api.aipaygen.com/blog""",
         },
         {
             "subreddit": "r/LocalLLaMA",
-            "title": "AiPayGen — Claude API with x402 V2 micropayments. Agents pay per call with USDC on Base/Solana/Stellar, 10 free calls/day",
+            "title": "AiPayGen — Claude API with x402 V2 micropayments. Agents pay per call with USDC on Base/Solana/Stellar, 3 free calls/day",
             "body": f"""Built a micro-payment AI API for agent-to-agent use. Your AI agent can call it autonomously using x402 V2 (HTTP 402 payment protocol) with USDC on Base, Solana, or Stellar — or just use the free tier.
 
 **Why this is interesting for agents:**

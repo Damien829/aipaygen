@@ -51,8 +51,8 @@ Add `quickstart` field to the JSON response:
     "curl_example": "curl -H 'Authorization: Bearer apk_xxx' https://aipaygen.com/sentiment -X POST -d '{\"text\": \"hello world\"}'",
     "mcp_install": "pip install aipaygen-mcp && claude mcp add aipaygen -- aipaygen-mcp",
     "docs": "https://aipaygen.com/docs",
-    "free_calls": 10,
-    "note": "You get 10 free calls/day. No payment needed to start."
+    "free_calls": 3,
+    "note": "You get 3 free calls/day. No payment needed to start."
   }
 }
 ```

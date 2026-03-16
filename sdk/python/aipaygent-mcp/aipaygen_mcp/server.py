@@ -17,7 +17,7 @@ Add to Claude Desktop (claude_desktop_config.json):
 Add to Claude Code:
     claude mcp add aipaygen -- aipaygen-mcp
 
-Set AIPAYGEN_API_KEY for unlimited access, or use the free tier (10 calls/day).
+Set AIPAYGEN_API_KEY for unlimited access, or use the free tier (3 calls/day).
 """
 
 import os
@@ -38,7 +38,7 @@ mcp = FastMCP(
         "AiPayGen provides 250 AI-powered tools: research, write, code, translate, "
         "analyze, summarize, vision, RAG, web scraping, custom agent builder, agent memory, marketplace, "
         "utility APIs (geocode, WHOIS, SSL, security, math, finance, NLP, transforms), and more. "
-        "Free tier: 10 calls/day. Set AIPAYGEN_API_KEY for unlimited access."
+        "Free tier: 3 calls/day. Set AIPAYGEN_API_KEY for unlimited access."
     ),
 )
 

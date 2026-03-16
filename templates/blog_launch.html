@@ -138,7 +138,7 @@
   <pre><code class="language-bash"># Free — no key needed
 curl "https://api.aipaygen.com/data/weather?city=Tokyo"
 
-# AI tool — uses free tier (10 calls/day)
+# AI tool — uses free tier (3 calls/day)
 curl -X POST "https://api.aipaygen.com/summarize" \
   -H "Content-Type: application/json" \
   -d '{"text": "Paste any long text here", "length": "short"}'
@@ -157,7 +157,7 @@ claude mcp add aipaygen -- aipaygen-mcp</code></pre>
   <p>That's it. All 250 tools are now available in your AI coding assistant.</p>
 
   <div class="blog-callout">
-    <strong>Free tier:</strong> 10 calls per day, no API key needed, no credit card required.<br>
+    <strong>Free tier:</strong> 3 calls per day, no API key needed, no credit card required.<br>
     <strong>Paid:</strong> Load credits from $1 via Stripe. AI calls ~$0.006, utilities ~$0.002, scraping ~$0.01.<br>
     <strong>Crypto:</strong> Pay per call in USDC via x402 on Base, Solana, or Stellar.
   </div>

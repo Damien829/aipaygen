@@ -6,7 +6,7 @@
 <title>Try AiPayGen — Free Interactive Demo</title>
 <meta name="description" content="Try 250 AI tools free — no sign-up required. Sentiment analysis, translation, summarization, code generation, and more.">
 <meta property="og:title" content="Try AiPayGen Free — 250 AI Tools">
-<meta property="og:description" content="Interactive demo of 250 AI tools. No sign-up, no credit card. 10 free calls/day.">
+<meta property="og:description" content="Interactive demo of 250 AI tools. No sign-up, no credit card. 3 free calls/day.">
 <meta property="og:url" content="https://aipaygen.com/try">
 <meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta property="og:type" content="website">
@@ -115,7 +115,7 @@
   <div class="nudge-banner urgent" id="nudge-urgent">2 free demos remaining — <a href="/buy-credits">Upgrade now</a></div>
   <div class="demo-card">
     <div class="demo-progress" id="demo-progress">
-      <div class="demo-progress-label"><span id="demo-progress-text">0 / 10 demos used</span><span id="demo-progress-pct">0%</span></div>
+      <div class="demo-progress-label"><span id="demo-progress-text">0 / 3 demos used</span><span id="demo-progress-pct">0%</span></div>
       <div class="demo-progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="10" aria-label="Demo usage"><div class="demo-progress-fill" id="demo-progress-fill"></div></div>
     </div>
     <div class="tool-row">
@@ -182,14 +182,14 @@
     <a href="/buy-credits">Get API Key — From $1</a>
     <p>250 tools &middot; 15 AI models &middot; Credits never expire</p>
   </div>
-  <p class="free-note">Free demo uses the same AI models as paid API. Limited to 10 demos per session.</p>
+  <p class="free-note">Free demo uses the same AI models as paid API. Limited to 3 demos per session.</p>
 </div>
 
 <!-- Upsell modal -->
 <div class="modal-overlay" id="upsell-modal" role="dialog" aria-modal="true" aria-label="Upgrade plan">
   <div class="modal">
     <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
-    <h2>You've used all 10 free demos</h2>
+    <h2>You've used all 3 free demos</h2>
     <p class="modal-sub">Pick a plan to unlock unlimited access to all 250 tools.</p>
     <div class="modal-plans">
       <div class="modal-plan" data-amt="1" onclick="selectModalPlan(this)">
@@ -215,7 +215,7 @@
 <script>
 let currentTool = 'sentiment';
 let demoCount = 0;
-const MAX_DEMOS = 10;
+const MAX_DEMOS = 3;
 let lastCurl = '';
 
 // Fetch and render popular tools
@@ -409,12 +409,12 @@ function updateNudge() {
   const pFill = document.getElementById('demo-progress-fill');
   const pText = document.getElementById('demo-progress-text');
   const pPct = document.getElementById('demo-progress-pct');
-  if (pFill) { pFill.style.width = (demoCount / MAX_DEMOS * 100) + '%'; if (remaining <= 3) pFill.style.background = '#f59e0b'; if (remaining <= 1) pFill.style.background = '#ef4444'; }
+  if (pFill) { pFill.style.width = (demoCount / MAX_DEMOS * 100) + '%'; if (remaining <= 1) pFill.style.background = '#f59e0b'; if (remaining === 0) pFill.style.background = '#ef4444'; }
   if (pText) pText.textContent = demoCount + ' / ' + MAX_DEMOS + ' demos used';
   if (pPct) pPct.textContent = Math.round(demoCount / MAX_DEMOS * 100) + '%';
 
-  // Show inline conversion banner at 5 demos
-  if (demoCount >= 5) {
+  // Show inline conversion banner at 2 demos
+  if (demoCount >= 2) {
     const ic = document.getElementById('inline-convert');
     if (ic) { ic.style.display = 'block'; document.getElementById('inline-convert-count').textContent = demoCount; }
   }

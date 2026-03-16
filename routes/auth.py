@@ -228,8 +228,8 @@ def auth_generate_key():
             "curl_example": f"curl -X POST -H 'Authorization: Bearer {api_key}' {BASE_URL}/sentiment -d '{{\"text\": \"hello world\"}}'",
             "mcp_install": "pip install aipaygen-mcp && claude mcp add aipaygen -- aipaygen-mcp",
             "docs": f"{BASE_URL}/docs",
-            "free_calls": 10,
-            "note": "You get 10 free calls/day. No payment needed to start.",
+            "free_calls": 3,
+            "note": "You get 3 free calls/day. No payment needed to start.",
         },
     }
     if referral_applied:

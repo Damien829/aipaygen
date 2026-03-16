@@ -2,7 +2,7 @@
 AiPayGen MCP Server — 250 tools (metered + free)
 
 Exposes all AiPayGen capabilities as MCP tools with usage metering.
-10 free calls/day without an API key. Unlimited with a prepaid key.
+3 free calls/day without an API key. Unlimited with a prepaid key.
 
 Usage:
   stdio (Claude Code / Cursor / Cline):

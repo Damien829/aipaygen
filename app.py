@@ -740,7 +740,7 @@ def _api_key_wsgi(environ, start_response):
         except Exception:
             pass
 
-    # 0.5 Free tier — 10 calls/day per IP before requiring payment
+    # 0.5 Free tier — 3 calls/day per IP before requiring payment
     if routes.get(route_key) and not auth.startswith("Bearer apk_") and not environ.get("HTTP_X_PAYMENT"):
         _ip = environ.get("HTTP_CF_CONNECTING_IP", environ.get("REMOTE_ADDR", "unknown"))
         if check_and_use_free_tier(_ip):
@@ -1388,7 +1388,7 @@ def enrich_402_response(response):
             "quick_buy_url": "https://aipaygen.com/buy-credits?amount=5&quick=1",
             "also_accepted": {
                 "x402_usdc": {"description": "Pay per call with USDC. No signup.", "docs": "https://x402.org"},
-                "mcp": {"description": "Install MCP package for 10 free calls/day.", "install": "pip install aipaygen-mcp"},
+                "mcp": {"description": "Install MCP package for 3 free calls/day.", "install": "pip install aipaygen-mcp"},
             },
             "quick_buy_url": "https://aipaygen.com/buy-credits?amount=5&quick=1",
             "try_free": f"https://aipaygen.com/try?tool={request.path.strip('/')}",

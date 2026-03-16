@@ -470,7 +470,7 @@ def discover_compare():
                 "settlement": "~2s",
                 "min_price": "$0.001",
                 "platform_fee": "3%",
-                "free_tier": "10 calls/day",
+                "free_tier": "3 calls/day",
                 "mcp_tools": 153,
                 "agent_builder": True,
                 "seller_marketplace": True,

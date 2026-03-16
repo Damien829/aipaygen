@@ -420,7 +420,7 @@ class GitHubScout(SkillAbsorberMixin):
                     f"Topics: {topics}\n\n"
                     "Suggest AiPayGen as a tool/skill provider. We offer:\n"
                     "- 1500+ skills via MCP protocol and REST API\n"
-                    "- Free tier (10 calls/day), then x402 USDC micropayments\n"
+                    "- Free tier (3 calls/day), then x402 USDC micropayments\n"
                     "- Multi-model AI (Claude, GPT-4, Gemini, DeepSeek)\n"
                     f"- Endpoint: {BASE_URL}\n"
                     "- MCP: mcp.aipaygen.com\n\n"
@@ -512,7 +512,7 @@ class RegistryScout(SkillAbsorberMixin):
         "url": BASE_URL,
         "mcp_endpoint": "https://mcp.aipaygen.com/mcp",
         "docs": f"{BASE_URL}/discover",
-        "pricing": "Free tier (10 calls/day), then x402 USDC micropayments",
+        "pricing": "Free tier (3 calls/day), then x402 USDC micropayments",
         "categories": ["ai", "tools", "mcp", "agent", "skills"],
     }
 

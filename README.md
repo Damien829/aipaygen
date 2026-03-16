@@ -38,7 +38,7 @@ Or connect to the remote server: `https://mcp.aipaygen.com/mcp`
 
 ## Pricing
 
-- **Free tier:** 10 calls/day, no key needed
+- **Free tier:** 3 calls/day, no key needed
 - **API key:** from $1 via credit card (Stripe). ~166 AI calls per dollar.
 - **x402 USDC:** pay per call on Base, Solana, or Stellar — no signup needed
 - **Trial credits:** generate a key via the MCP `generate_api_key` tool and get $0.25 free

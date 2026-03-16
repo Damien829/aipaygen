@@ -282,7 +282,7 @@ def get_task(task_id: str) -> dict | None:
 
 # ── Free Daily Tier ────────────────────────────────────────────────────────────
 
-FREE_DAILY_LIMIT = 10
+FREE_DAILY_LIMIT = 3
 
 # In-memory cache for free tier counts: {(ip, date): (calls_used, cache_time)}
 import time as _time

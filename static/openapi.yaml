@@ -3,7 +3,7 @@ info:
   title: AiPayGen API
   description: |
     AI-powered API platform with 244+ tools. Pay-per-call with API keys (Bearer apk_xxx),
-    x402 V2 USDC micropayments (multi-chain: Base, Solana, Stellar), or use the free tier (10 calls/day per IP).
+    x402 V2 USDC micropayments (multi-chain: Base, Solana, Stellar), or use the free tier (3 calls/day per IP).
     Supports autonomous agent micropayments — no API key or signup required.
 
     Base URL: https://api.aipaygen.com

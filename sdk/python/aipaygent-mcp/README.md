@@ -86,7 +86,7 @@ Add to your MCP config:
 | **Scraping** | $0.01 | Google Maps, Twitter, Instagram, YouTube |
 | **AI Heavy** | $0.02 | workflow, pipeline, batch, chain |
 
-**Free tier**: 10 calls/day, no key needed.
+**Free tier**: 3 calls/day, no key needed.
 **API key**: Unlimited access. Get one at [api.aipaygen.com/buy-credits](https://api.aipaygen.com/buy-credits).
 
 ```bash

@@ -76,7 +76,7 @@ mcp = FastMCP(
         "15 frontier models across 7 providers (Anthropic, OpenAI, Google, DeepSeek, xAI, Mistral, Together). "
         "\n\n"
         "PRICING: Set AIPAYGEN_API_KEY env var for unlimited metered access. "
-        "Without a key, you get 10 free calls/day. "
+        "Without a key, you get 3 free calls/day. "
         "Get a key: POST https://api.aipaygen.com/credits/buy or visit https://api.aipaygen.com/docs. "
         "AI tools ~$0.006/call. Utility tools $0.002/call. "
         "All results include _billing metadata with cost and remaining balance."
@@ -178,7 +178,7 @@ _TIER_COSTS = {
 
 _PURCHASE_ERROR = {
     "error": "free_tier_exhausted",
-    "message": "You've used all 10 free calls for today. Unlock unlimited access in 2 steps:",
+    "message": "You've used all 3 free calls for today. Unlock unlimited access in 2 steps:",
     "step_1": "Call generate_api_key() — get a key with $0.25 free trial credits",
     "step_2": "Call buy_credits(1) — add $1 for ~166 more calls",
     "quick_buy_url": "https://aipaygen.com/buy-credits?amount=5&quick=1",

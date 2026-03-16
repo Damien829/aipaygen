@@ -125,12 +125,12 @@ AWESOME_LIST_TARGETS = [
     (
         "public-apis/public-apis",
         "Machine Learning",
-        "| AiPayGen | Claude-powered AI API — research, write, code, analyze, 250 tools and 140+ endpoints. First 10 calls/day free. | No | Yes | Yes |",
+        "| AiPayGen | Claude-powered AI API — research, write, code, analyze, 250 tools and 140+ endpoints. First 3 calls/day free. | No | Yes | Yes |",
     ),
     (
         "humanloop/awesome-ai-agents",
         "APIs",
-        "- [AiPayGen](https://api.aipaygen.com) - Pay-per-use Claude AI API with 250 tools and 140+ endpoints. Agent messaging, task board, file storage, webhook relay. 10 free calls/day.",
+        "- [AiPayGen](https://api.aipaygen.com) - Pay-per-use Claude AI API with 250 tools and 140+ endpoints. Agent messaging, task board, file storage, webhook relay. 3 free calls/day.",
     ),
     (
         "e2b-dev/awesome-ai-agents",
@@ -299,7 +299,7 @@ def _try_pr_awesome_list(repo: str, section: str, entry: str) -> dict:
                     "- **Data**: weather, crypto, stocks, Wikipedia, arXiv, GitHub trending, YouTube transcripts\n"
                     "- **Agent infra**: messaging, task board, file storage, webhook relay, async jobs\n"
                     "- **Scraping**: Google Maps, Twitter, LinkedIn, YouTube, TikTok\n\n"
-                    "**First 10 calls/day free** — no API key needed.\n\n"
+                    "**First 3 calls/day free** — no API key needed.\n\n"
                     "API: https://api.aipaygen.com\n"
                     "OpenAPI spec: https://api.aipaygen.com/openapi.json\n"
                     "MCP tools: https://api.aipaygen.com/sdk"
@@ -393,13 +393,13 @@ def generate_blog_post(slug: str, title: str, endpoint: str, claude_client) -> s
     prompt = f"""Write a comprehensive developer tutorial blog post titled "{title}".
 
 This is for AiPayGen (https://api.aipaygen.com) — a pay-per-use Claude AI API with 250 tools and 140+ endpoints.
-The first 10 calls/day are free. After that, users pay with a prepaid API key or USDC on Base.
+The first 3 calls/day are free. After that, users pay with a prepaid API key or USDC on Base.
 
 The post should:
 1. Explain the problem being solved
 2. Show how to use the relevant AiPayGen endpoint(s) with real curl + Python examples
 3. Include example responses
-4. Mention the 10 free calls/day and /buy-credits for more
+4. Mention the 3 free calls/day and /buy-credits for more
 5. Be 600-900 words, written for developers
 6. End with links to https://api.aipaygen.com/discover and https://api.aipaygen.com/openapi.json
 
@@ -648,7 +648,7 @@ def generate_trending_blog_posts(claude_client) -> dict:
 This is for AiPayGen (https://api.aipaygen.com) — a pay-per-use Claude AI API.
 Connect the topic to how AiPayGen can help developers working in this space.
 Show a concrete curl or Python code example using the most relevant AiPayGen endpoint.
-End with: "Try it free at https://api.aipaygen.com — 10 calls/day, no credit card."
+End with: "Try it free at https://api.aipaygen.com — 3 calls/day, no credit card."
 Return only clean HTML article body (no doctype/head tags)."""
 
             msg = claude_client.messages.create(

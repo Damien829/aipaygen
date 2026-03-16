@@ -237,7 +237,7 @@ def _build_discover_services():
         {"endpoint": "/free/random", "method": "GET", "price_usd": 0.00, "input": {"n": 5, "min": 1, "max": 100}, "description": "Random integers, floats, booleans, and strings — completely free"},
         {"endpoint": "/free/joke", "method": "GET", "price_usd": 0.00, "description": "Random joke with setup and punchline — completely free"},
         {"endpoint": "/free/quote", "method": "GET", "price_usd": 0.00, "input": {"category": "optional"}, "description": "Random inspirational quote with author — completely free"},
-        {"endpoint": "/free-tier/status", "method": "GET", "price_usd": 0.01, "description": "Check how many free AI calls remain today for your IP. 10 free calls/day, resets midnight UTC."},
+        {"endpoint": "/free-tier/status", "method": "GET", "price_usd": 0.01, "description": "Check how many free AI calls remain today for your IP. 3 free calls/day, resets midnight UTC."},
         {"endpoint": "/sdk/code", "method": "GET", "price_usd": 0.01, "input": {"lang": "python|javascript|curl", "endpoint": "optional"}, "description": "Get copy-paste SDK code in Python, JavaScript, or cURL"},
         {"endpoint": "/sitemap.xml", "method": "GET", "price_usd": 0.01, "description": "XML sitemap of all public endpoints for crawlers and agents"},
         {"endpoint": "/catalog", "method": "GET", "price_usd": 0.01, "input": {"category": "optional", "min_score": 0, "free_only": False, "page": 1}, "description": "Browse 4100+ discovered APIs — the largest autonomous API catalog. Filter by category, quality score, auth requirement"},
@@ -478,7 +478,7 @@ def discover():
                 "usdc_contract": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
             },
             "mcp": {
-                "description": "10 free calls/day via MCP, unlimited with API key.",
+                "description": "3 free calls/day via MCP, unlimited with API key.",
                 "install": "pip install aipaygen-mcp",
                 "sse": f"https://mcp.aipaygen.com/mcp",
             },
@@ -1397,7 +1397,7 @@ def _build_llms_txt():
     lines.append("## Authentication (3 Paths)")
     lines.append("")
     lines.append("### 1. Free Tier (No Auth)")
-    lines.append("- 10 calls/day per IP, no key needed")
+    lines.append("- 3 calls/day per IP, no key needed")
     lines.append("- Just POST JSON to any endpoint")
     lines.append("")
     lines.append("### 2. API Key (Recommended)")
@@ -1479,7 +1479,7 @@ def _build_llms_txt():
 
     lines.append("## MCP (Model Context Protocol)")
     lines.append("")
-    lines.append("- 10 free calls/day, no payment needed")
+    lines.append("- 3 free calls/day, no payment needed")
     lines.append("- Unlimited with `AIPAYGEN_API_KEY` env var")
     lines.append("- **New**: Use the `buy_credits` or `generate_api_key` MCP tools to get $0.25 trial credits instantly")
     lines.append("- Install: `pip install aipaygen-mcp && claude mcp add aipaygen -- python -m aipaygen_mcp`")
@@ -1595,12 +1595,12 @@ def ai_plugin():
         "schema_version": "v1",
         "name_for_human": "AiPayGen",
         "name_for_model": "aipaygen",
-        "description_for_human": "250 AI tools (v1.9.0) — research, write, code, translate, scrape, and more. $0.25 trial credits. 10 free calls/day.",
+        "description_for_human": "250 AI tools (v1.9.0) — research, write, code, translate, scrape, and more. $0.25 trial credits. 3 free calls/day.",
         "description_for_model": (
             "AiPayGen provides 250 AI-powered tools accessible via a single API (v1.9.0). "
             "Use for research, writing, code generation, translation, sentiment analysis, "
             "web scraping, data extraction, content comparison, fact-checking, and more. "
-            "Free tier: 10 calls/day per IP. Paid: prepaid API key (Bearer apk_xxx) or "
+            "Free tier: 3 calls/day per IP. Paid: prepaid API key (Bearer apk_xxx) or "
             "x402 USDC micropayment. New: $0.25 trial credits via buy_credits or generate_api_key. "
             "All tools accept JSON POST requests."
         ),
@@ -1663,7 +1663,7 @@ def agent_manifest():
                 "then use 'Authorization: Bearer apk_xxx'. "
                 "New: $0.25 trial credits via buy_credits or generate_api_key MCP tools. "
                 "Alternative: Pay per call with USDC on Base via x402. "
-                "MCP: 10 free calls/day, unlimited with API key."
+                "MCP: 3 free calls/day, unlimited with API key."
             ),
             "buyCredits": f"{base}/credits/buy",
         },
@@ -1995,7 +1995,7 @@ def smithery_server_card():
         "authentication": {
             "required": False,
             "schemes": ["bearer"],
-            "note": "Optional API key for metered access. 10 free calls/day without key."
+            "note": "Optional API key for metered access. 3 free calls/day without key."
         },
         "tools": [
             {"name": "research", "description": "Research any topic with web sources and AI synthesis"},

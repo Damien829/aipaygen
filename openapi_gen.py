@@ -311,7 +311,7 @@ def generate_openapi_spec(routes=None):
                 "Three options:\n"
                 "1. **API Key** (recommended): `Authorization: Bearer apk_xxx` — get a free key with $0.25 trial credits via `POST /auth/generate-key`\n"
                 "2. **x402 Payment**: `X-Payment` header with USDC micropayment on Base (eip155:8453)\n"
-                "3. **Free tier**: 10 calls/day per IP, no auth needed\n\n"
+                "3. **Free tier**: 3 calls/day per IP, no auth needed\n\n"
                 "## Rate Limits\n"
                 "- Free tier: 60 requests/minute per IP, 10 AI calls/day\n"
                 "- API key: 60 requests/minute per IP (higher limits available)\n"

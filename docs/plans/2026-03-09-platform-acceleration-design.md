@@ -31,7 +31,7 @@ Get ahead of x402 adoption by maximizing revenue capture, discovery, platform mo
 - Webhook creates key first, success page retrieves it async
 
 ### Free Tier Exhaustion Nudge
-- Personalized 402 body: "You used 10 free calls today across N tools. Unlock unlimited for $5."
+- Personalized 402 body: "You used 3 free calls today across N tools. Unlock unlimited for $5."
 - `X-Upgrade-Hint` header when remaining <= 3
 
 ## Wave 2 — Discovery & SEO
@@ -88,7 +88,7 @@ Get ahead of x402 adoption by maximizing revenue capture, discovery, platform mo
 - 15 tools (add: research, scrape, workflow, vision, code, compare, extract)
 - Live response with timing display
 - "Copy as curl" button per result
-- Rate limit: 10 demos/10min
+- Rate limit: 3 demos/10min
 
 ### Usage Dashboard Charts
 - Daily usage sparkline (last 30 days)

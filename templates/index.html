@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 {% block title %}AiPayGen{% endblock %}
-{% block description %}250 AI tools in one API. Multi-model (Claude, GPT-4o, Gemini, DeepSeek, Grok). Pay per call. 10 free calls/day. $0.25 trial credits.{% endblock %}
+{% block description %}250 AI tools in one API. Multi-model (Claude, GPT-4o, Gemini, DeepSeek, Grok). Pay per call. 3 free calls/day. $0.25 trial credits.{% endblock %}
 
 {% block head %}
 <!-- OG Tags -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="AiPayGen — The AI Agent API">
-<meta property="og:description" content="250 AI tools, 15 models, 7 providers. Pay per call. 10 free calls/day. $0.25 trial credits.">
+<meta property="og:description" content="250 AI tools, 15 models, 7 providers. Pay per call. 3 free calls/day. $0.25 trial credits.">
 <meta property="og:url" content="https://aipaygen.com">
 <meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta property="og:site_name" content="AiPayGen">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="AiPayGen — The AI Agent API">
-<meta name="twitter:description" content="250 AI tools, 15 models, 7 providers. Pay per call. 10 free calls/day.">
+<meta name="twitter:description" content="250 AI tools, 15 models, 7 providers. Pay per call. 3 free calls/day.">
 <meta name="twitter:image" content="https://aipaygen.com/og-image.png">
 <!-- JSON-LD -->
 <script type="application/ld+json">
@@ -190,7 +190,7 @@
       <a href="/buy-credits" class="btn btn-secondary" onclick="trackABClick('key_click')">Get API Key</a>
     </div>
     <p class="hero-tag fade-in delay-3">
-      <span>10 free calls/day</span> &middot; <span style="color:var(--accent2)">$0.25 trial credits</span> &middot; Pay only for what you use
+      <span>3 free calls/day</span> &middot; <span style="color:var(--accent2)">$0.25 trial credits</span> &middot; Pay only for what you use
     </p>
     {% else %}
     {# ── Variant A: current hero (control) ── #}
@@ -207,7 +207,7 @@
       <a href="/buy-credits" class="btn btn-secondary" onclick="trackABClick('key_click')">Get API Key</a>
     </div>
     <p class="hero-tag fade-in delay-3">
-      <span>10 free calls/day</span> &middot; <span style="color:var(--accent2)">$0.25 trial credits</span> &middot; No sign-up required &middot;
+      <span>3 free calls/day</span> &middot; <span style="color:var(--accent2)">$0.25 trial credits</span> &middot; No sign-up required &middot;
       <code>pip install aipaygen-mcp</code>
     </p>
     {% endif %}
@@ -333,7 +333,7 @@
     <div class="step-card card">
       <div class="step-num">3</div>
       <h3>Pay</h3>
-      <p>10 free calls/day. Then prepay with Stripe ($5+) or pay per call with USDC on Base.</p>
+      <p>3 free calls/day. Then prepay with Stripe ($5+) or pay per call with USDC on Base.</p>
       <div class="code-block mt-4" style="text-align:left">
         <pre><code class="language-bash">curl -X POST https://api.aipaygen.com/credits/buy \
   -d '{"amount_usd": 5.0}'</code></pre>
@@ -568,7 +568,7 @@ function updateCalc(){var s=document.getElementById('calc-slider'),n=parseInt(s.
 <!-- One-Click Install -->
 <section class="section fade-in" id="install">
   <div class="section-title text-center" style="max-width:none">Add to Claude Code in one command</div>
-  <div class="section-subtitle text-center" style="max-width:none;margin:0 auto 40px">Start using all 250 tools immediately. No API key needed for 10 free calls/day.</div>
+  <div class="section-subtitle text-center" style="max-width:none;margin:0 auto 40px">Start using all 250 tools immediately. No API key needed for 3 free calls/day.</div>
 
   <div style="max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:20px">
     <!-- Claude Code remote MCP (recommended) -->

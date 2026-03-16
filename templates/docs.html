@@ -499,7 +499,7 @@ translated = httpx.post(f"{BASE}/translate", json={"text": summary["summary"], "
 <p><strong>How to fix:</strong> Set <code>Content-Type: application/json</code> in your request headers and ensure the body is valid JSON.</p>
 
 <h3>429 — Rate Limited</h3>
-<p>Too many requests. Free tier: 10 calls/day. Paid tier: 60 calls/minute.</p>
+<p>Too many requests. Free tier: 3 calls/day. Paid tier: 60 calls/minute.</p>
 <pre><code>{
   "error": "Rate limit exceeded",
   "retry_after": 60,
