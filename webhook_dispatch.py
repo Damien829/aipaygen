@@ -46,6 +46,20 @@ def init_webhooks_dispatch_db():
         )
     """)
     conn.execute("CREATE INDEX IF NOT EXISTS idx_uw_api_key ON user_webhooks(api_key)")
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS webhook_deliveries (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            api_key TEXT NOT NULL,
+            webhook_id INTEGER,
+            url TEXT NOT NULL,
+            event TEXT NOT NULL,
+            payload TEXT,
+            status_code INTEGER,
+            response_body TEXT,
+            dispatched_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    """)
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_wd_api_key ON webhook_deliveries(api_key)")
     # Migration: add threshold column if missing
     try:
         conn.execute("ALTER TABLE user_webhooks ADD COLUMN threshold REAL DEFAULT 0.0")
@@ -112,6 +126,48 @@ def check_low_balance_webhooks(api_key, current_balance):
         logger.error("check_low_balance_webhooks error: %s", e)
 
 
+def _log_delivery(api_key, webhook_id, url, event, payload, status_code, response_body):
+    """Record a webhook delivery attempt."""
+    try:
+        conn = _get_conn()
+        conn.execute(
+            "INSERT INTO webhook_deliveries (api_key, webhook_id, url, event, payload, status_code, response_body) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (api_key, webhook_id, url, event, json.dumps(payload or {}),
+             status_code, (response_body or "")[:2000]),
+        )
+        # Keep only last 200 deliveries per key
+        conn.execute(
+            "DELETE FROM webhook_deliveries WHERE api_key = ? AND id NOT IN "
+            "(SELECT id FROM webhook_deliveries WHERE api_key = ? ORDER BY id DESC LIMIT 200)",
+            (api_key, api_key),
+        )
+        conn.commit()
+        _close_conn(conn)
+    except Exception as e:
+        logger.error("_log_delivery error: %s", e)
+
+
+def get_deliveries(api_key, limit=50):
+    """Return recent webhook deliveries for an API key."""
+    conn = _get_conn()
+    rows = conn.execute(
+        "SELECT id, webhook_id, url, event, payload, status_code, response_body, dispatched_at "
+        "FROM webhook_deliveries WHERE api_key = ? ORDER BY id DESC LIMIT ?",
+        (api_key, min(limit, 200)),
+    ).fetchall()
+    _close_conn(conn)
+    result = []
+    for r in rows:
+        d = dict(r)
+        try:
+            d["payload"] = json.loads(d["payload"])
+        except Exception:
+            pass
+        result.append(d)
+    return result
+
+
 def dispatch_event(event_type, api_key, payload=None):
     """Dispatch event to matching webhooks in a background thread."""
     def _dispatch():
@@ -124,20 +180,49 @@ def dispatch_event(event_type, api_key, payload=None):
                 if event_type not in events:
                     continue
                 body = {"event": event_type, "api_key": api_key, "payload": payload or {}}
+                status_code = None
+                resp_body = ""
                 backoff = [1, 2, 4]
                 for attempt, wait in enumerate(backoff):
                     try:
                         resp = requests.post(row["url"], json=body, timeout=10)
+                        status_code = resp.status_code
+                        resp_body = resp.text[:2000]
                         if resp.status_code < 500:
                             break
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        resp_body = str(exc)[:500]
                     if attempt < len(backoff) - 1:
                         time.sleep(wait)
+                _log_delivery(api_key, row["id"], row["url"], event_type, payload, status_code, resp_body)
         except Exception as e:
             logger.error("dispatch_event error: %s", e)
 
     threading.Thread(target=_dispatch, daemon=True).start()
+
+
+def dispatch_test_event(event_type, api_key, payload=None):
+    """Dispatch a test event synchronously and return the count of webhooks notified."""
+    conn = _get_conn()
+    rows = conn.execute("SELECT id, url, events FROM user_webhooks WHERE api_key = ?", (api_key,)).fetchall()
+    _close_conn(conn)
+    count = 0
+    for row in rows:
+        events = json.loads(row["events"])
+        if event_type not in events:
+            continue
+        body = {"event": event_type, "api_key": api_key, "payload": payload or {}, "_test": True}
+        status_code = None
+        resp_body = ""
+        try:
+            resp = requests.post(row["url"], json=body, timeout=10)
+            status_code = resp.status_code
+            resp_body = resp.text[:2000]
+        except Exception as exc:
+            resp_body = str(exc)[:500]
+        _log_delivery(api_key, row["id"], row["url"], event_type, payload, status_code, resp_body)
+        count += 1
+    return count
 
 
 # Auto-init on import

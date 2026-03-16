@@ -621,12 +621,12 @@ class TestStripeCreateCheckoutEdgeCases:
     @patch("routes.auth._stripe")
     @patch("routes.auth.funnel_log_event")
     def test_all_valid_amounts(self, mock_funnel, mock_stripe, client):
-        """All 7 valid amounts should succeed."""
+        """All 8 valid amounts should succeed (including $0.50)."""
         mock_session = MagicMock()
         mock_session.url = "https://checkout.stripe.com/s"
         mock_session.id = "cs_valid"
         mock_stripe.checkout.Session.create.return_value = mock_session
-        for amt in (1, 5, 10, 15, 20, 25, 50):
+        for amt in (0.5, 1, 5, 10, 15, 20, 25, 50):
             r = client.post("/stripe/create-checkout", json={"amount": amt})
             assert r.status_code == 200, f"amount={amt} failed"
 

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Webhook Testing — AiPayGen</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#020408;--green:#00ff9d;--cyan:#00d4ff;--card-bg:#0a0e14;--card-border:#111820;--text:#e1e4e8;--muted:#6b7280;--red:#f87171;--orange:#f59e0b;--blue:#3b82f6}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;line-height:1.6;padding-top:70px}
+a{color:var(--green);text-decoration:none}
+a:hover{text-decoration:underline}
+.container{max-width:960px;margin:0 auto;padding:24px}
+h1{font-family:'IBM Plex Mono',monospace;font-size:1.8rem;color:#fff;margin-bottom:4px}
+h1 span{color:var(--green)}
+.subtitle{color:var(--muted);font-size:0.95rem;margin-bottom:32px}
+h2{font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:var(--green);margin:32px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--card-border)}
+.panel{background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;padding:20px;margin-bottom:20px}
+label{display:block;font-size:0.85rem;color:var(--muted);margin-bottom:4px;font-weight:500}
+input[type=text],input[type=url],select{width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--card-border);border-radius:8px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;outline:none;margin-bottom:12px}
+input:focus{border-color:var(--green)}
+.row{display:flex;gap:12px;align-items:flex-end}
+.row>*{flex:1}
+.btn{padding:10px 20px;border:none;border-radius:6px;font-family:'IBM Plex Sans',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary{background:var(--green);color:var(--bg)}
+.btn-primary:hover{opacity:.9}
+.btn-danger{background:transparent;border:1px solid var(--red);color:var(--red)}
+.btn-danger:hover{background:var(--red);color:#fff}
+.btn-secondary{background:transparent;border:1px solid var(--blue);color:var(--blue)}
+.btn-secondary:hover{background:var(--blue);color:#fff}
+.btn-sm{padding:6px 12px;font-size:0.78rem}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;color:var(--green);padding:8px 12px;border-bottom:1px solid var(--card-border);text-transform:uppercase;letter-spacing:0.05em}
+td{padding:10px 12px;font-size:0.85rem;border-bottom:1px solid rgba(17,24,32,0.5);color:var(--muted);vertical-align:top}
+td:first-child{font-family:'IBM Plex Mono',monospace;color:#fff;font-size:0.82rem}
+.status-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:600}
+.status-2xx{background:rgba(0,255,157,0.15);color:var(--green)}
+.status-4xx{background:rgba(248,113,113,0.15);color:var(--red)}
+.status-5xx{background:rgba(245,158,11,0.15);color:var(--orange)}
+.status-pending{background:rgba(59,130,246,0.15);color:var(--blue)}
+.empty-state{text-align:center;padding:32px;color:var(--muted);font-size:0.9rem}
+.toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:8px;font-size:0.85rem;font-weight:500;z-index:1000;animation:slideIn .3s ease}
+.toast-success{background:var(--green);color:var(--bg)}
+.toast-error{background:var(--red);color:#fff}
+@keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.event-body{max-width:400px;overflow-x:auto;white-space:pre-wrap;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;color:var(--text);background:var(--bg);padding:6px 8px;border-radius:4px;max-height:120px;overflow-y:auto}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:600;margin:1px 2px}
+.tag-event{background:rgba(0,212,255,0.15);color:var(--cyan)}
+.no-key{text-align:center;padding:60px 24px}
+.no-key h2{color:#fff;font-size:1.3rem;margin-bottom:8px;border:none;padding:0}
+.no-key p{color:var(--muted);margin-bottom:20px}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:0.82rem}
+</style>
+</head>
+<body>
+{{ nav|safe }}
+<div class="container">
+<h1>Webhook <span>Testing</span></h1>
+<p class="subtitle">Register, test, and monitor webhook deliveries for your API key.</p>
+
+<div id="noKeyPanel" class="no-key" style="display:none">
+  <h2>API Key Required</h2>
+  <p>Pass your API key as a query parameter: <code class="mono">/webhooks/test?key=apk_xxx</code></p>
+  <a href="/buy-credits" class="btn btn-primary">Get API Key</a>
+</div>
+
+<div id="mainContent" style="display:none">
+
+<h2>Register Webhook</h2>
+<div class="panel">
+  <div class="row">
+    <div style="flex:2">
+      <label for="webhookUrl">Webhook URL (HTTPS only)</label>
+      <input type="url" id="webhookUrl" placeholder="https://your-server.com/webhook">
+    </div>
+    <div>
+      <label for="webhookEvents">Events</label>
+      <select id="webhookEvents" multiple style="height:auto;min-height:40px">
+        <option value="low_balance" selected>low_balance</option>
+        <option value="payment_received">payment_received</option>
+        <option value="free_tier_exhausted">free_tier_exhausted</option>
+        <option value="agent_task">agent_task</option>
+      </select>
+    </div>
+  </div>
+  <div class="row" style="margin-top:4px">
+    <div>
+      <label for="webhookThreshold">Balance Threshold (USD, for low_balance)</label>
+      <input type="text" id="webhookThreshold" placeholder="0.50" value="0.50">
+    </div>
+    <div style="flex:0;padding-bottom:12px">
+      <button class="btn btn-primary" id="registerBtn">Register</button>
+    </div>
+  </div>
+</div>
+
+<h2>Your Webhooks</h2>
+<div class="panel" id="webhooksPanel">
+  <div class="empty-state" id="webhooksEmpty">No webhooks registered yet.</div>
+  <div id="webhooksList"></div>
+</div>
+
+<h2>Send Test Event</h2>
+<div class="panel">
+  <div class="row">
+    <div>
+      <label for="testEventType">Event Type</label>
+      <select id="testEventType">
+        <option value="low_balance">low_balance</option>
+        <option value="payment_received">payment_received</option>
+        <option value="free_tier_exhausted">free_tier_exhausted</option>
+        <option value="agent_task">agent_task</option>
+      </select>
+    </div>
+    <div style="flex:2">
+      <label for="testPayload">Payload (JSON)</label>
+      <input type="text" id="testPayload" value='{"balance_usd": 0.25, "message": "Test event from webhook testing UI"}'>
+    </div>
+    <div style="flex:0;padding-bottom:12px">
+      <button class="btn btn-secondary" id="sendTestBtn">Send Test</button>
+    </div>
+  </div>
+</div>
+
+<h2>Recent Deliveries</h2>
+<div class="panel" id="deliveriesPanel">
+  <div class="empty-state" id="deliveriesEmpty">No deliveries yet. Register a webhook and send a test event.</div>
+  <div id="deliveriesList"></div>
+</div>
+
+</div>
+</div>
+{{ footer|safe }}
+<script>
+(function(){
+  var params = new URLSearchParams(window.location.search);
+  var apiKey = params.get('key') || '';
+  if(!apiKey || !apiKey.startsWith('apk_')){
+    document.getElementById('noKeyPanel').style.display='';
+    return;
+  }
+  document.getElementById('mainContent').style.display='';
+  var headers = {'Authorization':'Bearer '+apiKey,'Content-Type':'application/json'};
+
+  function toast(msg,type){
+    var t=document.createElement('div');
+    t.className='toast toast-'+(type||'success');
+    t.textContent=msg;
+    document.body.appendChild(t);
+    setTimeout(function(){t.remove()},3000);
+  }
+
+  function escapeText(s){
+    var d=document.createElement('div');
+    d.textContent=s;
+    return d.textContent;
+  }
+
+  function createStatusBadge(code){
+    var span=document.createElement('span');
+    span.className='status-badge';
+    if(!code){span.className+=' status-pending';span.textContent='pending';}
+    else if(code<300){span.className+=' status-2xx';span.textContent=String(code);}
+    else if(code<500){span.className+=' status-4xx';span.textContent=String(code);}
+    else{span.className+=' status-5xx';span.textContent=String(code);}
+    return span;
+  }
+
+  document.getElementById('registerBtn').addEventListener('click',function(){
+    var url=document.getElementById('webhookUrl').value.trim();
+    if(!url||!url.startsWith('https://')){toast('URL must start with https://','error');return;}
+    var opts=document.getElementById('webhookEvents');
+    var events=[];
+    for(var i=0;i<opts.options.length;i++){if(opts.options[i].selected)events.push(opts.options[i].value);}
+    var threshold=parseFloat(document.getElementById('webhookThreshold').value)||0.5;
+    fetch('/webhooks/register',{method:'POST',headers:headers,body:JSON.stringify({url:url,events:events,threshold:threshold})})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d.error){toast(d.error,'error');return;}
+      toast('Webhook registered (ID: '+d.webhook_id+')');
+      document.getElementById('webhookUrl').value='';
+      loadWebhooks();
+    }).catch(function(e){toast('Error: '+e.message,'error');});
+  });
+
+  document.getElementById('sendTestBtn').addEventListener('click',function(){
+    var eventType=document.getElementById('testEventType').value;
+    var payloadStr=document.getElementById('testPayload').value.trim();
+    var payload={};
+    try{payload=JSON.parse(payloadStr);}catch(e){toast('Invalid JSON payload','error');return;}
+    fetch('/webhooks/test-event',{method:'POST',headers:headers,body:JSON.stringify({event:eventType,payload:payload})})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      if(d.error){toast(d.error,'error');return;}
+      toast('Test event dispatched to '+d.dispatched_to+' webhook(s)');
+      setTimeout(loadDeliveries,1500);
+    }).catch(function(e){toast('Error: '+e.message,'error');});
+  });
+
+  function loadWebhooks(){
+    fetch('/webhooks',{headers:headers})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      var hooks=d.webhooks||[];
+      var container=document.getElementById('webhooksList');
+      while(container.firstChild)container.removeChild(container.firstChild);
+      if(hooks.length===0){
+        document.getElementById('webhooksEmpty').style.display='';
+        return;
+      }
+      document.getElementById('webhooksEmpty').style.display='none';
+      var table=document.createElement('table');
+      var thead=document.createElement('thead');
+      var headerRow=document.createElement('tr');
+      ['ID','URL','Events','Threshold','Created','Actions'].forEach(function(h){
+        var th=document.createElement('th');th.textContent=h;headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+      var tbody=document.createElement('tbody');
+      hooks.forEach(function(h){
+        var tr=document.createElement('tr');
+        var tdId=document.createElement('td');tdId.textContent=h.id;tr.appendChild(tdId);
+        var tdUrl=document.createElement('td');tdUrl.textContent=h.url;tdUrl.style.cssText='max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:IBM Plex Mono,monospace;font-size:0.78rem;color:#00d4ff;cursor:pointer';
+        tdUrl.title='Click to copy';
+        tdUrl.addEventListener('click',function(){navigator.clipboard.writeText(h.url);toast('URL copied');});
+        tr.appendChild(tdUrl);
+        var tdEvents=document.createElement('td');
+        (h.events||[]).forEach(function(e){var s=document.createElement('span');s.className='tag tag-event';s.textContent=e;tdEvents.appendChild(s);});
+        tr.appendChild(tdEvents);
+        var tdThresh=document.createElement('td');tdThresh.textContent='$'+(h.threshold||0).toFixed(2);tr.appendChild(tdThresh);
+        var tdCreated=document.createElement('td');tdCreated.className='mono';tdCreated.textContent=(h.created_at||'').replace('T',' ').substring(0,19);tr.appendChild(tdCreated);
+        var tdActions=document.createElement('td');
+        var delBtn=document.createElement('button');delBtn.className='btn btn-danger btn-sm';delBtn.textContent='Delete';
+        delBtn.addEventListener('click',(function(whId){return function(){
+          if(!confirm('Delete webhook #'+whId+'?'))return;
+          fetch('/webhooks/'+whId,{method:'DELETE',headers:headers})
+          .then(function(r){return r.json()})
+          .then(function(dd){toast(dd.deleted?'Webhook deleted':'Could not delete');loadWebhooks();})
+          .catch(function(e){toast('Error: '+e.message,'error');});
+        };})(h.id));
+        tdActions.appendChild(delBtn);
+        tr.appendChild(tdActions);
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      container.appendChild(table);
+    });
+  }
+
+  function loadDeliveries(){
+    fetch('/webhooks/deliveries',{headers:headers})
+    .then(function(r){return r.json()})
+    .then(function(d){
+      var items=d.deliveries||[];
+      var container=document.getElementById('deliveriesList');
+      while(container.firstChild)container.removeChild(container.firstChild);
+      if(items.length===0){
+        document.getElementById('deliveriesEmpty').style.display='';
+        return;
+      }
+      document.getElementById('deliveriesEmpty').style.display='none';
+      var table=document.createElement('table');
+      var thead=document.createElement('thead');
+      var headerRow=document.createElement('tr');
+      ['Time','Event','URL','Status','Response'].forEach(function(h){
+        var th=document.createElement('th');th.textContent=h;headerRow.appendChild(th);
+      });
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+      var tbody=document.createElement('tbody');
+      items.forEach(function(item){
+        var tr=document.createElement('tr');
+        var tdTime=document.createElement('td');tdTime.className='mono';tdTime.textContent=(item.dispatched_at||'').replace('T',' ').substring(0,19);tr.appendChild(tdTime);
+        var tdEvent=document.createElement('td');var evSpan=document.createElement('span');evSpan.className='tag tag-event';evSpan.textContent=item.event||'';tdEvent.appendChild(evSpan);tr.appendChild(tdEvent);
+        var tdUrl=document.createElement('td');tdUrl.textContent=item.url||'';tdUrl.style.cssText='max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';tdUrl.title=item.url||'';tr.appendChild(tdUrl);
+        var tdStatus=document.createElement('td');tdStatus.appendChild(createStatusBadge(item.status_code));tr.appendChild(tdStatus);
+        var tdResp=document.createElement('td');var respDiv=document.createElement('div');respDiv.className='event-body';
+        var bodyStr='';
+        try{bodyStr=typeof item.response_body==='string'?item.response_body:JSON.stringify(item.response_body,null,2);}catch(e){bodyStr='';}
+        respDiv.textContent=bodyStr||'---';
+        tdResp.appendChild(respDiv);tr.appendChild(tdResp);
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      container.appendChild(table);
+    });
+  }
+
+  loadWebhooks();
+  loadDeliveries();
+  setInterval(loadDeliveries,10000);
+})();
+</script>
+</body>
+</html>

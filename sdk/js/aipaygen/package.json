@@ -1,0 +1,42 @@
+{
+  "name": "aipaygen",
+  "version": "1.9.0",
+  "description": "Official JavaScript/TypeScript SDK for AiPayGen — 250 AI tools in one API. Pay per call via x402 (USDC on Base) or prepaid API key.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "scripts": {
+    "test": "node -e \"const {AiPayGen} = require('./index'); const c = new AiPayGen('test'); c.joke().then(r => console.log('OK:', r)).catch(e => console.log('Expected:', e.message))\""
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "x402",
+    "claude",
+    "anthropic",
+    "mcp",
+    "marketplace",
+    "payment",
+    "usdc",
+    "base",
+    "web3",
+    "llm",
+    "research",
+    "scraping",
+    "tools",
+    "aipaygen"
+  ],
+  "author": "AiPayGen",
+  "license": "MIT",
+  "homepage": "https://aipaygen.com",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Damien829/aipaygen"
+  },
+  "bugs": {
+    "url": "https://github.com/Damien829/aipaygen/issues"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "dependencies": {}
+}

@@ -2,79 +2,153 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Payment Successful — AiPayGen</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e8e8e8; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
-  .card { background: #141414; border: 1px solid #2a2a2a; border-radius: 16px; padding: 40px; max-width: 520px; width: 100%; text-align: center; }
-  .icon { font-size: 3rem; margin-bottom: 16px; }
-  h1 { font-size: 1.6rem; margin-bottom: 8px; }
-  .sub { color: #888; margin-bottom: 28px; }
-  .key-box { background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 10px; padding: 16px; margin-bottom: 24px; }
-  .key-label { font-size: 0.8rem; color: #888; margin-bottom: 6px; }
-  .key-val { font-family: monospace; font-size: 0.95rem; color: #a78bfa; word-break: break-all; cursor: pointer; }
+  .card { background: #141414; border: 1px solid #2a2a2a; border-radius: 16px; padding: 40px; max-width: 600px; width: 100%; }
+  .icon { font-size: 3rem; margin-bottom: 16px; text-align: center; }
+  h1 { font-size: 1.6rem; margin-bottom: 8px; text-align: center; }
+  .sub { color: #888; margin-bottom: 28px; text-align: center; }
+  .key-box { background: #1e1e1e; border: 2px solid #6366f1; border-radius: 10px; padding: 20px; margin-bottom: 24px; }
+  .key-label { font-size: 0.8rem; color: #888; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .key-val { font-family: monospace; font-size: 1.05rem; color: #a78bfa; word-break: break-all; cursor: pointer; padding: 8px; background: #0a0a0a; border-radius: 6px; }
   .key-val:hover { color: #c4b5fd; }
-  .balance { font-size: 1.1rem; margin-bottom: 24px; }
+  .balance { font-size: 1.1rem; margin-bottom: 24px; text-align: center; }
   .balance span { color: #34d399; font-weight: 700; }
-  pre { background: #1a1a1a; border-radius: 8px; padding: 14px; font-size: 0.8rem; color: #888; text-align: left; overflow-x: auto; margin-bottom: 8px; }
-  .btn { display: inline-block; background: #6366f1; color: #fff; text-decoration: none; border-radius: 10px; padding: 12px 24px; font-weight: 600; margin-top: 20px; }
-  .copy-hint { font-size: 0.75rem; color: #555; margin-top: 4px; }
+  .copy-btn { display: inline-block; background: #6366f1; color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-top: 8px; }
+  .copy-btn:hover { background: #4f52d0; }
+  .next-steps { margin-top: 28px; }
+  .next-steps h2 { font-size: 1.1rem; margin-bottom: 16px; color: #e8e8e8; }
+  .step { background: #1a1a1a; border: 1px solid #222; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
+  .step-num { display: inline-block; background: #6366f1; color: #fff; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 0.8rem; font-weight: 700; margin-right: 8px; }
+  .step-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; }
+  .step pre { background: #0a0a0a; border-radius: 6px; padding: 12px; font-size: 0.78rem; color: #888; overflow-x: auto; margin-top: 8px; white-space: pre-wrap; word-break: break-all; position: relative; }
+  .step pre .copy-pre { position: absolute; top: 6px; right: 6px; background: #2a2a2a; color: #888; border: none; border-radius: 4px; padding: 3px 8px; font-size: 0.7rem; cursor: pointer; }
+  .step pre .copy-pre:hover { color: #e8e8e8; }
+  .actions { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
+  .btn { display: inline-block; text-decoration: none; border-radius: 10px; padding: 12px 24px; font-weight: 600; text-align: center; flex: 1; min-width: 140px; }
+  .btn-primary { background: #6366f1; color: #fff; }
+  .btn-secondary { background: #1a1a2e; border: 1px solid #3d3d6e; color: #a0a0ff; }
+  .guarantee { margin-top: 20px; padding: 12px; background: #1a1a1a; border-radius: 8px; font-size: 0.78rem; color: #666; text-align: center; }
+  .guarantee strong { color: #34d399; }
+  #loading { color: #888; margin-bottom: 24px; text-align: center; }
 </style>
 </head>
 <body>
 <div class="card">
   <div class="icon">&#10003;</div>
   <h1>Payment Successful</h1>
-  <p class="sub">Your API key is ready.</p>
+  <p class="sub">Your API key is ready to use.</p>
 
   <div class="key-box" id="key-box" style="display:none">
-    <div class="key-label">YOUR API KEY</div>
+    <div class="key-label">Your API Key -- save this somewhere safe</div>
     <div class="key-val" id="key-display" title="Click to copy"></div>
-    <div class="copy-hint">Click to copy</div>
+    <button class="copy-btn" id="copy-key-btn">Copy API Key</button>
   </div>
-  <div id="loading" style="color:#888;margin-bottom:24px;">Confirming payment... this may take a few seconds.</div>
+  <div id="loading">Confirming payment... this may take a few seconds.</div>
 
   <p class="balance" id="balance-row" style="display:none">Balance: <span id="balance-val"></span></p>
 
-  <pre id="curl-example" style="display:none"></pre>
-  <pre id="check-example" style="display:none"></pre>
+  <div class="next-steps" id="next-steps" style="display:none">
+    <h2>What to do next</h2>
 
-  <a href="/buy-credits" class="btn">Buy More Credits</a>
+    <div class="step">
+      <div class="step-title"><span class="step-num">1</span> Try your first API call</div>
+      <pre id="curl-example"></pre>
+    </div>
+
+    <div class="step">
+      <div class="step-title"><span class="step-num">2</span> Check your balance anytime</div>
+      <pre id="check-example"></pre>
+    </div>
+
+    <div class="step">
+      <div class="step-title"><span class="step-num">3</span> Install as MCP server (Claude, Cursor, Cline)</div>
+      <pre id="mcp-example"></pre>
+    </div>
+  </div>
+
+  <div class="actions" id="actions" style="display:none">
+    <a href="/dashboard" class="btn btn-primary" id="dashboard-link">View Dashboard</a>
+    <a href="/docs" class="btn btn-secondary">API Docs</a>
+    <a href="/playground" class="btn btn-secondary">Playground</a>
+  </div>
+
+  <div class="guarantee">
+    <strong>30-day money-back guarantee</strong> &middot; Credits never expire &middot; Secure via Stripe
+  </div>
 </div>
 <script>
-const sid = new URLSearchParams(window.location.search).get('session_id');
+var sid = new URLSearchParams(window.location.search).get('session_id');
+
+function copyText(text, btn) {
+  navigator.clipboard.writeText(text);
+  var orig = btn.textContent;
+  btn.textContent = 'Copied!';
+  setTimeout(function() { btn.textContent = orig; }, 1500);
+}
+
+function showKey(key, balance) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('key-box').style.display = 'block';
+  var kd = document.getElementById('key-display');
+  kd.textContent = key;
+  kd.onclick = function() { copyText(key, kd); };
+  document.getElementById('copy-key-btn').onclick = function() { copyText(key, this); };
+
+  var br = document.getElementById('balance-row');
+  br.style.display = 'block';
+  document.getElementById('balance-val').textContent = '$' + balance;
+
+  // Curl example
+  var curlText = 'curl https://api.aipaygen.com/sentiment \\\n  -H "Authorization: Bearer ' + key + '" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"text": "This product is amazing!"}\'';
+  var ce = document.getElementById('curl-example');
+  ce.textContent = curlText;
+  var copyBtn1 = document.createElement('button');
+  copyBtn1.className = 'copy-pre';
+  copyBtn1.textContent = 'Copy';
+  copyBtn1.onclick = function() { copyText(curlText, copyBtn1); };
+  ce.appendChild(copyBtn1);
+
+  // Check balance example
+  var checkText = 'curl "https://api.aipaygen.com/auth/status?key=' + key + '" \\\n  -H "Authorization: Bearer ' + key + '"';
+  var ck = document.getElementById('check-example');
+  ck.textContent = checkText;
+  var copyBtn2 = document.createElement('button');
+  copyBtn2.className = 'copy-pre';
+  copyBtn2.textContent = 'Copy';
+  copyBtn2.onclick = function() { copyText(checkText, copyBtn2); };
+  ck.appendChild(copyBtn2);
+
+  // MCP example
+  var mcpText = 'pip install aipaygen-mcp\nAIPAYGEN_API_KEY=' + key + ' aipaygen-mcp';
+  var me = document.getElementById('mcp-example');
+  me.textContent = mcpText;
+  var copyBtn3 = document.createElement('button');
+  copyBtn3.className = 'copy-pre';
+  copyBtn3.textContent = 'Copy';
+  copyBtn3.onclick = function() { copyText(mcpText, copyBtn3); };
+  me.appendChild(copyBtn3);
+
+  document.getElementById('next-steps').style.display = 'block';
+  document.getElementById('actions').style.display = 'flex';
+  document.getElementById('dashboard-link').href = '/dashboard?key=' + encodeURIComponent(key);
+}
+
 function poll() {
   if (!sid) { document.getElementById('loading').textContent = 'Missing session ID.'; return; }
   fetch('/auth/key-status?session_id=' + encodeURIComponent(sid))
-    .then(r => r.json())
-    .then(d => {
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
       if (d.ready && d.api_key) {
-        const key = d.api_key;
-        document.getElementById('loading').style.display = 'none';
-        document.getElementById('key-box').style.display = 'block';
-        const kd = document.getElementById('key-display');
-        kd.textContent = key;
-        kd.dataset.key = key;
-        kd.onclick = function() {
-          navigator.clipboard.writeText(this.dataset.key);
-          const orig = this.textContent;
-          this.textContent = 'Copied!';
-          setTimeout(() => this.textContent = orig, 1500);
-        };
-        const br = document.getElementById('balance-row');
-        br.style.display = 'block';
-        document.getElementById('balance-val').textContent = '$' + d.balance;
-        const ce = document.getElementById('curl-example');
-        ce.style.display = 'block';
-        ce.textContent = 'curl https://api.aipaygen.com/research \\\n  -H "Authorization: Bearer ' + key + '" \\\n  -H "Content-Type: application/json" \\\n  -d \'{"topic": "quantum computing"}\'';
-        const ck = document.getElementById('check-example');
-        ck.style.display = 'block';
-        ck.textContent = '# Check balance\ncurl "https://api.aipaygen.com/auth/status?key=' + key + '"';
+        showKey(d.api_key, d.balance);
       } else {
         setTimeout(poll, 2000);
       }
     })
-    .catch(() => setTimeout(poll, 2000));
+    .catch(function() { setTimeout(poll, 2000); });
 }
 poll();
 </script>

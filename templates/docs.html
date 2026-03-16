@@ -104,6 +104,9 @@ a:hover{text-decoration:underline}
   <a href="#models">Models</a>
   <a href="#discovery">Discovery</a>
   <a href="#free">Free Endpoints</a>
+  <div class="section-title">Reference</div>
+  <a href="#errors">Error Codes</a>
+  <a href="#webhooks">Webhooks</a>
 </nav>
 <div class="content">
 
@@ -425,6 +428,126 @@ translated = httpx.post(f"{BASE}/translate", json={"text": summary["summary"], "
   <li><strong>Wallet:</strong> <code>0x366D488a48de1B2773F3a21F1A6972715056Cb30</code></li>
   <li><strong>Bulk discount:</strong> 20% when balance &gt;= $2.00</li>
 </ul>
+
+<h2 id="errors">Error Codes Reference</h2>
+<p>All error responses follow a consistent JSON format with an <code>error</code> field and optional helper fields.</p>
+
+<h3>400 — Bad Request</h3>
+<p>Missing or invalid parameters in your request body.</p>
+<pre><code>{
+  "error": "Missing required field: text",
+  "hint": "Include a 'text' field in your JSON body",
+  "docs": "https://aipaygen.com/docs#ai-tools"
+}</code></pre>
+<p><strong>How to fix:</strong> Check the endpoint documentation for required fields. Ensure your <code>Content-Type</code> is <code>application/json</code> and the request body is valid JSON.</p>
+
+<h3>401 — Unauthorized</h3>
+<p>Missing or invalid API key.</p>
+<pre><code>{
+  "error": "API key required",
+  "hint": "Pass Authorization: Bearer apk_..."
+}</code></pre>
+<p><strong>How to fix:</strong> Include your API key in the <code>Authorization</code> header as <code>Bearer apk_xxx</code>. Generate a key at <a href="/buy-credits">/buy-credits</a> or via <code>POST /auth/generate-key</code>.</p>
+
+<h3>402 — Payment Required</h3>
+<p>Insufficient balance on your API key, or the endpoint requires x402 payment.</p>
+<pre><code>{
+  "error": "Insufficient balance",
+  "balance_usd": 0.001,
+  "cost_usd": 0.01,
+  "top_up_url": "https://aipaygen.com/buy-credits",
+  "x402": {
+    "pay_to": "0x366D488a48de1B2773F3a21F1A6972715056Cb30",
+    "network": "eip155:8453",
+    "accepts": "USDC"
+  }
+}</code></pre>
+<p><strong>How to fix:</strong> Top up your balance at <a href="/buy-credits">/buy-credits</a> or via <code>POST /auth/topup</code>. Alternatively, pay per-call using the x402 protocol with a USDC payment in the <code>X-Payment</code> header.</p>
+
+<h3>403 — Forbidden</h3>
+<p>The endpoint requires a paid API key. Free tier does not include premium tools (research, vision, scrapers).</p>
+<pre><code>{
+  "error": "Premium tool requires API key",
+  "hint": "Get an API key at https://aipaygen.com/buy-credits",
+  "upgrade_url": "https://aipaygen.com/buy-credits"
+}</code></pre>
+<p><strong>How to fix:</strong> Purchase an API key. Premium tools like <code>/research</code>, <code>/vision</code>, and all <code>/scrape/*</code> endpoints are not available on the free tier.</p>
+
+<h3>404 — Not Found</h3>
+<p>The requested endpoint does not exist.</p>
+<pre><code>{
+  "error": "Not found",
+  "suggestion": "Did you mean /sentiment?",
+  "docs": "https://aipaygen.com/discover"
+}</code></pre>
+<p><strong>How to fix:</strong> Check the endpoint path. Browse all available endpoints at <a href="/discover">/discover</a>. Common typos are auto-corrected when possible.</p>
+
+<h3>405 — Method Not Allowed</h3>
+<p>Wrong HTTP method for this endpoint (e.g., GET on a POST-only endpoint).</p>
+<pre><code>{
+  "error": "Method not allowed. Use POST.",
+  "docs": "https://aipaygen.com/docs"
+}</code></pre>
+<p><strong>How to fix:</strong> Check the endpoint method in the <a href="/discover">service catalog</a>. AI tool endpoints use POST; data lookups typically use GET.</p>
+
+<h3>415 — Unsupported Media Type</h3>
+<p>Request body is not valid JSON or the Content-Type header is missing.</p>
+<pre><code>{
+  "error": "Content-Type must be application/json",
+  "hint": "Add header: Content-Type: application/json"
+}</code></pre>
+<p><strong>How to fix:</strong> Set <code>Content-Type: application/json</code> in your request headers and ensure the body is valid JSON.</p>
+
+<h3>429 — Rate Limited</h3>
+<p>Too many requests. Free tier: 10 calls/day. Paid tier: 60 calls/minute.</p>
+<pre><code>{
+  "error": "Rate limit exceeded",
+  "retry_after": 60,
+  "limit": "10/day",
+  "reset_at": "2026-03-17T00:00:00Z",
+  "upgrade_url": "https://aipaygen.com/buy-credits"
+}</code></pre>
+<p><strong>How to fix:</strong> Wait for the <code>retry_after</code> period (in seconds). Check the <code>Retry-After</code> response header. To increase limits, upgrade to a paid API key.</p>
+
+<h3>500 — Internal Server Error</h3>
+<p>An unexpected error occurred on our side. Includes a <code>request_id</code> for support.</p>
+<pre><code>{
+  "error": "Internal server error",
+  "request_id": "req_a1b2c3d4",
+  "status": "https://aipaygen.com/status",
+  "support": "Include request_id when contacting support"
+}</code></pre>
+<p><strong>How to fix:</strong> Retry the request. If the error persists, check <a href="/status">/status</a> for service health. For support, include the <code>request_id</code> value.</p>
+
+<h3>503 — Maintenance Mode</h3>
+<p>The service is temporarily unavailable for scheduled maintenance.</p>
+<pre><code>{
+  "error": "Service temporarily unavailable — maintenance in progress",
+  "retry_after": 300,
+  "status": "https://aipaygen.com/status"
+}</code></pre>
+<p><strong>How to fix:</strong> Wait for maintenance to complete. Check <a href="/status">/status</a> for real-time updates. The <code>Retry-After</code> header indicates estimated downtime in seconds.</p>
+
+<h2 id="webhooks">Webhooks</h2>
+<p>Register HTTPS endpoints to receive real-time notifications about balance changes, payments, and task events.</p>
+
+<div class="endpoint"><span class="method post">POST</span><span class="path">/webhooks/register</span><div class="desc">Register a webhook URL for specific events.</div></div>
+<pre><code>httpx.post(f"{BASE}/webhooks/register",
+    json={
+        "url": "https://your-server.com/webhook",
+        "events": ["low_balance", "payment_received"],
+        "threshold": 0.50
+    },
+    headers={"Authorization": f"Bearer {key}"}
+)</code></pre>
+
+<div class="endpoint"><span class="method get">GET</span><span class="path">/webhooks/list</span><div class="desc">List your registered webhooks.</div></div>
+<div class="endpoint"><span class="method delete">DELETE</span><span class="path">/webhooks/{id}</span><div class="desc">Delete a webhook.</div></div>
+<div class="endpoint"><span class="method post">POST</span><span class="path">/webhooks/test-event</span><div class="desc">Send a test event to your registered webhooks.</div></div>
+<div class="endpoint"><span class="method get">GET</span><span class="path">/webhooks/deliveries</span><div class="desc">View recent webhook delivery attempts with status codes.</div></div>
+
+<p><strong>Available events:</strong> <code>low_balance</code>, <code>payment_received</code>, <code>free_tier_exhausted</code>, <code>agent_task</code></p>
+<p>Interactive webhook testing UI: <a href="/webhooks/test">/webhooks/test?key=apk_xxx</a></p>
 
 </div>
 </div>

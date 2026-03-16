@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+{% block title %}Integrations{% endblock %}
+{% block description %}Connect AiPayGen to LangChain, CrewAI, AutoGen, Claude Code, Cursor, n8n, and Zapier. Copy-paste integration guides.{% endblock %}
+
+{% block head %}
+<style>
+  .integ-hero {
+    text-align: center;
+    padding: 80px 24px 40px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .integ-hero h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 16px;
+    letter-spacing: -0.02em;
+  }
+  .integ-hero h1 .accent { color: var(--accent, #00ff9d); }
+  .integ-hero p {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 1.1rem;
+    color: var(--text-muted, #4a6070);
+    line-height: 1.7;
+  }
+  .guides {
+    max-width: 900px;
+    margin: 0 auto 80px;
+    padding: 0 24px;
+  }
+  .guide {
+    border: 1px solid var(--border, #0d2030);
+    background: var(--bg-secondary, #070d14);
+    padding: 40px 32px;
+    margin-bottom: 2px;
+    transition: border-color 0.2s;
+  }
+  .guide:hover {
+    border-color: var(--accent, #00ff9d);
+  }
+  .guide h2 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 12px;
+  }
+  .guide h2 .tag {
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border: 1px solid var(--accent, #00ff9d);
+    color: var(--accent, #00ff9d);
+    vertical-align: middle;
+    margin-left: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .guide p {
+    font-family: 'IBM Plex Sans', sans-serif;
+    color: var(--text-muted, #4a6070);
+    line-height: 1.7;
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+  }
+  .guide pre {
+    background: #010409;
+    border: 1px solid var(--border, #0d2030);
+    padding: 20px;
+    overflow-x: auto;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .guide pre code {
+    color: var(--text, #c8d8e8);
+    font-family: 'IBM Plex Mono', monospace;
+  }
+  .guide .install-cmd {
+    background: #010409;
+    border: 1px solid var(--border, #0d2030);
+    padding: 12px 20px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--accent, #00ff9d);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .guide .install-cmd .prompt {
+    color: var(--text-muted, #4a6070);
+    user-select: none;
+  }
+  .guide-link {
+    display: inline-block;
+    font-size: 0.8rem;
+    color: var(--accent, #00ff9d);
+    text-decoration: none;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    transition: opacity 0.2s;
+  }
+  .guide-link:hover { opacity: 0.7; }
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: transparent;
+    border: 1px solid var(--border, #0d2030);
+    color: var(--text-muted, #4a6070);
+    font-size: 0.7rem;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-family: 'IBM Plex Mono', monospace;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .copy-btn:hover { color: var(--accent, #00ff9d); border-color: var(--accent, #00ff9d); }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="integ-hero">
+  <h1>Plug into <span class="accent">anything</span></h1>
+  <p>Connect AiPayGen's 250 tools to your favorite AI framework in minutes. Each guide includes a working code example you can copy and run.</p>
+</section>
+
+<div class="guides">
+
+  <!-- LangChain -->
+  <div class="guide" id="langchain">
+    <h2>LangChain <span class="tag">Python</span></h2>
+    <p>Use AiPayGen as a custom tool provider in LangChain agents. Each AiPayGen endpoint becomes a LangChain Tool that your agent can invoke autonomously during reasoning chains.</p>
+    <div class="install-cmd"><span class="prompt">$</span> pip install langchain-core requests</div>
+    <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>from langchain_core.tools import tool
+import requests
+
+HEADERS = {"Authorization": "Bearer apk_your_key"}
+BASE = "https://aipaygen.com"
+
+@tool
+def aipaygen_research(topic: str) -> str:
+    """Research any topic using AiPayGen AI."""
+    r = requests.post(f"{BASE}/research", json={"topic": topic}, headers=HEADERS)
+    return r.json().get("result", r.text)
+
+@tool
+def aipaygen_summarize(text: str) -> str:
+    """Summarize text using AiPayGen AI."""
+    r = requests.post(f"{BASE}/summarize", json={"text": text}, headers=HEADERS)
+    return r.json().get("result", r.text)
+
+# Use in a LangChain agent
+from langchain_anthropic import ChatAnthropic
+from langgraph.prebuilt import create_react_agent
+
+llm = ChatAnthropic(model="claude-sonnet-4-20250514")
+agent = create_react_agent(llm, [aipaygen_research, aipaygen_summarize])
+
+result = agent.invoke({"messages": [("user", "Research quantum computing and summarize")]})
+print(result["messages"][-1].content)</code></pre>
+    <a href="/docs" class="guide-link">Full API reference &rarr;</a>
+  </div>
+
+  <!-- CrewAI -->
+  <div class="guide" id="crewai">
+    <h2>CrewAI <span class="tag">Python</span></h2>
+    <p>Build multi-agent workflows where each crew member uses AiPayGen tools. Define researchers, analysts, and writers that collaborate using AiPayGen's 250 endpoints as their shared toolset.</p>
+    <div class="install-cmd"><span class="prompt">$</span> pip install crewai requests</div>
+    <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>from crewai import Agent, Task, Crew
+from crewai.tools import tool
+import requests
+
+HEADERS = {"Authorization": "Bearer apk_your_key"}
+BASE = "https://aipaygen.com"
+
+@tool("AiPayGen Research")
+def research(topic: str) -> str:
+    """Deep research on any topic via AiPayGen."""
+    r = requests.post(f"{BASE}/research", json={"topic": topic}, headers=HEADERS)
+    return r.json().get("result", r.text)
+
+@tool("AiPayGen Write")
+def write_content(prompt: str) -> str:
+    """Write polished content via AiPayGen."""
+    r = requests.post(f"{BASE}/write", json={"prompt": prompt}, headers=HEADERS)
+    return r.json().get("result", r.text)
+
+researcher = Agent(
+    role="Research Analyst",
+    goal="Find accurate, current information",
+    tools=[research],
+    verbose=True,
+)
+
+writer = Agent(
+    role="Content Writer",
+    goal="Create engaging content from research",
+    tools=[write_content],
+    verbose=True,
+)
+
+task1 = Task(description="Research solar energy trends in 2026", agent=researcher)
+task2 = Task(description="Write a blog post from the research", agent=writer)
+
+crew = Crew(agents=[researcher, writer], tasks=[task1, task2], verbose=True)
+result = crew.kickoff()
+print(result)</code></pre>
+    <a href="/docs" class="guide-link">Full API reference &rarr;</a>
+  </div>
+
+  <!-- AutoGen -->
+  <div class="guide" id="autogen">
+    <h2>AutoGen <span class="tag">Python</span></h2>
+    <p>Integrate AiPayGen into Microsoft AutoGen's multi-agent conversations. Register AiPayGen endpoints as callable functions that AutoGen agents can use during their collaborative problem-solving sessions.</p>
+    <div class="install-cmd"><span class="prompt">$</span> pip install autogen-agentchat requests</div>
+    <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>import autogen
+import requests
+
+HEADERS = {"Authorization": "Bearer apk_your_key"}
+BASE = "https://aipaygen.com"
+
+def aipaygen_research(topic: str) -> str:
+    r = requests.post(f"{BASE}/research", json={"topic": topic}, headers=HEADERS)
+    return r.json().get("result", r.text)
+
+def aipaygen_analyze(content: str) -> str:
+    r = requests.post(f"{BASE}/analyze", json={"content": content}, headers=HEADERS)
+    return r.json().get("result", r.text)
+
+config_list = [{"model": "claude-sonnet-4-20250514", "api_type": "anthropic"}]
+
+assistant = autogen.AssistantAgent(
+    name="assistant",
+    llm_config={"config_list": config_list},
+)
+
+user_proxy = autogen.UserProxyAgent(
+    name="user",
+    human_input_mode="NEVER",
+    code_execution_config=False,
+)
+
+# Register AiPayGen tools
+assistant.register_for_llm(description="Research any topic")(aipaygen_research)
+assistant.register_for_llm(description="Analyze content")(aipaygen_analyze)
+user_proxy.register_for_execution()(aipaygen_research)
+user_proxy.register_for_execution()(aipaygen_analyze)
+
+user_proxy.initiate_chat(assistant, message="Research AI agents and analyze the key trends")</code></pre>
+    <a href="/docs" class="guide-link">Full API reference &rarr;</a>
+  </div>
+
+  <!-- Claude Code (MCP) -->
+  <div class="guide" id="claude-code">
+    <h2>Claude Code <span class="tag">MCP</span></h2>
+    <p>Add AiPayGen as an MCP server in Claude Code to give Claude access to 244 tools directly in your terminal. Supports both remote (hosted) and local (PyPI) installation modes.</p>
+    <div class="install-cmd"><span class="prompt">$</span> pip install aipaygen-mcp</div>
+    <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code># Option 1: Remote MCP (no install needed)
+claude mcp add aipaygen --transport http https://mcp.aipaygen.com/mcp
+
+# Option 2: Local MCP via PyPI
+pip install aipaygen-mcp
+claude mcp add aipaygen -- aipaygen-mcp --http
+
+# Option 3: Add to .claude/settings.json
+{
+  "mcpServers": {
+    "aipaygen": {
+      "type": "http",
+      "url": "https://mcp.aipaygen.com/mcp"
+    }
+  }
+}
+
+# Then use naturally in Claude Code:
+# "Research quantum computing using aipaygen"
+# "Scrape the top 5 hacker news stories"
+# "Get the weather in Tokyo"</code></pre>
+    <a href="https://pypi.org/project/aipaygen-mcp/" class="guide-link">PyPI package &rarr;</a>
+  </div>
+
+  <!-- Cursor -->
+  <div class="guide" id="cursor">
+    <h2>Cursor <span class="tag">MCP</span></h2>
+    <p>Connect AiPayGen to Cursor IDE via MCP so the AI assistant can research, scrape, analyze, and code using 244 tools directly from your editor.</p>
+    <div class="install-cmd"><span class="prompt">$</span> pip install aipaygen-mcp</div>
+    <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>// Add to .cursor/mcp.json in your project root:
+{
+  "mcpServers": {
+    "aipaygen": {
+      "type": "http",
+      "url": "https://mcp.aipaygen.com/mcp"
+    }
+  }
+}
+
+// Or use the local server:
+{
+  "mcpServers": {
+    "aipaygen": {
+      "command": "aipaygen-mcp",
+      "args": ["--http"]
+    }
+  }
+}
+
+// Cursor's AI can now use AiPayGen tools:
+// "Use aipaygen to research React Server Components"
+// "Scrape the competitor's pricing page with aipaygen"</code></pre>
+    <a href="https://smithery.ai/servers/Damien829/Aipaygen" class="guide-link">Smithery listing &rarr;</a>
+  </div>
+
+  <!-- n8n -->
+  <div class="guide" id="n8n">
+    <h2>n8n <span class="tag">Webhook</span></h2>
+    <p>Use AiPayGen in n8n workflows via HTTP Request nodes. Trigger AI research, content generation, and data scraping from any n8n automation without writing code.</p>
+    <div class="install-cmd"><span class="prompt">$</span> Self-hosted or n8n.io cloud</div>
+    <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>// n8n HTTP Request Node configuration:
+
+// 1. Add an HTTP Request node
+// 2. Set these parameters:
+//    Method: POST
+//    URL: https://aipaygen.com/research
+//    Authentication: Header Auth
+//      Name: Authorization
+//      Value: Bearer apk_your_key
+//    Body (JSON):
+{
+  "topic": "{% raw %}{{ $json.topic }}{% endraw %}"
+}
+
+// Chain multiple AiPayGen calls:
+// [Trigger] -> [HTTP: /research] -> [HTTP: /summarize] -> [Slack/Email]
+
+// Example: Monitor competitor mentions
+// [Schedule Trigger (daily)]
+//   -> [HTTP: POST https://aipaygen.com/web/search]
+//      Body: {"query": "competitor name news", "n": 20}
+//   -> [HTTP: POST https://aipaygen.com/analyze]
+//      Body: {"content": "{% raw %}{{ $json.results }}{% endraw %}"}
+//   -> [Slack Node: Post summary to #competitive-intel]</code></pre>
+    <a href="/docs" class="guide-link">Full API reference &rarr;</a>
+  </div>
+
+  <!-- Zapier -->
+  <div class="guide" id="zapier">
+    <h2>Zapier <span class="tag">REST</span></h2>
+    <p>Connect AiPayGen to 6,000+ apps via Zapier's Webhooks by Zapier action. Trigger AI-powered research, analysis, and content generation from any Zapier event.</p>
+    <div class="install-cmd"><span class="prompt">$</span> Zapier account + API key</div>
+    <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>// Zapier setup with "Webhooks by Zapier" action:
+
+// 1. Create a new Zap
+// 2. Choose your trigger (Gmail, Slack, Typeform, etc.)
+// 3. Add action: "Webhooks by Zapier" -> "Custom Request"
+// 4. Configure:
+//    Method: POST
+//    URL: https://aipaygen.com/research
+//    Headers:
+//      Authorization: Bearer apk_your_key
+//      Content-Type: application/json
+//    Data (JSON):
+{
+  "topic": "summarize this email: {% raw %}{{body}}{% endraw %}"
+}
+
+// Example Zaps:
+// - New email -> Research topic -> Reply with summary
+// - New Typeform response -> Analyze sentiment -> Log to Google Sheets
+// - Schedule -> Scrape competitor -> Summarize changes -> Slack alert
+// - New RSS item -> Translate to Spanish -> Post to WordPress
+
+// Use any AiPayGen endpoint:
+// POST /research, /summarize, /analyze, /translate,
+// /write, /code, /sentiment, /keywords, /web/search</code></pre>
+    <a href="/buy-credits" class="guide-link">Get API key &rarr;</a>
+  </div>
+
+</div>
+
+<script>
+function copyCode(btn) {
+  const code = btn.parentElement.querySelector('code');
+  navigator.clipboard.writeText(code.textContent).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+  });
+}
+</script>
+{% endblock %}

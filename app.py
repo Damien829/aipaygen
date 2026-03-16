@@ -1647,6 +1647,10 @@ app.register_blueprint(utility_bp)
 from routes.seller import seller_bp
 app.register_blueprint(seller_bp)
 
+# Webhook testing UI
+from routes.webhooks import webhooks_bp
+app.register_blueprint(webhooks_bp)
+
 # Crypto deposits
 from routes.crypto import crypto_bp
 from crypto_deposits import init_crypto_db

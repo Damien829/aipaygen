@@ -108,31 +108,37 @@
     <h1>Get Your API Key</h1>
     <p class="sub">250 tools. 15 frontier models. Pay per call, not per month.</p>
 
-    <div style="background:#1a1a2e;border:1px solid #2d2d5e;border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:0.82rem;color:#a0a0c0">Just want to test? <strong style="color:#e0e0ff">Start with $1</strong> &mdash; that's ~160 API calls, no commitment.</div>
+    <div style="background:#1a1a2e;border:1px solid #2d2d5e;border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:0.82rem;color:#a0a0c0">Just want to test? <strong style="color:#e0e0ff">Start with $0.50</strong> &mdash; that's ~80 API calls, no commitment. <strong style="color:#34d399;">Credits never expire.</strong></div>
 
     <div class="plans">
-      <div class="plan selected" data-amount="1" onclick="selectPlan(this)">
+      <div class="plan" data-amount="0.5" onclick="selectPlan(this)">
+        <div class="amount">$0.50</div>
+        <div class="credits">~80 calls</div>
+        <div class="per-call">$0.006/call</div>
+        <div class="badge starter">Starter</div>
+      </div>
+      <div class="plan" data-amount="1" onclick="selectPlan(this)">
         <div class="amount">$1</div>
         <div class="credits">~160 calls</div>
         <div class="per-call">$0.006/call</div>
-        <div class="badge">Popular</div>
       </div>
-      <div class="plan" data-amount="5" onclick="selectPlan(this)">
+      <div class="plan selected" data-amount="5" onclick="selectPlan(this)">
         <div class="amount">$5</div>
         <div class="credits">~830 calls</div>
         <div class="per-call">$0.006/call</div>
+        <div class="badge">Most popular</div>
       </div>
       <div class="plan" data-amount="20" onclick="selectPlan(this)">
         <div class="amount">$20</div>
         <div class="credits">~4,000 calls</div>
         <div class="per-call">$0.005/call</div>
-        <div class="badge starter">Best for teams</div>
+        <div class="badge green">Best value</div>
       </div>
       <div class="plan" data-amount="50" onclick="selectPlan(this)">
         <div class="amount">$50</div>
         <div class="credits">~12,500 calls</div>
         <div class="per-call">$0.004/call</div>
-        <div class="badge green">Best value</div>
+        <div class="badge green">Teams</div>
       </div>
     </div>
 
@@ -238,9 +244,14 @@
 
   <!-- Shared bottom section -->
   <div class="trust">
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:12px">
+      <span style="background:#059669;color:#fff;padding:4px 12px;border-radius:20px;font-size:0.75rem;font-weight:600">30-day money-back guarantee</span>
+      <span style="background:#6366f1;color:#fff;padding:4px 12px;border-radius:20px;font-size:0.75rem;font-weight:600">Credits never expire</span>
+      <span style="background:#2a2a2a;color:#e8e8e8;padding:4px 12px;border-radius:20px;font-size:0.75rem;font-weight:600">Secure via Stripe</span>
+    </div>
     <strong>The most powerful AI toolkit you can buy per call</strong><br>
     250 tools &middot; 15 frontier models &middot; 4100+ APIs &middot; Published on <strong>PyPI</strong> &amp; <strong>MCP Registry</strong><br>
-    Credits never expire &middot; 20% bulk discount at $20+ &middot; Secure checkout via Stripe &middot; <a href="/security">Security</a>
+    20% bulk discount at $20+ &middot; <a href="/security">Security</a>
   </div>
 
   <div class="how">
@@ -250,7 +261,7 @@
   </div>
 </div>
 <script>
-let selectedAmount = 1;
+let selectedAmount = 5;
 let pkgAmount = 25;
 let pkgLabel = 'full-access';
 
@@ -264,7 +275,7 @@ function showTab(tab) {
 function selectPlan(el) {
   document.querySelectorAll('.plan').forEach(p => p.classList.remove('selected'));
   el.classList.add('selected');
-  selectedAmount = parseInt(el.dataset.amount);
+  selectedAmount = parseFloat(el.dataset.amount);
 }
 
 function selectPkg(el) {

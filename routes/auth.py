@@ -9,7 +9,7 @@ import time as _time
 from datetime import datetime
 
 import stripe as _stripe
-from flask import Blueprint, request, jsonify, render_template, make_response
+from flask import Blueprint, request, jsonify, render_template, make_response, redirect
 
 from api_keys import generate_key, topup_key, get_key_status, get_key_by_referral_code
 from helpers import log_payment, require_admin, require_api_key, check_identity_rate_limit
@@ -38,6 +38,84 @@ _NOTIFY_LOG = os.path.join(os.path.dirname(os.path.dirname(__file__)), "checkout
 _session_key_map = {}
 _session_key_ts = {}  # track insertion time
 _SESSION_KEY_TTL = 86400  # 24 hours
+
+# ── Scheduled Email Queue (SQLite-backed) ────────────────────────────────────
+# Simple table: (id, email, api_key, email_type, send_after, sent, created_at)
+# Processed by cron calling /auth/_process-email-queue every 30 min.
+
+_EMAIL_QUEUE_DB = os.path.join(os.path.dirname(os.path.dirname(__file__)), "email_queue.db")
+
+
+def _init_email_queue():
+    import sqlite3
+    with sqlite3.connect(_EMAIL_QUEUE_DB) as c:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS email_queue (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT NOT NULL,
+                api_key TEXT DEFAULT '',
+                email_type TEXT NOT NULL,
+                send_after TEXT NOT NULL,
+                sent INTEGER DEFAULT 0,
+                created_at TEXT NOT NULL
+            )
+        """)
+        c.execute("CREATE INDEX IF NOT EXISTS idx_eq_send ON email_queue(sent, send_after)")
+
+
+def _schedule_email(email: str, api_key: str, email_type: str, delay_seconds: int):
+    """Queue an email to be sent after delay_seconds from now."""
+    import sqlite3
+    from datetime import timedelta
+    _init_email_queue()
+    now = datetime.utcnow()
+    send_after = (now + timedelta(seconds=delay_seconds)).isoformat()
+    with sqlite3.connect(_EMAIL_QUEUE_DB) as c:
+        c.execute(
+            "INSERT INTO email_queue (email, api_key, email_type, send_after, sent, created_at) "
+            "VALUES (?, ?, ?, ?, 0, ?)",
+            (email, api_key, email_type, send_after, now.isoformat()),
+        )
+
+
+def _process_email_queue():
+    """Process pending scheduled emails. Called by cron or internal endpoint."""
+    import sqlite3
+    _init_email_queue()
+    now = datetime.utcnow().isoformat()
+    with sqlite3.connect(_EMAIL_QUEUE_DB) as c:
+        c.row_factory = sqlite3.Row
+        pending = c.execute(
+            "SELECT * FROM email_queue WHERE sent = 0 AND send_after <= ? LIMIT 20",
+            (now,),
+        ).fetchall()
+
+    sent_ids = []
+    for row in pending:
+        try:
+            if row["email_type"] == "onboarding_day2":
+                from email_service import send_onboarding_day2
+                send_onboarding_day2(row["email"], row["api_key"])
+            elif row["email_type"] == "abandoned_checkout":
+                from email_service import send_abandoned_checkout
+                send_abandoned_checkout(row["email"])
+            sent_ids.append(row["id"])
+        except Exception as e:
+            logger.error("email_queue: failed to send %s to %s: %s", row["email_type"], row["email"], e)
+
+    if sent_ids:
+        import sqlite3
+        with sqlite3.connect(_EMAIL_QUEUE_DB) as c:
+            c.executemany("UPDATE email_queue SET sent = 1 WHERE id = ?", [(i,) for i in sent_ids])
+
+    return len(sent_ids)
+
+
+# Initialize queue table on import
+try:
+    _init_email_queue()
+except Exception:
+    pass
 
 
 def _cleanup_session_keys():
@@ -109,6 +187,17 @@ def auth_generate_key():
         try:
             funnel_log_event("email_captured", ip=ip,
                              metadata=json.dumps({"source": source}))
+        except Exception:
+            pass
+        # Send welcome email immediately on free key generation
+        try:
+            from email_service import send_welcome_email
+            send_welcome_email(email, key_data["key"])
+        except Exception:
+            pass
+        # Schedule day-2 onboarding follow-up (48 hours)
+        try:
+            _schedule_email(email, key_data["key"], "onboarding_day2", delay_seconds=48 * 3600)
         except Exception:
             pass
     api_key = key_data["key"]
@@ -357,9 +446,15 @@ def stripe_create_checkout():
     if not STRIPE_SECRET_KEY:
         return jsonify({"error": "Stripe not configured"}), 503
     data = request.get_json() or {}
-    amount = int(data.get("amount", 20))
-    if amount not in (1, 5, 10, 15, 20, 25, 50):
-        return jsonify({"error": "amount must be 1, 5, 10, 15, 20, 25, or 50"}), 400
+    # Accept both integer and float amounts for $0.50 support
+    raw_amount = data.get("amount", 20)
+    try:
+        amount = float(raw_amount)
+    except (TypeError, ValueError):
+        return jsonify({"error": "invalid amount"}), 400
+    allowed_amounts = (0.50, 1, 5, 10, 15, 20, 25, 50)
+    if amount not in allowed_amounts:
+        return jsonify({"error": "amount must be one of: $0.50, $1, $5, $10, $15, $20, $25, or $50"}), 400
     label = str(data.get("label", ""))[:60]
     existing_key = str(data.get("existing_key", "")).strip()
     email = str(data.get("email", "")).strip().lower()[:120]
@@ -376,16 +471,17 @@ def stripe_create_checkout():
         action = "new"
 
     try:
-        session = _stripe.checkout.Session.create(
+        calls_estimate = int(amount * 160) if amount <= 1 else int(amount * 166)
+        checkout_kwargs = dict(
             payment_method_types=["card"],
             line_items=[{
                 "price_data": {
                     "currency": "usd",
                     "product_data": {
-                        "name": f"AiPayGen API Credits — ${amount}",
-                        "description": f"Prepaid credits for api.aipaygen.com. ~{amount * 100} API calls.",
+                        "name": f"AiPayGen API Credits — ${amount:.2f}",
+                        "description": f"Prepaid credits for api.aipaygen.com. ~{calls_estimate} API calls.",
                     },
-                    "unit_amount": amount * 100,  # cents
+                    "unit_amount": int(amount * 100),  # cents
                 },
                 "quantity": 1,
             }],
@@ -396,13 +492,23 @@ def stripe_create_checkout():
                        **({"api_key": existing_key} if existing_key else {}),
                        **({"customer_email": email} if email else {})},
             success_url=f"{BASE_URL}/buy-credits/success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{BASE_URL}/buy-credits",
+            cancel_url=f"{BASE_URL}/buy-credits?abandoned=1",
         )
+        # Pre-fill email in Stripe checkout if we have it
+        if email:
+            checkout_kwargs["customer_email"] = email
+        session = _stripe.checkout.Session.create(**checkout_kwargs)
         ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "")
         if ip not in ("127.0.0.1", "::1"):
             funnel_log_event("checkout_started", endpoint="/stripe/create-checkout",
-                             ip=ip, metadata=f'{{"amount_usd": {amount}}}',
+                             ip=ip, metadata=json.dumps({"amount_usd": amount, "email": email or "", "session_id": session.id}),
                              user_agent=request.headers.get("User-Agent", ""))
+        # Schedule abandoned checkout follow-up (1 hour) if email provided
+        if email:
+            try:
+                _schedule_email(email, "", "abandoned_checkout", delay_seconds=3600)
+            except Exception:
+                pass
         return jsonify({"url": session.url, "session_id": session.id})
     except Exception as e:
         logger.error("Stripe checkout creation failed: %s", e)
@@ -459,9 +565,21 @@ def stripe_webhook():
                 create_notification(api_key, "payment_received",
                                     f"Payment of ${amount:.2f} received. Balance: ${new_bal:.2f}")
 
-            # Send API key email and link to account
+            # Cancel any pending abandoned-checkout email for this customer
             customer_email = (session.get("customer_details", {}).get("email", "")
                               or meta.get("customer_email", ""))
+            if customer_email:
+                try:
+                    import sqlite3 as _sq
+                    with _sq.connect(_EMAIL_QUEUE_DB) as _c:
+                        _c.execute(
+                            "UPDATE email_queue SET sent = 1 WHERE email = ? AND email_type = 'abandoned_checkout' AND sent = 0",
+                            (customer_email,),
+                        )
+                except Exception:
+                    pass
+
+            # Send API key email and link to account
             if customer_email and api_key:
                 try:
                     from email_service import send_api_key_email, send_welcome_email
@@ -543,7 +661,18 @@ def auth_usage_digest():
 
 @auth_bp.route("/buy-credits/success", methods=["GET"])
 def buy_credits_success():
-    return render_template("buy_credits_success.html"), 200, {"Content-Type": "text/html"}
+    session_id = request.args.get("session_id", "")
+    # If we already know the key, pass it to the template for instant display
+    api_key = _session_key_map.get(session_id, "")
+    return render_template("buy_credits_success.html", api_key=api_key, session_id=session_id), 200, {"Content-Type": "text/html"}
+
+
+@auth_bp.route("/auth/_process-email-queue", methods=["POST"])
+@require_admin
+def process_email_queue():
+    """Process pending scheduled emails. Called by cron every 30 min."""
+    count = _process_email_queue()
+    return jsonify({"processed": count})
 
 
 # ── Usage Dashboard & API ────────────────────────────────────────────────────

@@ -158,10 +158,10 @@ echo -e "${CYAN}[MCP Service]${NC}"
 check_endpoint "MCP /health" "$MCP_URL/health" 200
 if [ -f /tmp/smoke_body.txt ]; then
   MCP_TOOLS=$(python3 -c "import json; d=json.load(open('/tmp/smoke_body.txt')); print(d.get('tools', d.get('tool_count', '?')))" 2>/dev/null || echo "?")
-  if [ "$MCP_TOOLS" = "244" ]; then
-    pass "MCP tools: 244"
+  if [ "$MCP_TOOLS" = "250" ]; then
+    pass "MCP tools: 250"
   else
-    warn "MCP tools: $MCP_TOOLS (expected 244)"
+    warn "MCP tools: $MCP_TOOLS (expected 250)"
   fi
 fi
 

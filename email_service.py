@@ -341,6 +341,41 @@ def send_low_balance_reminder(to: str, api_key: str, balance: float) -> bool:
         return False
 
 
+def send_abandoned_checkout(to: str) -> bool:
+    """Send abandoned checkout recovery email with free trial key offer."""
+    if not to:
+        return False
+    try:
+        resend.Emails.send({
+            "from": FROM_EMAIL,
+            "to": [to],
+            "subject": "You were about to unlock 250 AI tools",
+            "html": """<!DOCTYPE html>
+<html><head><meta charset="UTF-8"></head>
+<body style="margin:0;padding:0;background:#0a0a0a;color:#e8e8e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+<div style="max-width:520px;margin:40px auto;background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:40px;">
+  <h1 style="font-size:1.5rem;margin-bottom:8px;">You were about to unlock 250 AI tools</h1>
+  <p style="color:#888;margin-bottom:24px;">Looks like you didn't finish checking out. No worries — you can start free with $0.25 trial credits. No credit card needed.</p>
+
+  <div style="background:#1a1a2e;border:1px solid #2d2d5e;border-radius:10px;padding:20px;margin-bottom:24px;text-align:center;">
+    <p style="font-size:1.1rem;font-weight:700;margin-bottom:8px;">Get your free trial key</p>
+    <p style="color:#888;font-size:0.85rem;margin-bottom:16px;">$0.25 credits (~40 AI calls) — completely free</p>
+    <a href="https://aipaygen.com/try" style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;border-radius:10px;padding:14px 32px;font-weight:600;font-size:1rem;">Try It Free</a>
+  </div>
+
+  <p style="color:#888;font-size:0.85rem;margin-bottom:16px;">Or if you're ready to buy, plans start at just <strong style="color:#34d399;">$0.50</strong> (~80 API calls).</p>
+  <a href="https://aipaygen.com/buy-credits" style="display:inline-block;background:#2a2a2a;color:#e8e8e8;text-decoration:none;border-radius:10px;padding:12px 24px;font-weight:600;">Buy Credits</a>
+
+  <p style="color:#555;font-size:0.75rem;margin-top:24px;">Questions? Reply to this email.</p>
+</div>
+</body></html>"""
+        })
+        return True
+    except Exception as e:
+        logger.error("send_abandoned_checkout to=%s failed: %s", to, e)
+        return False
+
+
 def send_weekly_digest(to: str, calls: int = 0, top_tools: list = None, spent: float = 0.0) -> bool:
     top_tools = top_tools or []
     tools_html = ", ".join(_html.escape(t) for t in top_tools) if top_tools else "None"

@@ -2897,6 +2897,7 @@ def sitemap():
         ("/.well-known/ai-plugin.json", "weekly", "0.6"),
         ("/playground", "weekly", "0.8"),
         ("/examples", "weekly", "0.8"),
+        ("/integrations", "weekly", "0.85"),
         ("/dashboard", "weekly", "0.6"),
         ("/blog/launch", "monthly", "0.8"),
         ("/blog/5-things-you-can-build", "monthly", "0.8"),
@@ -3162,3 +3163,9 @@ def playground():
 def sdk_examples():
     """SDK quick-start examples — copy-paste code for every language."""
     return render_template("sdk_examples.html")
+
+
+@meta_bp.route("/integrations", methods=["GET"])
+def integrations():
+    """Integration guides — LangChain, CrewAI, AutoGen, Claude Code, Cursor, n8n, Zapier."""
+    return render_template("integrations.html")

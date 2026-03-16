@@ -69,6 +69,22 @@ a:hover{text-decoration:underline}
 #demoRun:disabled{opacity:.5;cursor:wait}
 #demoResult{margin-top:14px;padding:12px;background:var(--bg);border:1px solid var(--card-border);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;white-space:pre-wrap;max-height:240px;overflow-y:auto;display:none;color:var(--green)}
 #demoClose{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer}
+#demoCost{display:inline-block;padding:3px 10px;border-radius:4px;font-size:0.78rem;font-weight:600;margin-left:8px}
+.cost-free{background:rgba(0,255,157,0.15);color:var(--green)}
+.cost-paid{background:rgba(245,158,11,0.15);color:var(--orange)}
+#demoCurl{margin-top:12px;padding:12px;background:#070d14;border:1px solid var(--card-border);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;white-space:pre-wrap;color:#e1e4e8;position:relative;display:none}
+#demoCurlCopy{position:absolute;top:8px;right:8px;background:var(--card-border);border:none;color:var(--muted);padding:3px 8px;border-radius:4px;font-size:0.7rem;cursor:pointer}
+#demoCurlCopy:hover{color:var(--green)}
+.demo-fields{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
+.demo-field label{display:block;font-size:0.78rem;color:var(--muted);margin-bottom:2px;font-weight:500}
+.demo-field input,.demo-field textarea{width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--card-border);border-radius:6px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:0.85rem;outline:none}
+.demo-field input:focus,.demo-field textarea:focus{border-color:var(--green)}
+.demo-method{display:inline-block;padding:2px 8px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;font-weight:700;margin-right:6px}
+.demo-method-post{background:rgba(59,130,246,0.2);color:var(--blue)}
+.demo-method-get{background:rgba(34,197,94,0.2);color:#22c55e}
+.demo-tabs{display:flex;gap:4px;margin-top:12px;margin-bottom:4px}
+.demo-tab{padding:4px 12px;border:1px solid var(--card-border);background:transparent;color:var(--muted);border-radius:4px;font-size:0.75rem;cursor:pointer;font-family:'IBM Plex Sans',sans-serif}
+.demo-tab.active{background:var(--card-border);color:var(--text)}
 </style>
 {% if jsonld %}<script type="application/ld+json">{{ jsonld|safe }}</script>{% endif %}
 </head>
@@ -92,7 +108,7 @@ a:hover{text-decoration:underline}
   <div class="grid" id="serviceGrid">
     {% for cat_name, services in categories.items() %}
     {% for svc in services %}
-    <div class="card" data-category="{{ cat_name }}" data-endpoint="{{ svc.endpoint|lower }}" data-desc="{{ svc.description|lower }}">
+    <div class="card" data-category="{{ cat_name }}" data-endpoint="{{ svc.endpoint|lower }}" data-desc="{{ svc.description|lower }}" data-method="{{ svc.method }}" data-path="{{ svc.endpoint }}" data-price="{{ svc.price_usd }}" data-free="{{ 'true' if svc.free else 'false' }}">
       <div class="card-head">
         <span class="badge {{ 'badge-post' if svc.method == 'POST' else 'badge-get' }}">{{ svc.method }}</span>
         <span class="endpoint">{{ svc.endpoint }}</span>
@@ -102,7 +118,7 @@ a:hover{text-decoration:underline}
         <span class="pricing-label {{ 'label-free' if svc.free else 'label-x402' }}">
           {{ 'FREE' if svc.free else ('$' + '%.4f'|format(svc.price_usd) if svc.price_usd else 'x402') }}
         </span>
-        <a class="try-btn" href="/try" data-tool="{{ svc.endpoint.replace('/', '') }}">Try it</a>
+        <button class="try-btn" data-tool="{{ svc.endpoint.replace('/', '') }}">Try it</button>
       </div>
     </div>
     {% endfor %}
@@ -121,11 +137,17 @@ a:hover{text-decoration:underline}
 </div>
 <div id="demoOverlay"><div id="demoPanel">
 <button id="demoClose">&times;</button>
-<h3 id="demoTitle"></h3>
+<h3 id="demoTitle"><span id="demoMethodBadge" class="demo-method"></span><span id="demoPath"></span><span id="demoCost"></span></h3>
 <p class="demo-desc" id="demoDesc"></p>
-<textarea id="demoInput" placeholder="Enter your text here..."></textarea>
+<div id="demoFields" class="demo-fields"></div>
+<textarea id="demoInput" placeholder="Enter your text here..." style="display:none"></textarea>
 <button id="demoRun">Run</button>
+<div class="demo-tabs">
+  <button class="demo-tab active" id="tabResponse">Response</button>
+  <button class="demo-tab" id="tabCurl">curl</button>
+</div>
 <div id="demoResult"></div>
+<div id="demoCurl"><button id="demoCurlCopy">Copy</button><code id="demoCurlCode"></code></div>
 <div id="demoEmail" style="display:none;margin-top:12px;padding:12px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px">
 <p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Get notified about new tools and features:</p>
 <form id="emailForm" style="display:flex;gap:8px">
@@ -165,104 +187,223 @@ a:hover{text-decoration:underline}
     });
   });
 
-  // Map endpoint names to /try tool names
-  var tryMap = {
-    'sentiment':'sentiment','summarize':'summarize','translate':'translate',
-    'keywords':'keywords','explain':'explain','analyze':'analyze',
-    'compare':'compare','extract':'extract','questions':'questions',
-    'decide':'decide','classify':'classify','rewrite':'rewrite',
-    'headline':'headline','geocode':'geocode','matheval':'math-eval',
-    'datamathevaluate':'math-eval','datamathconvert':'unit-convert',
-    'datareadability':'readability','datalanguage':'language-detect',
-    'datawhois':'whois','datasecurityheaders':'security-headers',
-    'datacurrencyconvert':'currency-convert','datastats':'stats',
-    'code':'code','research':'research','preview':'sentiment'
+  // Tool field definitions for the interactive modal
+  var toolFields = {
+    '/sentiment':[{n:'text',l:'Text to analyze',p:'The new product launch exceeded all expectations!'}],
+    '/summarize':[{n:'text',l:'Text to summarize',p:'Paste a paragraph...',t:'textarea'},{n:'length',l:'Length',p:'short',d:'short'}],
+    '/translate':[{n:'text',l:'Text',p:'Hello, how are you?'},{n:'language',l:'Target language',p:'Spanish',d:'Spanish'}],
+    '/keywords':[{n:'text',l:'Text',p:'AI is transforming healthcare...',t:'textarea'}],
+    '/explain':[{n:'concept',l:'Concept',p:'quantum computing'}],
+    '/analyze':[{n:'content',l:'Content',p:'Q4 revenue grew 23%...',t:'textarea'}],
+    '/compare':[{n:'text_a',l:'Text A',p:'Python'},{n:'text_b',l:'Text B',p:'JavaScript'}],
+    '/extract':[{n:'text',l:'Text',p:'John Smith, CEO of Acme Corp...',t:'textarea'},{n:'schema_desc',l:'What to extract',p:'key entities',d:'key entities'}],
+    '/questions':[{n:'content',l:'Content',p:'The x402 protocol enables AI payments...',t:'textarea'}],
+    '/decide':[{n:'decision',l:'Decision',p:'PostgreSQL vs MongoDB for my project?'}],
+    '/classify':[{n:'text',l:'Text',p:'This email is about scheduling a meeting.'},{n:'categories',l:'Categories (comma-separated)',p:'positive, negative, neutral',d:'positive, negative, neutral'}],
+    '/rewrite':[{n:'text',l:'Text',p:'The thing was really good.',t:'textarea'},{n:'tone',l:'Tone',p:'professional',d:'professional'}],
+    '/headline':[{n:'content',l:'Content',p:'Remote workers are 13% more productive',t:'textarea'}],
+    '/code':[{n:'description',l:'Description',p:'A Python function to sort a list'},{n:'language',l:'Language',p:'python',d:'python'}],
+    '/research':[{n:'topic',l:'Topic',p:'quantum computing'}],
+    '/write':[{n:'spec',l:'What to write',p:'A blog post about AI agents',t:'textarea'},{n:'type',l:'Type',p:'article',d:'article'}],
+    '/social':[{n:'topic',l:'Topic',p:'AI-powered developer tools'},{n:'platforms',l:'Platforms (comma-separated)',p:'twitter, linkedin',d:'twitter, linkedin'}],
+    '/qa':[{n:'context',l:'Context document',p:'Paste context here...',t:'textarea'},{n:'question',l:'Question',p:'What is the main point?'}],
+    '/proofread':[{n:'text',l:'Text',p:'There going to the store tommorow.',t:'textarea'}],
+    '/outline':[{n:'topic',l:'Topic',p:'Building a SaaS product'}],
+    '/email':[{n:'purpose',l:'Purpose',p:'Follow up on sales meeting'},{n:'tone',l:'Tone',p:'professional',d:'professional'}],
+    '/sql':[{n:'description',l:'Query description',p:'Find all users who signed up this month'}],
+    '/regex':[{n:'description',l:'Pattern description',p:'Match email addresses'}],
+    '/mock':[{n:'description',l:'Data description',p:'User profiles with name, email, age'},{n:'count',l:'Count',p:'5',d:'5'}],
+    '/score':[{n:'content',l:'Content',p:'Score this essay...',t:'textarea'}],
+    '/plan':[{n:'goal',l:'Goal',p:'Launch a side project in 30 days'}],
+    '/debate':[{n:'topic',l:'Topic',p:'Remote work vs office work'}],
+    '/pitch':[{n:'product',l:'Product',p:'AI-powered API marketplace'},{n:'audience',l:'Audience',p:'developers',d:'developers'}],
+    '/fact':[{n:'text',l:'Text',p:'The earth is 4.5 billion years old.',t:'textarea'}],
+    '/tag':[{n:'text',l:'Text',p:'AI agent that monitors crypto prices',t:'textarea'}],
+    '/preview':[{n:'topic',l:'Topic',p:'AI agents'}],
+    '/data/weather':[{n:'city',l:'City',p:'London',d:'London'}],
+    '/data/crypto':[{n:'symbol',l:'Symbols',p:'bitcoin,ethereum',d:'bitcoin'}],
+    '/data/joke':[],
+    '/data/quote':[],
+    '/scrape/website':[{n:'url',l:'URL',p:'https://example.com'}],
+    '/vision':[{n:'url',l:'Image URL',p:'https://example.com/image.jpg'}],
+    '/rag':[{n:'documents',l:'Documents',p:'Paste documents here...',t:'textarea'},{n:'query',l:'Query',p:'What does the document say about...'}],
+    '/diagram':[{n:'description',l:'Description',p:'User login flow'},{n:'type',l:'Type',p:'flowchart',d:'flowchart'}],
+    '/workflow':[{n:'goal',l:'Goal',p:'Research and summarize latest AI news'}],
+    '/batch':[{n:'operations',l:'Operations (JSON array)',p:'[{"endpoint":"sentiment","input":{"text":"hello"}}]',t:'textarea'}],
   };
-  // Inline demo
+  // Fallback: single text field
+  var defaultFields = [{n:'text',l:'Input',p:'Enter your text here...',t:'textarea'}];
+
   var overlay = document.getElementById('demoOverlay');
-  var demoTitle = document.getElementById('demoTitle');
   var demoDesc = document.getElementById('demoDesc');
-  var demoInput = document.getElementById('demoInput');
+  var demoFields = document.getElementById('demoFields');
   var demoResult = document.getElementById('demoResult');
+  var demoCurl = document.getElementById('demoCurl');
+  var demoCurlCode = document.getElementById('demoCurlCode');
   var demoRun = document.getElementById('demoRun');
   var demoClose = document.getElementById('demoClose');
-  var currentTool = '';
+  var demoMethodBadge = document.getElementById('demoMethodBadge');
+  var demoPath = document.getElementById('demoPath');
+  var demoCost = document.getElementById('demoCost');
+  var tabResponse = document.getElementById('tabResponse');
+  var tabCurl = document.getElementById('tabCurl');
+  var currentEndpoint = '';
+  var currentMethod = 'POST';
 
-  var placeholders = {
-    'sentiment':'The new product launch exceeded all expectations!',
-    'summarize':'Paste a paragraph to summarize...',
-    'translate':'Hello, how are you today?',
-    'keywords':'Artificial intelligence is transforming healthcare delivery...',
-    'explain':'What is quantum computing?',
-    'analyze':'Our Q4 revenue grew 23% year-over-year...',
-    'classify':'This email is about scheduling a meeting next Tuesday.',
-    'rewrite':'The thing was really good and I liked it a lot.',
-    'headline':'New study finds remote workers are 13% more productive',
-    'geocode':'1600 Pennsylvania Ave, Washington DC',
-    'math-eval':'(2^10 + 3!) * sin(pi/4)',
-    'unit-convert':'42',
-    'readability':'Paste text to analyze reading level...',
-    'language-detect':'Bonjour, comment allez-vous?',
-    'whois':'github.com',
-    'security-headers':'https://example.com',
-    'currency-convert':'USD to EUR',
-    'stats':'10, 20, 30, 40, 50, 100',
-    'compare':'Python vs JavaScript',
-    'decide':'Should I use PostgreSQL or MongoDB for my project?',
-    'extract':'John Smith, CEO of Acme Corp, announced $50M in funding on March 14, 2026.',
-    'questions':'The x402 protocol enables autonomous AI payments using USDC on Base L2.'
+  tabResponse.addEventListener('click',function(){
+    tabResponse.classList.add('active');tabCurl.classList.remove('active');
+    demoResult.style.display=demoResult.textContent?'block':'none';demoCurl.style.display='none';
+  });
+  tabCurl.addEventListener('click',function(){
+    tabCurl.classList.add('active');tabResponse.classList.remove('active');
+    demoResult.style.display='none';demoCurl.style.display='block';
+    updateCurl();
+  });
+
+  function updateCurl(){
+    var body = buildBody();
+    var cmd = 'curl -X '+currentMethod+' https://api.aipaygen.com'+currentEndpoint+' \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer apk_YOUR_KEY"';
+    if(currentMethod==='POST' && body){
+      cmd += ' \\\n  -d \''+JSON.stringify(body)+'\'';
+    } else if(currentMethod==='GET' && body){
+      var params=[];
+      for(var k in body){if(body[k])params.push(encodeURIComponent(k)+'='+encodeURIComponent(body[k]));}
+      if(params.length) cmd = cmd.replace(currentEndpoint, currentEndpoint+'?'+params.join('&'));
+    }
+    demoCurlCode.textContent = cmd;
+  }
+
+  document.getElementById('demoCurlCopy').addEventListener('click',function(){
+    navigator.clipboard.writeText(demoCurlCode.textContent);
+    this.textContent='Copied!';
+    var self=this;
+    setTimeout(function(){self.textContent='Copy';},1500);
+  });
+
+  function buildBody(){
+    var inputs = demoFields.querySelectorAll('[data-field]');
+    var body = {};
+    inputs.forEach(function(inp){
+      var name = inp.getAttribute('data-field');
+      var val = inp.value.trim();
+      if(!val) val = inp.getAttribute('data-default')||'';
+      if(!val) return;
+      // Handle comma-separated arrays
+      if(name==='categories'||name==='platforms'){
+        body[name]=val.split(',').map(function(s){return s.trim();});
+      } else if(name==='count'||name==='max_items'||name==='n'){
+        body[name]=parseInt(val)||5;
+      } else if(name==='operations'){
+        try{body[name]=JSON.parse(val);}catch(e){body[name]=val;}
+      } else {
+        body[name]=val;
+      }
+    });
+    return body;
+  }
+
+  // Map endpoint names to /try tool names for the free demo proxy
+  var tryMap = {
+    '/sentiment':'sentiment','/summarize':'summarize','/translate':'translate',
+    '/keywords':'keywords','/explain':'explain','/analyze':'analyze',
+    '/compare':'compare','/extract':'extract','/questions':'questions',
+    '/decide':'decide','/classify':'classify','/rewrite':'rewrite',
+    '/headline':'headline','/code':'code','/research':'research','/preview':'sentiment'
   };
 
   document.querySelectorAll('.try-btn').forEach(function(btn){
-    var tool = btn.getAttribute('data-tool');
-    var mapped = tryMap[tool] || tryMap[tool.replace(/^data/,'')] || null;
-    if(mapped) {
-      btn.href = '/try?tool=' + mapped;
-      btn.addEventListener('click', function(e){
-        e.preventDefault();
-        currentTool = mapped;
-        var card = btn.closest('.card');
-        demoTitle.textContent = card.querySelector('.endpoint').textContent;
-        demoDesc.textContent = card.querySelector('.desc').textContent;
-        demoInput.value = '';
-        demoInput.placeholder = placeholders[mapped] || 'Enter your text...';
-        demoResult.style.display = 'none';
-        demoResult.textContent = '';
-        overlay.classList.add('open');
-        demoInput.focus();
+    btn.addEventListener('click', function(e){
+      e.preventDefault();
+      var card = btn.closest('.card');
+      currentEndpoint = card.getAttribute('data-path');
+      currentMethod = card.getAttribute('data-method');
+      var price = parseFloat(card.getAttribute('data-price'))||0;
+      var isFree = card.getAttribute('data-free')==='true';
+
+      demoPath.textContent = currentEndpoint;
+      demoMethodBadge.textContent = currentMethod;
+      demoMethodBadge.className = 'demo-method demo-method-'+currentMethod.toLowerCase();
+      demoCost.textContent = isFree ? 'FREE' : '$'+price.toFixed(4)+'/call';
+      demoCost.className = isFree ? 'cost-free' : 'cost-paid';
+      demoDesc.textContent = card.querySelector('.desc').textContent;
+
+      // Build input fields
+      var fields = toolFields[currentEndpoint] || defaultFields;
+      while(demoFields.firstChild)demoFields.removeChild(demoFields.firstChild);
+      if(fields.length===0){
+        var noInput=document.createElement('p');
+        noInput.style.cssText='font-size:0.82rem;color:var(--muted)';
+        noInput.textContent='No input required — just click Run.';
+        demoFields.appendChild(noInput);
+      }
+      fields.forEach(function(f){
+        var div=document.createElement('div');div.className='demo-field';
+        var lbl=document.createElement('label');lbl.textContent=f.l;lbl.setAttribute('for','field-'+f.n);div.appendChild(lbl);
+        var inp;
+        if(f.t==='textarea'){
+          inp=document.createElement('textarea');inp.rows=3;inp.style.resize='vertical';
+        } else {
+          inp=document.createElement('input');inp.type='text';
+        }
+        inp.id='field-'+f.n;
+        inp.placeholder=f.p||'';
+        inp.setAttribute('data-field',f.n);
+        if(f.d)inp.setAttribute('data-default',f.d);
+        div.appendChild(inp);
+        demoFields.appendChild(div);
       });
-    } else {
-      btn.href = '/try';
-    }
+
+      // Reset state
+      demoResult.style.display='none';
+      demoResult.textContent='';
+      demoCurl.style.display='none';
+      tabResponse.classList.add('active');
+      tabCurl.classList.remove('active');
+      document.getElementById('demoEmail').style.display='none';
+
+      overlay.classList.add('open');
+      var firstInput = demoFields.querySelector('input,textarea');
+      if(firstInput)firstInput.focus();
+    });
   });
 
   demoClose.addEventListener('click', function(){ overlay.classList.remove('open'); });
   overlay.addEventListener('click', function(e){ if(e.target===overlay) overlay.classList.remove('open'); });
 
   demoRun.addEventListener('click', function(){
-    var text = demoInput.value.trim();
-    if(!text) return;
     demoRun.disabled = true;
     demoRun.textContent = 'Running...';
     demoResult.style.display = 'block';
     demoResult.textContent = 'Processing...';
     demoResult.style.color = 'var(--muted)';
-    var bodyMap = {
-      'geocode':{q:text},'math-eval':{expression:text},'unit-convert':{value:parseFloat(text)||0,from_unit:'km',to_unit:'mi'},
-      'explain':{concept:text},'analyze':{content:text},'compare':{text_a:text.split('vs')[0]||text,text_b:text.split('vs')[1]||''},
-      'extract':{text:text,schema_desc:'key entities'},'decide':{decision:text},'classify':{text:text,categories:['positive','negative','neutral']},
-      'whois':{domain:text},'security-headers':{url:text},'currency-convert':{amount:1,from:text.split(' to ')[0]||'USD',to:text.split(' to ')[1]||'EUR'},
-      'stats':{numbers:text.split(',').map(Number).filter(function(n){return !isNaN(n);})}
-    };
-    var body = bodyMap[currentTool] || {text: text};
-    fetch('/try/' + currentTool, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(body)
-    }).then(function(r){ return r.json(); })
+    tabResponse.classList.add('active');tabCurl.classList.remove('active');
+    demoCurl.style.display='none';
+
+    var body = buildBody();
+    // Use the /try proxy for free demo if available
+    var mapped = tryMap[currentEndpoint];
+    var fetchUrl, fetchOpts;
+    if(mapped){
+      fetchUrl = '/try/'+mapped;
+      fetchOpts = {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)};
+    } else {
+      // Direct call (will need API key for paid endpoints)
+      fetchUrl = currentEndpoint;
+      fetchOpts = {method:currentMethod,headers:{'Content-Type':'application/json'}};
+      if(currentMethod==='POST') fetchOpts.body = JSON.stringify(body);
+      else {
+        var params=[];
+        for(var k in body){if(body[k])params.push(encodeURIComponent(k)+'='+encodeURIComponent(body[k]));}
+        if(params.length) fetchUrl += '?'+params.join('&');
+      }
+    }
+
+    fetch(fetchUrl, fetchOpts)
+    .then(function(r){ return r.json(); })
     .then(function(data){
       demoResult.style.color = 'var(--green)';
       demoResult.textContent = JSON.stringify(data, null, 2);
+      updateCurl();
       // Show key gen CTA after demo when running low
       var remaining = data._free_tier ? data._free_tier.calls_remaining : null;
       var emailDiv = document.getElementById('demoEmail');
@@ -277,13 +418,13 @@ a:hover{text-decoration:underline}
         var p2 = document.createElement('p');
         p2.style.cssText = 'font-size:0.82rem;color:var(--muted);margin-bottom:10px';
         p2.textContent = 'Get a free API key with $0.25 trial credits (~40 calls)';
-        var btn = document.createElement('a');
-        btn.href = '/buy-credits';
-        btn.style.cssText = 'display:inline-block;padding:8px 20px;background:var(--green);color:var(--bg);border-radius:6px;font-weight:700;font-size:0.85rem;text-decoration:none';
-        btn.textContent = 'Get API Key \u2192';
+        var ctaBtn = document.createElement('a');
+        ctaBtn.href = '/buy-credits';
+        ctaBtn.style.cssText = 'display:inline-block;padding:8px 20px;background:var(--green);color:var(--bg);border-radius:6px;font-weight:700;font-size:0.85rem;text-decoration:none';
+        ctaBtn.textContent = 'Get API Key';
         wrap.appendChild(p1);
         wrap.appendChild(p2);
-        wrap.appendChild(btn);
+        wrap.appendChild(ctaBtn);
         emailDiv.appendChild(wrap);
       } else if(!localStorage.getItem('aipaygen_email_sub')) {
         emailDiv.style.display='block';
@@ -297,8 +438,9 @@ a:hover{text-decoration:underline}
     });
   });
 
-  demoInput.addEventListener('keydown', function(e){
-    if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); demoRun.click(); }
+  // Enter to run
+  demoFields.addEventListener('keydown', function(e){
+    if(e.key === 'Enter' && !e.shiftKey && e.target.tagName!=='TEXTAREA'){ e.preventDefault(); demoRun.click(); }
   });
 
   document.getElementById('emailForm').addEventListener('submit', function(e){
