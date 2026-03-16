@@ -977,6 +977,227 @@ def admin_funnel_data():
     return jsonify(stats)
 
 
+@admin_bp.route("/admin/ab-results")
+@require_admin
+def admin_ab_results():
+    """A/B test results dashboard. ?test=landing_hero_v1&days=30"""
+    try:
+        from ab_testing import get_test_results, list_tests
+    except ImportError:
+        return jsonify({"error": "A/B testing module not available"}), 500
+    test_name = request.args.get("test", "")
+    days = min(max(request.args.get("days", 30, type=int), 1), 365)
+    if test_name:
+        return jsonify(get_test_results(test_name, days=days))
+    return jsonify({"tests": list_tests(days=days)})
+
+
+@admin_bp.route("/admin/funnel-enhanced")
+@require_admin
+def admin_funnel_enhanced():
+    """Enhanced conversion funnel with drop-off analysis and cohort comparison."""
+    from datetime import timedelta
+    import sqlite3 as _sq
+
+    days = min(max(request.args.get("days", 30, type=int), 1), 365)
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    funnel_db = os.path.join(base_dir, "funnel.db")
+    keys_db = os.path.join(base_dir, "api_keys.db")
+
+    now = datetime.utcnow()
+    cutoff = (now - timedelta(days=days)).isoformat()
+
+    # ── Full funnel with percentages ──
+    stages = [
+        ("Visit", "discover_hit"),
+        ("Try Demo", "demo_used"),
+        ("Generate Key", "key_generated"),
+        ("Add Credits", "credits_bought"),
+        ("Make Paid Call", "paid_call"),
+    ]
+
+    funnel = []
+    first_count = None
+    prev_count = None
+
+    try:
+        with _sq.connect(funnel_db) as c:
+            c.row_factory = _sq.Row
+            for label, event_type in stages:
+                row = c.execute(
+                    "SELECT COUNT(*) as cnt FROM funnel_events WHERE event_type = ? AND (is_bot IS NULL OR is_bot = 0) AND created_at >= ?",
+                    (event_type, cutoff),
+                ).fetchone()
+                count = row["cnt"] if row else 0
+                if first_count is None and count > 0:
+                    first_count = count
+                step_pct = round(100 * count / prev_count, 1) if prev_count and prev_count > 0 else None
+                overall_pct = round(100 * count / first_count, 1) if first_count and first_count > 0 and count != first_count else None
+                drop_off = prev_count - count if prev_count is not None and prev_count > count else 0
+                funnel.append({
+                    "stage": label,
+                    "event": event_type,
+                    "count": count,
+                    "step_conversion_pct": step_pct,
+                    "overall_conversion_pct": overall_pct,
+                    "drop_off": drop_off,
+                })
+                prev_count = count if count > 0 else prev_count
+
+            # ── Drop-off by last page ──
+            drop_off_pages = []
+            for i in range(len(stages) - 1):
+                current_event = stages[i][1]
+                next_event = stages[i + 1][1]
+                # IPs that did current but not next
+                dropped = c.execute(
+                    "SELECT COUNT(DISTINCT ip) as cnt FROM funnel_events "
+                    "WHERE event_type = ? AND (is_bot IS NULL OR is_bot = 0) AND created_at >= ? "
+                    "AND ip NOT IN (SELECT DISTINCT ip FROM funnel_events WHERE event_type = ? AND created_at >= ?)",
+                    (current_event, cutoff, next_event, cutoff),
+                ).fetchone()["cnt"]
+                drop_off_pages.append({
+                    "from_stage": stages[i][0],
+                    "to_stage": stages[i + 1][0],
+                    "dropped_visitors": dropped,
+                })
+
+            # ── Cohort analysis: this week vs last week ──
+            this_week_start = (now - timedelta(days=7)).isoformat()
+            last_week_start = (now - timedelta(days=14)).isoformat()
+            last_week_end = this_week_start
+
+            cohorts = {}
+            for cohort_label, c_start, c_end in [("this_week", this_week_start, now.isoformat()), ("last_week", last_week_start, last_week_end)]:
+                cohort_data = {}
+                for label, event_type in stages:
+                    row = c.execute(
+                        "SELECT COUNT(*) as cnt FROM funnel_events WHERE event_type = ? AND (is_bot IS NULL OR is_bot = 0) AND created_at >= ? AND created_at < ?",
+                        (event_type, c_start, c_end),
+                    ).fetchone()
+                    cohort_data[label] = row["cnt"] if row else 0
+                cohorts[cohort_label] = cohort_data
+
+    except Exception as e:
+        logger.exception("Enhanced funnel query failed")
+        return jsonify({"error": "Query failed"}), 500
+
+    # ── A/B test results ──
+    ab_results = {}
+    try:
+        from ab_testing import get_test_results, list_tests
+        tests = list_tests(days=days)
+        for t in tests:
+            ab_results[t["test_name"]] = get_test_results(t["test_name"], days=days)
+    except Exception:
+        pass
+
+    result = {
+        "period_days": days,
+        "funnel": funnel,
+        "drop_off_analysis": drop_off_pages,
+        "cohorts": cohorts,
+        "ab_tests": ab_results,
+    }
+
+    # HTML or JSON
+    if request.args.get("format") == "json":
+        return jsonify(result)
+
+    # Build HTML dashboard
+    def _n(v):
+        return f"{v:,}" if v else "0"
+
+    funnel_rows = ""
+    for f in funnel:
+        bar_w = round(100 * f["count"] / (first_count or 1)) if first_count else 0
+        step_str = f'{f["step_conversion_pct"]}%' if f["step_conversion_pct"] is not None else "-"
+        overall_str = f'{f["overall_conversion_pct"]}%' if f["overall_conversion_pct"] is not None else "100%"
+        funnel_rows += (
+            f'<tr><td>{f["stage"]}</td><td>{_n(f["count"])}</td>'
+            f'<td><div style="background:#1e1e1e;border-radius:4px;height:20px;overflow:hidden">'
+            f'<div style="background:#6366f1;height:100%;width:{bar_w}%;border-radius:4px"></div></div></td>'
+            f'<td>{step_str}</td><td>{overall_str}</td><td style="color:#f87171">{_n(f["drop_off"])}</td></tr>'
+        )
+
+    dropoff_rows = ""
+    for d in drop_off_pages:
+        dropoff_rows += f'<tr><td>{d["from_stage"]} &rarr; {d["to_stage"]}</td><td style="color:#f87171">{_n(d["dropped_visitors"])}</td></tr>'
+
+    cohort_rows = ""
+    for label, event_type in stages:
+        tw = cohorts.get("this_week", {}).get(label, 0)
+        lw = cohorts.get("last_week", {}).get(label, 0)
+        change = tw - lw
+        change_str = f'<span style="color:{"#34d399" if change >= 0 else "#f87171"}">{("+" if change > 0 else "")}{change}</span>'
+        cohort_rows += f'<tr><td>{label}</td><td>{_n(lw)}</td><td>{_n(tw)}</td><td>{change_str}</td></tr>'
+
+    ab_html = ""
+    for test_name, tr in ab_results.items():
+        winner = tr.get("winner", "?")
+        lift = tr.get("lift", 0)
+        a = tr.get("variants", {}).get("A", {})
+        b = tr.get("variants", {}).get("B", {})
+        ab_html += (
+            f'<div class="card" style="margin-bottom:16px">'
+            f'<h3 style="margin:0 0 12px;color:#a5b4fc">{test_name}</h3>'
+            f'<table><tr><th>Variant</th><th>Visitors</th><th>Conversions</th><th>Rate</th></tr>'
+            f'<tr><td>A (control)</td><td>{_n(a.get("visitors", 0))}</td><td>{_n(a.get("conversions", 0))}</td><td>{a.get("conversion_rate", 0)}%</td></tr>'
+            f'<tr><td>B (test)</td><td>{_n(b.get("visitors", 0))}</td><td>{_n(b.get("conversions", 0))}</td><td>{b.get("conversion_rate", 0)}%</td></tr>'
+            f'</table>'
+            f'<div style="margin-top:10px;font-size:0.85rem">'
+            f'Winner: <span style="color:#34d399;font-weight:700">{winner}</span>'
+            f'{f" (+{lift}% lift)" if lift else ""}'
+            f' &middot; Confidence: {tr.get("confidence", "normal")}'
+            f'</div></div>'
+        )
+    if not ab_html:
+        ab_html = '<p style="color:#555">No A/B tests running yet</p>'
+
+    html = (
+        '<!DOCTYPE html><html lang="en"><head>'
+        '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+        '<title>Enhanced Funnel - AiPayGen Admin</title>'
+        '<style>'
+        '*{box-sizing:border-box;margin:0;padding:0}'
+        'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0a0a0a;color:#e8e8e8;padding:24px 16px}'
+        '.wrap{max-width:1000px;margin:0 auto}'
+        'h1{font-size:1.5rem;margin-bottom:4px;color:#fff}'
+        'h2{font-size:1.1rem;margin:28px 0 12px;color:#a5b4fc}'
+        'h3{font-size:1rem}'
+        '.sub{color:#888;font-size:0.82rem;margin-bottom:20px}'
+        '.card{background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:20px;margin-bottom:16px}'
+        'table{width:100%;border-collapse:collapse;font-size:0.82rem}'
+        'th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #1e1e1e}'
+        'th{color:#666;font-weight:600;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px}'
+        'a{color:#6366f1;text-decoration:none}'
+        '.nav{display:flex;gap:12px;margin-bottom:20px}'
+        '.nav a{padding:6px 14px;border-radius:6px;background:#1e1e1e;color:#888;font-size:0.82rem;border:1px solid #2a2a2a}'
+        '.nav a.active{background:#6366f1;color:#fff;border-color:#6366f1}'
+        '</style></head><body>'
+        '<div class="wrap">'
+        '<h1>Enhanced Conversion Funnel</h1>'
+        f'<p class="sub">Last {days} days</p>'
+        '<div class="nav">'
+        '<a href="/admin/funnel">Basic Funnel</a>'
+        '<a href="/admin/funnel-enhanced" class="active">Enhanced Funnel</a>'
+        '<a href="/admin/analytics">Analytics</a>'
+        '</div>'
+        '<div class="card"><h2>Conversion Funnel</h2>'
+        '<table><tr><th>Stage</th><th>Count</th><th>Bar</th><th>Step %</th><th>Overall %</th><th>Drop-off</th></tr>'
+        f'{funnel_rows}</table></div>'
+        '<div class="card"><h2>Drop-off Analysis</h2>'
+        '<table><tr><th>Transition</th><th>Dropped Visitors</th></tr>'
+        f'{dropoff_rows}</table></div>'
+        '<div class="card"><h2>Cohort Comparison (This Week vs Last Week)</h2>'
+        '<table><tr><th>Stage</th><th>Last Week</th><th>This Week</th><th>Change</th></tr>'
+        f'{cohort_rows}</table></div>'
+        f'<h2>A/B Test Results</h2>{ab_html}'
+        '</div></body></html>'
+    )
+    return html, 200, {"Content-Type": "text/html"}
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # SELF-TEST + HEALTH HISTORY
 # ══════════════════════════════════════════════════════════════════════════════

@@ -333,8 +333,16 @@ def _build_discover_services():
 
 @meta_bp.route("/")
 def landing():
+    # A/B test: landing_hero_v1
     try:
-        resp = make_response(render_template("index.html"))
+        from ab_testing import get_variant, track_event
+        visitor_ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "unknown")
+        variant = get_variant("landing_hero_v1", visitor_ip)
+        track_event("landing_hero_v1", variant, visitor_ip, event="page_view")
+    except Exception:
+        variant = "A"
+    try:
+        resp = make_response(render_template("index.html", ab_variant=variant))
     except Exception:
         # Fallback to legacy inline landing template
         resp = make_response(render_template("landing.html", nav=NAV_HTML, footer=FOOTER_HTML))
@@ -344,6 +352,24 @@ def landing():
         resp.set_cookie("aipaygen_ref", ref, max_age=30*86400, secure=True, httponly=True, samesite="Lax")
     return resp
 
+
+@meta_bp.route("/ab/track", methods=["POST"])
+def ab_track():
+    """Public endpoint for A/B test conversion tracking from frontend."""
+    try:
+        from ab_testing import track_event, get_variant
+        data = request.get_json(silent=True) or {}
+        test_name = data.get("test", "")
+        event = data.get("event", "click")
+        if not test_name or not event:
+            return jsonify({"ok": False}), 400
+        visitor_ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "unknown")
+        variant = data.get("variant") or get_variant(test_name, visitor_ip)
+        is_conversion = event in ("key_generated", "credits_bought")
+        track_event(test_name, variant, visitor_ip, event=event, converted=is_conversion)
+        return jsonify({"ok": True})
+    except Exception:
+        return jsonify({"ok": False}), 500
 
 
 @meta_bp.route("/discover")

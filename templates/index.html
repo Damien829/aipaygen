@@ -175,6 +175,25 @@
 <section class="hero">
   <div class="gradient-orb"></div>
   <div style="position:relative;z-index:1">
+    {% if ab_variant == "B" %}
+    {# ── Variant B: value-focused hero ── #}
+    <div class="hero-badge fade-in">
+      <span class="badge" style="background:rgba(0,255,157,0.15);color:#00ff9d;">From $0.004/call</span>
+      <span class="badge badge-cyan">One API Key</span>
+    </div>
+    <h1 class="fade-in delay-1">250 AI Tools.<br>One API Key.</h1>
+    <p class="hero-sub fade-in delay-2">
+      Research, write, code, analyze, scrape, translate — powered by Claude, GPT-4o, Gemini, DeepSeek. From $0.004/call.
+    </p>
+    <div class="hero-actions fade-in delay-3">
+      <a href="/try" class="btn btn-primary" style="padding:18px 44px;font-size:1.05rem;" onclick="trackABClick('try_click')">Try Free — No Signup</a>
+      <a href="/buy-credits" class="btn btn-secondary" onclick="trackABClick('key_click')">Get API Key</a>
+    </div>
+    <p class="hero-tag fade-in delay-3">
+      <span>10 free calls/day</span> &middot; <span style="color:var(--accent2)">$0.25 trial credits</span> &middot; Pay only for what you use
+    </p>
+    {% else %}
+    {# ── Variant A: current hero (control) ── #}
     <div class="hero-badge fade-in">
       <span class="badge">Live on Base Mainnet</span>
       <span class="badge badge-cyan">250 tools</span>
@@ -184,13 +203,14 @@
       250 tools across 15 models from 7 providers. Research, write, code, analyze, scrape, translate — pay per call.
     </p>
     <div class="hero-actions fade-in delay-3">
-      <a href="/try" class="btn btn-primary">Try Free</a>
-      <a href="/buy-credits" class="btn btn-secondary">Get API Key</a>
+      <a href="/try" class="btn btn-primary" onclick="trackABClick('try_click')">Try Free</a>
+      <a href="/buy-credits" class="btn btn-secondary" onclick="trackABClick('key_click')">Get API Key</a>
     </div>
     <p class="hero-tag fade-in delay-3">
       <span>10 free calls/day</span> &middot; <span style="color:var(--accent2)">$0.25 trial credits</span> &middot; No sign-up required &middot;
       <code>pip install aipaygen-mcp</code>
     </p>
+    {% endif %}
 
     <!-- Instant API Key Form -->
     <div class="fade-in delay-3" id="heroKeyForm" style="margin-top:28px;max-width:460px;margin-left:auto;margin-right:auto;">
@@ -807,5 +827,16 @@ function copyInstall(id, btn) {
   });
   io.observe(document.querySelector('.terminal'));
 })();
+</script>
+<script>
+// A/B test conversion tracking
+var abVariant = '{{ ab_variant|default("A") }}';
+function trackABClick(event) {
+  fetch('/ab/track', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({test: 'landing_hero_v1', variant: abVariant, event: event})
+  }).catch(function(){});
+}
 </script>
 {% endblock %}

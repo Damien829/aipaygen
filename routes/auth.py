@@ -207,6 +207,13 @@ def auth_generate_key():
                          user_agent=request.headers.get("User-Agent", ""))
     except Exception:
         pass
+    # Track A/B conversion
+    try:
+        from ab_testing import track_conversion, get_variant
+        ab_variant = get_variant("landing_hero_v1", ip)
+        track_conversion("landing_hero_v1", ab_variant, ip, event="key_generated")
+    except Exception:
+        pass
     resp_data = {
         "key": api_key,
         "balance_usd": key_data["balance_usd"],
@@ -331,13 +338,21 @@ def buy_credits():
         }), 402
     key_data = generate_key(initial_balance=amount, label=label)
     try:
+        _buy_ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "")
         _ua = request.headers.get("User-Agent", "")
         funnel_log_event("credits_bought", endpoint="/credits/buy",
-                         ip=request.headers.get("CF-Connecting-IP", request.remote_addr or ""),
+                         ip=_buy_ip,
                          metadata=f'{{"amount_usd": {amount}}}', user_agent=_ua)
         funnel_log_event("key_generated", endpoint="/credits/buy",
-                         ip=request.headers.get("CF-Connecting-IP", request.remote_addr or ""),
+                         ip=_buy_ip,
                          user_agent=_ua)
+    except Exception:
+        pass
+    # Track A/B conversion
+    try:
+        from ab_testing import track_conversion, get_variant
+        ab_variant = get_variant("landing_hero_v1", _buy_ip)
+        track_conversion("landing_hero_v1", ab_variant, _buy_ip, event="credits_bought")
     except Exception:
         pass
     return jsonify({

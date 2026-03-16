@@ -1,7 +1,7 @@
 {
   "name": "aipaygen",
-  "version": "1.0.1",
-  "description": "JavaScript SDK for AiPayGen — AI agent marketplace with 123 endpoints. Pay per call via x402 (USDC on Base) or prepaid API key.",
+  "version": "1.9.0",
+  "description": "JavaScript SDK for AiPayGen — 250 AI tools in one API. Pay per call via x402 (USDC on Base) or prepaid API key.",
   "main": "index.js",
   "scripts": {
     "test": "node -e \"const {AiPayGen} = require('./index'); const c = new AiPayGen(); c.joke().then(r => console.log('OK:', r.setup)).catch(e => console.error(e))\""

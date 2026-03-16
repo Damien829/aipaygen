@@ -51,7 +51,7 @@ Add to your MCP config:
 | **AI Analysis** | analyze, sentiment, classify, compare, score, fact, keywords, extract, tag, enrich | 10 |
 | **AI Code** | code, sql, regex, test_cases, json_schema, mock, run_python_code | 7 |
 | **AI Reasoning** | plan, decide, explain, debate, outline, questions, action, timeline, chat | 9 |
-| **Advanced AI** | vision, rag, diagram, workflow, pipeline, batch, chain_operations | 7 |
+| **Advanced AI** | vision, rag, diagram, workflow, pipeline, batch, chain_operations, sessions | 8 |
 | **Web Scraping** | Google Maps, Twitter/X, Instagram, TikTok, YouTube, any website | 6 |
 | **Data Feeds** | weather, crypto prices, exchange rates, holidays, web search, time, uuid | 7 |
 | **Agent Memory** | memory_store, memory_recall, memory_find, memory_keys | 4 |
@@ -112,6 +112,15 @@ Run your own AiPayGen instance and point the MCP server at it:
 
 ```bash
 AIPAYGEN_BASE_URL=http://localhost:5001 aipaygen-mcp
+```
+
+## Sessions
+
+Stateful multi-turn conversations that persist context across calls:
+
+```python
+# Your AI agent can use session tools to maintain context
+# session_create → session_call → session_history → session_end
 ```
 
 ## Links

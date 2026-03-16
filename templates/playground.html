@@ -13,12 +13,22 @@
 <meta name="twitter:description" content="Test 250 AI tools directly from your browser. Interactive request builder with live responses.">
 <style>
 /* ── Playground Layout ── */
-.pg-wrap{max-width:1200px;margin:0 auto;padding:24px 24px 60px}
+.pg-wrap{max-width:1400px;margin:0 auto;padding:24px 24px 60px}
 .pg-title{font-family:'IBM Plex Mono',monospace;font-size:1.8rem;font-weight:700;margin-bottom:6px}
 .pg-sub{color:#8b949e;font-size:0.95rem;margin-bottom:24px}
 .pg-banner{background:rgba(0,255,157,0.06);border:1px solid rgba(0,255,157,0.15);border-radius:8px;padding:12px 20px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;font-size:0.88rem;flex-wrap:wrap;gap:8px}
 .pg-banner .cl{color:#00ff9d;font-family:'IBM Plex Mono',monospace;font-weight:700}
 .pg-banner .cta{color:#00d4ff;font-weight:600}
+
+/* ── Top bar: env + collections ── */
+.pg-topbar{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;align-items:stretch}
+.pg-env-panel,.pg-coll-panel{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px 18px;flex:1;min-width:280px}
+.pg-env-panel .pg-lbl,.pg-coll-panel .pg-lbl{margin-bottom:8px}
+.pg-env-row{display:flex;gap:8px;align-items:center;margin-bottom:6px}
+.pg-env-row label{color:#8b949e;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;width:80px;flex-shrink:0}
+.pg-env-row input{flex:1}
+.pg-coll-row{display:flex;gap:8px;align-items:center}
+.pg-coll-sel{flex:1}
 
 /* ── Tabs ── */
 .pg-tabs{display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid rgba(255,255,255,0.06)}
@@ -27,6 +37,10 @@
 .pg-tab.active{color:#00ff9d;border-bottom-color:#00ff9d}
 .pg-tab-content{display:none}
 .pg-tab-content.active{display:block}
+
+/* ── Main layout with history sidebar ── */
+.pg-main-layout{display:grid;grid-template-columns:1fr 300px;gap:20px}
+@media(max-width:1024px){.pg-main-layout{grid-template-columns:1fr}.pg-history-sidebar{max-height:300px}}
 
 /* ── Grid ── */
 .pg-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
@@ -49,7 +63,7 @@
 .pg-run.ld{background:linear-gradient(135deg,#8b949e,#4a5568)}
 
 /* ── Response ── */
-.pg-st{display:flex;gap:16px;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.pg-st{display:flex;gap:16px;align-items:center;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);flex-wrap:wrap}
 .pg-sc{font-weight:700;padding:3px 10px;border-radius:4px;font-size:0.85rem}
 .pg-sc.s2{background:rgba(0,255,157,0.15);color:#00ff9d}
 .pg-sc.s4{background:rgba(255,183,0,0.15);color:#ffb700}
@@ -62,9 +76,11 @@
 .pg-bs{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:#8b949e;font-size:0.75rem;padding:4px 10px;cursor:pointer;font-family:'IBM Plex Mono',monospace}
 .pg-bs:hover{border-color:#00ff9d;color:#00ff9d}
 .pg-time{color:#00d4ff;font-weight:600;font-size:0.85rem}
-.pg-actions{display:flex;gap:8px;margin-top:8px}
-.pg-share-btn{background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.2);border-radius:6px;padding:8px 16px;color:#00d4ff;font-family:'IBM Plex Mono',monospace;font-size:0.8rem;cursor:pointer;transition:all .2s}
-.pg-share-btn:hover{background:rgba(0,212,255,0.2);border-color:#00d4ff}
+.pg-actions{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.pg-share-btn,.pg-save-btn{background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.2);border-radius:6px;padding:8px 16px;color:#00d4ff;font-family:'IBM Plex Mono',monospace;font-size:0.8rem;cursor:pointer;transition:all .2s}
+.pg-share-btn:hover,.pg-save-btn:hover{background:rgba(0,212,255,0.2);border-color:#00d4ff}
+.pg-save-btn{background:rgba(0,255,157,0.08);border-color:rgba(0,255,157,0.2);color:#00ff9d}
+.pg-save-btn:hover{background:rgba(0,255,157,0.15);border-color:#00ff9d}
 
 /* ── JSON Syntax Highlighting ── */
 .json-key{color:#7ee787}
@@ -72,6 +88,41 @@
 .json-number{color:#d2a8ff}
 .json-bool{color:#ff7b72}
 .json-null{color:#8b949e;font-style:italic}
+
+/* ── Code Generation Panel ── */
+.pg-codegen{margin-top:12px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.06);border-radius:8px;overflow:hidden;display:none}
+.pg-codegen.visible{display:block}
+.pg-codegen-tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,0.06);overflow-x:auto;flex-wrap:nowrap}
+.pg-codegen-tab{padding:8px 16px;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;font-weight:600;color:#8b949e;cursor:pointer;border:none;background:none;white-space:nowrap;transition:all .15s}
+.pg-codegen-tab:hover{color:#e6edf3}
+.pg-codegen-tab.active{color:#00ff9d;background:rgba(0,255,157,0.06);border-bottom:2px solid #00ff9d}
+.pg-codegen-body{position:relative}
+.pg-codegen-code{background:rgba(0,0,0,0.3);padding:14px;font-family:'IBM Plex Mono',monospace;font-size:0.78rem;line-height:1.6;overflow:auto;white-space:pre;color:#c9d1d9;max-height:350px;margin:0}
+.pg-codegen-copy{position:absolute;top:8px;right:8px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.12);border-radius:4px;color:#8b949e;padding:4px 12px;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;cursor:pointer;transition:all .15s;z-index:2}
+.pg-codegen-copy:hover{border-color:#00ff9d;color:#00ff9d}
+.pg-codegen-copy.copied{color:#00ff9d;border-color:#00ff9d}
+.pg-codegen-toggle{background:none;border:1px solid rgba(0,212,255,0.25);border-radius:6px;padding:6px 14px;color:#00d4ff;font-family:'IBM Plex Mono',monospace;font-size:0.78rem;cursor:pointer;transition:all .15s;display:none}
+.pg-codegen-toggle.visible{display:inline-flex;align-items:center;gap:6px}
+.pg-codegen-toggle:hover{background:rgba(0,212,255,0.1);border-color:#00d4ff}
+
+/* ── History Sidebar ── */
+.pg-history-sidebar{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;max-height:calc(100vh - 200px);position:sticky;top:100px}
+.pg-history-head{background:rgba(255,255,255,0.04);border-bottom:1px solid rgba(255,255,255,0.06);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;color:#8b949e;font-weight:600;text-transform:uppercase;letter-spacing:0.05em}
+.pg-history-clear{background:none;border:1px solid rgba(255,68,68,0.2);color:#ff4444;border-radius:4px;padding:3px 10px;font-size:0.7rem;cursor:pointer;font-family:'IBM Plex Mono',monospace;transition:all .15s}
+.pg-history-clear:hover{background:rgba(255,68,68,0.1);border-color:#ff4444}
+.pg-history-list{flex:1;overflow-y:auto;padding:8px}
+.pg-history-empty{color:#4a5568;font-family:'IBM Plex Mono',monospace;font-size:0.78rem;text-align:center;padding:24px 12px}
+.pg-history-item{background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:6px;padding:10px 12px;margin-bottom:6px;cursor:pointer;transition:all .15s;font-family:'IBM Plex Mono',monospace}
+.pg-history-item:hover{border-color:rgba(0,255,157,0.25);background:rgba(0,255,157,0.03)}
+.pg-history-item-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.pg-history-method{font-size:0.7rem;font-weight:700;padding:2px 6px;border-radius:3px}
+.pg-history-method.m-get{background:rgba(0,212,255,0.12);color:#00d4ff}
+.pg-history-method.m-post{background:rgba(0,255,157,0.12);color:#00ff9d}
+.pg-history-status{font-size:0.7rem;font-weight:600}
+.pg-history-status.hs-ok{color:#00ff9d}
+.pg-history-status.hs-err{color:#ff4444}
+.pg-history-ep{font-size:0.78rem;color:#e6edf3;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pg-history-time{font-size:0.68rem;color:#4a5568}
 
 /* ── Chain Builder ── */
 .chain-steps{display:flex;flex-direction:column;gap:12px;margin-bottom:16px}
@@ -91,6 +142,16 @@
 .chain-result-head .step-name{color:#00ff9d;font-weight:600}
 .chain-result-head .step-time{color:#00d4ff}
 .chain-result-body{font-family:'IBM Plex Mono',monospace;font-size:0.75rem;line-height:1.5;color:#c9d1d9;white-space:pre-wrap;word-break:break-word;max-height:200px;overflow:auto}
+
+/* ── Save dialog ── */
+.pg-modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:1000;display:none;align-items:center;justify-content:center}
+.pg-modal-overlay.visible{display:flex}
+.pg-modal{background:#161b22;border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:24px;min-width:340px;max-width:440px}
+.pg-modal h3{font-family:'IBM Plex Mono',monospace;font-size:1rem;color:#e6edf3;margin-bottom:16px}
+.pg-modal input{width:100%;margin-bottom:14px}
+.pg-modal-btns{display:flex;gap:8px;justify-content:flex-end}
+.pg-modal-cancel{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:8px 18px;color:#8b949e;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;cursor:pointer}
+.pg-modal-save{background:linear-gradient(135deg,#00ff9d,#00d4ff);color:#020408;border:none;border-radius:6px;padding:8px 18px;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:700;cursor:pointer}
 </style>
 {% endblock %}
 
@@ -104,99 +165,174 @@
     <a class="cta" href="/buy-credits">Need more? Get an API key &rarr;</a>
   </div>
 
+  <!-- Environment & Collections bar -->
+  <div class="pg-topbar">
+    <div class="pg-env-panel">
+      <div class="pg-lbl"><span class="pg-dot"></span> Environment</div>
+      <div class="pg-env-row">
+        <label>API_KEY</label>
+        <input class="pg-inp" id="envApiKey" placeholder="your-api-key" type="password" style="font-size:0.8rem">
+        <button class="pg-bs" id="envKeyToggle" title="Show/hide">eye</button>
+      </div>
+      <div class="pg-env-row">
+        <label>BASE_URL</label>
+        <input class="pg-inp" id="envBaseUrl" value="https://aipaygen.com" style="font-size:0.8rem">
+      </div>
+      <div style="font-size:0.7rem;color:#4a5568;font-family:'IBM Plex Mono',monospace;margin-top:2px">Auto-injected into all requests. Saved in localStorage.</div>
+    </div>
+    <div class="pg-coll-panel">
+      <div class="pg-lbl"><span class="pg-dot"></span> Collections</div>
+      <div class="pg-coll-row">
+        <select id="collSel" class="pg-sel" style="font-size:0.8rem">
+          <option value="">-- load collection --</option>
+          <optgroup label="Pre-built" id="collPrebuilt"></optgroup>
+          <optgroup label="Saved" id="collSaved"></optgroup>
+        </select>
+        <button class="pg-bs" id="collLoadBtn" title="Load selected">Load</button>
+        <button class="pg-bs" id="collDelBtn" title="Delete selected" style="color:#ff4444;border-color:rgba(255,68,68,0.2)">Del</button>
+      </div>
+      <div style="font-size:0.7rem;color:#4a5568;font-family:'IBM Plex Mono',monospace;margin-top:6px">Save current request or load a saved one.</div>
+    </div>
+  </div>
+
   <!-- Tabs -->
   <div class="pg-tabs">
     <button class="pg-tab active" data-tab="single">Single Request</button>
     <button class="pg-tab" data-tab="chain">Chain Builder</button>
   </div>
 
-  <!-- Tab 1: Single Request -->
-  <div class="pg-tab-content active" id="tab-single">
-    <div class="pg-grid">
-      <div class="pg-pnl">
-        <div class="pg-ph"><span class="pg-dot"></span> Request</div>
-        <div class="pg-pb">
-          <div class="pg-row">
-            <select id="pgM" class="pg-sel pg-ms">
-              <option value="GET">GET</option>
-              <option value="POST" selected>POST</option>
-            </select>
-            <select id="pgE" class="pg-sel">
-              <option value="">-- select endpoint --</option>
-            </select>
-          </div>
-          <div class="pg-desc" id="pgD"></div>
-          <div>
-            <div class="pg-lbl">Headers</div>
-            <div id="pgH" style="margin-top:6px">
-              <div class="pg-hr">
-                <input class="pg-inp" value="Content-Type" style="flex:0.8" readonly>
-                <input class="pg-inp" value="application/json" style="flex:1" readonly>
+  <div class="pg-main-layout">
+    <div class="pg-main-content">
+      <!-- Tab 1: Single Request -->
+      <div class="pg-tab-content active" id="tab-single">
+        <div class="pg-grid">
+          <div class="pg-pnl">
+            <div class="pg-ph"><span class="pg-dot"></span> Request</div>
+            <div class="pg-pb">
+              <div class="pg-row">
+                <select id="pgM" class="pg-sel pg-ms">
+                  <option value="GET">GET</option>
+                  <option value="POST" selected>POST</option>
+                </select>
+                <select id="pgE" class="pg-sel">
+                  <option value="">-- select endpoint --</option>
+                </select>
               </div>
-              <div class="pg-hr" style="margin-top:6px">
-                <input class="pg-inp hk" placeholder="X-API-Key" style="flex:0.8">
-                <input class="pg-inp hv" placeholder="your-api-key (optional)" style="flex:1">
-                <button class="pg-bs" onclick="addH()" title="Add header">+</button>
+              <div class="pg-desc" id="pgD"></div>
+              <div>
+                <div class="pg-lbl">Headers</div>
+                <div id="pgH" style="margin-top:6px">
+                  <div class="pg-hr">
+                    <input class="pg-inp" value="Content-Type" style="flex:0.8" readonly>
+                    <input class="pg-inp" value="application/json" style="flex:1" readonly>
+                  </div>
+                  <div class="pg-hr" style="margin-top:6px">
+                    <input class="pg-inp hk" placeholder="X-API-Key" style="flex:0.8">
+                    <input class="pg-inp hv" placeholder="auto-filled from env (optional)" style="flex:1">
+                    <button class="pg-bs" id="addHeaderBtn" title="Add header">+</button>
+                  </div>
+                </div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column">
+                <div class="pg-lbl">Request Body <span style="color:#4a5568">(JSON)</span></div>
+                <textarea id="pgB" class="pg-ta" spellcheck="false">{}</textarea>
+              </div>
+              <div class="pg-row">
+                <button class="pg-run" id="pgR" style="flex:1">&#9654; Run</button>
+                <button class="pg-share-btn" id="shareBtn" title="Copy shareable URL">Share</button>
+                <button class="pg-save-btn" id="saveBtn" title="Save to collection">Save</button>
               </div>
             </div>
           </div>
-          <div style="flex:1;display:flex;flex-direction:column">
-            <div class="pg-lbl">Request Body <span style="color:#4a5568">(JSON)</span></div>
-            <textarea id="pgB" class="pg-ta" spellcheck="false">{}</textarea>
-          </div>
-          <div class="pg-row">
-            <button class="pg-run" id="pgR" onclick="run()" style="flex:1">&#9654; Run</button>
-            <button class="pg-share-btn" onclick="shareRequest()" title="Copy shareable URL">Share</button>
+          <div class="pg-pnl">
+            <div class="pg-ph"><span class="pg-dot"></span> Response</div>
+            <div class="pg-pb">
+              <div class="pg-st" id="pgSt" style="display:none">
+                <span class="pg-sc" id="pgSc"></span>
+                <span class="pg-time" id="pgTm"></span>
+                <button class="pg-codegen-toggle" id="codegenToggle">&lt;/&gt; Generate Code</button>
+              </div>
+              <div class="pg-rb" id="pgRb">Hit "Run" to send a request...</div>
+              <!-- Code Generation Panel -->
+              <div class="pg-codegen" id="codegenPanel">
+                <div class="pg-codegen-tabs" id="codegenTabs">
+                  <button class="pg-codegen-tab active" data-lang="python">Python</button>
+                  <button class="pg-codegen-tab" data-lang="javascript">JavaScript</button>
+                  <button class="pg-codegen-tab" data-lang="curl">curl</button>
+                  <button class="pg-codegen-tab" data-lang="go">Go</button>
+                  <button class="pg-codegen-tab" data-lang="ruby">Ruby</button>
+                  <button class="pg-codegen-tab" data-lang="php">PHP</button>
+                </div>
+                <div class="pg-codegen-body">
+                  <button class="pg-codegen-copy" id="codegenCopy">Copy</button>
+                  <pre class="pg-codegen-code" id="codegenCode"></pre>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      <div class="pg-pnl">
-        <div class="pg-ph"><span class="pg-dot"></span> Response</div>
-        <div class="pg-pb">
-          <div class="pg-st" id="pgSt" style="display:none">
-            <span class="pg-sc" id="pgSc"></span>
-            <span class="pg-time" id="pgTm"></span>
+
+      <!-- Tab 2: Chain Builder -->
+      <div class="pg-tab-content" id="tab-chain">
+        <div class="pg-grid">
+          <div class="pg-pnl">
+            <div class="pg-ph"><span class="pg-dot"></span> Chain Steps</div>
+            <div class="pg-pb">
+              <p style="color:#8b949e;font-size:0.82rem;margin-bottom:8px">Build multi-step chains. Use <code style="background:rgba(0,255,157,0.1);padding:2px 6px;border-radius:3px;color:#00ff9d;font-size:0.78rem">$prev.result</code> in any field to pipe the previous step's output.</p>
+              <div>
+                <div class="pg-lbl">API Key <span style="color:#4a5568">(auto-filled from env)</span></div>
+                <input class="pg-inp" id="chainKey" placeholder="your-api-key" style="width:100%;margin-top:4px">
+              </div>
+              <div class="chain-steps" id="chainSteps">
+              </div>
+              <div class="chain-add" id="chainAddBtn">+ Add Step</div>
+              <div style="margin-top:14px">
+                <div class="pg-row">
+                  <button class="pg-run" id="chainRun" style="flex:1">&#9654; Run Chain</button>
+                  <button class="pg-share-btn" id="chainShareBtn" title="Copy shareable chain URL">Share</button>
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="pg-rb" id="pgRb">Hit "Run" to send a request...</div>
+          <div class="pg-pnl">
+            <div class="pg-ph"><span class="pg-dot"></span> Chain Results</div>
+            <div class="pg-pb">
+              <div class="pg-st" id="chainSt" style="display:none">
+                <span class="pg-sc" id="chainSc"></span>
+                <span class="pg-time" id="chainTm"></span>
+              </div>
+              <div id="chainRb" style="flex:1;min-height:200px;max-height:600px;overflow:auto">
+                <div style="color:#8b949e;font-family:'IBM Plex Mono',monospace;font-size:0.82rem">Add steps and hit "Run Chain" to execute...</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- Tab 2: Chain Builder -->
-  <div class="pg-tab-content" id="tab-chain">
-    <div class="pg-grid">
-      <div class="pg-pnl">
-        <div class="pg-ph"><span class="pg-dot"></span> Chain Steps</div>
-        <div class="pg-pb">
-          <p style="color:#8b949e;font-size:0.82rem;margin-bottom:8px">Build multi-step chains. Use <code style="background:rgba(0,255,157,0.1);padding:2px 6px;border-radius:3px;color:#00ff9d;font-size:0.78rem">$prev.result</code> in any field to pipe the previous step's output.</p>
-          <div>
-            <div class="pg-lbl">API Key <span style="color:#4a5568">(optional)</span></div>
-            <input class="pg-inp" id="chainKey" placeholder="your-api-key" style="width:100%;margin-top:4px">
-          </div>
-          <div class="chain-steps" id="chainSteps">
-          </div>
-          <div class="chain-add" onclick="addChainStep()">+ Add Step</div>
-          <div style="margin-top:14px">
-            <div class="pg-row">
-              <button class="pg-run" id="chainRun" onclick="runChain()" style="flex:1">&#9654; Run Chain</button>
-              <button class="pg-share-btn" onclick="shareChain()" title="Copy shareable chain URL">Share</button>
-            </div>
-          </div>
-        </div>
+    <!-- History Sidebar -->
+    <div class="pg-history-sidebar">
+      <div class="pg-history-head">
+        <span><span class="pg-dot"></span> History</span>
+        <button class="pg-history-clear" id="historyClearBtn">Clear</button>
       </div>
-      <div class="pg-pnl">
-        <div class="pg-ph"><span class="pg-dot"></span> Chain Results</div>
-        <div class="pg-pb">
-          <div class="pg-st" id="chainSt" style="display:none">
-            <span class="pg-sc" id="chainSc"></span>
-            <span class="pg-time" id="chainTm"></span>
-          </div>
-          <div id="chainRb" style="flex:1;min-height:200px;max-height:600px;overflow:auto">
-            <div style="color:#8b949e;font-family:'IBM Plex Mono',monospace;font-size:0.82rem">Add steps and hit "Run Chain" to execute...</div>
-          </div>
-        </div>
+      <div class="pg-history-list" id="historyList">
+        <div class="pg-history-empty">No requests yet.</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Save to Collection Modal -->
+<div class="pg-modal-overlay" id="saveModal">
+  <div class="pg-modal">
+    <h3>Save to Collection</h3>
+    <div class="pg-lbl" style="margin-bottom:6px">Collection name</div>
+    <input class="pg-inp" id="saveCollName" placeholder="My saved request">
+    <div class="pg-modal-btns">
+      <button class="pg-modal-cancel" id="saveModalCancel">Cancel</button>
+      <button class="pg-modal-save" id="saveModalSave">Save</button>
     </div>
   </div>
 </div>
@@ -204,8 +340,11 @@
 
 {% block scripts %}
 <script>
+(function() {
+"use strict";
+
 // ── Endpoint catalog ──
-const EP=[
+var EP=[
   {ep:"/sentiment",m:"POST",d:"Deep sentiment -- polarity, score, emotions, confidence",b:{text:"I love building with AI agents!"}},
   {ep:"/summarize",m:"POST",d:"Summarize long text into key points",b:{text:"Paste your text here...","length":"short"}},
   {ep:"/translate",m:"POST",d:"Translate text to any language",b:{text:"Hello world",language:"Spanish"}},
@@ -244,14 +383,75 @@ const EP=[
 ];
 
 // Chain-available tools
-const CHAIN_TOOLS = [
+var CHAIN_TOOLS = [
   "research","summarize","analyze","translate","sentiment","keywords",
   "classify","rewrite","extract","qa","compare","outline","diagram",
   "json_schema","workflow","write","code","social","proofread",
   "explain","pitch","fact","scrape_website","search"
 ];
 
+// Pre-built collections
+var PREBUILT_COLLECTIONS = {
+  "Getting Started": [
+    {name:"Health Check",method:"GET",epIdx:32,body:""},
+    {name:"Free UUID",method:"GET",epIdx:30,body:""},
+    {name:"Sentiment Analysis",method:"POST",epIdx:0,body:JSON.stringify({text:"I love building with AI agents!"},null,2)},
+    {name:"Preview (free)",method:"POST",epIdx:20,body:JSON.stringify({topic:"AI agents"},null,2)}
+  ],
+  "AI Tools": [
+    {name:"Chat",method:"POST",epIdx:4,body:JSON.stringify({messages:[{role:"user",content:"What is x402?"}]},null,2)},
+    {name:"Code Generation",method:"POST",epIdx:5,body:JSON.stringify({description:"fibonacci function",language:"python"},null,2)},
+    {name:"Summarize",method:"POST",epIdx:1,body:JSON.stringify({text:"Your long text here...","length":"short"},null,2)},
+    {name:"Research",method:"POST",epIdx:9,body:JSON.stringify({question:"What is the x402 payment protocol?"},null,2)}
+  ],
+  "Scraping": [
+    {name:"Web Scrape",method:"POST",epIdx:8,body:JSON.stringify({url:"https://example.com"},null,2)},
+    {name:"Web Search",method:"POST",epIdx:7,body:JSON.stringify({query:"x402 protocol",n:3},null,2)},
+    {name:"Extract Data",method:"POST",epIdx:10,body:JSON.stringify({text:"John Smith, CEO of Acme Inc.",fields:["name","title","company"]},null,2)}
+  ],
+  "Data & Fun": [
+    {name:"Weather",method:"GET",epIdx:25,body:""},
+    {name:"Crypto Prices",method:"GET",epIdx:26,body:""},
+    {name:"Random Joke",method:"GET",epIdx:27,body:""},
+    {name:"Random Quote",method:"GET",epIdx:28,body:""}
+  ]
+};
+
+// ═══════════════════════════════════════════
+// ── Environment variables (localStorage) ──
+// ═══════════════════════════════════════════
+var envApiKeyEl = document.getElementById('envApiKey');
+var envBaseUrlEl = document.getElementById('envBaseUrl');
+
+function loadEnv() {
+  var k = localStorage.getItem('pg_env_api_key') || '';
+  var u = localStorage.getItem('pg_env_base_url') || 'https://aipaygen.com';
+  envApiKeyEl.value = k;
+  envBaseUrlEl.value = u;
+  if (k) document.getElementById('chainKey').value = k;
+}
+
+function saveEnv() {
+  localStorage.setItem('pg_env_api_key', envApiKeyEl.value);
+  localStorage.setItem('pg_env_base_url', envBaseUrlEl.value);
+}
+
+function getEnvKey() { return envApiKeyEl.value.trim(); }
+
+function getEnvBaseUrl() {
+  var u = envBaseUrlEl.value.trim();
+  return u || 'https://aipaygen.com';
+}
+
+document.getElementById('envKeyToggle').addEventListener('click', function() {
+  envApiKeyEl.type = envApiKeyEl.type === 'password' ? 'text' : 'password';
+});
+envApiKeyEl.addEventListener('change', saveEnv);
+envBaseUrlEl.addEventListener('change', saveEnv);
+
+// ═══════════════════════════════════════
 // ── Tab switching ──
+// ═══════════════════════════════════════
 document.querySelectorAll('.pg-tab').forEach(function(tab) {
   tab.addEventListener('click', function() {
     document.querySelectorAll('.pg-tab').forEach(function(t) { t.classList.remove('active'); });
@@ -261,22 +461,33 @@ document.querySelectorAll('.pg-tab').forEach(function(tab) {
   });
 });
 
+// ═══════════════════════════════════════
 // ── Single Request Tab ──
+// ═══════════════════════════════════════
 var eS=document.getElementById("pgE"),mS=document.getElementById("pgM"),bA=document.getElementById("pgB"),dE=document.getElementById("pgD");
 EP.forEach(function(e,i){var o=document.createElement("option");o.value=i;o.textContent=e.m+" "+e.ep+" -- "+e.d.slice(0,48);eS.appendChild(o)});
 eS.addEventListener("change",function(){var i=eS.value;if(i==="")return;var e=EP[i];mS.value=e.m;dE.textContent=e.d;if(e.b){bA.value=JSON.stringify(e.b,null,2);bA.style.display=""}else{bA.value="";bA.style.display=e.m==="GET"?"none":""}});
 mS.addEventListener("change",function(){bA.style.display=mS.value==="GET"?"none":""});
 
-function addH(){
+document.getElementById('addHeaderBtn').addEventListener('click', function() {
   var a=document.getElementById("pgH"),r=document.createElement("div");
   r.className="pg-hr";r.style.marginTop="6px";
   var k=document.createElement("input");k.className="pg-inp hk";k.placeholder="Header";k.style.flex="0.8";
   var v=document.createElement("input");v.className="pg-inp hv";v.placeholder="Value";v.style.flex="1";
-  var x=document.createElement("button");x.className="pg-bs";x.textContent="x";x.onclick=function(){r.remove()};
+  var x=document.createElement("button");x.className="pg-bs";x.textContent="x";x.addEventListener('click',function(){r.remove()});
   r.appendChild(k);r.appendChild(v);r.appendChild(x);a.appendChild(r);
-}
+});
 
-function gH(){var h={"Content-Type":"application/json"};document.querySelectorAll(".pg-hr").forEach(function(r){var ins=r.querySelectorAll("input");if(ins.length>=2){var k=ins[0].value.trim(),v=ins[1].value.trim();if(k&&v)h[k]=v}});return h}
+function gH(){
+  var h={"Content-Type":"application/json"};
+  var envKey = getEnvKey();
+  if (envKey) h["X-API-Key"] = envKey;
+  document.querySelectorAll(".pg-hr").forEach(function(r){
+    var ins=r.querySelectorAll("input");
+    if(ins.length>=2){var k=ins[0].value.trim(),v=ins[1].value.trim();if(k&&v)h[k]=v}
+  });
+  return h;
+}
 
 // ── JSON Syntax Highlighting ──
 function highlightJSON(str) {
@@ -297,12 +508,10 @@ function escapeHtml(s) {
 }
 
 function setResponseContent(el, text) {
-  // For JSON responses, use syntax highlighting (content is escaped first)
   try {
     JSON.parse(text);
     el.textContent = '';
     var pre = document.createElement('span');
-    // escapeHtml first, then apply highlighting classes to the escaped content
     pre.innerHTML = highlightJSON(escapeHtml(text));
     el.appendChild(pre);
   } catch(_) {
@@ -310,20 +519,39 @@ function setResponseContent(el, text) {
   }
 }
 
+// ── Last request info for code generation ──
+var lastRequest = null;
+
+document.getElementById('pgR').addEventListener('click', run);
+
 async function run(){
   var btn=document.getElementById("pgR"),rb=document.getElementById("pgRb"),st=document.getElementById("pgSt"),sc=document.getElementById("pgSc"),tm=document.getElementById("pgTm");
   var method=mS.value,idx=eS.value;
   if(idx===""){rb.textContent="Select an endpoint first.";return}
   var e=EP[idx],path=e.ep,qs=e.q||"";
   btn.disabled=true;btn.classList.add("ld");btn.textContent="Running...";rb.textContent="Sending request...";st.style.display="none";
+  hideCodegen();
+
   var headers=gH(),url=location.origin+path+(qs?"?"+qs:""),opts={method:method,headers:headers};
-  if(method==="POST"){try{var raw=bA.value.trim();if(raw)JSON.parse(raw);opts.body=raw||undefined}catch(er){rb.textContent="Invalid JSON:\n"+er.message;btn.disabled=false;btn.classList.remove("ld");btn.textContent="\u25B6 Run";return}}
+  var bodyStr = null;
+  if(method==="POST"){try{var raw=bA.value.trim();if(raw)JSON.parse(raw);opts.body=raw||undefined;bodyStr=raw||null}catch(er){rb.textContent="Invalid JSON:\n"+er.message;btn.disabled=false;btn.classList.remove("ld");btn.textContent="\u25B6 Run";return}}
   var t0=performance.now();
   try{
     var resp=await fetch(url,opts),elapsed=Math.round(performance.now()-t0),ct=resp.headers.get("content-type")||"";
     var body;if(ct.includes("json")){body=JSON.stringify(await resp.json(),null,2)}else{body=await resp.text();try{body=JSON.stringify(JSON.parse(body),null,2)}catch(_){}}
     st.style.display="flex";sc.textContent=resp.status+" "+resp.statusText;sc.className="pg-sc "+(resp.status<300?"s2":resp.status<500?"s4":"s5");tm.textContent=elapsed+"ms";
     setResponseContent(rb, body);
+
+    // Store last request for code generation
+    lastRequest = {method:method, path:path, qs:qs, headers:headers, body:bodyStr, status:resp.status};
+    document.getElementById('codegenToggle').classList.add('visible');
+
+    // Add to history
+    addToHistory({method:method, endpoint:path+(qs?"?"+qs:""), body:bodyStr, status:resp.status, time:Date.now(), epIdx:parseInt(idx)});
+
+    // Auto-show codegen with Python selected
+    showCodegen('python');
+
     ftFree();
   }catch(err){st.style.display="flex";sc.textContent="ERR";sc.className="pg-sc s5";tm.textContent="";rb.textContent="Network error:\n"+err.message}
   btn.disabled=false;btn.classList.remove("ld");btn.textContent="\u25B6 Run";
@@ -334,8 +562,471 @@ ftFree();
 
 document.addEventListener("keydown",function(e){if((e.ctrlKey||e.metaKey)&&e.key==="Enter"){e.preventDefault();var active=document.querySelector('.pg-tab.active');if(active&&active.dataset.tab==='chain')runChain();else run()}});
 
+// ═══════════════════════════════════════
+// ── Code Generation ──
+// ═══════════════════════════════════════
+function generateCode(lang) {
+  if (!lastRequest) return '';
+  var r = lastRequest;
+  var baseUrl = getEnvBaseUrl();
+  var fullUrl = baseUrl + r.path + (r.qs ? '?' + r.qs : '');
+  var apiKey = r.headers['X-API-Key'] || 'YOUR_API_KEY';
+  var hasBody = r.method === 'POST' && r.body;
+  var bodyPretty = hasBody ? r.body : null;
+
+  switch(lang) {
+    case 'python': return genPython(fullUrl, r.method, apiKey, bodyPretty);
+    case 'javascript': return genJavaScript(fullUrl, r.method, apiKey, bodyPretty);
+    case 'curl': return genCurl(fullUrl, r.method, apiKey, bodyPretty);
+    case 'go': return genGo(fullUrl, r.method, apiKey, bodyPretty);
+    case 'ruby': return genRuby(fullUrl, r.method, apiKey, bodyPretty);
+    case 'php': return genPHP(fullUrl, r.method, apiKey, bodyPretty);
+    default: return '';
+  }
+}
+
+function genPython(url, method, apiKey, body) {
+  var lines = ['import requests', ''];
+  if (body) {
+    lines.push('payload = ' + pythonDict(body));
+    lines.push('');
+  }
+  lines.push('response = requests.' + method.toLowerCase() + '(');
+  lines.push('    "' + url + '",');
+  if (body) lines.push('    json=payload,');
+  lines.push('    headers={');
+  lines.push('        "Content-Type": "application/json",');
+  lines.push('        "X-API-Key": "' + apiKey + '"');
+  lines.push('    }');
+  lines.push(')');
+  lines.push('');
+  lines.push('print(response.status_code)');
+  lines.push('print(response.json())');
+  return lines.join('\n');
+}
+
+function pythonDict(jsonStr) {
+  try {
+    var obj = JSON.parse(jsonStr);
+    return JSON.stringify(obj, null, 4)
+      .replace(/\bnull\b/g, 'None')
+      .replace(/\btrue\b/g, 'True')
+      .replace(/\bfalse\b/g, 'False');
+  } catch(_) { return jsonStr; }
+}
+
+function genJavaScript(url, method, apiKey, body) {
+  var lines = [];
+  if (body) {
+    lines.push('const payload = ' + body + ';');
+    lines.push('');
+  }
+  lines.push('const response = await fetch("' + url + '", {');
+  lines.push('  method: "' + method + '",');
+  lines.push('  headers: {');
+  lines.push('    "Content-Type": "application/json",');
+  lines.push('    "X-API-Key": "' + apiKey + '"');
+  lines.push('  }' + (body ? ',' : ''));
+  if (body) lines.push('  body: JSON.stringify(payload)');
+  lines.push('});');
+  lines.push('');
+  lines.push('const data = await response.json();');
+  lines.push('console.log(data);');
+  return lines.join('\n');
+}
+
+function genCurl(url, method, apiKey, body) {
+  var lines = ['curl -X ' + method + ' \\'];
+  lines.push('  "' + url + '" \\');
+  lines.push('  -H "Content-Type: application/json" \\');
+  lines.push('  -H "X-API-Key: ' + apiKey + '"' + (body ? ' \\' : ''));
+  if (body) {
+    try { body = JSON.stringify(JSON.parse(body)); } catch(_) {}
+    lines.push("  -d '" + body.replace(/'/g, "'\\''") + "'");
+  }
+  return lines.join('\n');
+}
+
+function genGo(url, method, apiKey, body) {
+  var lines = [
+    'package main',
+    '',
+    'import (',
+    '\t"fmt"',
+    '\t"io"',
+    '\t"net/http"'
+  ];
+  if (body) lines.push('\t"strings"');
+  lines.push(')');
+  lines.push('');
+  lines.push('func main() {');
+  if (body) {
+    try { body = JSON.stringify(JSON.parse(body)); } catch(_) {}
+    lines.push('\tbody := strings.NewReader(`' + body + '`)');
+    lines.push('\treq, err := http.NewRequest("' + method + '", "' + url + '", body)');
+  } else {
+    lines.push('\treq, err := http.NewRequest("' + method + '", "' + url + '", nil)');
+  }
+  lines.push('\tif err != nil {');
+  lines.push('\t\tpanic(err)');
+  lines.push('\t}');
+  lines.push('');
+  lines.push('\treq.Header.Set("Content-Type", "application/json")');
+  lines.push('\treq.Header.Set("X-API-Key", "' + apiKey + '")');
+  lines.push('');
+  lines.push('\tresp, err := http.DefaultClient.Do(req)');
+  lines.push('\tif err != nil {');
+  lines.push('\t\tpanic(err)');
+  lines.push('\t}');
+  lines.push('\tdefer resp.Body.Close()');
+  lines.push('');
+  lines.push('\tdata, _ := io.ReadAll(resp.Body)');
+  lines.push('\tfmt.Println(string(data))');
+  lines.push('}');
+  return lines.join('\n');
+}
+
+function genRuby(url, method, apiKey, body) {
+  var lines = [
+    "require 'net/http'",
+    "require 'json'",
+    "require 'uri'",
+    '',
+    'uri = URI.parse("' + url + '")',
+    'http = Net::HTTP.new(uri.host, uri.port)',
+    'http.use_ssl = true',
+    ''
+  ];
+  if (method === 'POST') {
+    lines.push('request = Net::HTTP::Post.new(uri.request_uri)');
+  } else {
+    lines.push('request = Net::HTTP::Get.new(uri.request_uri)');
+  }
+  lines.push('request["Content-Type"] = "application/json"');
+  lines.push('request["X-API-Key"] = "' + apiKey + '"');
+  if (body) {
+    lines.push('request.body = ' + body);
+  }
+  lines.push('');
+  lines.push('response = http.request(request)');
+  lines.push('puts response.code');
+  lines.push('puts JSON.parse(response.body)');
+  return lines.join('\n');
+}
+
+function genPHP(url, method, apiKey, body) {
+  var lines = [
+    '<?php',
+    '$ch = curl_init();',
+    '',
+    'curl_setopt_array($ch, [',
+    '    CURLOPT_URL => "' + url + '",',
+    '    CURLOPT_RETURNTRANSFER => true,',
+    '    CURLOPT_CUSTOMREQUEST => "' + method + '",',
+    '    CURLOPT_HTTPHEADER => [',
+    '        "Content-Type: application/json",',
+    '        "X-API-Key: ' + apiKey + '"',
+    '    ],'
+  ];
+  if (body) {
+    try { body = JSON.stringify(JSON.parse(body)); } catch(_) {}
+    lines.push("    CURLOPT_POSTFIELDS => '" + body.replace(/'/g, "\\'") + "',");
+  }
+  lines.push(']);');
+  lines.push('');
+  lines.push('$response = curl_exec($ch);');
+  lines.push('$status = curl_getinfo($ch, CURLINFO_HTTP_CODE);');
+  lines.push('curl_close($ch);');
+  lines.push('');
+  lines.push('echo "Status: $status\\n";');
+  lines.push('echo json_encode(json_decode($response), JSON_PRETTY_PRINT);');
+  return lines.join('\n');
+}
+
+function showCodegen(lang) {
+  var panel = document.getElementById('codegenPanel');
+  panel.classList.add('visible');
+  document.querySelectorAll('.pg-codegen-tab').forEach(function(t) {
+    t.classList.toggle('active', t.dataset.lang === lang);
+  });
+  document.getElementById('codegenCode').textContent = generateCode(lang);
+}
+
+function hideCodegen() {
+  document.getElementById('codegenPanel').classList.remove('visible');
+  document.getElementById('codegenToggle').classList.remove('visible');
+}
+
+function toggleCodegen() {
+  var panel = document.getElementById('codegenPanel');
+  if (panel.classList.contains('visible')) {
+    panel.classList.remove('visible');
+  } else {
+    showCodegen('python');
+  }
+}
+
+document.getElementById('codegenToggle').addEventListener('click', toggleCodegen);
+
+// Codegen tab clicks
+document.querySelectorAll('.pg-codegen-tab').forEach(function(tab) {
+  tab.addEventListener('click', function() {
+    showCodegen(tab.dataset.lang);
+  });
+});
+
+document.getElementById('codegenCopy').addEventListener('click', function() {
+  var code = document.getElementById('codegenCode').textContent;
+  var btn = document.getElementById('codegenCopy');
+  navigator.clipboard.writeText(code).then(function() {
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+  });
+});
+
+// ═══════════════════════════════════════
+// ── Request History (localStorage) ──
+// ═══════════════════════════════════════
+var MAX_HISTORY = 20;
+
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem('pg_history') || '[]'); } catch(_) { return []; }
+}
+
+function saveHistoryData(h) {
+  localStorage.setItem('pg_history', JSON.stringify(h));
+}
+
+function addToHistory(entry) {
+  var h = getHistory();
+  h.unshift(entry);
+  if (h.length > MAX_HISTORY) h = h.slice(0, MAX_HISTORY);
+  saveHistoryData(h);
+  renderHistory();
+}
+
+document.getElementById('historyClearBtn').addEventListener('click', function() {
+  localStorage.removeItem('pg_history');
+  renderHistory();
+});
+
+function renderHistory() {
+  var list = document.getElementById('historyList');
+  var h = getHistory();
+  list.innerHTML = '';
+  if (h.length === 0) {
+    list.innerHTML = '<div class="pg-history-empty">No requests yet.</div>';
+    return;
+  }
+  h.forEach(function(entry, idx) {
+    var item = document.createElement('div');
+    item.className = 'pg-history-item';
+    item.addEventListener('click', function() { loadFromHistory(idx); });
+
+    var top = document.createElement('div');
+    top.className = 'pg-history-item-top';
+
+    var meth = document.createElement('span');
+    meth.className = 'pg-history-method m-' + entry.method.toLowerCase();
+    meth.textContent = entry.method;
+    top.appendChild(meth);
+
+    var stat = document.createElement('span');
+    stat.className = 'pg-history-status ' + (entry.status < 400 ? 'hs-ok' : 'hs-err');
+    stat.textContent = entry.status;
+    top.appendChild(stat);
+
+    var ep = document.createElement('div');
+    ep.className = 'pg-history-ep';
+    ep.textContent = entry.endpoint;
+
+    var ts = document.createElement('div');
+    ts.className = 'pg-history-time';
+    ts.textContent = formatTime(entry.time);
+
+    item.appendChild(top);
+    item.appendChild(ep);
+    item.appendChild(ts);
+    list.appendChild(item);
+  });
+}
+
+function formatTime(ts) {
+  var d = new Date(ts);
+  var now = new Date();
+  var diff = now - d;
+  if (diff < 60000) return 'just now';
+  if (diff < 3600000) return Math.floor(diff/60000) + 'm ago';
+  if (diff < 86400000) return Math.floor(diff/3600000) + 'h ago';
+  return d.toLocaleDateString();
+}
+
+function loadFromHistory(idx) {
+  var h = getHistory();
+  var entry = h[idx];
+  if (!entry) return;
+
+  // Switch to single request tab
+  document.querySelectorAll('.pg-tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('.pg-tab-content').forEach(function(c) { c.classList.remove('active'); });
+  document.querySelector('[data-tab="single"]').classList.add('active');
+  document.getElementById('tab-single').classList.add('active');
+
+  if (entry.epIdx !== undefined) {
+    eS.value = entry.epIdx;
+    eS.dispatchEvent(new Event('change'));
+  }
+  mS.value = entry.method;
+  if (entry.body) {
+    bA.value = entry.body;
+    bA.style.display = '';
+  } else {
+    bA.value = '';
+    bA.style.display = entry.method === 'GET' ? 'none' : '';
+  }
+}
+
+// ═══════════════════════════════════════
+// ── Collections (localStorage) ──
+// ═══════════════════════════════════════
+function getSavedCollections() {
+  try { return JSON.parse(localStorage.getItem('pg_collections') || '{}'); } catch(_) { return {}; }
+}
+
+function saveSavedCollections(c) {
+  localStorage.setItem('pg_collections', JSON.stringify(c));
+}
+
+function renderCollections() {
+  var prebuiltGroup = document.getElementById('collPrebuilt');
+  var savedGroup = document.getElementById('collSaved');
+  prebuiltGroup.innerHTML = '';
+  savedGroup.innerHTML = '';
+
+  Object.keys(PREBUILT_COLLECTIONS).forEach(function(name) {
+    var o = document.createElement('option');
+    o.value = 'prebuilt:' + name;
+    o.textContent = name + ' (' + PREBUILT_COLLECTIONS[name].length + ' requests)';
+    prebuiltGroup.appendChild(o);
+  });
+
+  var saved = getSavedCollections();
+  var keys = Object.keys(saved);
+  if (keys.length === 0) {
+    var o = document.createElement('option');
+    o.value = '';
+    o.disabled = true;
+    o.textContent = '(none saved)';
+    savedGroup.appendChild(o);
+  } else {
+    keys.forEach(function(name) {
+      var o = document.createElement('option');
+      o.value = 'saved:' + name;
+      o.textContent = name;
+      savedGroup.appendChild(o);
+    });
+  }
+}
+
+document.getElementById('collLoadBtn').addEventListener('click', function() {
+  var sel = document.getElementById('collSel');
+  var val = sel.value;
+  if (!val) return;
+
+  var parts = val.split(':');
+  var type = parts[0];
+  var name = parts.slice(1).join(':');
+
+  var items;
+  if (type === 'prebuilt') {
+    items = PREBUILT_COLLECTIONS[name];
+  } else {
+    var saved = getSavedCollections();
+    items = saved[name];
+  }
+
+  if (!items || items.length === 0) return;
+
+  var item = items[0];
+  if (item.epIdx !== undefined) {
+    eS.value = item.epIdx;
+    eS.dispatchEvent(new Event('change'));
+  }
+  mS.value = item.method;
+  if (item.body) {
+    bA.value = item.body;
+    bA.style.display = '';
+  } else {
+    bA.value = '';
+    bA.style.display = item.method === 'GET' ? 'none' : '';
+  }
+
+  if (window.showToast) showToast('Loaded "' + name + '" (' + items.length + ' requests)');
+});
+
+document.getElementById('saveBtn').addEventListener('click', function() {
+  var idx = eS.value;
+  if (idx === '') { if (window.showToast) showToast('Select an endpoint first'); return; }
+  document.getElementById('saveModal').classList.add('visible');
+  document.getElementById('saveCollName').value = '';
+  document.getElementById('saveCollName').focus();
+});
+
+document.getElementById('saveModalCancel').addEventListener('click', function() {
+  document.getElementById('saveModal').classList.remove('visible');
+});
+
+document.getElementById('saveModalSave').addEventListener('click', function() {
+  var name = document.getElementById('saveCollName').value.trim();
+  if (!name) return;
+
+  var idx = parseInt(eS.value);
+  var entry = {
+    name: name,
+    method: mS.value,
+    epIdx: idx,
+    body: mS.value === 'POST' ? bA.value : ''
+  };
+
+  var saved = getSavedCollections();
+  if (!saved[name]) saved[name] = [];
+  saved[name].push(entry);
+  saveSavedCollections(saved);
+  renderCollections();
+  document.getElementById('saveModal').classList.remove('visible');
+  if (window.showToast) showToast('Saved to "' + name + '"');
+});
+
+document.getElementById('collDelBtn').addEventListener('click', function() {
+  var sel = document.getElementById('collSel');
+  var val = sel.value;
+  if (!val || val.indexOf('saved:') !== 0) {
+    if (window.showToast) showToast('Can only delete saved collections');
+    return;
+  }
+  var name = val.slice(6);
+  var saved = getSavedCollections();
+  delete saved[name];
+  saveSavedCollections(saved);
+  renderCollections();
+  sel.value = '';
+  if (window.showToast) showToast('Deleted "' + name + '"');
+});
+
+// Enter to save in modal
+document.getElementById('saveCollName').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') { e.preventDefault(); document.getElementById('saveModalSave').click(); }
+});
+// Click overlay to close
+document.getElementById('saveModal').addEventListener('click', function(e) {
+  if (e.target === this) document.getElementById('saveModal').classList.remove('visible');
+});
+
+// ═══════════════════════════════════════
 // ── Share ──
-function shareRequest(){
+// ═══════════════════════════════════════
+document.getElementById('shareBtn').addEventListener('click', function() {
   var idx=eS.value;if(idx===""){if(window.showToast)showToast("Select an endpoint first");return}
   var params={tab:"single",ep:idx,method:mS.value};
   if(mS.value==="POST"){try{params.body=btoa(bA.value)}catch(_){}}
@@ -344,9 +1035,11 @@ function shareRequest(){
   var hash="#"+new URLSearchParams(params).toString();
   var url=location.origin+"/playground"+hash;
   navigator.clipboard.writeText(url).then(function(){if(window.showToast)showToast("Shareable URL copied to clipboard!")});
-}
+});
 
+// ═══════════════════════════════════════
 // ── Chain Builder ──
+// ═══════════════════════════════════════
 var chainStepCount = 0;
 
 function addChainStep(tool, inputJson) {
@@ -354,7 +1047,6 @@ function addChainStep(tool, inputJson) {
   var container = document.getElementById('chainSteps');
   var num = container.querySelectorAll('.chain-step').length + 1;
 
-  // Add wire connector if not the first step
   if (num > 1) {
     var wire = document.createElement('div');
     wire.className = 'chain-wire';
@@ -373,7 +1065,6 @@ function addChainStep(tool, inputJson) {
 
   var defaultInput = inputJson || '{}';
 
-  // Build step DOM safely
   var head = document.createElement('div');
   head.className = 'chain-step-head';
 
@@ -410,6 +1101,8 @@ function addChainStep(tool, inputJson) {
   renumberChainSteps();
 }
 
+document.getElementById('chainAddBtn').addEventListener('click', function() { addChainStep(); });
+
 function removeChainStep(btn) {
   var step = btn.closest('.chain-step');
   var prev = step.previousElementSibling;
@@ -428,7 +1121,6 @@ function renumberChainSteps() {
   });
 }
 
-// Tool-specific default inputs
 var TOOL_DEFAULTS = {
   research: {query: "What is x402?"},
   summarize: {text: "$prev.result", format: "bullets"},
@@ -466,7 +1158,6 @@ function chainToolChanged(sel) {
 }
 
 function renderChainResults(rb, data) {
-  // Clear and build results using DOM methods
   while (rb.firstChild) rb.removeChild(rb.firstChild);
 
   if (data.chain) {
@@ -549,6 +1240,8 @@ function setChainResultContent(el, text) {
   }
 }
 
+document.getElementById('chainRun').addEventListener('click', runChain);
+
 async function runChain() {
   var btn = document.getElementById('chainRun');
   var rb = document.getElementById('chainRb');
@@ -575,7 +1268,7 @@ async function runChain() {
   st.style.display = 'none';
 
   var headers = {"Content-Type": "application/json"};
-  var apiKey = document.getElementById('chainKey').value.trim();
+  var apiKey = document.getElementById('chainKey').value.trim() || getEnvKey();
   if (apiKey) headers["X-API-Key"] = apiKey;
 
   var t0 = performance.now();
@@ -602,7 +1295,7 @@ async function runChain() {
   btn.disabled = false; btn.classList.remove('ld'); btn.textContent = '\u25B6 Run Chain';
 }
 
-function shareChain() {
+document.getElementById('chainShareBtn').addEventListener('click', function() {
   var steps = [];
   document.querySelectorAll('.chain-step').forEach(function(el) {
     var tool = el.querySelector('.chain-tool-sel').value;
@@ -613,9 +1306,11 @@ function shareChain() {
   var hash = '#' + new URLSearchParams({tab:'chain', chain: btoa(JSON.stringify(steps))}).toString();
   var url = location.origin + '/playground' + hash;
   navigator.clipboard.writeText(url).then(function() { if(window.showToast) showToast('Chain URL copied to clipboard!'); });
-}
+});
 
+// ═══════════════════════════════════════
 // ── Restore from URL hash ──
+// ═══════════════════════════════════════
 function restoreFromHash() {
   if (!location.hash) return;
   try {
@@ -628,7 +1323,6 @@ function restoreFromHash() {
       document.querySelector('[data-tab="chain"]').classList.add('active');
       document.getElementById('tab-chain').classList.add('active');
 
-      // Clear default steps
       document.getElementById('chainSteps').textContent = '';
 
       var steps = JSON.parse(atob(params.get('chain')));
@@ -650,11 +1344,25 @@ function restoreFromHash() {
   } catch(_) {}
 }
 
+// ═══════════════════════════════════════
+// ── Initialize ──
+// ═══════════════════════════════════════
+loadEnv();
+renderCollections();
+renderHistory();
+
 // Initialize with 2 default chain steps
 addChainStep('research', JSON.stringify({query: "What is x402 protocol?"}, null, 2));
 addChainStep('summarize', JSON.stringify({text: "$prev.result", format: "bullets"}, null, 2));
 
 // Restore from hash (overrides defaults if present)
 restoreFromHash();
+
+// Sync env key to chain key field
+envApiKeyEl.addEventListener('input', function() {
+  document.getElementById('chainKey').value = this.value;
+});
+
+})();
 </script>
 {% endblock %}

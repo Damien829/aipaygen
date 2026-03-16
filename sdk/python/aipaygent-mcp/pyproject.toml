@@ -7,7 +7,7 @@ name = "aipaygen-mcp"
 version = "1.9.0"
 description = "250 AI tools for Claude, Cursor, and any MCP-compatible agent — research, write, code, review, think, scrape, translate, agent builder, agent network, API catalog, utility APIs, and more"
 readme = "README.md"
-license = {text = "MIT"}
+license = "MIT"
 requires-python = ">=3.10"
 authors = [{name = "AiPayGen", email = "hello@aipaygen.com"}]
 keywords = [
