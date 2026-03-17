@@ -275,16 +275,23 @@ def metered_tool(tier: str = "standard"):
                     pass
                 return result
 
-            # Without API key — free tier (10/day)
+            # Without API key — free tier (3/day, cheapest model only)
             identifier = hashlib.sha256(client_id.encode()).hexdigest()[:16]
             if not check_and_use_free_tier(identifier):
                 return _PURCHASE_ERROR
 
+            # Force cheapest model for free tier to minimize provider costs
             os.environ["_AIPAYGEN_FREE_TIER"] = "1"
+            _prev_model = os.environ.get("AIPAYGEN_FORCE_MODEL")
+            os.environ["AIPAYGEN_FORCE_MODEL"] = "claude-haiku"
             try:
                 result = fn(*args, **kwargs)
             finally:
                 os.environ.pop("_AIPAYGEN_FREE_TIER", None)
+                if _prev_model:
+                    os.environ["AIPAYGEN_FORCE_MODEL"] = _prev_model
+                else:
+                    os.environ.pop("AIPAYGEN_FORCE_MODEL", None)
             remaining_calls = get_free_tier_remaining(identifier)
             if isinstance(result, dict):
                 result["_free_calls_remaining"] = remaining_calls

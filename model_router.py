@@ -521,7 +521,21 @@ def call_model(
     """
     selected_reason = None
     # Free tier always uses cheapest model
-    if os.environ.get("_AIPAYGEN_FREE_TIER"):
+    # Check Flask WSGI env (REST calls) or os.environ (MCP calls)
+    _is_free = False
+    try:
+        from flask import request as _req
+        if _req.environ.get("X_FREE_TIER") == "1":
+            _is_free = True
+    except (ImportError, RuntimeError):
+        pass
+    if not _is_free and os.environ.get("_AIPAYGEN_FREE_TIER") == "1":
+        _is_free = True
+    force_model = os.environ.get("AIPAYGEN_FORCE_MODEL")
+    if force_model:
+        model = force_model
+        selected_reason = "forced_model"
+    elif _is_free:
         model = "claude-haiku"
         selected_reason = "free_tier_degraded"
     elif model == "auto":
