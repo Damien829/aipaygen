@@ -1336,6 +1336,12 @@ def pricing_page():
     return render_template("pricing.html", nav=NAV_HTML, footer=FOOTER_HTML)
 
 
+@meta_bp.route("/premium")
+@meta_bp.route("/pro")
+def premium_page():
+    return render_template("premium.html")
+
+
 @meta_bp.route("/get-key")
 def get_key_page():
     return render_template("get_key.html", nav=NAV_HTML, footer=FOOTER_HTML)

@@ -36,7 +36,6 @@
 /* Hero */
 .hero { position: relative; text-align: center; padding: 100px 24px 60px; overflow: hidden; }
 .hero .gradient-orb { top: -200px; left: 50%; transform: translateX(-50%); }
-.hero-badge { margin-bottom: 24px; }
 .hero h1 {
   font-family: var(--font-mono); font-size: var(--text-hero);
   font-weight: 700; line-height: 1.1; margin-bottom: 20px;
@@ -63,19 +62,31 @@
 }
 @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
 
-/* Bento */
-.bento-section { padding-bottom: 40px; }
-.bento-grid .card h3 {
-  font-family: var(--font-mono); font-size: var(--text-lg);
-  font-weight: 600; margin-bottom: 8px;
+/* Trust bar */
+.trust-bar {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+  max-width: 900px; margin: 0 auto 60px; padding: 0 24px;
 }
-.bento-grid .card p { color: var(--text-secondary); font-size: var(--text-sm); }
-.bento-grid .card .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-.bento-grid .card .tag {
-  font-size: var(--text-xs); padding: 3px 10px; border-radius: 20px;
-  background: var(--accent-dim); color: var(--accent); font-family: var(--font-mono);
+.trust-card {
+  background: var(--surface); backdrop-filter: blur(16px);
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 24px 20px; text-align: center;
+  transition: all var(--transition);
 }
-.bento-grid .card .tag.cyan { background: var(--accent2-dim); color: var(--accent2); }
+.trust-card:hover {
+  border-color: var(--border-hover); transform: translateY(-2px);
+  box-shadow: var(--shadow-card), var(--shadow-glow);
+}
+.trust-card-value {
+  font-family: var(--font-mono); font-size: 2rem; font-weight: 700;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.trust-card-label {
+  font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase;
+  letter-spacing: 0.08em; margin-top: 4px;
+}
+@media (max-width: 768px) { .trust-bar { grid-template-columns: repeat(2, 1fr); } }
 
 /* Steps */
 .steps-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
@@ -90,6 +101,75 @@
 .step-card h3 { font-family: var(--font-mono); margin-bottom: 8px; }
 .step-card p { color: var(--text-secondary); font-size: var(--text-sm); }
 @media (max-width: 768px) { .steps-grid { grid-template-columns: 1fr; } }
+
+/* Providers grid */
+.providers-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 16px;
+  max-width: 900px; margin: 0 auto;
+}
+.provider-card {
+  background: var(--surface); backdrop-filter: blur(16px);
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 24px 16px; text-align: center;
+  transition: all var(--transition); cursor: default;
+}
+.provider-card:hover {
+  border-color: var(--border-hover); transform: translateY(-3px);
+  box-shadow: var(--shadow-card), var(--shadow-glow);
+}
+.provider-icon {
+  font-size: 2rem; margin-bottom: 8px; display: block;
+}
+.provider-name {
+  font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600;
+  color: var(--text-secondary);
+}
+@media (max-width: 1024px) { .providers-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 600px) { .providers-grid { grid-template-columns: repeat(3, 1fr); } }
+
+/* Comparison table */
+.compare-table-wrap {
+  max-width: 1100px; margin: 0 auto; overflow-x: auto;
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  background: var(--surface); backdrop-filter: blur(16px);
+}
+.compare-table {
+  width: 100%; border-collapse: collapse;
+  font-family: var(--font-mono); font-size: var(--text-sm);
+}
+.compare-table th, .compare-table td {
+  padding: 14px 18px; text-align: left; border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.compare-table thead th {
+  background: rgba(0,255,157,0.04); color: var(--text);
+  font-weight: 700; font-size: 0.8rem; text-transform: uppercase;
+  letter-spacing: 0.05em; position: sticky; top: 0;
+}
+.compare-table thead th:first-child { border-radius: var(--radius-lg) 0 0 0; }
+.compare-table thead th:last-child { border-radius: 0 var(--radius-lg) 0 0; }
+.compare-table tbody tr:hover { background: rgba(0,255,157,0.03); }
+.compare-table tbody tr:last-child td { border-bottom: none; }
+.compare-table .col-feature { color: var(--text-secondary); font-weight: 500; }
+.compare-table .col-us { color: var(--accent); font-weight: 600; }
+.compare-table .col-them { color: var(--text-muted); }
+.compare-check { color: var(--accent); font-weight: 700; }
+.compare-cross { color: var(--text-muted); }
+.compare-highlight { background: rgba(0,255,157,0.06); }
+
+/* Bento */
+.bento-section { padding-bottom: 40px; }
+.bento-grid .card h3 {
+  font-family: var(--font-mono); font-size: var(--text-lg);
+  font-weight: 600; margin-bottom: 8px;
+}
+.bento-grid .card p { color: var(--text-secondary); font-size: var(--text-sm); }
+.bento-grid .card .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+.bento-grid .card .tag {
+  font-size: var(--text-xs); padding: 3px 10px; border-radius: 20px;
+  background: var(--accent-dim); color: var(--accent); font-family: var(--font-mono);
+}
+.bento-grid .card .tag.cyan { background: var(--accent2-dim); color: var(--accent2); }
 
 /* CTA */
 .cta-section {
@@ -130,17 +210,7 @@
 .demo-card-body .res { color: var(--text-secondary, #888); }
 @media (max-width: 1024px) { .built-with-grid { grid-template-columns: 1fr; max-width: 520px; } }
 
-/* Animated live stats counter */
-.live-stats-grid { display: flex; justify-content: center; gap: 48px; flex-wrap: wrap; }
-.live-stat { text-align: center; min-width: 110px; }
-.live-stat-value {
-  font-family: var(--font-mono); font-size: 2.2rem; font-weight: 700;
-  background: linear-gradient(135deg, var(--accent, #6366f1), var(--accent2, #00d4ff));
-  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-}
-.live-stat-label { font-size: 0.72rem; color: var(--text-muted, #666); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 4px; }
-
-/* Trust badges enhanced */
+/* Trust badges */
 .trust-badges { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; max-width: 800px; margin: 0 auto; }
 .trust-badge {
   display: inline-flex; align-items: center; gap: 6px;
@@ -159,82 +229,33 @@
 <section class="hero">
   <div class="gradient-orb"></div>
   <div style="position:relative;z-index:1">
-    {% if ab_variant == "B" %}
-    {# ── Variant B: value-focused hero ── #}
     <div class="hero-badge fade-in">
       <span class="badge" style="background:rgba(0,255,157,0.15);color:#00ff9d;">From $0.004/call</span>
       <span class="badge badge-cyan">One API Key</span>
     </div>
-    <h1 class="fade-in delay-1">250 AI Tools.<br>One API Key.</h1>
-    <p class="hero-sub fade-in delay-2">
-      Research, write, code, analyze, scrape, translate — powered by Claude, GPT-4o, Gemini, DeepSeek. From $0.004/call.
-    </p>
-    <div class="hero-actions fade-in delay-3">
-      <a href="/try" class="btn btn-primary" style="padding:18px 44px;font-size:1.05rem;" onclick="trackABClick('try_click')">Try Free — No Signup</a>
-      <a href="/get-key" class="btn btn-secondary" onclick="trackABClick('key_click')">Get API Key</a>
-    </div>
-    <p class="hero-tag fade-in delay-3">
-      <span>3 free calls/day</span> &middot; <span style="color:var(--accent2)">$0.25 trial credits</span> &middot; Pay only for what you use
-    </p>
-    {% else %}
-    {# ── Variant A: current hero (control) ── #}
-    <div class="hero-badge fade-in">
-      <span class="badge">Live on Base Mainnet</span>
-      <span class="badge badge-cyan">250 tools</span>
-    </div>
     <h1 class="fade-in delay-1">The AI Agent API</h1>
     <p class="hero-sub fade-in delay-2">
-      250 tools across 15 models from 7 providers. Research, write, code, analyze, scrape, translate — pay per call.
+      250 tools. 15 models. One API key. From $0.004/call.
     </p>
     <div class="hero-actions fade-in delay-3">
-      <a href="/try" class="btn btn-primary" onclick="trackABClick('try_click')">Try Free</a>
-      <a href="/get-key" class="btn btn-secondary" onclick="trackABClick('key_click')">Get API Key</a>
+      <a href="/try" class="btn btn-primary" style="padding:18px 44px;font-size:1.05rem;">Try Free</a>
+      <a href="/pricing" class="btn btn-secondary">View Pricing</a>
     </div>
     <p class="hero-tag fade-in delay-3">
-      <span>3 free calls/day</span> &middot; <span style="color:var(--accent2)">$0.25 trial credits</span> &middot; No sign-up required &middot;
+      <span>3 free calls/day</span> &middot; No sign-up required &middot;
       <code>pip install aipaygen-mcp</code>
     </p>
-    {% endif %}
-
-    <!-- Instant API Key Form -->
-    <div class="fade-in delay-3" id="heroKeyForm" style="margin-top:28px;max-width:460px;margin-left:auto;margin-right:auto;">
-      <div style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:10px;">Get an instant API key with $0.25 free credits</div>
-      <form id="heroKeyGen" onsubmit="return heroGenKey(event)" style="display:flex;gap:8px;">
-        <input type="email" id="heroEmail" required placeholder="you@example.com" aria-label="Email for API key"
-          style="flex:1;padding:12px 16px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text);font-size:var(--text-sm);outline:none;font-family:var(--font-sans);">
-        <button type="submit" class="btn btn-primary" id="heroKeyBtn" style="white-space:nowrap;padding:12px 20px;">Get Free Key</button>
-      </form>
-      <div id="heroKeyResult" style="display:none;margin-top:12px;background:var(--bg-elevated);border:1px solid var(--accent);border-radius:var(--radius-md);padding:14px;text-align:left;">
-        <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:4px;">YOUR API KEY</div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <code id="heroKeyValue" style="flex:1;font-size:0.85rem;color:var(--accent);word-break:break-all;"></code>
-          <button type="button" onclick="copyHeroKey()" id="heroKeyCopy" style="background:var(--accent);color:#000;border:none;border-radius:6px;padding:6px 14px;font-size:0.75rem;font-weight:600;cursor:pointer;white-space:nowrap;">Copy</button>
-        </div>
-        <div style="font-size:0.72rem;color:var(--text-muted);margin-top:8px;">$0.25 trial credits loaded. <a href="/docs" style="color:var(--accent);">View docs</a> or <a href="/playground" style="color:var(--accent);">open playground</a>.</div>
-      </div>
-      <div id="heroKeyError" style="display:none;margin-top:8px;font-size:var(--text-xs);color:#ef4444;"></div>
-    </div>
   </div>
 </section>
 
-<!-- Stats -->
-<div class="section fade-in" id="liveStatsSection" style="padding-top:0;padding-bottom:40px">
-  <div class="live-stats-grid">
-    <div class="live-stat"><div class="live-stat-value" data-counter="0" id="stat-tools">250</div><div class="live-stat-label">Tools Available</div></div>
-    <div class="live-stat"><div class="live-stat-value" data-counter="0" id="stat-models">15</div><div class="live-stat-label">AI Models</div></div>
-    <div class="live-stat"><div class="live-stat-value" data-counter="0" id="stat-skills">2,400</div><div class="live-stat-label">Skills</div></div>
-    <div class="live-stat"><div class="live-stat-value" data-counter="0" id="stat-apis">4,100</div><div class="live-stat-label">API Catalog</div></div>
-  </div>
-</div>
-
-<!-- Terminal Demo -->
+<!-- Animated Terminal -->
 <div class="terminal-section fade-in">
   <div class="terminal">
     <div class="terminal-bar">
       <span class="terminal-dot red"></span>
       <span class="terminal-dot yellow"></span>
       <span class="terminal-dot green"></span>
-      <span class="terminal-title">curl — api.aipaygen.com</span>
+      <span class="terminal-title">curl -- api.aipaygen.com</span>
     </div>
     <div class="terminal-body" id="termDemo">
       <div class="prompt">$ <span class="command" id="termCmd"></span><span class="cursor" id="termCursor"></span></div>
@@ -243,6 +264,199 @@
   </div>
 </div>
 
+<!-- Trust Bar: Stats -->
+<div class="trust-bar fade-in" id="trustBar">
+  <div class="trust-card">
+    <div class="trust-card-value" id="stat-tools">250</div>
+    <div class="trust-card-label">Tools</div>
+  </div>
+  <div class="trust-card">
+    <div class="trust-card-value" id="stat-models">15</div>
+    <div class="trust-card-label">Models</div>
+  </div>
+  <div class="trust-card">
+    <div class="trust-card-value">7</div>
+    <div class="trust-card-label">Providers</div>
+  </div>
+  <div class="trust-card">
+    <div class="trust-card-value" id="stat-skills">2,400+</div>
+    <div class="trust-card-label">Skills</div>
+  </div>
+</div>
+
+<!-- How It Works: 3 Steps -->
+<section class="section fade-in">
+  <div class="section-title text-center" style="max-width:none">How it works</div>
+  <div class="section-subtitle text-center" style="max-width:none;margin:0 auto 48px">Three steps to your first AI call</div>
+  <div class="steps-grid">
+    <div class="step-card card">
+      <div class="step-num">1</div>
+      <h3>Install</h3>
+      <p>pip install aipaygen-mcp, or just use curl. No SDK required.</p>
+      <div class="code-block mt-4" style="text-align:left">
+        <pre><code class="language-bash">pip install aipaygen-mcp</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+    </div>
+    <div class="step-card card">
+      <div class="step-num">2</div>
+      <h3>Call</h3>
+      <p>POST JSON to any endpoint. Get structured results back instantly.</p>
+      <div class="code-block mt-4" style="text-align:left">
+        <pre><code class="language-bash">curl -X POST https://api.aipaygen.com/research \
+  -H "Authorization: Bearer apk_xxx" \
+  -d '{"query": "x402 protocol"}'</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+    </div>
+    <div class="step-card card">
+      <div class="step-num">3</div>
+      <h3>Pay per use</h3>
+      <p>3 free calls/day. Then prepay with Stripe ($1+) or pay per call with USDC.</p>
+      <div class="code-block mt-4" style="text-align:left">
+        <pre><code class="language-bash"># Get a free API key with $0.25 credits
+curl -X POST https://api.aipaygen.com/auth/generate-key \
+  -d '{"label": "my-key"}'</code></pre>
+        <button class="copy-btn">Copy</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Model Providers -->
+<section class="section fade-in" style="padding-top:0">
+  <div class="section-title text-center" style="max-width:none">Powered by the best models</div>
+  <div class="section-subtitle text-center" style="max-width:none;margin:0 auto 48px">15 frontier models across 7 providers. One unified API.</div>
+  <div class="providers-grid">
+    <div class="provider-card">
+      <span class="provider-icon">&#9672;</span>
+      <div class="provider-name">Anthropic</div>
+      <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px">Claude 4, Haiku</div>
+    </div>
+    <div class="provider-card">
+      <span class="provider-icon">&#9673;</span>
+      <div class="provider-name">OpenAI</div>
+      <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px">GPT-4o, o1</div>
+    </div>
+    <div class="provider-card">
+      <span class="provider-icon">&#9670;</span>
+      <div class="provider-name">Google</div>
+      <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px">Gemini 2.5</div>
+    </div>
+    <div class="provider-card">
+      <span class="provider-icon">&#9674;</span>
+      <div class="provider-name">DeepSeek</div>
+      <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px">V3, R1</div>
+    </div>
+    <div class="provider-card">
+      <span class="provider-icon">&#10022;</span>
+      <div class="provider-name">xAI</div>
+      <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px">Grok 3</div>
+    </div>
+    <div class="provider-card">
+      <span class="provider-icon">&#9733;</span>
+      <div class="provider-name">Mistral</div>
+      <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px">Large, Codestral</div>
+    </div>
+    <div class="provider-card">
+      <span class="provider-icon">&#9671;</span>
+      <div class="provider-name">Meta</div>
+      <div style="font-size:0.65rem;color:var(--text-muted);margin-top:4px">Llama 4</div>
+    </div>
+  </div>
+</section>
+
+<!-- Competitor Comparison -->
+<section class="section fade-in">
+  <div class="section-title text-center" style="max-width:none">How we compare</div>
+  <div class="section-subtitle text-center" style="max-width:none;margin:0 auto 48px">AiPayGen is the only platform with ready-made tools, MCP support, and crypto payments</div>
+  <div class="compare-table-wrap">
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th class="col-feature">Feature</th>
+          <th class="col-us compare-highlight">AiPayGen</th>
+          <th class="col-them">OpenRouter</th>
+          <th class="col-them">Together AI</th>
+          <th class="col-them">Replicate</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="col-feature">Ready-made tools</td>
+          <td class="col-us compare-highlight"><span class="compare-check">250</span></td>
+          <td class="col-them"><span class="compare-cross">0</span></td>
+          <td class="col-them"><span class="compare-cross">0</span></td>
+          <td class="col-them"><span class="compare-cross">0</span></td>
+        </tr>
+        <tr>
+          <td class="col-feature">Models</td>
+          <td class="col-us compare-highlight">15</td>
+          <td class="col-them">300+</td>
+          <td class="col-them">200+</td>
+          <td class="col-them">1000+</td>
+        </tr>
+        <tr>
+          <td class="col-feature">Tool chaining</td>
+          <td class="col-us compare-highlight"><span class="compare-check">Yes</span></td>
+          <td class="col-them"><span class="compare-cross">No</span></td>
+          <td class="col-them"><span class="compare-cross">No</span></td>
+          <td class="col-them"><span class="compare-cross">No</span></td>
+        </tr>
+        <tr>
+          <td class="col-feature">MCP native</td>
+          <td class="col-us compare-highlight"><span class="compare-check">Yes</span></td>
+          <td class="col-them"><span class="compare-cross">No</span></td>
+          <td class="col-them"><span class="compare-cross">No</span></td>
+          <td class="col-them"><span class="compare-cross">No</span></td>
+        </tr>
+        <tr>
+          <td class="col-feature">Free tier</td>
+          <td class="col-us compare-highlight"><span class="compare-check">3 calls/day</span></td>
+          <td class="col-them"><span class="compare-cross">No</span></td>
+          <td class="col-them"><span class="compare-cross">No</span></td>
+          <td class="col-them"><span class="compare-cross">No</span></td>
+        </tr>
+        <tr>
+          <td class="col-feature">Min purchase</td>
+          <td class="col-us compare-highlight"><span class="compare-check">$1</span></td>
+          <td class="col-them">$5</td>
+          <td class="col-them">$5</td>
+          <td class="col-them">$0</td>
+        </tr>
+        <tr>
+          <td class="col-feature">Crypto payments</td>
+          <td class="col-us compare-highlight"><span class="compare-check">USDC x402</span></td>
+          <td class="col-them"><span class="compare-cross">No</span></td>
+          <td class="col-them"><span class="compare-cross">No</span></td>
+          <td class="col-them">Crypto</td>
+        </tr>
+        <tr>
+          <td class="col-feature">Batch API</td>
+          <td class="col-us compare-highlight"><span class="compare-check">20 parallel</span></td>
+          <td class="col-them"><span class="compare-cross">No</span></td>
+          <td class="col-them"><span class="compare-cross">No</span></td>
+          <td class="col-them"><span class="compare-check">Yes</span></td>
+        </tr>
+        <tr>
+          <td class="col-feature">Agent sessions</td>
+          <td class="col-us compare-highlight"><span class="compare-check">Yes</span></td>
+          <td class="col-them"><span class="compare-cross">No</span></td>
+          <td class="col-them"><span class="compare-cross">No</span></td>
+          <td class="col-them"><span class="compare-cross">No</span></td>
+        </tr>
+        <tr>
+          <td class="col-feature">Webhook alerts</td>
+          <td class="col-us compare-highlight"><span class="compare-check">Yes</span></td>
+          <td class="col-them"><span class="compare-cross">No</span></td>
+          <td class="col-them"><span class="compare-cross">No</span></td>
+          <td class="col-them"><span class="compare-check">Yes</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
 <!-- Feature Bento Grid -->
 <section class="section bento-section fade-in">
   <div class="section-title">Everything you need</div>
@@ -250,7 +464,7 @@
   <div class="bento-grid">
     <div class="card card-lg">
       <h3>250 AI Tools</h3>
-      <p>Research, write, code, analyze, extract, translate, scrape, RAG, vision, diagrams, and more — every tool is one POST request away.</p>
+      <p>Research, write, code, analyze, extract, translate, scrape, RAG, vision, diagrams, and more -- every tool is one POST request away.</p>
       <div class="tag-row">
         <span class="tag">research</span><span class="tag">write</span><span class="tag">code</span>
         <span class="tag">analyze</span><span class="tag">scrape</span><span class="tag">translate</span>
@@ -259,7 +473,7 @@
     </div>
     <div class="card">
       <h3>Agent Builder</h3>
-      <p>Create custom AI agents visually. Pick tools, set schedules, deploy — no code required.</p>
+      <p>Create custom AI agents visually. Pick tools, set schedules, deploy -- no code required.</p>
       <div class="tag-row"><span class="tag cyan">visual builder</span><span class="tag cyan">templates</span></div>
     </div>
     <div class="card card-lg">
@@ -282,127 +496,25 @@
       <div class="tag-row"><span class="tag cyan">stdio</span><span class="tag cyan">SSE</span></div>
     </div>
     <div class="card">
-      <h3>2200+ Skills</h3>
-      <p>Autonomously discovered skill library growing daily. Search, execute, or absorb into your agent.</p>
-      <div class="tag-row"><span class="tag">auto-discovery</span></div>
+      <h3>Pro Tools</h3>
+      <p>Premium tools like skill absorption and execution. Higher limits, priority routing, advanced features.</p>
+      <div class="tag-row"><span class="tag" style="background:rgba(255,215,0,0.15);color:#ffd700">PRO</span><span class="tag">absorb_skill</span><span class="tag">execute_skill</span></div>
     </div>
   </div>
 </section>
-
-<!-- How It Works -->
-<section class="section fade-in">
-  <div class="section-title text-center" style="max-width:none">How it works</div>
-  <div class="section-subtitle text-center" style="max-width:none;margin:0 auto 48px">Three steps to your first AI call</div>
-  <div class="steps-grid">
-    <div class="step-card card">
-      <div class="step-num">1</div>
-      <h3>Install</h3>
-      <p>pip install aipaygen-mcp, or just use curl. No SDK required.</p>
-      <div class="code-block mt-4" style="text-align:left">
-        <pre><code class="language-bash">pip install aipaygen-mcp</code></pre>
-        <button class="copy-btn">Copy</button>
-      </div>
-    </div>
-    <div class="step-card card">
-      <div class="step-num">2</div>
-      <h3>Call</h3>
-      <p>POST JSON to any endpoint. Get structured results back instantly.</p>
-      <div class="code-block mt-4" style="text-align:left">
-        <pre><code class="language-bash">curl -X POST https://api.aipaygen.com/research \
-  -H "Content-Type: application/json" \
-  -d '{"query": "x402 protocol"}'</code></pre>
-        <button class="copy-btn">Copy</button>
-      </div>
-    </div>
-    <div class="step-card card">
-      <div class="step-num">3</div>
-      <h3>Pay</h3>
-      <p>3 free calls/day. Then prepay with Stripe ($5+) or pay per call with USDC on Base.</p>
-      <div class="code-block mt-4" style="text-align:left">
-        <pre><code class="language-bash">curl -X POST https://api.aipaygen.com/credits/buy \
-  -d '{"amount_usd": 5.0}'</code></pre>
-        <button class="copy-btn">Copy</button>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- Pricing -->
-<section class="section fade-in">
-  <div class="section-title text-center" style="max-width:none">Simple pricing</div>
-  <div class="section-subtitle text-center" style="max-width:none;margin:0 auto 48px">Pay only for what you use</div>
-  <div class="pricing-grid">
-    <div class="card pricing-card">
-      <div style="font-weight:600;color:var(--text-secondary)">Free</div>
-      <div class="pricing-amount">$0</div>
-      <div class="pricing-period">forever</div>
-      <ul class="pricing-features">
-        <li>3 AI calls per day</li>
-        <li>No sign-up required</li>
-        <li>All 250 tools</li>
-        <li>MCP access</li>
-      </ul>
-      <a href="/try" class="btn btn-secondary" style="width:100%;justify-content:center">Try Now</a>
-    </div>
-    <div class="card pricing-card featured">
-      <span class="pricing-badge">Recommended</span>
-      <div style="font-weight:600;color:var(--accent)">Starter</div>
-      <div class="pricing-amount">$5</div>
-      <div class="pricing-period">~830 calls</div>
-      <ul class="pricing-features">
-        <li>Unlimited calls</li>
-        <li>Prepaid API key</li>
-        <li>All 250 tools</li>
-        <li>Agent Builder</li>
-        <li>Priority routing</li>
-      </ul>
-      <a href="/buy-credits" class="btn btn-primary" style="width:100%;justify-content:center">Get Started</a>
-    </div>
-    <div class="card pricing-card">
-      <div style="font-weight:600;color:var(--text-secondary)">Pro</div>
-      <div class="pricing-amount">$20</div>
-      <div class="pricing-period">~4,000 calls</div>
-      <ul class="pricing-features">
-        <li>Everything in Starter</li>
-        <li>Bulk discount</li>
-        <li>Workflow chains</li>
-        <li>Webhook events</li>
-        <li>Email delivery</li>
-      </ul>
-      <a href="/buy-credits" class="btn btn-secondary" style="width:100%;justify-content:center">Buy Credits</a>
-    </div>
-  </div>
-</section>
-
-<!-- Cost Calculator -->
-<div style="max-width:480px;margin:0 auto 48px;background:var(--card-bg,#141414);border:1px solid var(--border,#2a2a2a);border-radius:14px;padding:28px;">
-  <div style="font-weight:600;font-size:1rem;margin-bottom:16px;text-align:center">Estimate your monthly cost</div>
-  <label for="calc-slider" style="font-size:0.82rem;color:var(--text-secondary,#888);display:block;margin-bottom:8px">API calls per day: <strong id="calc-calls" style="color:var(--text,#e8e8e8)">50</strong></label>
-  <input type="range" id="calc-slider" min="1" max="1000" value="50" style="width:100%;accent-color:#6366f1;margin-bottom:16px" oninput="updateCalc()">
-  <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:var(--text-secondary,#888);margin-top:-10px;margin-bottom:18px"><span>1</span><span>250</span><span>500</span><span>1,000</span></div>
-  <div style="text-align:center">
-    <div style="font-size:2rem;font-weight:800;color:var(--accent,#6366f1)" id="calc-cost">$9.00</div>
-    <div style="font-size:0.82rem;color:var(--text-secondary,#888)">estimated per month at $0.006/call avg</div>
-  </div>
-</div>
-<script>
-function updateCalc(){var s=document.getElementById('calc-slider'),n=parseInt(s.value);document.getElementById('calc-calls').textContent=n;var monthly=(n*30*0.006);document.getElementById('calc-cost').textContent='$'+monthly.toFixed(2);}
-</script>
 
 <!-- Built with AiPayGen -->
 <section class="section fade-in">
   <div class="section-title text-center" style="max-width:none">Built with AiPayGen</div>
-  <div class="section-subtitle text-center" style="max-width:none;margin:0 auto 48px">Real requests, real responses. See what one API call looks like.</div>
+  <div class="section-subtitle text-center" style="max-width:none;margin:0 auto 48px">Real requests, real responses</div>
   <div class="built-with-grid">
-
-    <!-- Content Pipeline -->
     <div class="demo-card">
       <div class="demo-card-header">
         <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
         <span class="title">POST /chain</span>
       </div>
       <div class="demo-card-label">Content Pipeline</div>
-      <div class="demo-card-desc">Scrape, summarize, and translate in one API call</div>
+      <div class="demo-card-desc">Scrape, summarize, and translate in one call</div>
       <div class="demo-card-body">
         <div class="req-tag">Request</div>
         <pre class="req">{"steps": [
@@ -417,13 +529,10 @@ function updateCalc(){var s=document.getElementById('calc-slider'),n=parseInt(s.
         <div class="res-tag">Response</div>
         <pre class="res">{"steps_completed": 3,
  "result": "La IA generativa est&aacute;
-  transformando la industria del
-  software con nuevos paradigmas...",
+  transformando la industria...",
  "_billing": {"cost": 0.018}}</pre>
       </div>
     </div>
-
-    <!-- Research Agent -->
     <div class="demo-card">
       <div class="demo-card-header">
         <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
@@ -434,14 +543,11 @@ function updateCalc(){var s=document.getElementById('calc-slider'),n=parseInt(s.
       <div class="demo-card-body">
         <div class="req-tag">Request</div>
         <pre class="req">{"query": "What is the x402
-  payment protocol and how
-  does it work?"}</pre>
+  payment protocol?"}</pre>
         <div class="res-tag">Response</div>
         <pre class="res">{"summary": "x402 is an HTTP-native
   payment protocol that uses
-  status code 402. Clients pay
-  with signed USDC transactions
-  via the X-Payment header...",
+  status code 402...",
  "sources": [
    "x402.org",
    "docs.cdp.coinbase.com"
@@ -449,8 +555,6 @@ function updateCalc(){var s=document.getElementById('calc-slider'),n=parseInt(s.
  "_billing": {"cost": 0.006}}</pre>
       </div>
     </div>
-
-    <!-- Code Generator -->
     <div class="demo-card">
       <div class="demo-card-header">
         <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
@@ -462,100 +566,87 @@ function updateCalc(){var s=document.getElementById('calc-slider'),n=parseInt(s.
         <div class="req-tag">Request</div>
         <pre class="req">{"prompt": "Python function that
   fetches crypto prices from
-  CoinGecko and returns a
-  formatted table"}</pre>
+  CoinGecko"}</pre>
         <div class="res-tag">Response</div>
         <pre class="res">{"language": "python",
  "code": "import requests\n\ndef
-  get_prices(coins=['bitcoin',
-  'ethereum']):\n  url = 'https://
-  api.coingecko.com/...'",
- "explanation": "Uses requests
-  to fetch from CoinGecko...",
+  get_prices(coins):\n  url =
+  'https://api.coingecko...'",
  "_billing": {"cost": 0.008}}</pre>
       </div>
     </div>
-
   </div>
 </section>
 
-<!-- Trust Badges -->
-<section class="section fade-in" style="padding-top:0">
-  <div class="trust-badges">
-    <span class="trust-badge"><span class="check">&#10003;</span> MCP Registry Listed</span>
-    <span class="trust-badge"><span class="check">&#10003;</span> 1,263 Tests Passing</span>
-    <span class="trust-badge"><span class="check">&#10003;</span> Smithery Verified</span>
-    <span class="trust-badge"><span class="check">&#10003;</span> Glama Listed</span>
-    <span class="trust-badge"><span class="check">&#10003;</span> <a href="https://pypi.org/project/aipaygen-mcp/" target="_blank" rel="noopener">Open Source SDK on PyPI</a></span>
-    <span class="trust-badge"><span class="check">&#10003;</span> Base Mainnet (USDC)</span>
-  </div>
-</section>
-
-<!-- Use Cases -->
+<!-- Pricing -->
 <section class="section fade-in">
-  <div class="section-title text-center" style="max-width:none">What developers build</div>
-  <div class="section-subtitle text-center" style="max-width:none;margin:0 auto 48px">Real use cases powered by AiPayGen</div>
-  <div class="bento-grid">
-    <div class="card">
-      <h3 style="font-family:var(--font-mono);font-size:var(--text-lg);font-weight:600;margin-bottom:8px">Research Agents</h3>
-      <p style="color:var(--text-secondary);font-size:var(--text-sm)">Autonomous agents that research topics, summarize findings, and store results in memory. Run on a schedule or trigger on demand.</p>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">
-        <span class="tag">research</span><span class="tag">summarize</span><span class="tag">memory</span>
-      </div>
+  <div class="section-title text-center" style="max-width:none">Simple pricing</div>
+  <div class="section-subtitle text-center" style="max-width:none;margin:0 auto 48px">Pay only for what you use</div>
+  <div class="pricing-grid" style="grid-template-columns:repeat(4,1fr)">
+    <div class="card pricing-card">
+      <div style="font-weight:600;color:var(--text-secondary)">Free</div>
+      <div class="pricing-amount">$0</div>
+      <div class="pricing-period">forever</div>
+      <ul class="pricing-features">
+        <li>3 AI calls per day</li>
+        <li>No sign-up required</li>
+        <li>All 250 tools</li>
+        <li>MCP access</li>
+      </ul>
+      <a href="/try" class="btn btn-secondary" style="width:100%;justify-content:center">Try Now</a>
     </div>
-    <div class="card">
-      <h3 style="font-family:var(--font-mono);font-size:var(--text-lg);font-weight:600;margin-bottom:8px">Content Pipelines</h3>
-      <p style="color:var(--text-secondary);font-size:var(--text-sm)">Generate blog posts, social media content, and newsletters. Chain tools: research &rarr; write &rarr; proofread &rarr; social.</p>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">
-        <span class="tag cyan">write</span><span class="tag cyan">social</span><span class="tag cyan">email</span>
-      </div>
+    <div class="card pricing-card">
+      <div style="font-weight:600;color:var(--accent2)">Starter</div>
+      <div class="pricing-amount">$1</div>
+      <div class="pricing-period">~166 calls</div>
+      <ul class="pricing-features">
+        <li>Prepaid API key</li>
+        <li>All 250 tools</li>
+        <li>$0.25 trial credits</li>
+        <li>No expiration</li>
+      </ul>
+      <a href="/buy-credits" class="btn btn-secondary" style="width:100%;justify-content:center">Get Started</a>
     </div>
-    <div class="card">
-      <h3 style="font-family:var(--font-mono);font-size:var(--text-lg);font-weight:600;margin-bottom:8px">Data Extraction</h3>
-      <p style="color:var(--text-secondary);font-size:var(--text-sm)">Scrape websites, extract structured data, classify documents, and feed results into your pipeline via webhooks.</p>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">
-        <span class="tag">scrape</span><span class="tag">extract</span><span class="tag">classify</span>
-      </div>
+    <div class="card pricing-card featured">
+      <span class="pricing-badge">Best value</span>
+      <div style="font-weight:600;color:var(--accent)">Pro</div>
+      <div class="pricing-amount">$5</div>
+      <div class="pricing-period">~830 calls</div>
+      <ul class="pricing-features">
+        <li>20% bulk discount</li>
+        <li>Pro tools access</li>
+        <li>Agent Builder</li>
+        <li>Priority routing</li>
+        <li>Workflow chains</li>
+      </ul>
+      <a href="/buy-credits" class="btn btn-primary" style="width:100%;justify-content:center">Buy Credits</a>
     </div>
-    <div class="card">
-      <h3 style="font-family:var(--font-mono);font-size:var(--text-lg);font-weight:600;margin-bottom:8px">Crypto Monitoring</h3>
-      <p style="color:var(--text-secondary);font-size:var(--text-sm)">Track prices, analyze trends, and execute alerts. Pay with USDC on Base — no accounts, pure HTTP micropayments.</p>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">
-        <span class="tag cyan">crypto</span><span class="tag cyan">analyze</span><span class="tag cyan">x402</span>
-      </div>
+    <div class="card pricing-card">
+      <div style="font-weight:600;color:var(--text-secondary)">Enterprise</div>
+      <div class="pricing-amount">$20</div>
+      <div class="pricing-period">~4,000 calls</div>
+      <ul class="pricing-features">
+        <li>Everything in Pro</li>
+        <li>Webhook events</li>
+        <li>Email delivery</li>
+        <li>Batch API (20x)</li>
+        <li>Dedicated support</li>
+      </ul>
+      <a href="/buy-credits" class="btn btn-secondary" style="width:100%;justify-content:center">Buy Credits</a>
     </div>
-    <div class="card card-lg">
-      <h3 style="font-family:var(--font-mono);font-size:var(--text-lg);font-weight:600;margin-bottom:8px">Works with your stack</h3>
-      <p style="color:var(--text-secondary);font-size:var(--text-sm)">REST API, MCP protocol, or Python SDK. Drop into Claude Code, Cursor, Cline, LangChain, CrewAI, or any HTTP client in minutes.</p>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:12px">
-        <span class="tag">Claude Code</span><span class="tag">Cursor</span><span class="tag">Cline</span>
-        <span class="tag cyan">LangChain</span><span class="tag cyan">REST</span><span class="tag cyan">Python SDK</span>
-      </div>
-    </div>
+  </div>
+  <div style="text-align:center;margin-top:20px">
+    <a href="/pricing" style="color:var(--accent);font-size:var(--text-sm)">See full pricing details &rarr;</a>
+    &nbsp;&middot;&nbsp;
+    <a href="/premium" style="color:var(--accent2);font-size:var(--text-sm)">View Pro tools &rarr;</a>
   </div>
 </section>
 
-<!-- Newsletter -->
-<section class="section fade-in" style="padding-bottom:0">
-  <div style="max-width:480px;margin:0 auto;text-align:center">
-    <div class="section-title" style="font-size:var(--text-xl);margin-bottom:8px">Stay in the loop</div>
-    <p class="text-muted" style="margin-bottom:16px;font-size:var(--text-sm)">New tools, features, and tutorials. No spam, unsubscribe anytime.</p>
-    <form id="newsletterForm" style="display:flex;gap:8px" onsubmit="return submitNewsletter(event)">
-      <input type="email" id="nlEmail" required placeholder="you@example.com" aria-label="Email address"
-        style="flex:1;padding:10px 14px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text);font-size:var(--text-sm);outline:none;font-family:var(--font-sans)">
-      <button type="submit" class="btn btn-primary btn-sm" id="nlBtn">Subscribe</button>
-    </form>
-    <p id="nlMsg" style="margin-top:8px;font-size:var(--text-xs);color:var(--accent);display:none"></p>
-  </div>
-</section>
-
-<!-- One-Click Install -->
+<!-- Install -->
 <section class="section fade-in" id="install">
-  <div class="section-title text-center" style="max-width:none">Add to Claude Code in one command</div>
-  <div class="section-subtitle text-center" style="max-width:none;margin:0 auto 40px">Start using all 250 tools immediately. No API key needed for 3 free calls/day.</div>
-
-  <div style="max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:20px">
-    <!-- Claude Code remote MCP (recommended) -->
+  <div class="section-title text-center" style="max-width:none">Get started in 30 seconds</div>
+  <div class="section-subtitle text-center" style="max-width:none;margin:0 auto 40px">Choose your preferred integration method</div>
+  <div style="max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:16px">
     <div class="card" style="position:relative;overflow:hidden">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
         <span class="badge" style="background:var(--accent);color:#000;font-weight:700">Recommended</span>
@@ -565,71 +656,51 @@ function updateCalc(){var s=document.getElementById('calc-slider'),n=parseInt(s.
         <pre style="margin:0;overflow-x:auto"><code id="installCmd1" class="language-bash">claude mcp add aipaygen -- npx -y @anthropic-ai/mcp-proxy https://mcp.aipaygen.com/mcp</code></pre>
         <button class="copy-btn" onclick="copyInstall('installCmd1', this)" style="position:absolute;top:8px;right:8px">Copy</button>
       </div>
-      <p style="color:var(--text-muted);font-size:var(--text-xs);margin-top:8px">Zero install. Connects to the hosted MCP server. Works with Claude Code, Cursor, Windsurf, and any MCP client.</p>
     </div>
-
-    <!-- pip install -->
     <div class="card">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <span style="font-family:var(--font-mono);font-weight:600">pip install (local MCP server)</span>
+        <span style="font-family:var(--font-mono);font-weight:600">pip install (local MCP)</span>
       </div>
       <div class="code-block" style="position:relative">
         <pre style="margin:0;overflow-x:auto"><code id="installCmd2" class="language-bash">pip install aipaygen-mcp</code></pre>
         <button class="copy-btn" onclick="copyInstall('installCmd2', this)" style="position:absolute;top:8px;right:8px">Copy</button>
       </div>
-      <p style="color:var(--text-muted);font-size:var(--text-xs);margin-top:8px">Run locally with <code style="color:var(--accent2);background:rgba(0,212,255,0.08);padding:1px 6px;border-radius:3px">python -m aipaygen_mcp</code>. Published on <a href="https://pypi.org/project/aipaygen-mcp/" target="_blank">PyPI</a>.</p>
     </div>
-
-    <!-- REST API -->
     <div class="card">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
         <span style="font-family:var(--font-mono);font-weight:600">REST API (curl / any language)</span>
       </div>
       <div class="code-block" style="position:relative">
-        <pre style="margin:0;overflow-x:auto"><code id="installCmd3" class="language-bash">curl -X POST https://aipaygen.com/research \
-  -H "Content-Type: application/json" \
+        <pre style="margin:0;overflow-x:auto"><code id="installCmd3" class="language-bash">curl -X POST https://api.aipaygen.com/research \
+  -H "Authorization: Bearer apk_YOUR_KEY" \
   -d '{"query": "x402 payment protocol"}'</code></pre>
         <button class="copy-btn" onclick="copyInstall('installCmd3', this)" style="position:absolute;top:8px;right:8px">Copy</button>
       </div>
-      <p style="color:var(--text-muted);font-size:var(--text-xs);margin-top:8px">Plain HTTP. Works from any language, any framework. No SDK needed.</p>
-    </div>
-
-    <!-- Tool Chaining -->
-    <div class="card" style="border-color:var(--accent-dim)">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
-        <span class="badge badge-cyan">New</span>
-        <span style="font-family:var(--font-mono);font-weight:600">Multi-Step Tool Chains</span>
-      </div>
-      <div class="code-block" style="position:relative">
-        <pre style="margin:0;overflow-x:auto"><code id="installCmd4" class="language-json">{
-  "steps": [
-    {"tool": "scrape_website", "input": {"url": "https://example.com"}},
-    {"tool": "summarize", "input": {"text": "$prev.result"}},
-    {"tool": "translate", "input": {"text": "$prev.result", "target": "es"}}
-  ]
-}</code></pre>
-        <button class="copy-btn" onclick="copyInstall('installCmd4', this)" style="position:absolute;top:8px;right:8px">Copy</button>
-      </div>
-      <p style="color:var(--text-muted);font-size:var(--text-xs);margin-top:8px">Chain up to 10 AI tools in one API call. <code style="color:var(--accent2);background:rgba(0,212,255,0.08);padding:1px 6px;border-radius:3px">$prev.result</code> pipes output between steps. POST to <a href="/chain">/chain</a>.</p>
     </div>
   </div>
 </section>
 
 <!-- Trusted By -->
 <section class="section fade-in" style="padding-bottom:40px;text-align:center">
-  <p style="font-size:var(--text-sm);color:var(--text-muted);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:20px">Trusted by developers on</p>
-  <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap;align-items:center">
+  <p style="font-size:var(--text-sm);color:var(--text-muted);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:20px">Listed on</p>
+  <div class="trust-badges">
     <a href="https://registry.modelcontextprotocol.io" target="_blank" rel="noopener" class="trust-badge" style="text-decoration:none"><span class="check">&#10003;</span> MCP Registry</a>
     <a href="https://smithery.ai/servers/Damien829/Aipaygen" target="_blank" rel="noopener" class="trust-badge" style="text-decoration:none"><span class="check">&#10003;</span> Smithery</a>
     <a href="https://glama.ai" target="_blank" rel="noopener" class="trust-badge" style="text-decoration:none"><span class="check">&#10003;</span> Glama</a>
     <a href="https://pypi.org/project/aipaygen-mcp/" target="_blank" rel="noopener" class="trust-badge" style="text-decoration:none"><span class="check">&#10003;</span> PyPI</a>
+    <span class="trust-badge"><span class="check">&#10003;</span> Base Mainnet (USDC)</span>
+    <span class="trust-badge"><span class="check">&#10003;</span> 1,260 Tests Passing</span>
   </div>
 </section>
 
 <!-- CTA -->
 <section class="cta-section fade-in">
-  <div class="section-title" style="margin-bottom:16px">Start building in 30 seconds</div>
-  <p class="text-muted mb-4">Install the MCP server and start calling tools from Claude Code, Cursor, or any MCP client.</p>
+  <div class="section-title" style="margin-bottom:16px">Start building now</div>
+  <p class="text-muted mb-4">250 tools, 15 models, from $0.004/call. 3 free calls/day, no signup.</p>
+  <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:20px">
+    <a href="/try" class="btn btn-primary" style="padding:16px 40px">Try Free</a>
+    <a href="/get-key" class="btn btn-secondary">Get API Key</a>
+  </div>
   <div class="cta-install" id="ctaCopy">
     <code>claude mcp add aipaygen -- npx -y @anthropic-ai/mcp-proxy https://mcp.aipaygen.com/mcp</code>
     <span style="color:var(--text-muted);font-size:var(--text-xs)">Copy</span>
@@ -639,130 +710,10 @@ function updateCalc(){var s=document.getElementById('calc-slider'),n=parseInt(s.
 
 {% block scripts %}
 <script>
-// Animated counter - counts up when scrolled into view
-function animateCounter(el, target) {
-  var start = 0;
-  var duration = 1800;
-  var startTime = null;
-  function step(ts) {
-    if (!startTime) startTime = ts;
-    var progress = Math.min((ts - startTime) / duration, 1);
-    var eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
-    var current = Math.floor(eased * target);
-    el.textContent = current.toLocaleString();
-    if (progress < 1) requestAnimationFrame(step);
-    else el.textContent = target.toLocaleString();
-  }
-  requestAnimationFrame(step);
-}
-
-// Animate stats on scroll (hardcoded meaningful values)
-var statsAnimated = false;
-var statMap = {
-  'stat-tools': 250,
-  'stat-models': 15,
-  'stat-skills': 2400,
-  'stat-apis': 4100
-};
-var section = document.getElementById('liveStatsSection');
-if (section && 'IntersectionObserver' in window) {
-  var obs = new IntersectionObserver(function(entries) {
-    if (entries[0].isIntersecting && !statsAnimated) {
-      statsAnimated = true;
-      Object.keys(statMap).forEach(function(id){
-        var el = document.getElementById(id);
-        if (el) animateCounter(el, statMap[id]);
-      });
-      obs.disconnect();
-    }
-  }, {threshold: 0.3});
-  obs.observe(section);
-}
-
-// Newsletter
-function submitNewsletter(e) {
-  e.preventDefault();
-  var email = document.getElementById('nlEmail').value;
-  var btn = document.getElementById('nlBtn');
-  var msg = document.getElementById('nlMsg');
-  btn.disabled = true; btn.textContent = 'Subscribing...';
-  fetch('/api/subscribe', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({email: email})
-  }).then(function(r){ return r.json(); }).then(function(d){
-    msg.textContent = d.message || 'Subscribed!';
-    msg.style.display = 'block';
-    btn.textContent = 'Subscribed';
-  }).catch(function(){
-    msg.textContent = 'Something went wrong. Try again.';
-    msg.style.color = 'var(--danger)';
-    msg.style.display = 'block';
-    btn.disabled = false; btn.textContent = 'Subscribe';
-  });
-  return false;
-}
-
-// CTA copy
-document.getElementById('ctaCopy').addEventListener('click', function() {
-  var text = 'claude mcp add aipaygen -- npx -y @anthropic-ai/mcp-proxy https://mcp.aipaygen.com/mcp';
-  navigator.clipboard.writeText(text).then(function(){ showToast('Copied to clipboard!'); });
-});
-
-// Hero instant API key
-function heroGenKey(e) {
-  e.preventDefault();
-  var email = document.getElementById('heroEmail').value.trim();
-  if (!email) return false;
-  var btn = document.getElementById('heroKeyBtn');
-  var errEl = document.getElementById('heroKeyError');
-  btn.disabled = true; btn.textContent = 'Generating...';
-  errEl.style.display = 'none';
-  fetch('/auth/generate-key', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({email: email, source: 'landing_hero'})
-  }).then(function(r){ return r.json(); }).then(function(d){
-    if (d.key) {
-      document.getElementById('heroKeyValue').textContent = d.key;
-      document.getElementById('heroKeyResult').style.display = 'block';
-      document.getElementById('heroKeyGen').style.display = 'none';
-    } else {
-      errEl.textContent = d.error || d.message || 'Something went wrong';
-      errEl.style.display = 'block';
-      btn.disabled = false; btn.textContent = 'Get Free Key';
-    }
-  }).catch(function(){
-    errEl.textContent = 'Network error. Try again.';
-    errEl.style.display = 'block';
-    btn.disabled = false; btn.textContent = 'Get Free Key';
-  });
-  return false;
-}
-function copyHeroKey() {
-  var key = document.getElementById('heroKeyValue').textContent;
-  navigator.clipboard.writeText(key).then(function(){
-    document.getElementById('heroKeyCopy').textContent = 'Copied!';
-    setTimeout(function(){ document.getElementById('heroKeyCopy').textContent = 'Copy'; }, 2000);
-    if (typeof showToast === 'function') showToast('API key copied!');
-  });
-}
-
-// Install section copy buttons
-function copyInstall(id, btn) {
-  var el = document.getElementById(id);
-  var text = el.textContent;
-  navigator.clipboard.writeText(text).then(function(){
-    btn.textContent = 'Copied!';
-    setTimeout(function(){ btn.textContent = 'Copy'; }, 2000);
-    if (typeof showToast === 'function') showToast('Copied to clipboard!');
-  });
-}
-
 // Terminal typewriter demo
 (function() {
   var cmd = 'curl -X POST https://api.aipaygen.com/research \\\n  -H "Content-Type: application/json" \\\n  -d \'{"query": "x402 payment protocol"}\'';
-  var responseText = '{\n  "summary": "x402 is an HTTP-native payment protocol...",\n  "sources": ["x402.org", "docs.cdp.coinbase.com"],\n  "_billing": { "cost": 0.05, "balance": 4.95 }\n}';
+  var responseText = '{\n  "summary": "x402 is an HTTP-native payment protocol...",\n  "sources": ["x402.org", "docs.cdp.coinbase.com"],\n  "_billing": { "cost": 0.006, "balance": 4.99 }\n}';
   var el = document.getElementById('termCmd');
   var cursor = document.getElementById('termCursor');
   var resp = document.getElementById('termResponse');
@@ -779,21 +730,60 @@ function copyInstall(id, btn) {
       }, 600);
     }
   }
-  var io = new IntersectionObserver(function(entries) {
-    if (entries[0].isIntersecting) { setTimeout(type, 800); io.disconnect(); }
-  });
-  io.observe(document.querySelector('.terminal'));
+  var termEl = document.querySelector('.terminal');
+  if (termEl && 'IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function(entries) {
+      if (entries[0].isIntersecting) { setTimeout(type, 800); io.disconnect(); }
+    });
+    io.observe(termEl);
+  }
 })();
-</script>
-<script>
-// A/B test conversion tracking
-var abVariant = '{{ ab_variant|default("A") }}';
-function trackABClick(event) {
-  fetch('/ab/track', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({test: 'landing_hero_v1', variant: abVariant, event: event})
-  }).catch(function(){});
+
+// Animated counter
+function animateCounter(el, target) {
+  var duration = 1800, startTime = null;
+  function step(ts) {
+    if (!startTime) startTime = ts;
+    var progress = Math.min((ts - startTime) / duration, 1);
+    var eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.floor(eased * target).toLocaleString();
+    if (progress < 1) requestAnimationFrame(step);
+    else el.textContent = target.toLocaleString();
+  }
+  requestAnimationFrame(step);
+}
+var statsAnimated = false;
+var trustBar = document.getElementById('trustBar');
+if (trustBar && 'IntersectionObserver' in window) {
+  var obs = new IntersectionObserver(function(entries) {
+    if (entries[0].isIntersecting && !statsAnimated) {
+      statsAnimated = true;
+      animateCounter(document.getElementById('stat-tools'), 250);
+      animateCounter(document.getElementById('stat-models'), 15);
+      obs.disconnect();
+    }
+  }, {threshold: 0.3});
+  obs.observe(trustBar);
+}
+
+// Fetch live stats
+fetch('/api/stats').then(function(r){ return r.json(); }).then(function(d){
+  if (d.skills) document.getElementById('stat-skills').textContent = d.skills.toLocaleString() + '+';
+}).catch(function(){});
+
+// CTA copy
+document.getElementById('ctaCopy').addEventListener('click', function() {
+  navigator.clipboard.writeText('claude mcp add aipaygen -- npx -y @anthropic-ai/mcp-proxy https://mcp.aipaygen.com/mcp').then(function(){ showToast('Copied to clipboard!'); });
+});
+
+// Install copy buttons
+function copyInstall(id, btn) {
+  var text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(function(){
+    btn.textContent = 'Copied!';
+    setTimeout(function(){ btn.textContent = 'Copy'; }, 2000);
+    if (typeof showToast === 'function') showToast('Copied!');
+  });
 }
 </script>
 {% endblock %}

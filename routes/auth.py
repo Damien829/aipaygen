@@ -263,7 +263,9 @@ def auth_topup():
 @auth_bp.route("/auth/status", methods=["GET", "POST"])
 @require_api_key
 def auth_status():
-    key = request.args.get("key") or (request.get_json() or {}).get("key", "")
+    key = request.args.get("key") or ""
+    if not key and request.method == "POST":
+        key = (request.get_json(silent=True) or {}).get("key", "")
     if not key:
         return jsonify({"error": "key required"}), 400
     # Only allow checking your own key

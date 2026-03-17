@@ -4,7 +4,7 @@ import threading
 
 from flask import Blueprint, request, jsonify
 from model_router import call_model
-from helpers import parse_json_from_claude, require_admin, require_verified_agent
+from helpers import parse_json_from_claude, require_admin, require_api_key, require_verified_agent
 
 skills_bp = Blueprint("skills", __name__)
 
@@ -132,6 +132,9 @@ def execute_skill():
         "model": result["model"],
         "result": parsed if parsed else result["text"],
         "cost_usd": result.get("cost_usd", 0),
+        "_tier": "pro",
+        "_badge": "Pro Tool",
+        "_price": "$0.03/call",
     })
 
 
@@ -230,7 +233,8 @@ Return JSON with:
         conn.close()
         _skills_engine.invalidate()
         return jsonify({"absorbed": parsed["name"], "description": parsed["description"],
-                        "category": parsed.get("category", category), "source": source_url or "text"})
+                        "category": parsed.get("category", category), "source": source_url or "text",
+                        "_tier": "pro", "_badge": "Pro Tool", "_price": "$0.05/call"})
     except sqlite3.IntegrityError:
         conn.close()
         return jsonify({"error": f"skill '{parsed['name']}' already exists", "skill": parsed}), 409

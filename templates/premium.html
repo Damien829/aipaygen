@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% block title %}Pro Tools{% endblock %}
+{% block description %}Premium AI tools with advanced capabilities. Skill absorption, execution, agent sessions, and more.{% endblock %}
+
+{% block head %}
+<style>
+.premium-hero {
+  text-align: center; padding: 80px 24px 48px;
+}
+.premium-hero h1 {
+  font-family: var(--font-mono); font-size: var(--text-3xl);
+  font-weight: 700; margin-bottom: 16px;
+  background: linear-gradient(135deg, #ffd700, #ff8c00);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+}
+.premium-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+  gap: 20px; max-width: 1100px; margin: 0 auto; padding: 0 24px;
+}
+.premium-card {
+  background: var(--surface); backdrop-filter: blur(16px);
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 28px; transition: all var(--transition);
+  position: relative; overflow: hidden;
+}
+.premium-card:hover {
+  border-color: rgba(255,215,0,0.3); transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(255,215,0,0.08);
+}
+.premium-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, #ffd700, #ff8c00);
+}
+.pro-badge {
+  display: inline-block; background: rgba(255,215,0,0.15); color: #ffd700;
+  font-family: var(--font-mono); font-size: 0.7rem; font-weight: 700;
+  padding: 3px 10px; border-radius: 12px; text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.premium-price {
+  font-family: var(--font-mono); font-size: 1.4rem; font-weight: 700;
+  color: #ffd700; margin: 12px 0 8px;
+}
+.premium-desc {
+  color: var(--text-secondary); font-size: var(--text-sm); line-height: 1.6;
+}
+.premium-endpoint {
+  margin-top: 16px; padding: 10px 14px; background: var(--bg-elevated);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  font-family: var(--font-mono); font-size: 0.8rem; color: var(--accent2);
+}
+.premium-features {
+  list-style: none; margin: 16px 0 0; padding: 0;
+  font-size: var(--text-sm); color: var(--text-secondary);
+}
+.premium-features li { padding: 4px 0; display: flex; align-items: center; gap: 8px; }
+.premium-features li::before { content: '\2713'; color: #ffd700; font-weight: 700; }
+.compare-section {
+  max-width: 700px; margin: 60px auto 0; padding: 0 24px;
+}
+.compare-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden;
+}
+.compare-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 20px; border-bottom: 1px solid var(--border);
+  font-size: var(--text-sm);
+}
+.compare-row:last-child { border-bottom: none; }
+.compare-row .label { color: var(--text-secondary); }
+.compare-row .free { color: var(--text-muted); }
+.compare-row .pro { color: #ffd700; font-weight: 600; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="premium-hero fade-in">
+  <span class="pro-badge" style="margin-bottom:16px">Pro Tools</span>
+  <h1>Premium Features</h1>
+  <p style="color:var(--text-secondary);max-width:560px;margin:0 auto;font-size:var(--text-lg)">
+    Advanced AI capabilities for power users. Skill absorption, batch execution, priority routing, and more.
+  </p>
+</section>
+
+<div class="premium-grid fade-in">
+  <div class="premium-card">
+    <span class="pro-badge">Pro</span>
+    <div class="premium-price">$0.05/call</div>
+    <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:8px">Absorb Skill</h3>
+    <p class="premium-desc">
+      Feed any URL, API spec, or text description -- AiPayGen reads it and creates a callable skill automatically. Build your own tool library from any source.
+    </p>
+    <div class="premium-endpoint">POST /skills/absorb</div>
+    <ul class="premium-features">
+      <li>Auto-extract from URLs or text</li>
+      <li>Creates callable skill with schema</li>
+      <li>AI-powered prompt template generation</li>
+      <li>Categorized and searchable</li>
+    </ul>
+  </div>
+
+  <div class="premium-card">
+    <span class="pro-badge">Pro</span>
+    <div class="premium-price">$0.03/call</div>
+    <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:8px">Execute Skill</h3>
+    <p class="premium-desc">
+      Run any of 2,400+ skills by name. Pass custom input and get structured JSON output. Choose your model or let smart routing decide.
+    </p>
+    <div class="premium-endpoint">POST /skills/execute</div>
+    <ul class="premium-features">
+      <li>2,400+ skills available</li>
+      <li>Custom model selection</li>
+      <li>Structured JSON responses</li>
+      <li>Usage tracking per skill</li>
+    </ul>
+  </div>
+
+  <div class="premium-card">
+    <span class="pro-badge">Pro</span>
+    <div class="premium-price">$0.10/call</div>
+    <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:8px">Workflow Chains</h3>
+    <p class="premium-desc">
+      Chain up to 10 AI tools in a single API call. Each step can reference previous output with $prev.result. Build complex pipelines.
+    </p>
+    <div class="premium-endpoint">POST /chain</div>
+    <ul class="premium-features">
+      <li>Up to 10 steps per chain</li>
+      <li>Output piping between steps</li>
+      <li>Mixed tools per chain</li>
+      <li>Single billing for entire chain</li>
+    </ul>
+  </div>
+
+  <div class="premium-card">
+    <span class="pro-badge">Pro</span>
+    <div class="premium-price">$0.20/call</div>
+    <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:8px">Agentic Workflow</h3>
+    <p class="premium-desc">
+      Multi-step agentic reasoning with Claude Sonnet. Describe your goal and the agent breaks it down, executes steps, and returns results.
+    </p>
+    <div class="premium-endpoint">POST /workflow</div>
+    <ul class="premium-features">
+      <li>Autonomous goal decomposition</li>
+      <li>Multi-tool orchestration</li>
+      <li>Powered by Claude Sonnet</li>
+      <li>Detailed step-by-step logs</li>
+    </ul>
+  </div>
+
+  <div class="premium-card">
+    <span class="pro-badge">Pro</span>
+    <div class="premium-price">$0.10/call</div>
+    <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:8px">Batch API</h3>
+    <p class="premium-desc">
+      Run up to 20 operations in parallel with a single request. Ideal for bulk processing, data enrichment, and high-throughput workflows.
+    </p>
+    <div class="premium-endpoint">POST /batch</div>
+    <ul class="premium-features">
+      <li>Up to 20 parallel operations</li>
+      <li>Mixed tool types per batch</li>
+      <li>Aggregated billing</li>
+      <li>Individual error handling</li>
+    </ul>
+  </div>
+
+  <div class="premium-card">
+    <span class="pro-badge">Pro</span>
+    <div class="premium-price">$0.01/call</div>
+    <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:8px">Agent Sessions</h3>
+    <p class="premium-desc">
+      Persistent agent sessions with memory, task management, and inter-agent messaging. Build autonomous AI agents that collaborate.
+    </p>
+    <div class="premium-endpoint">POST /agent/register</div>
+    <ul class="premium-features">
+      <li>Persistent memory (key-value + search)</li>
+      <li>Task board with subscriptions</li>
+      <li>Agent-to-agent messaging</li>
+      <li>Reputation and leaderboard</li>
+    </ul>
+  </div>
+</div>
+
+<div class="compare-section fade-in">
+  <h3 style="font-family:var(--font-mono);font-weight:700;text-align:center;margin-bottom:20px">Free vs Pro</h3>
+  <div class="compare-card">
+    <div class="compare-row" style="background:rgba(0,255,157,0.03)">
+      <span class="label" style="font-weight:600">Feature</span>
+      <span class="free" style="font-weight:600">Free</span>
+      <span class="pro" style="font-weight:600">Pro</span>
+    </div>
+    <div class="compare-row">
+      <span class="label">Daily calls</span>
+      <span class="free">3</span>
+      <span class="pro">Unlimited</span>
+    </div>
+    <div class="compare-row">
+      <span class="label">Tools</span>
+      <span class="free">250</span>
+      <span class="pro">250 + Pro tools</span>
+    </div>
+    <div class="compare-row">
+      <span class="label">Model quality</span>
+      <span class="free">Standard</span>
+      <span class="pro">Best available</span>
+    </div>
+    <div class="compare-row">
+      <span class="label">Response truncation</span>
+      <span class="free">Yes</span>
+      <span class="pro">Full responses</span>
+    </div>
+    <div class="compare-row">
+      <span class="label">Skill absorption</span>
+      <span class="free">--</span>
+      <span class="pro">Included</span>
+    </div>
+    <div class="compare-row">
+      <span class="label">Workflow chains</span>
+      <span class="free">--</span>
+      <span class="pro">Up to 10 steps</span>
+    </div>
+    <div class="compare-row">
+      <span class="label">Batch processing</span>
+      <span class="free">--</span>
+      <span class="pro">20 parallel</span>
+    </div>
+    <div class="compare-row">
+      <span class="label">Bulk discount</span>
+      <span class="free">--</span>
+      <span class="pro">20% off ($2+ balance)</span>
+    </div>
+  </div>
+</div>
+
+<section style="text-align:center;padding:60px 24px 80px" class="fade-in">
+  <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:12px">Ready to go Pro?</h3>
+  <p style="color:var(--text-secondary);margin-bottom:24px">Get started with $1. Pro features unlock automatically with any API key.</p>
+  <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+    <a href="/buy-credits" class="btn btn-primary" style="padding:16px 40px">Buy Credits</a>
+    <a href="/docs" class="btn btn-secondary">View Docs</a>
+  </div>
+</section>
+{% endblock %}
