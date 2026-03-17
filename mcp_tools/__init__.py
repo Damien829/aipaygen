@@ -281,7 +281,7 @@ def metered_tool(tier: str = "standard"):
                     "would_cost_usd": cost,
                     "tier": "free_tier",
                     "free_calls_remaining": remaining_calls,
-                    "daily_limit": 10,
+                    "daily_limit": 3,
                     "price_context": f"This call would cost ${cost:.3f} with an API key. $1 = ~{int(1/cost)} calls." if cost > 0 else None,
                     "vs_direct": f"This costs ${cost:.3f} here vs ~${cost*5:.3f} calling AI providers directly. AiPayGen bundles 15 models from 7 providers." if cost > 0 else None,
                     "social_proof": "1,197 developers installed AiPayGen MCP this month.",

@@ -263,17 +263,12 @@ class TestDeductMetered:
 
 class TestAdditionalEdgeCases:
     def test_negative_deduction_rejected(self):
-        """Negative deduction amount should fail (balance >= -amount is always true, but
-        the SQL WHERE balance_usd >= ? with negative amount would succeed incorrectly).
-        This test documents current behavior."""
+        """Negative deduction amount must be rejected to prevent balance manipulation."""
         result = api_keys.generate_key(initial_balance=0.0)
-        # With negative amount, balance_usd (0) >= amount (-1) is True, so SQL succeeds.
-        # This is a known quirk — deducting a negative amount effectively adds balance.
         ok = api_keys.deduct(result["key"], -1.0)
-        # Document current behavior (succeeds — balance becomes 1.0)
-        assert ok is True
+        assert ok is False
         status = api_keys.get_key_status(result["key"])
-        assert status["balance_usd"] == pytest.approx(1.0)
+        assert status["balance_usd"] == pytest.approx(0.0)
 
     def test_multiple_topups_accumulate(self):
         result = api_keys.generate_key(initial_balance=0.0)

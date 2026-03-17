@@ -15,7 +15,8 @@ import requests as _mcp_requests
 def check_api_key_balance(key: Annotated[str, Field(description="API key to check balance for")]) -> dict:
     """Check balance and usage stats for a prepaid AiPayGen API key."""
     try:
-        resp = _mcp_requests.get(f"http://localhost:5001/auth/status?key={key}", timeout=5)
+        resp = _mcp_requests.get(f"http://localhost:5001/auth/status?key={key}",
+            headers={"Authorization": f"Bearer {key}"}, timeout=5)
         return resp.json()
     except Exception:
         _log.exception("Tool execution failed")
@@ -125,7 +126,7 @@ def check_usage() -> dict:
     else:
         remaining = get_free_tier_remaining("mcp-user")
         result["calls_remaining"] = remaining
-        result["daily_limit"] = 10
+        result["daily_limit"] = 3
         result["upgrade_hint"] = "Run generate_api_key to get an API key, then buy_credits to add funds."
     return result
 
@@ -180,8 +181,11 @@ def create_deposit(
     amount_usd: Annotated[float, Field(description="Expected deposit amount in USD")] = 10.0,
 ) -> dict:
     """Create a crypto deposit intent — returns unique address, QR code, and instructions."""
+    api_key = os.environ.get("AIPAYGEN_API_KEY", "")
+    if not api_key:
+        return {"error": "AIPAYGEN_API_KEY env var not set — required for deposit"}
     try:
-        resp = _mcp_requests.post("http://localhost:5001/crypto/deposit", json={"network": network, "amount_usd": amount_usd}, timeout=10)
+        resp = _mcp_requests.post("http://localhost:5001/crypto/deposit", json={"api_key": api_key, "network": network, "amount": amount_usd}, timeout=10)
         return resp.json()
     except Exception:
         _log.exception("Tool execution failed")
@@ -191,11 +195,15 @@ def create_deposit(
 @metered_tool("standard")
 def claim_deposit(
     tx_hash: Annotated[str, Field(description="Transaction hash to verify and claim")],
+    api_key: Annotated[str, Field(description="API key to credit the deposit to")] = "",
     network: Annotated[str, Field(description="Network: 'base' or 'solana'")] = "base",
 ) -> dict:
     """Claim a crypto deposit by providing the transaction hash for onchain verification."""
+    key = api_key or os.environ.get("AIPAYGEN_API_KEY", "")
+    if not key:
+        return {"error": "api_key required — provide it as a parameter or set AIPAYGEN_API_KEY env var"}
     try:
-        resp = _mcp_requests.post("http://localhost:5001/crypto/claim", json={"tx_hash": tx_hash, "network": network}, timeout=30)
+        resp = _mcp_requests.post("http://localhost:5001/crypto/claim", json={"api_key": key, "tx_hash": tx_hash, "network": network}, timeout=30)
         return resp.json()
     except Exception:
         _log.exception("Tool execution failed")

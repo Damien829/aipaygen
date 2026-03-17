@@ -95,6 +95,23 @@ def init_network_db():
             )
         """)
         c.execute("CREATE INDEX IF NOT EXISTS idx_sub_agent ON task_subscriptions(agent_id)")
+        # ── Fingerprint tracking (anti-IP-rotation) ──────────────────────────
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS free_tier_fingerprints (
+                fingerprint TEXT NOT NULL,
+                ip TEXT NOT NULL,
+                date TEXT NOT NULL,
+                PRIMARY KEY (fingerprint, ip, date)
+            )
+        """)
+        c.execute("CREATE INDEX IF NOT EXISTS idx_fp_date ON free_tier_fingerprints(fingerprint, date)")
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS free_tier_blocked_fps (
+                fingerprint TEXT NOT NULL,
+                date TEXT NOT NULL,
+                PRIMARY KEY (fingerprint, date)
+            )
+        """)
 
 
 # ── Messaging ──────────────────────────────────────────────────────────────────
@@ -286,10 +303,109 @@ FREE_DAILY_LIMIT = 3
 
 # In-memory cache for free tier counts: {(ip, date): (calls_used, cache_time)}
 import time as _time
+import hashlib as _hashlib
 import threading as _threading
 _free_tier_cache = {}
 _free_tier_cache_lock = _threading.Lock()
 _FREE_TIER_CACHE_TTL = 60  # seconds
+
+# ── Fingerprint-based anti-evasion ────────────────────────────────────────────
+# Track fingerprint→IPs mapping to detect IP rotation (VPN/proxy abuse).
+# If the same fingerprint appears across 5+ IPs in one day, block all of them.
+_FINGERPRINT_IP_THRESHOLD = 5
+_fingerprint_db_initialized = False
+
+
+def _init_fingerprint_table():
+    global _fingerprint_db_initialized
+    if _fingerprint_db_initialized:
+        return
+    with _conn() as c:
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS free_tier_fingerprints (
+                fingerprint TEXT NOT NULL,
+                ip TEXT NOT NULL,
+                date TEXT NOT NULL,
+                PRIMARY KEY (fingerprint, ip, date)
+            )
+        """)
+        c.execute("CREATE INDEX IF NOT EXISTS idx_fp_date ON free_tier_fingerprints(fingerprint, date)")
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS free_tier_blocked_fps (
+                fingerprint TEXT NOT NULL,
+                date TEXT NOT NULL,
+                PRIMARY KEY (fingerprint, date)
+            )
+        """)
+    _fingerprint_db_initialized = True
+
+
+def build_fingerprint(user_agent: str, accept_lang: str, accept_enc: str) -> str:
+    """Build a browser fingerprint hash from request headers."""
+    raw = f"{user_agent or ''}|{accept_lang or ''}|{accept_enc or ''}"
+    return _hashlib.sha256(raw.encode()).hexdigest()[:32]
+
+
+def record_fingerprint(ip: str, fingerprint: str) -> bool:
+    """Record fingerprint→IP mapping. Returns False if this fingerprint is blocked."""
+    if not fingerprint:
+        return True  # No fingerprint available (e.g., curl with no headers)
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    _init_fingerprint_table()
+    with _conn() as c:
+        # Check if already blocked
+        blocked = c.execute(
+            "SELECT 1 FROM free_tier_blocked_fps WHERE fingerprint=? AND date=?",
+            (fingerprint, today)
+        ).fetchone()
+        if blocked:
+            return False
+
+        # Record this IP for the fingerprint
+        c.execute(
+            "INSERT OR IGNORE INTO free_tier_fingerprints (fingerprint, ip, date) VALUES (?, ?, ?)",
+            (fingerprint, ip, today)
+        )
+        # Count distinct IPs for this fingerprint today
+        row = c.execute(
+            "SELECT COUNT(DISTINCT ip) as ip_count FROM free_tier_fingerprints WHERE fingerprint=? AND date=?",
+            (fingerprint, today)
+        ).fetchone()
+        ip_count = row["ip_count"] if row else 0
+        if ip_count >= _FINGERPRINT_IP_THRESHOLD:
+            # Block this fingerprint and exhaust free tier for all associated IPs
+            c.execute(
+                "INSERT OR IGNORE INTO free_tier_blocked_fps (fingerprint, date) VALUES (?, ?)",
+                (fingerprint, today)
+            )
+            # Exhaust free tier for every IP this fingerprint used
+            ips = c.execute(
+                "SELECT DISTINCT ip FROM free_tier_fingerprints WHERE fingerprint=? AND date=?",
+                (fingerprint, today)
+            ).fetchall()
+            for r in ips:
+                c.execute(
+                    "INSERT INTO free_tier_usage (ip, date, calls_used) VALUES (?, ?, ?)"
+                    " ON CONFLICT(ip, date) DO UPDATE SET calls_used=?",
+                    (r["ip"], today, FREE_DAILY_LIMIT + 100, FREE_DAILY_LIMIT + 100)
+                )
+                _free_tier_cache_set(r["ip"], today, FREE_DAILY_LIMIT + 100)
+            return False
+    return True
+
+
+def is_fingerprint_blocked(fingerprint: str) -> bool:
+    """Check if a fingerprint is blocked for today."""
+    if not fingerprint:
+        return False
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    _init_fingerprint_table()
+    with _conn() as c:
+        row = c.execute(
+            "SELECT 1 FROM free_tier_blocked_fps WHERE fingerprint=? AND date=?",
+            (fingerprint, today)
+        ).fetchone()
+    return row is not None
 
 
 def _free_tier_cache_get(ip: str, today: str):
@@ -310,7 +426,8 @@ def _free_tier_cache_set(ip: str, today: str, calls_used: int):
 
 
 def check_and_use_free_tier(ip: str) -> bool:
-    """Returns True and increments counter if this IP has free calls remaining today."""
+    """Returns True and increments counter if this IP has free calls remaining today.
+    Uses BEGIN IMMEDIATE for atomic read-then-write to prevent concurrent request races."""
     today = datetime.utcnow().strftime("%Y-%m-%d")
 
     # Check cache first to avoid DB hit
@@ -318,12 +435,19 @@ def check_and_use_free_tier(ip: str) -> bool:
     if cached is not None and cached >= FREE_DAILY_LIMIT:
         return False
 
-    with _conn() as c:
+    c = sqlite3.connect(DB_PATH, isolation_level=None)
+    c.execute("PRAGMA journal_mode=WAL")
+    c.row_factory = sqlite3.Row
+    try:
+        # BEGIN IMMEDIATE acquires a write lock upfront, preventing race conditions
+        # where concurrent requests could all read "0 used" and all pass the check.
+        c.execute("BEGIN IMMEDIATE")
         row = c.execute(
             "SELECT calls_used FROM free_tier_usage WHERE ip=? AND date=?", (ip, today)
         ).fetchone()
         used = row["calls_used"] if row else 0
         if used >= FREE_DAILY_LIMIT:
+            c.execute("COMMIT")
             _free_tier_cache_set(ip, today, used)
             return False
         if row:
@@ -336,8 +460,17 @@ def check_and_use_free_tier(ip: str) -> bool:
                 "INSERT INTO free_tier_usage (ip, date, calls_used) VALUES (?, ?, 1)",
                 (ip, today)
             )
+        c.execute("COMMIT")
         _free_tier_cache_set(ip, today, used + 1)
-    return True
+        return True
+    except Exception:
+        try:
+            c.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise
+    finally:
+        c.close()
 
 
 def get_free_tier_remaining(identifier: str) -> int:
