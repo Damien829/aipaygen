@@ -210,8 +210,8 @@ def cidr_expand(cidr: Annotated[str, Field(description="CIDR notation (e.g. 192.
             "first_host": str(list(net.hosts())[0]) if net.num_addresses > 2 else str(net.network_address),
             "last_host": str(list(net.hosts())[-1]) if net.num_addresses > 2 else str(net.network_address),
         }
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        return {"error": "Invalid CIDR notation"}
 
 
 # ── Cron / Color / Lorem / Password ─────────────────────────────────────────

@@ -36,12 +36,12 @@ class TestSessionStart:
     @patch("routes.sessions.create_session", return_value="sess-12345")
     def test_success(self, mock_create, mock_vk, client):
         r = client.post("/session/start", headers=AUTH,
-                        json={"agent_id": "agent-a", "context": {"topic": "AI"}, "ttl_hours": 48})
+                        json={"agent_id": "agent-a", "context": {"topic": "AI"}, "ttl_hours": 24})
         assert r.status_code == 200
         data = r.get_json()
         assert data["session_id"] == "sess-12345"
-        assert data["ttl_hours"] == 48
-        mock_create.assert_called_once_with(agent_id="agent-a", context={"topic": "AI"}, ttl_hours=48)
+        assert data["ttl_hours"] == 24
+        mock_create.assert_called_once_with(agent_id="agent-a", context={"topic": "AI"}, ttl_hours=24)
 
     @patch("api_keys.validate_key", side_effect=_validate_key_ok)
     @patch("routes.sessions.create_session", return_value="sess-default")

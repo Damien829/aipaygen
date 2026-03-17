@@ -4,7 +4,7 @@ import json
 import os
 import sqlite3
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 SESSIONS_DB = os.environ.get("SESSIONS_DB", os.path.join(os.path.dirname(os.path.abspath(__file__)), "sessions.db"))
 
@@ -67,15 +67,29 @@ def get_session(session_id):
     row = conn.execute("SELECT * FROM sessions WHERE id = ?", (session_id,)).fetchone()
     if row is None:
         return None
-    now = datetime.now(timezone.utc).isoformat()
-    conn.execute("UPDATE sessions SET last_active = ? WHERE id = ?", (now, session_id))
+    # Check if session has expired based on TTL
+    now = datetime.now(timezone.utc)
+    try:
+        last_active = datetime.fromisoformat(row["last_active"].replace("Z", "+00:00"))
+        if last_active.tzinfo is None:
+            last_active = last_active.replace(tzinfo=timezone.utc)
+        if now - last_active > timedelta(hours=row["ttl_hours"]):
+            # Session expired — clean it up and return None
+            conn.execute("DELETE FROM session_calls WHERE session_id = ?", (session_id,))
+            conn.execute("DELETE FROM sessions WHERE id = ?", (session_id,))
+            conn.commit()
+            return None
+    except (ValueError, TypeError):
+        pass  # If timestamp parsing fails, allow the session
+    now_iso = now.isoformat()
+    conn.execute("UPDATE sessions SET last_active = ? WHERE id = ?", (now_iso, session_id))
     conn.commit()
     return {
         "session_id": row["id"],
         "agent_id": row["agent_id"],
         "context": json.loads(row["context"]),
         "created_at": row["created_at"],
-        "last_active": now,
+        "last_active": now_iso,
         "ttl_hours": row["ttl_hours"],
     }
 

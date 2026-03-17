@@ -126,13 +126,15 @@ def execute_workflow(steps: list, app_client=None) -> dict:
             prev_output = body
 
         except Exception as exc:
+            import logging
+            logging.getLogger(__name__).exception("workflow step %d (%s) failed", i + 1, tool)
             step_ms = round((time.time() - step_t0) * 1000)
             results.append({
                 "step": i + 1,
                 "tool": tool,
                 "status": 500,
                 "time_ms": step_ms,
-                "error": str(exc),
+                "error": f"Step {i+1} execution failed",
             })
             break
 

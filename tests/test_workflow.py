@@ -190,7 +190,7 @@ class TestExecuteWorkflow:
 
         assert result["total_steps"] == 1
         assert result["steps"][0]["status"] == 500
-        assert "Connection refused" in result["steps"][0]["error"]
+        assert result["steps"][0]["error"]  # error message present (generic, no internal leak)
 
     def test_discount_applied_field(self):
         client = _make_mock_client([(200, {"ok": True})])

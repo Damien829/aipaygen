@@ -3214,3 +3214,9 @@ def sdk_examples():
 def integrations():
     """Integration guides — LangChain, CrewAI, AutoGen, Claude Code, Cursor, n8n, Zapier."""
     return render_template("integrations.html")
+
+
+@meta_bp.route("/links", methods=["GET"])
+def link_tree():
+    """Link-in-bio page for social media profiles."""
+    return render_template("links.html")

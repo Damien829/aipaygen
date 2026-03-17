@@ -47,7 +47,7 @@ def start_session():
     data = request.get_json(silent=True) or {}
     agent_id = data.get("agent_id", "anonymous")
     context = data.get("context", {})
-    ttl = data.get("ttl_hours", 24)
+    ttl = min(data.get("ttl_hours", 24), 24)  # max 24h
     sid = create_session(agent_id=agent_id, context=context, ttl_hours=ttl)
     return jsonify({"session_id": sid, "ttl_hours": ttl})
 
