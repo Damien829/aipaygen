@@ -757,6 +757,24 @@ def _api_key_wsgi(environ, start_response):
             return _raw_flask_wsgi(environ, _free_tier_start_response)
         else:
             funnel_log_event("free_tier_exhausted", endpoint=environ.get("PATH_INFO", ""), ip=_ip, user_agent=environ.get("HTTP_USER_AGENT", ""))
+            # Return 402 — free tier exhausted, must pay
+            body = json.dumps({
+                "error": "free_tier_exhausted",
+                "message": "You've used all 3 free calls for today. Get an API key to continue.",
+                "upgrade": {
+                    "free_key": "POST https://aipaygen.com/auth/generate-key (includes $0.25 trial credits)",
+                    "buy_credits": "https://aipaygen.com/buy-credits",
+                    "pricing": "https://aipaygen.com/pricing",
+                },
+                "x402": "Or send USDC payment via X-Payment header",
+            }).encode()
+            start_response("402 Payment Required", [
+                ("Content-Type", "application/json"),
+                ("Content-Length", str(len(body))),
+                ("Access-Control-Allow-Origin", "*"),
+                ("X-Upgrade-URL", "https://aipaygen.com/buy-credits"),
+            ])
+            return [body]
 
     # 1. Prepaid API key bypass (Bearer apk_xxx)
     if auth.startswith("Bearer apk_"):
