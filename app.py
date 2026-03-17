@@ -909,6 +909,36 @@ def _api_key_wsgi(environ, start_response):
             except Exception as _key_err:
                 logging.getLogger(__name__).error("API key auth failed: %s", _key_err)
 
+        # If we got here with a Bearer key, it means auth failed — return proper error
+        if route_cfg:
+            key_data = validate_key(key) if 'key_data' not in dir() else key_data
+            if not key_data or not key_data.get("is_active"):
+                body = json.dumps({
+                    "error": "invalid_api_key",
+                    "message": "API key is invalid or deactivated.",
+                    "get_key": "https://aipaygen.com/get-key",
+                }).encode()
+                start_response("401 Unauthorized", [
+                    ("Content-Type", "application/json"),
+                    ("Content-Length", str(len(body))),
+                    ("Access-Control-Allow-Origin", "*"),
+                ])
+                return [body]
+            else:
+                body = json.dumps({
+                    "error": "insufficient_balance",
+                    "message": f"Insufficient balance (${key_data.get('balance_usd', 0):.2f}). Top up to continue.",
+                    "balance_usd": key_data.get("balance_usd", 0),
+                    "top_up": "https://aipaygen.com/buy-credits",
+                    "dashboard": f"https://aipaygen.com/dashboard?key={key[:12]}...",
+                }).encode()
+                start_response("402 Payment Required", [
+                    ("Content-Type", "application/json"),
+                    ("Content-Length", str(len(body))),
+                    ("Access-Control-Allow-Origin", "*"),
+                ])
+                return [body]
+
     # 2. If request carries an X-Payment header, it's an x402-paying agent —
     #    let x402 middleware handle verification with facilitator fallback.
     if environ.get("HTTP_X_PAYMENT"):
