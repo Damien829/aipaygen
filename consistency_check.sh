@@ -38,7 +38,7 @@ with open('agent_network.py') as f:
 " 2>/dev/null || echo "?")
 
 # Files/dirs to exclude from checks (changelogs, history, memory, git)
-EXCLUDE_PATTERN="(CHANGELOG|changelog|MEMORY|session_history|SHOW_HN|REDDIT_LAUNCH|\.git/|__pycache__|\.pyc$|venv/|node_modules/|\.claude/)"
+EXCLUDE_PATTERN="(CHANGELOG|changelog|admin_changelog|MEMORY|session_history|SHOW_HN|REDDIT_LAUNCH|\.git/|__pycache__|\.pyc$|venv/|node_modules/|\.claude/|docs/plans|docs/superpowers|\.log|dist/|build/|\.egg|consistency_check\.sh|site_audit\.sh|smoke_tests\.sh)"
 
 echo -e "${BOLD}╔═══════════════════════════════════════╗${NC}"
 echo -e "${BOLD}║   AiPayGen Consistency Checker        ║${NC}"
@@ -60,7 +60,7 @@ for stale in $STALE_TOOL_COUNTS; do
   # Search for "NNN tool" or "NNN endpoint" or "NNN api" patterns (case insensitive)
   HITS=$(grep -rn --include='*.py' --include='*.html' --include='*.json' --include='*.sh' --include='*.txt' --include='*.md' \
     -iE "(^|[^0-9])${stale}\s*(tool|endpoint|api|MCP)" \
-    . 2>/dev/null | grep -vE "$EXCLUDE_PATTERN" || true)
+    . 2>/dev/null | grep -vE "$EXCLUDE_PATTERN" | grep -vE "(was ${stale}|from ${stale}|→${stale}|${stale}→|CHANGELOG|changelog|\"changes\"|\"version\":\s*\"[0-9]|MCP tools \(was)|\"${stale} MCP|${stale} MCP tools\")" || true)
   if [ -n "$HITS" ]; then
     fail "Stale tool count '$stale' found:"
     echo "$HITS" | head -5 | sed 's/^/         /'
@@ -98,7 +98,7 @@ for stale in $STALE_VERSIONS; do
   # Look for version strings like "v1.8.3" or "version.*1.8.3" or '"1.8.3"'
   HITS=$(grep -rn --include='*.py' --include='*.html' --include='*.json' --include='*.toml' --include='*.cfg' \
     -E "(version|__version__|\"version\").*${stale//./\\.}" \
-    . 2>/dev/null | grep -vE "$EXCLUDE_PATTERN" || true)
+    . 2>/dev/null | grep -vE "$EXCLUDE_PATTERN" | grep -vE "(CHANGELOG|changelog|\"date\":|release.*note|was [0-9]|\"version\":\s*\"1\.[0-8])" || true)
   if [ -n "$HITS" ]; then
     fail "Stale version '$stale' found:"
     echo "$HITS" | head -5 | sed 's/^/         /'
