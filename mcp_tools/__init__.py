@@ -217,6 +217,13 @@ def metered_tool(tier: str = "standard"):
 
             # With API key — validate and deduct
             if api_key.startswith("apk_"):
+                # HMAC signature verification for paid calls (optional but recommended)
+                sig_header = os.environ.get("AIPAYGEN_REQUEST_SIGNATURE", "")
+                if sig_header:
+                    payload = _json.dumps(kwargs, sort_keys=True, default=str)
+                    if not verify_request_signature(api_key, payload, sig_header):
+                        return {"error": "invalid_signature", "message": "Request signature verification failed. Check your HMAC signing."}
+
                 key_data = validate_key(api_key)
                 if not key_data:
                     return {"error": "invalid_api_key", "message": "API key is invalid or inactive."}
@@ -320,6 +327,59 @@ def _premium_gate(tool_name: str, price: str) -> dict | None:
             "price": price,
         }
     return None
+
+
+# ── HMAC Request Signing for Paid MCP Calls ───────────────────────────────────
+import hmac as _hmac
+import time as _time_mod
+
+
+def verify_request_signature(api_key: str, payload: str, signature: str, timestamp: str = None) -> bool:
+    """Verify an HMAC-SHA256 signature for a paid MCP request.
+
+    Signature = HMAC-SHA256(api_key, timestamp + ":" + payload)
+    The signature header format: "t=<unix_ts>,v1=<hex_digest>"
+
+    Args:
+        api_key: The API key used as HMAC secret.
+        payload: The request body / tool arguments as string.
+        signature: The X-Signature header value.
+        timestamp: Optional timestamp override (for testing).
+
+    Returns:
+        True if signature is valid and not expired (5 min window).
+    """
+    if not signature or not api_key:
+        return False
+    try:
+        parts = dict(p.split("=", 1) for p in signature.split(",") if "=" in p)
+        ts = timestamp or parts.get("t", "")
+        sig_hex = parts.get("v1", "")
+        if not ts or not sig_hex:
+            return False
+        # Reject requests older than 5 minutes (anti-replay)
+        if abs(_time_mod.time() - float(ts)) > 300:
+            return False
+        expected = _hmac.new(
+            api_key.encode(), f"{ts}:{payload}".encode(), hashlib.sha256
+        ).hexdigest()
+        return _hmac.compare_digest(expected, sig_hex)
+    except Exception:
+        _log.debug("Signature verification failed", exc_info=True)
+        return False
+
+
+def generate_request_signature(api_key: str, payload: str) -> str:
+    """Generate an HMAC-SHA256 signature for outgoing requests.
+
+    Returns:
+        Signature string in format "t=<unix_ts>,v1=<hex_digest>"
+    """
+    ts = str(int(_time_mod.time()))
+    sig = _hmac.new(
+        api_key.encode(), f"{ts}:{payload}".encode(), hashlib.sha256
+    ).hexdigest()
+    return f"t={ts},v1={sig}"
 
 
 def _apify_run(actor_id: str, run_input: dict, max_items: int = 10) -> list:

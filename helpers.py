@@ -50,11 +50,16 @@ _IDENTITY_RATE_LIMIT = 10
 _IDENTITY_RATE_WINDOW = 60
 
 
-def check_rate_limit(ip: str) -> bool:
-    """Returns True if request is allowed, False if rate limited."""
+def check_rate_limit(ip: str, limit_override: int = None) -> bool:
+    """Returns True if request is allowed, False if rate limited.
+
+    Args:
+        limit_override: Override the default rate limit (e.g. 20 for unauth, 120 for auth).
+    """
+    limit = limit_override or _RATE_LIMIT
     now = _time.time()
-    times = [t for t in _ip_rate.get(ip, []) if t > now - _RATE_WINDOW][-_RATE_LIMIT:]
-    if len(times) >= _RATE_LIMIT:
+    times = [t for t in _ip_rate.get(ip, []) if t > now - _RATE_WINDOW][-limit:]
+    if len(times) >= limit:
         _ip_rate[ip] = times
         return False
     times.append(now)

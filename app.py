@@ -87,6 +87,40 @@ from youtube_transcript_api import YouTubeTranscriptApi
 # Cache, rate limiting, and IP utils now in helpers.py (imported at top)
 
 
+# ── IP Abuse Detection (auto-ban after 10x 402 in 1 hour) ────────────────────
+_banned_ips: dict = {}          # {ip: ban_expires_timestamp}
+_402_tracker: dict = {}         # {ip: [timestamp, ...]}
+_BAN_THRESHOLD = 10             # 402s in 1 hour triggers ban
+_BAN_WINDOW = 3600              # 1 hour window for counting 402s
+_BAN_DURATION = 86400           # 24 hour ban
+
+def _track_402(ip: str):
+    """Record a 402 hit for an IP and auto-ban if threshold exceeded."""
+    now = _time.time()
+    hits = [t for t in _402_tracker.get(ip, []) if t > now - _BAN_WINDOW]
+    hits.append(now)
+    _402_tracker[ip] = hits
+    if len(hits) >= _BAN_THRESHOLD and ip not in _banned_ips:
+        _banned_ips[ip] = now + _BAN_DURATION
+        logging.getLogger(__name__).warning("AUTO-BANNED IP %s for 24h (%d x 402 in 1h)", ip, len(hits))
+        try:
+            funnel_log_event("ip_banned", ip=ip, metadata=json.dumps({
+                "reason": "402_abuse", "count": len(hits), "ban_hours": 24,
+            }))
+        except Exception:
+            pass
+
+def _is_ip_banned(ip: str) -> bool:
+    """Check if an IP is currently banned. Cleans up expired bans."""
+    expires = _banned_ips.get(ip)
+    if expires is None:
+        return False
+    if _time.time() >= expires:
+        del _banned_ips[ip]
+        return False
+    return True
+
+
 # ── Cost-Aware Model Selection ────────────────────────────────────────────────
 DAILY_COST_LIMIT_USD = float(os.getenv("DAILY_COST_LIMIT_USD", "10.0"))
 _DEFAULT_MODEL = "claude-haiku-4-5-20251001"
@@ -716,19 +750,33 @@ def _api_key_wsgi(environ, start_response):
     if remote_addr in ("127.0.0.1", "::1") and not cf_ip and routes.get(route_key):
         return _raw_flask_wsgi(environ, start_response)
 
-    # 0. Per-IP rate limit (60 req/min) — applied to AI route calls only
+    # 0. Banned IP check — auto-banned IPs get 429 immediately
+    _ip = environ.get("HTTP_CF_CONNECTING_IP", environ.get("REMOTE_ADDR", "unknown"))
+    if _is_ip_banned(_ip):
+        body = json.dumps({
+            "error": "ip_banned",
+            "message": "Your IP has been temporarily blocked due to excessive requests. Try again later.",
+            "retry_after_seconds": 3600,
+        }).encode()
+        start_response("429 Too Many Requests", [
+            ("Content-Type", "application/json"),
+            ("Content-Length", str(len(body))),
+            ("Retry-After", "3600"),
+            ("Access-Control-Allow-Origin", "https://aipaygen.com"),
+        ])
+        return [body]
+
+    # 0.1 Per-IP rate limit — tiered: 20/min unauthenticated, 120/min with API key
     if routes.get(route_key):
         try:
-            # Trust CF-Connecting-IP (set by Cloudflare), fall back to REMOTE_ADDR
-            _ip = (
-                environ.get("HTTP_CF_CONNECTING_IP",
-                    environ.get("REMOTE_ADDR", "unknown"))
-            )
-            if not _check_rate_limit(_ip):
+            is_authenticated = auth.startswith("Bearer apk_")
+            _rate_limit = 120 if is_authenticated else 20
+            if not _check_rate_limit(_ip, limit_override=_rate_limit):
                 body = json.dumps({
                     "error": "rate_limited",
-                    "message": "Too many requests. Limit: 60 per minute per IP.",
+                    "message": f"Too many requests. Limit: {_rate_limit} per minute per IP.",
                     "retry_after_seconds": 60,
+                    "upgrade": None if is_authenticated else "Authenticate with an API key for 120 req/min.",
                 }).encode()
                 start_response("429 Too Many Requests", [
                     ("Content-Type", "application/json"),
@@ -757,6 +805,7 @@ def _api_key_wsgi(environ, start_response):
             return _raw_flask_wsgi(environ, _free_tier_start_response)
         else:
             funnel_log_event("free_tier_exhausted", endpoint=environ.get("PATH_INFO", ""), ip=_ip, user_agent=environ.get("HTTP_USER_AGENT", ""))
+            _track_402(_ip)
             # Return 402 — free tier exhausted, must pay
             body = json.dumps({
                 "error": "free_tier_exhausted",
@@ -861,6 +910,7 @@ def _api_key_wsgi(environ, start_response):
             path = environ.get("PATH_INFO", "")
             ip = environ.get("HTTP_CF_CONNECTING_IP", environ.get("REMOTE_ADDR", ""))
             funnel_log_event("402_shown", endpoint=path, ip=ip, user_agent=environ.get("HTTP_USER_AGENT", ""))
+            _track_402(ip)
             remaining = get_free_tier_remaining(ip)
             # Get today's usage stats for personalized message
             try:
@@ -1292,10 +1342,18 @@ def add_cors(response):
                 pass
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-    response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; object-src 'none'; frame-ancestors 'none'"
+    # CSP: full policy for HTML pages, relaxed for JSON API responses
+    content_type = response.content_type or ""
+    if "text/html" in content_type:
+        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; object-src 'none'; frame-ancestors 'none'"
+    elif "json" in content_type:
+        response.headers["Content-Security-Policy"] = "default-src 'none'"
+    else:
+        response.headers["Content-Security-Policy"] = "default-src 'self'"
     if "Cache-Control" not in response.headers:
         response.headers["Cache-Control"] = "no-store"
     response.headers.pop("Server", None)
