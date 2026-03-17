@@ -67,6 +67,18 @@ def clear_cache():
 # ---------------------------------------------------------------------------
 
 MODEL_REGISTRY = {
+    "llama-local": {
+        "canonical_name": "llama-local",
+        "provider": "ollama",
+        "model_id": "llama3.2:3b",
+        "input_cost_per_m": 0.0,
+        "output_cost_per_m": 0.0,
+        "max_tokens": 2048,
+        "vision": False,
+        "streaming": True,
+        "latency_tier": "fast",
+        "strengths": ["general", "code"],
+    },
     "claude-haiku": {
         "canonical_name": "claude-haiku",
         "provider": "anthropic",
@@ -291,6 +303,7 @@ _FALLBACK_CHAINS: dict[str, str] = {
     "google": "anthropic",
     "xai": "openai",
     "mistral": "together",
+    "ollama": "anthropic",  # If local Ollama is down, fall back to Haiku
 }
 
 # Map provider to a cheap default model for fallback
@@ -503,6 +516,12 @@ def _dispatch(cfg: dict, messages: list[dict], system: str, tok_limit: int, temp
             os.environ.get("MISTRAL_API_KEY", ""),
             model_id, messages, system, tok_limit, temperature,
         )
+    elif provider == "ollama":
+        return _call_openai_compatible(
+            os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434") + "/v1/chat/completions",
+            "ollama",  # Ollama doesn't need a real key
+            model_id, messages, system, tok_limit, temperature,
+        )
     else:
         raise ModelNotFoundError(f"Unknown provider: {provider}")
 
@@ -536,8 +555,8 @@ def call_model(
         model = force_model
         selected_reason = "forced_model"
     elif _is_free:
-        model = "claude-haiku"
-        selected_reason = "free_tier_degraded"
+        model = "llama-local"  # Self-hosted Ollama, $0 cost
+        selected_reason = "free_tier_local"
     elif model == "auto":
         task_text = ""
         for m in messages:

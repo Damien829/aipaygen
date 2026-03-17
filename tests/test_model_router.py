@@ -100,7 +100,7 @@ def test_strengths_on_all_models():
         assert len(cfg["strengths"]) > 0, f"{name} should have at least one strength"
 
 def test_model_count():
-    assert len(MODEL_REGISTRY) == 15  # 11 original + 4 new
+    assert len(MODEL_REGISTRY) == 16  # 11 original + 4 new + 1 ollama
 
 def test_new_aliases():
     from model_router import resolve_model_name
@@ -258,7 +258,7 @@ def test_stream_openai_compatible_function_exists():
 
 def test_all_providers_have_streaming():
     from model_router import MODEL_REGISTRY
-    providers_with_streaming = {"anthropic", "openai", "deepseek", "together", "xai", "mistral", "google"}
+    providers_with_streaming = {"anthropic", "openai", "deepseek", "together", "xai", "mistral", "google", "ollama"}
     for name, cfg in MODEL_REGISTRY.items():
         assert cfg["provider"] in providers_with_streaming, f"{name} provider {cfg['provider']} has no streaming"
 

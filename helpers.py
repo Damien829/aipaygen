@@ -274,11 +274,11 @@ def call_llm(messages, system="", max_tokens=1024, endpoint="unknown", model_ove
     from discovery_engine import track_cost
 
     model_name = model_override or (request.get_json(silent=True) or {}).get("model", "claude-haiku")
-    # Force cheapest model for free tier calls to minimize provider costs
+    # Force free local model for free tier calls — zero provider cost
     is_free = request.environ.get("X_FREE_TIER") == "1"
     if is_free:
-        model_name = "claude-haiku"
-        max_tokens = min(max_tokens, 512)  # Cap output length for free tier
+        model_name = "llama-local"  # Self-hosted Ollama, $0 cost
+        max_tokens = min(max_tokens, 512)
     try:
         result = call_model(model_name, messages, system=system, max_tokens=max_tokens)
     except ModelNotFoundError:

@@ -283,7 +283,7 @@ def metered_tool(tier: str = "standard"):
             # Force cheapest model for free tier to minimize provider costs
             os.environ["_AIPAYGEN_FREE_TIER"] = "1"
             _prev_model = os.environ.get("AIPAYGEN_FORCE_MODEL")
-            os.environ["AIPAYGEN_FORCE_MODEL"] = "claude-haiku"
+            os.environ["AIPAYGEN_FORCE_MODEL"] = "llama-local"  # Self-hosted, $0 cost
             try:
                 result = fn(*args, **kwargs)
             finally:
