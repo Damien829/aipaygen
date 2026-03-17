@@ -124,7 +124,9 @@ def check_usage() -> dict:
             result["balance_usd"] = "unknown"
             result["calls_remaining"] = "unknown"
     else:
-        remaining = get_free_tier_remaining("mcp-user")
+        client_id = os.environ.get("AIPAYGEN_CLIENT_ID", "mcp_anonymous")
+        identifier = hashlib.sha256(client_id.encode()).hexdigest()[:16]
+        remaining = get_free_tier_remaining(identifier)
         result["calls_remaining"] = remaining
         result["daily_limit"] = 3
         result["upgrade_hint"] = "Run generate_api_key to get an API key, then buy_credits to add funds."

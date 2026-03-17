@@ -82,6 +82,9 @@ def scrape_tiktok(username: Annotated[str, Field(description="TikTok username to
 @metered_tool("premium")
 def scrape_linkedin(url: Annotated[str, Field(description="LinkedIn profile or company URL")]) -> dict:
     """Scrape a LinkedIn profile or company page for public data."""
+    gate = _premium_gate("scrape_linkedin", "$0.02/call")
+    if gate:
+        return gate
     try:
         resp = _mcp_requests.post("http://localhost:5001/scrape/linkedin", json={"url": url}, timeout=30)
         return resp.json()
@@ -92,6 +95,9 @@ def scrape_linkedin(url: Annotated[str, Field(description="LinkedIn profile or c
 @metered_tool("premium")
 def scrape_facebook_ads(query: Annotated[str, Field(description="Search query for Facebook ads")], max_results: Annotated[int, Field(description="Max ads to return")] = 10) -> dict:
     """Search the Facebook Ad Library for active advertisements."""
+    gate = _premium_gate("scrape_facebook_ads", "$0.02/call")
+    if gate:
+        return gate
     try:
         resp = _mcp_requests.post("http://localhost:5001/scrape/facebook-ads", json={"query": query, "max_results": max_results}, timeout=30)
         return resp.json()

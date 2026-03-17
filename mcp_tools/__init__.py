@@ -172,13 +172,17 @@ _TIER_COSTS = {
     "ai": 0.006,
     "ai_heavy": 0.02,
     "scraping": 0.01,
+    "premium": 0.02,
     "standard": 0.002,
     "free": 0.0,
 }
 
+# Track which API keys have already received a low_balance notification this session
+_low_balance_notified: set = set()
+
 _PURCHASE_ERROR = {
     "error": "free_tier_exhausted",
-    "message": "You've used all 3 free calls for today. Unlock unlimited access in 2 steps:",
+    "message": "You've used all free calls for today. Unlock unlimited access in 2 steps:",
     "step_1": "Call generate_api_key() — get a key with $0.25 free trial credits",
     "step_2": "Call buy_credits(1) — add $1 for ~166 more calls",
     "quick_buy_url": "https://aipaygen.com/buy-credits?amount=5&quick=1",
@@ -207,7 +211,7 @@ def metered_tool(tier: str = "standard"):
                     if not api_key.startswith("apk_"):
                         identifier = hashlib.sha256(client_id.encode()).hexdigest()[:16]
                         billing["free_calls_remaining"] = get_free_tier_remaining(identifier)
-                        billing["daily_limit"] = 10
+                        billing["daily_limit"] = 3
                     result["_billing"] = billing
                 try:
                     _log_tool_usage(fn.__name__, api_key or "free")
@@ -247,7 +251,8 @@ def metered_tool(tier: str = "standard"):
                 deducted = deduct(api_key, actual_cost)
                 remaining = (key_data.get("balance_usd", 0) - actual_cost) if deducted else key_data.get("balance_usd", 0)
 
-                if remaining < 0.50 and remaining > 0.40:
+                if remaining < 0.50 and remaining > 0 and api_key not in _low_balance_notified:
+                    _low_balance_notified.add(api_key)
                     _create_notification(
                         api_key, "low_balance",
                         f"Low balance: ${remaining:.2f} remaining. Top up at /buy-credits")
