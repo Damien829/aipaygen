@@ -25,9 +25,14 @@ def client():
 # ── POST /auth/generate-key ─────────────────────────────────────────────────
 
 class TestGenerateKey:
+    # Patch trial credit and key gen rate checks for all key gen tests
+    @patch("routes.auth.record_key_gen")
+    @patch("routes.auth.mark_trial_credits_used")
+    @patch("routes.auth.has_received_trial_credits", return_value=False)
+    @patch("routes.auth.check_key_gen_rate", return_value=True)
     @patch("routes.auth.generate_key")
     @patch("routes.auth.check_identity_rate_limit", return_value=True)
-    def test_generate_key_success(self, mock_rl, mock_gen, client):
+    def test_generate_key_success(self, mock_rl, mock_gen, mock_kgr, mock_htc, mock_mtc, mock_rkg, client):
         mock_gen.return_value = {
             "key": "apk_testkey123",
             "balance_usd": 0.25,
@@ -44,9 +49,13 @@ class TestGenerateKey:
         assert data["_meta"]["free"] is True
         mock_gen.assert_called_once_with(initial_balance=0.25, label="my-key", source="api-direct")
 
+    @patch("routes.auth.record_key_gen")
+    @patch("routes.auth.mark_trial_credits_used")
+    @patch("routes.auth.has_received_trial_credits", return_value=False)
+    @patch("routes.auth.check_key_gen_rate", return_value=True)
     @patch("routes.auth.generate_key")
     @patch("routes.auth.check_identity_rate_limit", return_value=True)
-    def test_generate_key_no_label(self, mock_rl, mock_gen, client):
+    def test_generate_key_no_label(self, mock_rl, mock_gen, mock_kgr, mock_htc, mock_mtc, mock_rkg, client):
         mock_gen.return_value = {
             "key": "apk_abc", "balance_usd": 0.0, "label": "",
             "created_at": "2026-01-01T00:00:00",
@@ -55,9 +64,29 @@ class TestGenerateKey:
         assert r.status_code == 200
         mock_gen.assert_called_once_with(initial_balance=0.25, label="", source="api-direct")
 
+    @patch("routes.auth.record_key_gen")
+    @patch("routes.auth.mark_trial_credits_used")
+    @patch("routes.auth.has_received_trial_credits", return_value=True)
+    @patch("routes.auth.check_key_gen_rate", return_value=True)
     @patch("routes.auth.generate_key")
     @patch("routes.auth.check_identity_rate_limit", return_value=True)
-    def test_generate_key_no_body(self, mock_rl, mock_gen, client):
+    def test_generate_key_no_trial_second_time(self, mock_rl, mock_gen, mock_kgr, mock_htc, mock_mtc, mock_rkg, client):
+        """Second key from same IP should get $0 trial credits."""
+        mock_gen.return_value = {
+            "key": "apk_abc2", "balance_usd": 0.0, "label": "",
+            "created_at": "2026-01-01T00:00:00",
+        }
+        r = client.post("/auth/generate-key", json={})
+        assert r.status_code == 200
+        mock_gen.assert_called_once_with(initial_balance=0.0, label="", source="api-direct")
+
+    @patch("routes.auth.record_key_gen")
+    @patch("routes.auth.mark_trial_credits_used")
+    @patch("routes.auth.has_received_trial_credits", return_value=False)
+    @patch("routes.auth.check_key_gen_rate", return_value=True)
+    @patch("routes.auth.generate_key")
+    @patch("routes.auth.check_identity_rate_limit", return_value=True)
+    def test_generate_key_no_body(self, mock_rl, mock_gen, mock_kgr, mock_htc, mock_mtc, mock_rkg, client):
         mock_gen.return_value = {
             "key": "apk_abc", "balance_usd": 0.0, "label": "",
             "created_at": "2026-01-01T00:00:00",
@@ -65,16 +94,30 @@ class TestGenerateKey:
         r = client.post("/auth/generate-key", content_type="application/json", data="{}")
         assert r.status_code == 200
 
+    @patch("routes.auth.check_key_gen_rate", return_value=True)
     @patch("routes.auth.check_identity_rate_limit", return_value=False)
-    def test_generate_key_rate_limited(self, mock_rl, client):
+    def test_generate_key_rate_limited(self, mock_rl, mock_kgr, client):
         r = client.post("/auth/generate-key", json={"label": "spam"})
         assert r.status_code == 429
         data = r.get_json()
         assert data["error"] == "rate_limited"
 
+    @patch("routes.auth.check_key_gen_rate", return_value=False)
+    @patch("routes.auth.check_identity_rate_limit", return_value=True)
+    def test_generate_key_daily_limit(self, mock_rl, mock_kgr, client):
+        """Max 5 keys per IP per day."""
+        r = client.post("/auth/generate-key", json={"label": "spam"})
+        assert r.status_code == 429
+        data = r.get_json()
+        assert "5 API keys" in data["message"]
+
+    @patch("routes.auth.record_key_gen")
+    @patch("routes.auth.mark_trial_credits_used")
+    @patch("routes.auth.has_received_trial_credits", return_value=False)
+    @patch("routes.auth.check_key_gen_rate", return_value=True)
     @patch("routes.auth.generate_key")
     @patch("routes.auth.check_identity_rate_limit", return_value=True)
-    def test_generate_key_captures_source(self, mock_rl, mock_gen, client):
+    def test_generate_key_captures_source(self, mock_rl, mock_gen, mock_kgr, mock_htc, mock_mtc, mock_rkg, client):
         mock_gen.return_value = {
             "key": "apk_srctest",
             "balance_usd": 0.0,
@@ -89,9 +132,13 @@ class TestGenerateKey:
         assert "curl_example" in data["quickstart"]
         assert data["key"] in data["quickstart"]["curl_example"]
 
+    @patch("routes.auth.record_key_gen")
+    @patch("routes.auth.mark_trial_credits_used")
+    @patch("routes.auth.has_received_trial_credits", return_value=False)
+    @patch("routes.auth.check_key_gen_rate", return_value=True)
     @patch("routes.auth.generate_key")
     @patch("routes.auth.check_identity_rate_limit", return_value=True)
-    def test_generate_key_default_quickstart(self, mock_rl, mock_gen, client):
+    def test_generate_key_default_quickstart(self, mock_rl, mock_gen, mock_kgr, mock_htc, mock_mtc, mock_rkg, client):
         mock_gen.return_value = {
             "key": "apk_default",
             "balance_usd": 0.0,
@@ -565,10 +612,14 @@ class TestBuyCreditsSuccess:
 # ── Free Tier Enforcement ─────────────────────────────────────────────────
 
 class TestFreeTierEnforcement:
+    @patch("routes.auth.record_key_gen")
+    @patch("routes.auth.mark_trial_credits_used")
+    @patch("routes.auth.has_received_trial_credits", return_value=False)
+    @patch("routes.auth.check_key_gen_rate", return_value=True)
     @patch("routes.auth.generate_key")
     @patch("routes.auth.check_identity_rate_limit", return_value=True)
-    def test_generate_key_always_zero_balance(self, mock_rl, mock_gen, client):
-        """Free tier: keys generated via /auth/generate-key always start at $0."""
+    def test_generate_key_always_zero_balance(self, mock_rl, mock_gen, mock_kgr, mock_htc, mock_mtc, mock_rkg, client):
+        """Free tier: keys generated via /auth/generate-key get $0.25 trial (first time)."""
         mock_gen.return_value = {
             "key": "apk_free", "balance_usd": 0.0, "label": "",
             "created_at": "2026-01-01T00:00:00",
@@ -577,8 +628,9 @@ class TestFreeTierEnforcement:
         assert r.status_code == 200
         mock_gen.assert_called_once_with(initial_balance=0.25, label="", source="api-direct")
 
+    @patch("routes.auth.check_key_gen_rate", return_value=True)
     @patch("routes.auth.check_identity_rate_limit", return_value=False)
-    def test_rate_limit_blocks_key_generation(self, mock_rl, client):
+    def test_rate_limit_blocks_key_generation(self, mock_rl, mock_kgr, client):
         r = client.post("/auth/generate-key", json={"label": "flood"})
         assert r.status_code == 429
 

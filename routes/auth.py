@@ -11,7 +11,14 @@ from datetime import datetime
 import stripe as _stripe
 from flask import Blueprint, request, jsonify, render_template, make_response, redirect
 
-from api_keys import generate_key, topup_key, get_key_status, get_key_by_referral_code
+from api_keys import (
+    generate_key, topup_key, get_key_status, get_key_by_referral_code,
+    rotate_key, is_stripe_event_processed, mark_stripe_event_processed,
+    has_received_trial_credits, mark_trial_credits_used,
+    check_key_gen_rate, record_key_gen, set_allowed_tools, set_daily_spend_limit,
+    set_subscription, cancel_subscription, get_subscription_status,
+    SUBSCRIPTION_TIERS,
+)
 from helpers import log_payment, require_admin, require_api_key, check_identity_rate_limit
 from funnel_tracker import log_event as funnel_log_event
 import logging
@@ -154,13 +161,21 @@ def auth_generate_key():
     ip = request.headers.get("CF-Connecting-IP", request.remote_addr)
     if not check_identity_rate_limit(ip):
         return jsonify({"error": "rate_limited", "message": "Too many key generation requests. Max 10/min."}), 429
+    # Max 5 keys per IP per day
+    if not check_key_gen_rate(ip, max_per_day=5):
+        return jsonify({"error": "rate_limited", "message": "Maximum 5 API keys per IP per day. Contact support for higher limits."}), 429
     data = request.get_json() or {}
     label = data.get("label", "")
     source = data.get("source", request.cookies.get("aipaygen_ref", "api-direct"))
     email = (data.get("email") or "").strip().lower()
     ref_code = data.get("ref", "") or request.args.get("ref", "") or request.cookies.get("aipaygen_ref", "")
-    # All new keys get $0.25 trial credits (~40 AI calls)
-    trial_balance = 0.25
+    # Trial credits: $0.25 only for first key per IP, $0 for subsequent
+    if has_received_trial_credits(ip):
+        trial_balance = 0.0
+    else:
+        trial_balance = 0.25
+        mark_trial_credits_used(ip)
+    record_key_gen(ip)
     key_data = generate_key(initial_balance=trial_balance, label=label, source=source)
 
     # ── Referral bonus ────────────────────────────────────────────────────
@@ -369,6 +384,59 @@ def buy_credits():
 
 
 
+@auth_bp.route("/auth/rotate-key", methods=["POST"])
+@require_api_key
+def auth_rotate_key():
+    """Rotate an API key — generates a new key, transfers balance, deactivates old key."""
+    bearer = (request.headers.get("Authorization", "")[7:]
+              if request.headers.get("Authorization", "").startswith("Bearer ") else "")
+    if not bearer or not bearer.startswith("apk_"):
+        return jsonify({"error": "API key required"}), 401
+    result = rotate_key(bearer)
+    if not result:
+        return jsonify({"error": "Key not found or already deactivated"}), 404
+    ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "")
+    try:
+        funnel_log_event("key_rotated", ip=ip, endpoint="/auth/rotate-key")
+    except Exception:
+        pass
+    return jsonify(result)
+
+
+@auth_bp.route("/auth/set-allowed-tools", methods=["POST"])
+@require_api_key
+def auth_set_allowed_tools():
+    """Set allowed tools for an API key. Pass empty list to remove restrictions."""
+    bearer = (request.headers.get("Authorization", "")[7:]
+              if request.headers.get("Authorization", "").startswith("Bearer ") else "")
+    if not bearer:
+        return jsonify({"error": "API key required"}), 401
+    data = request.get_json() or {}
+    tools = data.get("tools", [])
+    if not isinstance(tools, list):
+        return jsonify({"error": "tools must be a list of tool names"}), 400
+    if set_allowed_tools(bearer, tools):
+        return jsonify({"allowed_tools": tools, "message": "Updated. Only these tools can be called with this key." if tools else "All tools are now allowed."})
+    return jsonify({"error": "Key not found"}), 404
+
+
+@auth_bp.route("/auth/set-daily-limit", methods=["POST"])
+@require_api_key
+def auth_set_daily_limit():
+    """Set daily spending limit for an API key (default $10, max $50)."""
+    bearer = (request.headers.get("Authorization", "")[7:]
+              if request.headers.get("Authorization", "").startswith("Bearer ") else "")
+    if not bearer:
+        return jsonify({"error": "API key required"}), 401
+    data = request.get_json() or {}
+    limit = float(data.get("limit_usd", 10.0))
+    if limit < 0.01 or limit > 50.0:
+        return jsonify({"error": "limit_usd must be between $0.01 and $50.00"}), 400
+    if set_daily_spend_limit(bearer, limit):
+        return jsonify({"daily_spend_limit": limit})
+    return jsonify({"error": "Key not found"}), 404
+
+
 @auth_bp.route("/webhooks/register", methods=["POST"])
 def register_user_webhook():
     auth = request.headers.get("Authorization", "")
@@ -469,7 +537,7 @@ def stripe_create_checkout():
         amount = float(raw_amount)
     except (TypeError, ValueError):
         return jsonify({"error": "invalid amount"}), 400
-    allowed_amounts = (0.50, 1, 5, 10, 15, 20, 25, 50)
+    allowed_amounts = (0.50, 1, 5, 9, 10, 15, 20, 25, 29, 50, 79)
     if amount not in allowed_amounts:
         return jsonify({"error": "amount must be one of: $0.50, $1, $5, $10, $15, $20, $25, or $50"}), 400
     label = str(data.get("label", ""))[:60]
@@ -543,9 +611,112 @@ def stripe_webhook():
     except _stripe.error.SignatureVerificationError:
         return jsonify({"error": "invalid signature"}), 400
 
+    # Idempotency: skip already-processed events
+    event_id = event.get("id", "")
+    if event_id and is_stripe_event_processed(event_id):
+        logger.info("Skipping duplicate Stripe event: %s", event_id)
+        return jsonify({"received": True, "duplicate": True})
+    if event_id:
+        mark_stripe_event_processed(event_id)
+
+    # Handle subscription invoice paid (monthly renewal)
+    if event["type"] == "invoice.paid":
+        invoice = event["data"]["object"]
+        sub_id = invoice.get("subscription", "")
+        if sub_id:
+            # Find key with this subscription_id and reset calls
+            try:
+                import sqlite3 as _sq
+                from api_keys import DB_PATH as _keys_db, reset_subscription_calls
+                conn = _sq.connect(_keys_db)
+                conn.row_factory = _sq.Row
+                row = conn.execute(
+                    "SELECT key FROM api_keys WHERE subscription_id = ? AND is_active = 1",
+                    (sub_id,),
+                ).fetchone()
+                conn.close()
+                if row:
+                    reset_subscription_calls(row["key"])
+                    logger.info("Subscription renewed for key %s...", row["key"][:12])
+            except Exception as e:
+                logger.error("Subscription renewal processing failed: %s", e)
+        return jsonify({"received": True})
+
+    # Handle subscription canceled
+    if event["type"] == "customer.subscription.deleted":
+        sub_obj = event["data"]["object"]
+        sub_id = sub_obj.get("id", "")
+        if sub_id:
+            try:
+                import sqlite3 as _sq
+                from api_keys import DB_PATH as _keys_db
+                conn = _sq.connect(_keys_db)
+                conn.row_factory = _sq.Row
+                row = conn.execute(
+                    "SELECT key FROM api_keys WHERE subscription_id = ? AND is_active = 1",
+                    (sub_id,),
+                ).fetchone()
+                conn.close()
+                if row:
+                    cancel_subscription(row["key"])
+                    logger.info("Subscription canceled for key %s...", row["key"][:12])
+            except Exception as e:
+                logger.error("Subscription cancellation processing failed: %s", e)
+        return jsonify({"received": True})
+
     if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
         meta = session.get("metadata", {})
+
+        # Handle subscription checkout
+        if meta.get("action") == "subscription":
+            tier = meta.get("tier", "")
+            api_key = meta.get("api_key", "")
+            sub_id = session.get("subscription", "")
+            customer_email = (session.get("customer_details", {}).get("email", "")
+                              or meta.get("customer_email", ""))
+
+            if not api_key or not api_key.startswith("apk_"):
+                # Create new key for subscriber
+                new_key = generate_key(initial_balance=0.0, label=f"subscription-{tier}", source="stripe-subscription")
+                api_key = new_key["key"]
+                _cleanup_session_keys()
+                _session_key_map[session["id"]] = api_key
+                _session_key_ts[session["id"]] = _time.time()
+                try:
+                    _stripe.checkout.Session.modify(session["id"], metadata={**meta, "api_key": api_key})
+                except Exception:
+                    pass
+
+            # Activate subscription
+            from datetime import timedelta
+            reset_date = (datetime.utcnow().replace(day=1) + timedelta(days=32)).replace(day=1).strftime("%Y-%m-%d")
+            set_subscription(api_key, tier, sub_id, reset_date)
+
+            _notify_checkout(SUBSCRIPTION_TIERS[tier]["price_usd"], f"SUBSCRIPTION-{tier.upper()}", api_key)
+            create_notification(api_key, "subscription_activated",
+                                f"Welcome to {tier.title()} plan! {SUBSCRIPTION_TIERS[tier]['monthly_calls']} calls/month.")
+
+            if customer_email and api_key:
+                try:
+                    from email_service import send_api_key_email, send_welcome_email
+                    from accounts import create_or_get_account, link_key_to_account
+                    send_api_key_email(customer_email, api_key, 0)
+                    send_welcome_email(customer_email, api_key)
+                    acct = create_or_get_account(customer_email)
+                    link_key_to_account(acct["id"], api_key)
+                except Exception:
+                    pass
+
+            ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "")
+            try:
+                funnel_log_event("subscription_activated", endpoint="/stripe/webhook",
+                                 ip=ip, metadata=json.dumps({"tier": tier}),
+                                 user_agent=request.headers.get("User-Agent", ""))
+            except Exception:
+                pass
+            return jsonify({"received": True})
+
         amount = float(meta.get("amount", 0))
         action = meta.get("action", "new")
         label = meta.get("label", "credit-pack")
@@ -618,6 +789,123 @@ def stripe_webhook():
                     pass
 
     return jsonify({"received": True})
+
+
+# ── Subscription Endpoints ─────────────────────────────────────────────────
+
+# Stripe Price IDs are created on first use and cached
+_SUBSCRIPTION_PRICE_IDS = {}
+
+
+def _get_or_create_stripe_price(tier: str) -> str:
+    """Get or create a Stripe recurring Price for a subscription tier."""
+    if tier in _SUBSCRIPTION_PRICE_IDS:
+        return _SUBSCRIPTION_PRICE_IDS[tier]
+    tier_info = SUBSCRIPTION_TIERS[tier]
+    # Search for existing product
+    try:
+        products = _stripe.Product.list(limit=100)
+        for prod in products.auto_paging_iter():
+            if prod.metadata.get("aipaygen_sub_tier") == tier and prod.active:
+                prices = _stripe.Price.list(product=prod.id, active=True, limit=1)
+                if prices.data:
+                    _SUBSCRIPTION_PRICE_IDS[tier] = prices.data[0].id
+                    return prices.data[0].id
+    except Exception:
+        pass
+    # Create product + price
+    product = _stripe.Product.create(
+        name=f"AiPayGen {tier.title()} Plan",
+        description=f"{tier_info['monthly_calls']} AI calls/month, all 250 tools",
+        metadata={"aipaygen_sub_tier": tier},
+    )
+    price = _stripe.Price.create(
+        product=product.id,
+        unit_amount=tier_info["price_usd"] * 100,
+        currency="usd",
+        recurring={"interval": "month"},
+    )
+    _SUBSCRIPTION_PRICE_IDS[tier] = price.id
+    return price.id
+
+
+@auth_bp.route("/subscribe", methods=["GET", "POST"])
+def subscribe_page_or_create():
+    """GET: render subscribe page. POST: create Stripe subscription checkout."""
+    if request.method == "GET":
+        resp = make_response(render_template("subscribe.html"))
+        resp.headers["Content-Type"] = "text/html"
+        return resp
+
+    if not STRIPE_SECRET_KEY:
+        return jsonify({"error": "Stripe not configured"}), 503
+
+    data = request.get_json() or {}
+    tier = data.get("tier", "").lower()
+    if tier not in SUBSCRIPTION_TIERS:
+        return jsonify({"error": f"Invalid tier. Choose: {', '.join(SUBSCRIPTION_TIERS.keys())}"}), 400
+
+    existing_key = str(data.get("existing_key", "")).strip()
+    email = str(data.get("email", "")).strip().lower()[:120]
+
+    # Validate existing key if provided
+    if existing_key and existing_key.startswith("apk_"):
+        status = get_key_status(existing_key)
+        if not status:
+            return jsonify({"error": "API key not found"}), 404
+    else:
+        existing_key = ""
+
+    try:
+        price_id = _get_or_create_stripe_price(tier)
+        checkout_kwargs = dict(
+            payment_method_types=["card"],
+            line_items=[{"price": price_id, "quantity": 1}],
+            mode="subscription",
+            metadata={
+                "tier": tier,
+                "action": "subscription",
+                **({"api_key": existing_key} if existing_key else {}),
+                **({"customer_email": email} if email else {}),
+            },
+            success_url=f"{BASE_URL}/subscribe/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{BASE_URL}/subscribe?canceled=1",
+        )
+        if email:
+            checkout_kwargs["customer_email"] = email
+        session = _stripe.checkout.Session.create(**checkout_kwargs)
+        ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "")
+        if ip not in ("127.0.0.1", "::1"):
+            funnel_log_event("subscription_checkout_started", endpoint="/subscribe",
+                             ip=ip, metadata=json.dumps({"tier": tier}),
+                             user_agent=request.headers.get("User-Agent", ""))
+        return jsonify({"url": session.url, "session_id": session.id})
+    except Exception as e:
+        logger.error("Stripe subscription checkout failed: %s", e)
+        return jsonify({"error": "Payment processing failed"}), 500
+
+
+@auth_bp.route("/subscribe/success", methods=["GET"])
+def subscribe_success():
+    session_id = request.args.get("session_id", "")
+    return render_template("buy_credits_success.html",
+                           api_key=_session_key_map.get(session_id, ""),
+                           session_id=session_id,
+                           subscription=True), 200, {"Content-Type": "text/html"}
+
+
+@auth_bp.route("/subscription/status", methods=["GET"])
+@require_api_key
+def subscription_status():
+    """Check subscription details for the authenticated API key."""
+    bearer = (request.headers.get("Authorization", "")[7:]
+              if request.headers.get("Authorization", "").startswith("Bearer ") else "")
+    if not bearer:
+        return jsonify({"error": "API key required"}), 401
+    sub = get_subscription_status(bearer)
+    if not sub:
+        return jsonify({"subscription": None, "message": "No active subscription. Visit /subscribe to get started."})
+    return jsonify({"subscription": sub})
 
 
 @auth_bp.route("/auth/key-status", methods=["GET"])

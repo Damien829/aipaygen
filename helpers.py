@@ -273,6 +273,7 @@ def call_llm(messages, system="", max_tokens=1024, endpoint="unknown", model_ove
     from api_keys import deduct_metered
     from discovery_engine import track_cost
 
+    _llm_start = _time.time()
     model_name = model_override or (request.get_json(silent=True) or {}).get("model", "claude-haiku")
     # Force free local model for free tier calls — zero provider cost
     is_free = request.environ.get("X_FREE_TIER") == "1"
@@ -296,9 +297,11 @@ def call_llm(messages, system="", max_tokens=1024, endpoint="unknown", model_ove
         if estimated_cost > 1.00:
             result["metered_warning"] = f"Request cost ${estimated_cost:.4f} exceeds $1.00 cap — deduction skipped"
         else:
+            _ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "")
             deduction = deduct_metered(
                 api_key, result["input_tokens"], result["output_tokens"],
                 cfg["input_cost_per_m"], cfg["output_cost_per_m"],
+                endpoint=endpoint, ip=_ip,
             )
             if deduction:
                 result["metered_cost"] = deduction["cost"]
@@ -311,6 +314,38 @@ def call_llm(messages, system="", max_tokens=1024, endpoint="unknown", model_ove
                     check_low_balance_webhooks(api_key, deduction["balance_remaining"])
                 except Exception:
                     pass
+    # Cost transparency: add _billing to every paid response
+    if api_key:
+        flat_cost = request.environ.get("X_FLAT_COST", "")
+        if pricing_mode == "flat" and flat_cost:
+            result["_billing"] = {
+                "cost_usd": float(flat_cost),
+                "pricing": "flat",
+                "payment": "api_key",
+            }
+        elif pricing_mode == "metered" and "metered_cost" in result:
+            result["_billing"] = {
+                "cost_usd": result["metered_cost"],
+                "balance_remaining": result.get("balance_remaining", 0),
+                "pricing": "metered",
+                "payment": "api_key",
+            }
+    # Auto-capture interesting paid calls for showcase
+    api_key = request.environ.get("X_APIKEY_BYPASS", "")
+    if api_key and not is_free:
+        try:
+            from showcase import log_showcase, is_interesting
+            elapsed_ms = int((_time.time() - _llm_start) * 1000)
+            tool = endpoint.strip("/").split("/")[-1] if "/" in endpoint else endpoint
+            if is_interesting(tool, elapsed_ms):
+                inp = ""
+                if messages:
+                    last = messages[-1].get("content", "") if isinstance(messages[-1], dict) else str(messages[-1])
+                    inp = str(last)[:100]
+                out = str(result.get("text", result.get("content", "")))[:200] if isinstance(result, dict) else ""
+                log_showcase(tool, inp, out, elapsed_ms, model_name)
+        except Exception:
+            pass
     return result, None
 
 

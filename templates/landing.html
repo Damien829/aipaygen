@@ -422,6 +422,59 @@
 </section>
 
 </div>
+
+<!-- Live API Usage Feed -->
+<section style="max-width:1200px;margin:48px auto 0;padding:0 24px;position:relative;z-index:2">
+  <h2 style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem;font-weight:600;color:#fff;margin-bottom:4px;text-align:center">
+    <span style="display:inline-block;width:8px;height:8px;background:#00ff9d;border-radius:50%;box-shadow:0 0 8px #00ff9d;animation:pulse-dot 2s ease-in-out infinite;margin-right:8px"></span>
+    Live API Usage
+  </h2>
+  <p style="text-align:center;color:#4a6070;font-size:0.82rem;margin-bottom:20px;font-family:'IBM Plex Sans',sans-serif">Real calls from developers using AiPayGen right now</p>
+  <div id="showcaseFeed" style="max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:6px;max-height:320px;overflow:hidden"></div>
+</section>
+<script>
+(function(){
+  var ICONS={'research':'\ud83d\udd0d','code':'\ud83d\udcbb','translate':'\ud83c\udf10','summarize':'\ud83d\udcdd','analyze':'\ud83d\udcca','chain':'\ud83d\udd17','sentiment':'\ud83d\ude0a','write':'\u270f\ufe0f'};
+  var feed=document.getElementById('showcaseFeed');
+  function render(items){
+    while(feed.firstChild)feed.removeChild(feed.firstChild);
+    items.forEach(function(e){
+      var icon=ICONS[e.tool_name]||'\u26a1';
+      var secs=(e.response_time_ms/1000).toFixed(1);
+      var row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(7,13,20,0.8);border:1px solid #0d2030;border-radius:6px;font-family:"IBM Plex Mono",monospace;font-size:0.82rem;animation:fadeSlide 0.4s ease';
+      var iconSpan=document.createElement('span');
+      iconSpan.style.fontSize='1.1rem';
+      iconSpan.textContent=icon;
+      var toolSpan=document.createElement('span');
+      toolSpan.style.cssText='color:#00ff9d;font-weight:600;min-width:80px';
+      toolSpan.textContent=e.tool_name;
+      var inputSpan=document.createElement('span');
+      inputSpan.style.cssText='color:#8b949e;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      inputSpan.textContent='\u2018'+e.input_preview.substring(0,60)+'\u2019';
+      var timeSpan=document.createElement('span');
+      timeSpan.style.cssText='color:#00d4ff;font-weight:500;white-space:nowrap';
+      timeSpan.textContent='\u2192 '+secs+'s';
+      row.appendChild(iconSpan);
+      row.appendChild(toolSpan);
+      row.appendChild(inputSpan);
+      row.appendChild(timeSpan);
+      feed.appendChild(row);
+    });
+  }
+  function load(){
+    fetch('/api/showcase?limit=8').then(function(r){return r.json()}).then(function(d){
+      if(d.showcase&&d.showcase.length>0)render(d.showcase);
+    }).catch(function(){});
+  }
+  load();
+  setInterval(load,30000);
+})();
+</script>
+<style>
+@keyframes fadeSlide{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+</style>
+
 {{ footer|safe }}
 
 <!-- Sticky CTA bar -->

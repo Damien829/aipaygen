@@ -51,7 +51,11 @@ from agent_network import (
     subscribe_tasks, get_task_subscribers,
 )
 from specialist_agents import bootstrap_all_agents
-from api_keys import init_keys_db, generate_key, topup_key, get_key_status, validate_key, deduct, deduct_metered
+from api_keys import (
+    init_keys_db, generate_key, topup_key, get_key_status, validate_key,
+    deduct, deduct_metered, check_daily_spend, get_key_tier, get_tier_rate_limit,
+    get_allowed_tools,
+)
 from async_jobs import init_jobs_db, submit_job, get_job, run_job_async
 from file_storage import init_files_db, save_file, get_file, delete_file, list_files, storage_stats
 from webhook_relay import (
@@ -62,6 +66,7 @@ from referral import (
     init_referral_db, register_referral_agent, record_click,
     record_conversion, get_referral_stats, get_referral_leaderboard,
 )
+from billing_audit import init_audit_db
 from discovery_engine import (
     init_discovery_db, get_blog_post, list_blog_posts,
     generate_all_blog_posts, get_outreach_log,
@@ -788,17 +793,29 @@ def _api_key_wsgi(environ, start_response):
         ])
         return [body]
 
-    # 0.1 Per-IP rate limit — tiered: 20/min unauthenticated, 120/min with API key
+    # 0.1 Per-IP rate limit — tiered by balance
+    #   Free (no key): 20 req/min
+    #   Starter ($0-$2): 60 req/min
+    #   Pro ($2-$10): 120 req/min
+    #   Enterprise ($10+): 300 req/min
     if routes.get(route_key):
         try:
             is_authenticated = auth.startswith("Bearer apk_")
-            _rate_limit = 120 if is_authenticated else 20
+            if is_authenticated:
+                _key = auth[7:]
+                _tier = get_key_tier(_key)
+                _rate_limit = get_tier_rate_limit(_tier)
+            else:
+                _tier = "free"
+                _rate_limit = 20
             if not _check_rate_limit(_ip, limit_override=_rate_limit):
                 body = json.dumps({
                     "error": "rate_limited",
-                    "message": f"Too many requests. Limit: {_rate_limit} per minute per IP.",
+                    "message": f"Too many requests. Limit: {_rate_limit} per minute ({_tier} tier).",
                     "retry_after_seconds": 60,
-                    "upgrade": None if is_authenticated else "Authenticate with an API key for 120 req/min.",
+                    "tier": _tier,
+                    "upgrade": None if is_authenticated else "Authenticate with an API key for higher limits.",
+                    "tier_limits": {"free": 20, "starter": 60, "pro": 120, "enterprise": 300},
                 }).encode()
                 start_response("429 Too Many Requests", [
                     ("Content-Type", "application/json"),
@@ -882,37 +899,98 @@ def _api_key_wsgi(environ, start_response):
         pricing_mode = environ.get("HTTP_X_PRICING", "flat").lower()
         if route_cfg:
             try:
+                key_data = validate_key(key)
+                if not key_data:
+                    body = json.dumps({
+                        "error": "invalid_api_key",
+                        "message": "API key is invalid or deactivated.",
+                        "get_key": "https://aipaygen.com/get-key",
+                    }).encode()
+                    start_response("401 Unauthorized", [
+                        ("Content-Type", "application/json"),
+                        ("Content-Length", str(len(body))),
+                        ("Access-Control-Allow-Origin", "*"),
+                    ])
+                    return [body]
+
+                # Key scoping — check allowed_tools restriction
+                _allowed = get_allowed_tools(key)
+                if _allowed:
+                    # Extract tool name from path (e.g. /summarize -> summarize)
+                    _tool_name = path.strip("/").split("/")[0]
+                    if _tool_name not in _allowed:
+                        body = json.dumps({
+                            "error": "tool_not_allowed",
+                            "message": f"This API key is restricted. Allowed tools: {', '.join(_allowed)}",
+                            "allowed_tools": _allowed,
+                        }).encode()
+                        start_response("403 Forbidden", [
+                            ("Content-Type", "application/json"),
+                            ("Content-Length", str(len(body))),
+                            ("Access-Control-Allow-Origin", "*"),
+                        ])
+                        return [body]
+
+                price_str = route_cfg.accepts[0].price
+                cost = float(price_str.lstrip("$"))
+
+                # Minimum balance enforcement — don't allow calls that would go negative
+                if key_data.get("balance_usd", 0) < cost:
+                    body = json.dumps({
+                        "error": "insufficient_balance",
+                        "message": f"Insufficient balance (${key_data.get('balance_usd', 0):.4f}). This call costs ${cost}. Top up to continue.",
+                        "balance_usd": key_data.get("balance_usd", 0),
+                        "cost_usd": cost,
+                        "top_up": "https://aipaygen.com/buy-credits",
+                    }).encode()
+                    start_response("402 Payment Required", [
+                        ("Content-Type", "application/json"),
+                        ("Content-Length", str(len(body))),
+                        ("Access-Control-Allow-Origin", "*"),
+                    ])
+                    return [body]
+
+                # Daily spend limit check
+                _daily_ok, _daily_remaining = check_daily_spend(key, cost)
+                if not _daily_ok:
+                    body = json.dumps({
+                        "error": "daily_limit_reached",
+                        "message": f"Daily spending limit reached. Remaining today: ${_daily_remaining:.4f}. Increase your limit at POST /auth/set-daily-limit.",
+                        "daily_remaining": round(_daily_remaining, 4),
+                        "daily_limit": key_data.get("daily_spend_limit", 10.0),
+                        "set_limit_url": "POST /auth/set-daily-limit with {\"limit_usd\": 25.0}",
+                    }).encode()
+                    start_response("402 Payment Required", [
+                        ("Content-Type", "application/json"),
+                        ("Content-Length", str(len(body))),
+                        ("Access-Control-Allow-Origin", "*"),
+                    ])
+                    return [body]
+
                 if pricing_mode == "metered":
-                    key_data = validate_key(key)
                     # For metered mode, validate key has minimum balance but do NOT
                     # deduct here — call_llm() handles metered deduction after the
                     # actual token count is known, preventing double-billing.
-                    price_str = route_cfg.accepts[0].price
-                    min_cost = float(price_str.lstrip("$"))
-                    if key_data and key_data.get("balance_usd", 0) >= min_cost:
-                        environ["X_APIKEY_BYPASS"] = key
-                        environ["X_PRICING_MODE"] = "metered"
-                        return _raw_flask_wsgi(environ, start_response)
+                    environ["X_APIKEY_BYPASS"] = key
+                    environ["X_PRICING_MODE"] = "metered"
+                    environ["X_ROUTE_COST"] = str(cost)
+                    return _raw_flask_wsgi(environ, start_response)
                 else:
                     # Flat: deduct fixed amount upfront (existing behavior)
-                    price_str = route_cfg.accepts[0].price  # e.g. "$0.01"
-                    cost = float(price_str.lstrip("$"))
-                    key_data = validate_key(key)
-                    if key_data:
-                        # 20% bulk discount for prepaid keys with balance >= $2.00
-                        if key_data.get("balance_usd", 0) >= 2.00:
-                            cost = round(cost * 0.8, 4)
-                        if deduct(key, cost):
-                            environ["X_APIKEY_BYPASS"] = key
-                            environ["X_PRICING_MODE"] = "flat"
-                            return _raw_flask_wsgi(environ, start_response)
+                    # 20% bulk discount for prepaid keys with balance >= $2.00
+                    if key_data.get("balance_usd", 0) >= 2.00:
+                        cost = round(cost * 0.8, 4)
+                    if deduct(key, cost, endpoint=path, ip=_ip):
+                        environ["X_APIKEY_BYPASS"] = key
+                        environ["X_PRICING_MODE"] = "flat"
+                        environ["X_FLAT_COST"] = str(cost)
+                        return _raw_flask_wsgi(environ, start_response)
             except Exception as _key_err:
                 logging.getLogger(__name__).error("API key auth failed: %s", _key_err)
 
-        # If we got here with a Bearer key, it means auth failed — return proper error
+        # If we got here with a Bearer key, it means deduction failed
         if route_cfg:
-            key_data = validate_key(key) if 'key_data' not in dir() else key_data
-            if not key_data or not key_data.get("is_active"):
+            if not key_data:
                 body = json.dumps({
                     "error": "invalid_api_key",
                     "message": "API key is invalid or deactivated.",
@@ -1126,6 +1204,7 @@ init_db()
 init_memory_db()
 init_network_db()
 init_keys_db()
+init_audit_db()
 init_jobs_db()
 init_files_db()
 init_webhooks_db()

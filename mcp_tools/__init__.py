@@ -54,7 +54,7 @@ from agent_network import (
     get_trending_topics, submit_task, browse_tasks, get_task,
     check_and_use_free_tier, get_free_tier_remaining,
 )
-from api_keys import validate_key, deduct
+from api_keys import validate_key, deduct, check_daily_spend, get_allowed_tools
 from notifications import create_notification as _create_notification
 from skills_search import SkillsSearchEngine
 
@@ -221,6 +221,7 @@ def metered_tool(tier: str = "standard"):
 
             # With API key — validate and deduct
             if api_key.startswith("apk_"):
+                _mt_start = _time_mod.time()
                 # HMAC signature verification for paid calls (optional but recommended)
                 sig_header = os.environ.get("AIPAYGEN_REQUEST_SIGNATURE", "")
                 if sig_header:
@@ -231,12 +232,33 @@ def metered_tool(tier: str = "standard"):
                 key_data = validate_key(api_key)
                 if not key_data:
                     return {"error": "invalid_api_key", "message": "API key is invalid or inactive."}
+
+                # Key scoping — check allowed_tools
+                allowed = get_allowed_tools(api_key)
+                if allowed and fn.__name__ not in allowed:
+                    return {
+                        "error": "tool_not_allowed",
+                        "message": f"This API key is restricted. Allowed tools: {', '.join(allowed)}",
+                        "allowed_tools": allowed,
+                    }
+
+                # Minimum balance enforcement
                 if key_data.get("balance_usd", 0) < cost:
                     return {
                         "error": "insufficient_balance",
                         "balance_usd": key_data.get("balance_usd", 0),
                         "cost_usd": cost,
                         "topup": "POST https://api.aipaygen.com/credits/buy",
+                    }
+
+                # Daily spend limit check
+                daily_ok, daily_remaining = check_daily_spend(api_key, cost)
+                if not daily_ok:
+                    return {
+                        "error": "daily_limit_reached",
+                        "message": f"Daily spending limit reached. Remaining today: ${daily_remaining:.4f}.",
+                        "daily_remaining": round(daily_remaining, 4),
+                        "set_limit": "POST /auth/set-daily-limit with {\"limit_usd\": 25.0}",
                     }
 
                 result = fn(*args, **kwargs)
@@ -271,6 +293,21 @@ def metered_tool(tier: str = "standard"):
                     }
                 try:
                     _log_tool_usage(fn.__name__, api_key)
+                except Exception:
+                    pass
+                # Auto-capture interesting paid calls for showcase
+                try:
+                    from showcase import log_showcase, is_interesting
+                    _mt_elapsed = int((_time_mod.time() - _mt_start) * 1000)
+                    if is_interesting(fn.__name__, _mt_elapsed):
+                        _inp = _json.dumps(kwargs, default=str)[:100] if kwargs else ""
+                        _out = ""
+                        if isinstance(result, dict):
+                            for _k in ("text", "content", "summary", "result", "answer"):
+                                if _k in result:
+                                    _out = str(result[_k])[:200]
+                                    break
+                        log_showcase(fn.__name__, _inp, _out, _mt_elapsed, "mcp")
                 except Exception:
                     pass
                 return result

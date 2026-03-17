@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subscribe — AiPayGen Monthly Plans</title>
+<meta name="description" content="AiPayGen monthly plans: Hobby $9/mo, Pro $29/mo, Business $79/mo. Save 40% vs pay-per-call. 250 AI tools, priority models.">
+<link rel="icon" href="/static/icon.png" type="image/png">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Subscribe — AiPayGen Monthly Plans">
+<meta property="og:description" content="Monthly AI tool subscriptions from $9/mo. Save 40% vs pay-per-call. 250 tools, priority models, webhook alerts.">
+<meta property="og:url" content="https://aipaygen.com/subscribe">
+<meta property="og:image" content="https://aipaygen.com/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020408; --bg2: #070d14; --green: #00ff9d; --blue: #0088ff;
+    --cyan: #00d4ff; --text: #c8d8e8; --muted: #4a6070; --border: #0d2030;
+    --purple: #a78bfa; --amber: #f59e0b;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    overflow-x: hidden; padding: 70px 24px 60px;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image: linear-gradient(rgba(0,136,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,136,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px; pointer-events: none; z-index: 0;
+  }
+  .content { position: relative; z-index: 2; max-width: 1100px; margin: 0 auto; }
+  .nav-links { display: flex; gap: 20px; margin-bottom: 40px; font-size: 0.82rem; }
+  .nav-links a { color: var(--muted); text-decoration: none; }
+  .nav-links a:hover { color: var(--green); }
+  .nav-links a.active { color: var(--green); font-weight: 600; }
+
+  .hero { text-align: center; margin-bottom: 48px; }
+  .hero h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 700; color: #fff; margin-bottom: 12px; }
+  .hero h1 .accent { color: var(--green); }
+  .hero p { font-family: 'IBM Plex Sans', sans-serif; font-size: 1rem; color: var(--muted); font-weight: 300; }
+  .savings-badge {
+    display: inline-block; background: rgba(0,255,157,0.12); color: var(--green);
+    padding: 6px 16px; border-radius: 20px; font-size: 0.78rem; font-weight: 600;
+    margin-top: 12px; border: 1px solid rgba(0,255,157,0.25);
+  }
+
+  .tiers {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1px; background: var(--border); border: 1px solid var(--border);
+    margin-bottom: 48px;
+  }
+  .tier {
+    background: var(--bg); padding: 40px 28px; text-align: center;
+    position: relative; transition: background 0.25s;
+  }
+  .tier:hover { background: var(--bg2); }
+  .tier.featured { border: 1px solid var(--green); margin: -1px; z-index: 1; }
+  .tier-badge {
+    position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%);
+    background: var(--green); color: #000; font-size: 0.7rem; font-weight: 700;
+    padding: 4px 16px; letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .tier-name {
+    font-size: 0.85rem; font-weight: 600; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 16px;
+  }
+  .tier-price {
+    font-size: 3rem; font-weight: 700; color: #fff; line-height: 1; margin-bottom: 4px;
+  }
+  .tier-price .currency { font-size: 1.4rem; vertical-align: super; color: var(--green); }
+  .tier-price .period { font-size: 0.85rem; font-weight: 300; color: var(--muted); }
+  .tier-equiv {
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 0.78rem;
+    color: var(--green); margin: 8px 0 4px; font-weight: 400;
+  }
+  .tier-desc {
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 0.85rem;
+    color: var(--muted); margin: 8px 0 24px; font-weight: 300;
+  }
+  .tier-features { list-style: none; text-align: left; margin-bottom: 32px; }
+  .tier-features li {
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 0.85rem;
+    color: var(--text); padding: 8px 0; border-bottom: 1px solid rgba(13,32,48,0.6); font-weight: 300;
+  }
+  .tier-features li::before { content: '\2713'; color: var(--green); font-weight: 700; margin-right: 10px; }
+  .tier-features li.highlight { color: #fff; font-weight: 400; }
+  .tier-features li.disabled { color: var(--muted); opacity: 0.5; }
+  .tier-features li.disabled::before { content: '\2014'; color: var(--muted); }
+
+  .btn-tier {
+    display: inline-block; padding: 14px 32px;
+    font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem;
+    font-weight: 700; text-decoration: none; letter-spacing: 0.05em;
+    transition: all 0.2s; width: 100%; cursor: pointer; border: none;
+  }
+  .btn-tier.primary { background: var(--green); color: #000; }
+  .btn-tier.primary:hover { background: #fff; transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,255,157,0.3); }
+  .btn-tier.secondary { background: transparent; color: var(--green); border: 1px solid var(--green); }
+  .btn-tier.secondary:hover { background: rgba(0,255,157,0.08); transform: translateY(-2px); }
+  .btn-tier:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+  /* Feature comparison */
+  .compare { max-width: 1100px; margin: 0 auto 48px; }
+  .section-header { display: flex; align-items: baseline; gap: 20px; margin-bottom: 24px; }
+  .section-header span { font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
+  .section-header-line { flex: 1; height: 1px; background: var(--border); }
+  .compare-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); }
+  .compare-table th, .compare-table td {
+    padding: 12px 16px; text-align: center;
+    font-family: 'IBM Plex Sans', sans-serif; font-size: 0.85rem; font-weight: 300;
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-table th {
+    background: var(--bg2); color: #fff; font-family: 'IBM Plex Mono', monospace;
+    font-weight: 600; font-size: 0.8rem; letter-spacing: 0.05em; text-transform: uppercase;
+  }
+  .compare-table td:first-child { text-align: left; color: var(--text); font-weight: 400; }
+  .compare-table tr:hover td { background: var(--bg2); }
+  .compare-table .check { color: var(--green); font-weight: 700; }
+  .compare-table .dash { color: var(--muted); opacity: 0.5; }
+
+  /* Existing key input */
+  .key-section {
+    max-width: 600px; margin: 0 auto 48px; text-align: center;
+    padding: 24px; background: var(--bg2); border: 1px solid var(--border); border-radius: 4px;
+  }
+  .key-section label { font-size: 0.82rem; color: var(--muted); display: block; margin-bottom: 8px; }
+  .key-section input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    padding: 10px 14px; color: var(--text); font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.85rem; outline: none;
+  }
+  .key-section input:focus { border-color: var(--green); }
+  .key-section input::placeholder { color: var(--muted); }
+
+  .payperuse-link {
+    text-align: center; margin: 32px 0; font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.88rem; color: var(--muted);
+  }
+  .payperuse-link a { color: var(--cyan); text-decoration: none; }
+  .payperuse-link a:hover { text-decoration: underline; }
+
+  .error-msg { color: #f87171; font-size: 0.85rem; text-align: center; margin-top: 12px; display: none; }
+
+  @media (max-width: 768px) {
+    .tiers { grid-template-columns: 1fr; }
+    .tier.featured { margin: 0; border: 1px solid var(--green); }
+    body { padding: 40px 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="content">
+  <div class="nav-links">
+    <a href="/">Home</a>
+    <a href="/pricing">Pricing</a>
+    <a href="/buy-credits">Pay Per Call</a>
+    <a href="/subscribe" class="active">Monthly Plans</a>
+    <a href="/docs">Docs</a>
+  </div>
+
+  <section class="hero">
+    <h1>Monthly plans for <span class="accent">predictable</span> costs</h1>
+    <p>Fixed monthly price. No surprises. Cancel anytime.</p>
+    <div class="savings-badge">Save up to 40% vs pay-per-call</div>
+  </section>
+
+  <div class="key-section">
+    <label>Already have an API key? Add subscription to it:</label>
+    <input type="text" id="existing-key" placeholder="apk_xxx (leave blank for a new key)">
+  </div>
+
+  <div class="tiers">
+    <!-- Hobby -->
+    <div class="tier">
+      <div class="tier-name">Hobby</div>
+      <div class="tier-price"><span class="currency">$</span>9 <span class="period">/mo</span></div>
+      <div class="tier-equiv">$0.018/call -- save 40% vs $0.03 pay-per-call avg</div>
+      <div class="tier-desc">500 calls/month -- perfect for side projects</div>
+      <ul class="tier-features">
+        <li class="highlight">500 AI calls / month</li>
+        <li>All 250 tools unlocked</li>
+        <li>15 frontier models</li>
+        <li>MCP + REST access</li>
+        <li>Email support</li>
+        <li class="disabled">Priority models</li>
+        <li class="disabled">Webhook alerts</li>
+      </ul>
+      <button class="btn-tier secondary" onclick="subscribe('hobby')">Start Hobby Plan</button>
+    </div>
+
+    <!-- Pro -->
+    <div class="tier featured">
+      <div class="tier-badge">Most Popular</div>
+      <div class="tier-name">Pro</div>
+      <div class="tier-price"><span class="currency">$</span>29 <span class="period">/mo</span></div>
+      <div class="tier-equiv">$0.0145/call -- save 40% vs pay-per-call</div>
+      <div class="tier-desc">2,000 calls/month -- for serious builders</div>
+      <ul class="tier-features">
+        <li class="highlight">2,000 AI calls / month</li>
+        <li>All 250 tools unlocked</li>
+        <li class="highlight">Priority models (Claude Sonnet)</li>
+        <li>MCP + REST access</li>
+        <li>Webhook alerts</li>
+        <li>API key rotation</li>
+        <li>Priority support</li>
+      </ul>
+      <button class="btn-tier primary" onclick="subscribe('pro')">Start Pro Plan</button>
+    </div>
+
+    <!-- Business -->
+    <div class="tier">
+      <div class="tier-name">Business</div>
+      <div class="tier-price"><span class="currency">$</span>79 <span class="period">/mo</span></div>
+      <div class="tier-equiv">$0.0079/call -- save 40%+ vs pay-per-call</div>
+      <div class="tier-desc">10,000 calls/month -- scale with confidence</div>
+      <ul class="tier-features">
+        <li class="highlight">10,000 AI calls / month</li>
+        <li>All 250 tools unlocked</li>
+        <li class="highlight">Premium models (Claude Opus)</li>
+        <li>MCP + REST access</li>
+        <li>Webhook alerts</li>
+        <li>Custom tool scoping</li>
+        <li>Dedicated support</li>
+      </ul>
+      <button class="btn-tier secondary" onclick="subscribe('business')">Start Business Plan</button>
+    </div>
+  </div>
+
+  <p class="error-msg" id="err"></p>
+
+  <!-- Comparison -->
+  <div class="compare">
+    <div class="section-header">
+      <span>// Monthly vs Pay-Per-Call</span>
+      <div class="section-header-line"></div>
+    </div>
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th style="text-align:left">Feature</th>
+          <th>Pay Per Call</th>
+          <th>Hobby $9</th>
+          <th style="color:var(--green)">Pro $29</th>
+          <th>Business $79</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Monthly calls</td>
+          <td>Pay as you go</td>
+          <td>500</td>
+          <td class="check">2,000</td>
+          <td class="check">10,000</td>
+        </tr>
+        <tr>
+          <td>Cost per call</td>
+          <td>$0.004-$0.15</td>
+          <td>$0.018</td>
+          <td class="check">$0.0145</td>
+          <td class="check">$0.0079</td>
+        </tr>
+        <tr>
+          <td>AI models</td>
+          <td>Standard (Haiku)</td>
+          <td>Standard</td>
+          <td class="check">Priority (Sonnet)</td>
+          <td class="check">Premium (Opus)</td>
+        </tr>
+        <tr>
+          <td>Tools available</td>
+          <td class="check">All 250</td>
+          <td class="check">All 250</td>
+          <td class="check">All 250</td>
+          <td class="check">All 250</td>
+        </tr>
+        <tr>
+          <td>Daily spend limit</td>
+          <td>$10/day default</td>
+          <td class="check">No limit</td>
+          <td class="check">No limit</td>
+          <td class="check">No limit</td>
+        </tr>
+        <tr>
+          <td>Webhook alerts</td>
+          <td class="dash">--</td>
+          <td class="dash">--</td>
+          <td class="check">&#10003;</td>
+          <td class="check">&#10003;</td>
+        </tr>
+        <tr>
+          <td>API key rotation</td>
+          <td class="check">&#10003;</td>
+          <td class="check">&#10003;</td>
+          <td class="check">&#10003;</td>
+          <td class="check">&#10003;</td>
+        </tr>
+        <tr>
+          <td>Custom tool scoping</td>
+          <td class="dash">--</td>
+          <td class="dash">--</td>
+          <td class="dash">--</td>
+          <td class="check">&#10003;</td>
+        </tr>
+        <tr>
+          <td>Support</td>
+          <td>Community</td>
+          <td>Email</td>
+          <td class="check">Priority</td>
+          <td class="check">Dedicated</td>
+        </tr>
+        <tr>
+          <td>Billing</td>
+          <td>Prepaid credits</td>
+          <td>Monthly</td>
+          <td>Monthly</td>
+          <td>Monthly</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="payperuse-link">
+    Prefer pay-per-call? <a href="/buy-credits">Buy prepaid credits instead</a> -- credits never expire.
+  </div>
+</div>
+
+<script>
+async function subscribe(tier) {
+  const btns = document.querySelectorAll('.btn-tier');
+  btns.forEach(b => { b.disabled = true; });
+  const err = document.getElementById('err');
+  err.style.display = 'none';
+
+  try {
+    const res = await fetch('/subscribe', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        tier: tier,
+        existing_key: document.getElementById('existing-key').value.trim(),
+      })
+    });
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      err.textContent = data.error || 'Something went wrong';
+      err.style.display = 'block';
+      btns.forEach(b => { b.disabled = false; });
+    }
+  } catch(e) {
+    err.textContent = 'Network error -- please try again';
+    err.style.display = 'block';
+    btns.forEach(b => { b.disabled = false; });
+  }
+}
+</script>
+</body>
+</html>

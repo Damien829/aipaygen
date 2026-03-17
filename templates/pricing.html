@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pricing — AiPayGen</title>
-<meta name="description" content="AiPayGen pricing: 250 tools, 3 free calls/day, $0.25 trial credits, or prepaid credits from $0.004/call. Pay-per-call, no subscription.">
+<meta name="description" content="AiPayGen pricing: 250 tools, 3 free calls/day, $0.25 trial credits. Pay-per-call from $0.004 or monthly plans from $9/mo. Save 40% with subscriptions.">
 <link rel="icon" href="/static/icon.png" type="image/png">
 <link rel="apple-touch-icon" href="/static/icon.png">
 <meta property="og:type" content="website">
@@ -452,10 +452,74 @@
 <!-- Hero -->
 <section class="pricing-hero fade-up">
   <h1>Simple, <span class="accent">transparent</span> pricing</h1>
-  <p>Start free. Pay only for what you use. Credits never expire.</p>
+  <p>Start free. Pay only for what you use, or subscribe monthly and save 40%.</p>
 </section>
 
-<!-- Tiers -->
+<!-- Billing Toggle -->
+<div style="display:flex;justify-content:center;margin-bottom:24px;gap:0">
+  <button id="toggle-payperuse" onclick="showBilling('payperuse')" style="padding:12px 28px;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:600;background:var(--green);color:#000;border:1px solid var(--green);cursor:pointer;letter-spacing:0.05em;transition:all 0.2s">Pay per call</button>
+  <button id="toggle-monthly" onclick="showBilling('monthly')" style="padding:12px 28px;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:600;background:transparent;color:var(--green);border:1px solid var(--green);cursor:pointer;letter-spacing:0.05em;transition:all 0.2s;position:relative">Monthly plans <span style="position:absolute;top:-10px;right:-10px;background:#f59e0b;color:#000;font-size:0.6rem;padding:2px 6px;font-weight:700;letter-spacing:0.05em">SAVE 40%</span></button>
+</div>
+
+<!-- Monthly Plans -->
+<div id="billing-monthly" style="display:none">
+  <div class="tiers" style="grid-template-columns:repeat(3,1fr)">
+    <!-- Hobby -->
+    <div class="tier fade-up">
+      <div class="tier-name">Hobby</div>
+      <div class="tier-price"><span class="currency">$</span>9 <span class="period">/mo</span></div>
+      <div class="tier-desc">500 calls/month &middot; $0.018/call</div>
+      <ul class="tier-features">
+        <li>500 AI calls per month</li>
+        <li>All 250 tools unlocked</li>
+        <li>15 frontier models</li>
+        <li>Email support</li>
+        <li>MCP &amp; REST access</li>
+        <li class="disabled">Priority models</li>
+        <li class="disabled">Webhook alerts</li>
+      </ul>
+      <a href="/subscribe" class="btn-tier secondary">Start Hobby &rarr;</a>
+    </div>
+
+    <!-- Pro Monthly -->
+    <div class="tier featured fade-up delay-1">
+      <div class="tier-badge">Most Popular</div>
+      <div class="tier-name">Pro</div>
+      <div class="tier-price"><span class="currency">$</span>29 <span class="period">/mo</span></div>
+      <div class="tier-desc">2,000 calls/month &middot; $0.0145/call</div>
+      <ul class="tier-features">
+        <li>2,000 AI calls per month</li>
+        <li>All 250 tools unlocked</li>
+        <li>Priority models (Claude Sonnet)</li>
+        <li>Webhook alerts</li>
+        <li>API key rotation</li>
+        <li>Priority support</li>
+        <li>No daily spend limit</li>
+      </ul>
+      <a href="/subscribe" class="btn-tier primary">Start Pro &rarr;</a>
+    </div>
+
+    <!-- Business -->
+    <div class="tier fade-up delay-2">
+      <div class="tier-name">Business</div>
+      <div class="tier-price"><span class="currency">$</span>79 <span class="period">/mo</span></div>
+      <div class="tier-desc">10,000 calls/month &middot; $0.0079/call</div>
+      <ul class="tier-features">
+        <li>10,000 AI calls per month</li>
+        <li>All 250 tools unlocked</li>
+        <li>Premium models (Claude Opus)</li>
+        <li>Webhook alerts</li>
+        <li>Custom tool scoping</li>
+        <li>Dedicated support</li>
+        <li>No daily spend limit</li>
+      </ul>
+      <a href="/subscribe" class="btn-tier secondary">Start Business &rarr;</a>
+    </div>
+  </div>
+</div>
+
+<!-- Pay Per Call Tiers (existing) -->
+<div id="billing-payperuse">
 <div class="tiers">
   <!-- Free -->
   <div class="tier fade-up">
@@ -527,6 +591,7 @@
     <a href="/buy-credits" class="btn-tier primary">Buy Credits &rarr;</a>
   </div>
 </div>
+</div><!-- end billing-payperuse -->
 
 <!-- Feature comparison -->
 <section class="compare-section">
@@ -894,7 +959,7 @@
   <div class="faq-item">
     <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Is there a subscription?</button>
     <div class="faq-a">
-      No. AiPayGen uses prepaid credits, not subscriptions. Buy once, use whenever. No recurring charges.
+      Yes! We now offer monthly plans starting at $9/mo (Hobby), $29/mo (Pro), and $79/mo (Business). Subscribers save up to 40% vs pay-per-call and get priority models, webhook alerts, and higher limits. You can also still use prepaid credits if you prefer &mdash; buy once, use whenever, no recurring charges. <a href="/subscribe">View monthly plans</a>.
     </div>
   </div>
 
@@ -920,6 +985,7 @@
   <div class="btn-group">
     <a href="/try" style="background:transparent;color:var(--green);border:1px solid var(--green)">Try Free</a>
     <a href="/buy-credits" style="background:var(--green);color:#000">Buy Credits &rarr;</a>
+    <a href="/subscribe" style="background:transparent;color:var(--cyan);border:1px solid var(--cyan)">Monthly Plans &rarr;</a>
   </div>
 </section>
 
@@ -936,9 +1002,32 @@
     {"@type": "Question", "name": "How does billing work?", "acceptedAnswer": {"@type": "Answer", "text": "AiPayGen uses prepaid credits, not subscriptions. Buy credits with a credit card via Stripe. Each call deducts from your balance. No recurring charges. You also get a 20% bulk discount when your balance is $2 or more."}},
     {"@type": "Question", "name": "Do credits expire?", "acceptedAnswer": {"@type": "Answer", "text": "No. Prepaid credits never expire. Use them at your own pace."}},
     {"@type": "Question", "name": "What models are available?", "acceptedAnswer": {"@type": "Answer", "text": "15 frontier models across 7 providers: Claude (Anthropic), GPT-4o (OpenAI), Gemini 2.0 (Google), DeepSeek V3, Llama 3, Mistral, and more."}},
-    {"@type": "Question", "name": "Is there a subscription?", "acceptedAnswer": {"@type": "Answer", "text": "No. AiPayGen uses prepaid credits, not subscriptions. Buy once, use whenever. No recurring charges."}},
+    {"@type": "Question", "name": "Is there a subscription?", "acceptedAnswer": {"@type": "Answer", "text": "Yes! Monthly plans from $9/mo (Hobby), $29/mo (Pro), $79/mo (Business). Save up to 40% vs pay-per-call. You can also use prepaid credits with no recurring charges."}},
     {"@type": "Question", "name": "How do I get started?", "acceptedAnswer": {"@type": "Answer", "text": "Install with pip install aipaygen-mcp and add to your MCP client. You get 3 free calls per day with no sign-up. For higher volume, buy credits to get an API key."}}
   ]
+}
+</script>
+<script>
+function showBilling(mode) {
+  var payperuse = document.getElementById('billing-payperuse');
+  var monthly = document.getElementById('billing-monthly');
+  var btnPay = document.getElementById('toggle-payperuse');
+  var btnMon = document.getElementById('toggle-monthly');
+  if (mode === 'monthly') {
+    payperuse.style.display = 'none';
+    monthly.style.display = 'block';
+    btnMon.style.background = 'var(--green)';
+    btnMon.style.color = '#000';
+    btnPay.style.background = 'transparent';
+    btnPay.style.color = 'var(--green)';
+  } else {
+    payperuse.style.display = 'block';
+    monthly.style.display = 'none';
+    btnPay.style.background = 'var(--green)';
+    btnPay.style.color = '#000';
+    btnMon.style.background = 'transparent';
+    btnMon.style.color = 'var(--green)';
+  }
 }
 </script>
 </body>

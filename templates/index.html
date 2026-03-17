@@ -61,6 +61,8 @@
   background: var(--accent); animation: blink 1s step-end infinite; vertical-align: text-bottom;
 }
 @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
 
 /* Trust bar */
 .trust-bar {
@@ -693,6 +695,16 @@ curl -X POST https://api.aipaygen.com/auth/generate-key \
   </div>
 </section>
 
+<!-- Live API Usage Feed -->
+<section class="section fade-in" style="padding-bottom:40px">
+  <div class="section-title text-center" style="max-width:none">
+    <span style="display:inline-block;width:8px;height:8px;background:var(--accent);border-radius:50%;box-shadow:0 0 8px var(--accent);animation:pulse 2s ease-in-out infinite;margin-right:8px;vertical-align:middle"></span>
+    Live API Usage
+  </div>
+  <div class="section-subtitle text-center" style="max-width:none;margin:0 auto 24px">Real calls from developers using AiPayGen right now</div>
+  <div id="showcaseFeed" style="max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:6px;max-height:320px;overflow:hidden"></div>
+</section>
+
 <!-- CTA -->
 <section class="cta-section fade-in">
   <div class="section-title" style="margin-bottom:16px">Start building now</div>
@@ -775,6 +787,47 @@ fetch('/api/stats').then(function(r){ return r.json(); }).then(function(d){
 document.getElementById('ctaCopy').addEventListener('click', function() {
   navigator.clipboard.writeText('claude mcp add aipaygen -- npx -y @anthropic-ai/mcp-proxy https://mcp.aipaygen.com/mcp').then(function(){ showToast('Copied to clipboard!'); });
 });
+
+// Showcase live feed
+(function(){
+  var ICONS={'research':'\ud83d\udd0d','code':'\ud83d\udcbb','translate':'\ud83c\udf10','summarize':'\ud83d\udcdd','analyze':'\ud83d\udcca','chain':'\ud83d\udd17','sentiment':'\ud83d\ude0a','write':'\u270f\ufe0f'};
+  var feed=document.getElementById('showcaseFeed');
+  if(!feed)return;
+  function render(items){
+    while(feed.firstChild)feed.removeChild(feed.firstChild);
+    items.forEach(function(e){
+      var icon=ICONS[e.tool_name]||'\u26a1';
+      var secs=(e.response_time_ms/1000).toFixed(1);
+      var row=document.createElement('div');
+      row.className='card';
+      row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 14px;animation:fadeSlideIn 0.4s ease';
+      var iconSpan=document.createElement('span');
+      iconSpan.style.fontSize='1.1rem';
+      iconSpan.textContent=icon;
+      var toolSpan=document.createElement('span');
+      toolSpan.style.cssText='color:var(--accent);font-weight:600;min-width:80px;font-family:var(--font-mono)';
+      toolSpan.textContent=e.tool_name;
+      var inputSpan=document.createElement('span');
+      inputSpan.style.cssText='color:var(--text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--text-sm)';
+      inputSpan.textContent='\u2018'+e.input_preview.substring(0,60)+'\u2019';
+      var timeSpan=document.createElement('span');
+      timeSpan.style.cssText='color:var(--accent2);font-weight:500;white-space:nowrap;font-family:var(--font-mono)';
+      timeSpan.textContent='\u2192 '+secs+'s';
+      row.appendChild(iconSpan);
+      row.appendChild(toolSpan);
+      row.appendChild(inputSpan);
+      row.appendChild(timeSpan);
+      feed.appendChild(row);
+    });
+  }
+  function load(){
+    fetch('/api/showcase?limit=8').then(function(r){return r.json()}).then(function(d){
+      if(d.showcase&&d.showcase.length>0)render(d.showcase);
+    }).catch(function(){});
+  }
+  load();
+  setInterval(load,30000);
+})();
 
 // Install copy buttons
 function copyInstall(id, btn) {

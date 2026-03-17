@@ -3226,3 +3226,32 @@ def integrations():
 def link_tree():
     """Link-in-bio page for social media profiles."""
     return render_template("links.html")
+
+
+# ── Showcase API ─────────────────────────────────────────────────────────────
+
+@meta_bp.route("/api/showcase", methods=["GET"])
+def showcase_list():
+    """Return latest approved showcase entries as social proof."""
+    from showcase import get_approved
+    limit = min(int(request.args.get("limit", 20)), 100)
+    entries = get_approved(limit)
+    return jsonify({"showcase": entries, "count": len(entries)})
+
+
+@meta_bp.route("/api/showcase", methods=["POST"])
+def showcase_submit():
+    """Capture a notable tool usage for showcase (internal use)."""
+    from showcase import log_showcase
+    data = request.get_json(silent=True) or {}
+    tool_name = data.get("tool_name", "")
+    if not tool_name:
+        return jsonify({"error": "tool_name required"}), 400
+    log_showcase(
+        tool_name=tool_name,
+        input_preview=data.get("input_preview", ""),
+        output_preview=data.get("output_preview", ""),
+        response_time_ms=int(data.get("response_time_ms", 0)),
+        model=data.get("model", ""),
+    )
+    return jsonify({"status": "captured"}), 201

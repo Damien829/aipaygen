@@ -99,7 +99,8 @@
   </div>
 
   <div class="tabs">
-    <button class="tab active" onclick="showTab('credits')">Credits</button>
+    <button class="tab active" onclick="showTab('credits')">One-time Credits</button>
+    <button class="tab" onclick="showTab('monthly')">Monthly Plans</button>
     <button class="tab" onclick="showTab('packages')">Specialty Packages</button>
   </div>
 
@@ -171,6 +172,47 @@
       <div class="feat"><span>&#10003;</span> 4,100+ API catalog</div>
       <div class="feat"><span>&#10003;</span> 15 AI models</div>
     </div>
+  </div>
+
+  <!-- Monthly Plans Tab -->
+  <div class="card pkg-section" id="tab-monthly">
+    <h1>Monthly Plans</h1>
+    <p class="sub">Predictable pricing. Save up to 40% vs pay-per-call. Cancel anytime.</p>
+
+    <div style="background:#1a2e1a;border:1px solid #2d5e2d;border-radius:8px;padding:10px 16px;margin-bottom:16px;font-size:0.82rem;color:#a0c0a0">
+      <strong style="color:#34d399">Save 40%</strong> compared to pay-per-call equivalent. Subscribers also get priority models and bypass daily spend limits.
+    </div>
+
+    <div class="pkgs" style="grid-template-columns:1fr 1fr 1fr">
+      <div class="pkg" data-tier="hobby" onclick="selectSub(this)">
+        <div class="pkg-name">Hobby</div>
+        <div class="pkg-price">$9/mo</div>
+        <div class="pkg-desc">500 calls/month, all 250 tools, email support. Perfect for side projects.</div>
+        <div class="pkg-tools">$0.018/call &middot; Standard models</div>
+      </div>
+
+      <div class="pkg selected" data-tier="pro" onclick="selectSub(this)" style="border-color:#6366f1">
+        <div class="pkg-name">Pro <span style="background:#6366f1;color:#fff;font-size:0.65rem;padding:2px 8px;border-radius:10px;margin-left:6px">POPULAR</span></div>
+        <div class="pkg-price">$29/mo</div>
+        <div class="pkg-desc">2,000 calls/month, priority models (Claude Sonnet), webhook alerts, key rotation.</div>
+        <div class="pkg-tools">$0.0145/call &middot; Priority models</div>
+      </div>
+
+      <div class="pkg" data-tier="business" onclick="selectSub(this)">
+        <div class="pkg-name">Business</div>
+        <div class="pkg-price">$79/mo</div>
+        <div class="pkg-desc">10,000 calls/month, premium models (Claude Opus), custom tool scoping, dedicated support.</div>
+        <div class="pkg-tools">$0.0079/call &middot; Premium models</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Top up existing key (optional)</label>
+      <input type="text" id="sub_existing_key" placeholder="apk_xxx -- leave blank for a new key">
+    </div>
+
+    <button class="btn" id="sub-pay-btn" onclick="subCheckout()" style="background:#059669">&#9889; Subscribe with Card</button>
+    <p class="error" id="sub-err"></p>
   </div>
 
   <!-- Specialty Packages Tab -->
@@ -268,8 +310,9 @@ let pkgLabel = 'full-access';
 function showTab(tab) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.pkg-section').forEach(s => s.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
-  event.target.classList.add('active');
+  var target = document.getElementById('tab-' + tab);
+  if (target) target.classList.add('active');
+  if (event && event.target) event.target.classList.add('active');
 }
 
 function selectPlan(el) {
@@ -304,6 +347,33 @@ async function checkout() {
     if (data.url) { window.location.href = data.url; }
     else { err.textContent = data.error || 'Something went wrong'; err.style.display = 'block'; btn.disabled = false; btn.textContent = '\u{1F512} Pay with Card'; }
   } catch(e) { err.textContent = 'Network error — please try again'; err.style.display = 'block'; btn.disabled = false; btn.textContent = '\u{1F512} Pay with Card'; }
+}
+
+let selectedTier = 'pro';
+
+function selectSub(el) {
+  document.querySelectorAll('#tab-monthly .pkg').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedTier = el.dataset.tier;
+}
+
+async function subCheckout() {
+  const btn = document.getElementById('sub-pay-btn');
+  const err = document.getElementById('sub-err');
+  btn.disabled = true; btn.textContent = 'Redirecting to Stripe...'; err.style.display = 'none';
+  try {
+    const res = await fetch('/subscribe', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        tier: selectedTier,
+        existing_key: document.getElementById('sub_existing_key').value.trim(),
+      })
+    });
+    const data = await res.json();
+    if (data.url) { window.location.href = data.url; }
+    else { err.textContent = data.error || 'Something went wrong'; err.style.display = 'block'; btn.disabled = false; btn.textContent = '\u26A1 Subscribe with Card'; }
+  } catch(e) { err.textContent = 'Network error -- please try again'; err.style.display = 'block'; btn.disabled = false; btn.textContent = '\u26A1 Subscribe with Card'; }
 }
 
 async function pkgCheckout() {

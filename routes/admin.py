@@ -2280,3 +2280,90 @@ def admin_analytics():
         '</body></html>'
     )
     return html, 200, {"Content-Type": "text/html"}
+
+
+# ── Showcase Admin ───────────────────────────────────────────────────────────
+
+@admin_bp.route("/admin/showcase", methods=["GET"])
+@require_admin
+def showcase_admin():
+    """Admin page to review and approve/reject showcase entries."""
+    from showcase import get_pending, get_approved
+    pending = get_pending(50)
+    approved = get_approved(20)
+    rows_html = ""
+    for e in pending:
+        rows_html += (
+            f'<tr>'
+            f'<td>{e["id"]}</td>'
+            f'<td><strong>{e["tool_name"]}</strong></td>'
+            f'<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{e["input_preview"]}</td>'
+            f'<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{e["output_preview"]}</td>'
+            f'<td>{e["response_time_ms"]}ms</td>'
+            f'<td>{e["model"]}</td>'
+            f'<td>{e["created_at"][:19]}</td>'
+            f'<td>'
+            f'<button onclick="scAction({e["id"]},\'approve\')" style="background:#22c55e;color:#fff;border:none;padding:4px 12px;border-radius:4px;cursor:pointer;margin-right:4px">Approve</button>'
+            f'<button onclick="scAction({e["id"]},\'reject\')" style="background:#ef4444;color:#fff;border:none;padding:4px 12px;border-radius:4px;cursor:pointer">Reject</button>'
+            f'</td>'
+            f'</tr>'
+        )
+    approved_html = ""
+    for e in approved:
+        approved_html += (
+            f'<tr style="opacity:0.7">'
+            f'<td>{e["id"]}</td>'
+            f'<td>{e["tool_name"]}</td>'
+            f'<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{e["input_preview"]}</td>'
+            f'<td>{e["response_time_ms"]}ms</td>'
+            f'<td>{e["created_at"][:19]}</td>'
+            f'</tr>'
+        )
+    html = (
+        '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">'
+        '<title>Showcase Admin</title>'
+        '<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,sans-serif;background:#0a0a0a;color:#e8e8e8;padding:24px}'
+        'h1{font-size:1.4rem;margin-bottom:16px}h2{font-size:1.1rem;margin:24px 0 12px;color:#888}'
+        'table{width:100%;border-collapse:collapse;font-size:0.82rem}th,td{padding:8px 10px;border-bottom:1px solid #222;text-align:left}'
+        'th{color:#888;font-weight:600}</style></head><body>'
+        '<h1>Showcase Admin</h1>'
+        f'<p style="color:#888;margin-bottom:16px">{len(pending)} pending &middot; {len(approved)} approved</p>'
+        '<h2>Pending Review</h2>'
+        '<table><tr><th>ID</th><th>Tool</th><th>Input</th><th>Output</th><th>Time</th><th>Model</th><th>Date</th><th>Actions</th></tr>'
+        f'{rows_html}</table>'
+        '<h2>Recently Approved</h2>'
+        '<table><tr><th>ID</th><th>Tool</th><th>Input</th><th>Time</th><th>Date</th></tr>'
+        f'{approved_html}</table>'
+        '<script>'
+        'function scAction(id, act){'
+        '  fetch("/admin/showcase/"+id+"/"+act, {method:"POST",headers:{"Authorization":"Bearer "+document.cookie.split("session=")[1]||""}})'
+        '  .then(function(){location.reload()});'
+        '}'
+        '</script>'
+        '<p style="text-align:center;margin-top:20px;font-size:0.72rem;color:#444">'
+        '<a href="/admin/funnel" style="color:#555">Funnel</a> &middot; '
+        '<a href="/admin/showcase" style="color:#555">Showcase</a> &middot; '
+        '<a href="/status" style="color:#555">Status</a></p>'
+        '</body></html>'
+    )
+    return html, 200, {"Content-Type": "text/html"}
+
+
+@admin_bp.route("/admin/showcase/<int:entry_id>/approve", methods=["POST"])
+@require_admin
+def showcase_approve(entry_id):
+    """Approve a showcase entry."""
+    from showcase import approve
+    if approve(entry_id):
+        return jsonify({"status": "approved", "id": entry_id})
+    return jsonify({"error": "not_found"}), 404
+
+
+@admin_bp.route("/admin/showcase/<int:entry_id>/reject", methods=["POST"])
+@require_admin
+def showcase_reject(entry_id):
+    """Reject (delete) a showcase entry."""
+    from showcase import reject
+    if reject(entry_id):
+        return jsonify({"status": "rejected", "id": entry_id})
+    return jsonify({"error": "not_found"}), 404
