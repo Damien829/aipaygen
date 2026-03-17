@@ -46,6 +46,7 @@ from agent_network import (
     add_knowledge, search_knowledge, get_trending_topics, vote_knowledge,
     submit_task, browse_tasks, claim_task, complete_task, get_task,
     check_and_use_free_tier, get_free_tier_status, get_free_tier_remaining,
+    build_fingerprint, record_fingerprint, is_fingerprint_blocked,
     update_reputation, get_reputation, get_leaderboard,
     subscribe_tasks, get_task_subscribers,
 )
@@ -721,6 +722,27 @@ routes: dict[str, RouteConfig] = {
         mime_type="application/json",
         description="Run multi-step AI workflow — chain tools together with 15% discount",
     ),
+    # ── Streaming endpoints (were unprotected — now gated) ────────────────────
+    "POST /stream/research": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="text/event-stream",
+        description="Streaming research — SSE events as Claude researches a topic ($0.02)",
+    ),
+    "POST /stream/write": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="text/event-stream",
+        description="Streaming write — SSE events as Claude writes content ($0.02)",
+    ),
+    "POST /stream/analyze": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="text/event-stream",
+        description="Streaming analysis — SSE events as Claude analyzes content ($0.02)",
+    ),
+    "POST /agent/stream": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.10", network=EVM_NETWORK)],
+        mime_type="text/event-stream",
+        description="Streaming autonomous agent — SSE events as agent reasons and acts ($0.10)",
+    ),
 }
 
 _raw_flask_wsgi = app.wsgi_app  # save original Flask WSGI before x402 wraps it
@@ -789,8 +811,36 @@ def _api_key_wsgi(environ, start_response):
             pass
 
     # 0.5 Free tier — 3 calls/day per IP before requiring payment
+    #     Fingerprint tracking: detect IP rotation via VPN/proxy abuse.
+    #     Only trust CF-Connecting-IP (set by Cloudflare, not spoofable by clients).
+    #     X-Forwarded-For is NEVER used for billing decisions.
     if routes.get(route_key) and not auth.startswith("Bearer apk_") and not environ.get("HTTP_X_PAYMENT"):
         _ip = environ.get("HTTP_CF_CONNECTING_IP", environ.get("REMOTE_ADDR", "unknown"))
+
+        # Build fingerprint from browser headers to detect IP rotation
+        _fp = build_fingerprint(
+            environ.get("HTTP_USER_AGENT", ""),
+            environ.get("HTTP_ACCEPT_LANGUAGE", ""),
+            environ.get("HTTP_ACCEPT_ENCODING", ""),
+        )
+        # Record fingerprint→IP mapping; returns False if fingerprint is blocked
+        if not record_fingerprint(_ip, _fp):
+            funnel_log_event("fingerprint_blocked", endpoint=environ.get("PATH_INFO", ""), ip=_ip, user_agent=environ.get("HTTP_USER_AGENT", ""))
+            body = json.dumps({
+                "error": "free_tier_blocked",
+                "message": "Unusual activity detected from this client. Get an API key to continue.",
+                "upgrade": {
+                    "free_key": "POST https://aipaygen.com/auth/generate-key (includes $0.25 trial credits)",
+                    "buy_credits": "https://aipaygen.com/buy-credits",
+                },
+            }).encode()
+            start_response("402 Payment Required", [
+                ("Content-Type", "application/json"),
+                ("Content-Length", str(len(body))),
+                ("Access-Control-Allow-Origin", "*"),
+            ])
+            return [body]
+
         if check_and_use_free_tier(_ip):
             remaining = get_free_tier_remaining(_ip)
             environ["X_FREE_TIER"] = "1"
@@ -834,22 +884,21 @@ def _api_key_wsgi(environ, start_response):
             try:
                 if pricing_mode == "metered":
                     key_data = validate_key(key)
-                    if key_data and key_data.get("balance_usd", 0) >= 0.001:
-                        # Deduct minimum flat cost upfront for metered
-                        price_str = route_cfg.accepts[0].price
-                        cost = float(price_str.lstrip("$"))
-                        if key_data.get("balance_usd", 0) >= 2.00:
-                            cost = round(cost * 0.8, 4)
-                        if deduct(key, cost):
-                            environ["X_APIKEY_BYPASS"] = key
-                            environ["X_PRICING_MODE"] = "metered"
-                            return _raw_flask_wsgi(environ, start_response)
+                    # For metered mode, validate key has minimum balance but do NOT
+                    # deduct here — call_llm() handles metered deduction after the
+                    # actual token count is known, preventing double-billing.
+                    price_str = route_cfg.accepts[0].price
+                    min_cost = float(price_str.lstrip("$"))
+                    if key_data and key_data.get("balance_usd", 0) >= min_cost:
+                        environ["X_APIKEY_BYPASS"] = key
+                        environ["X_PRICING_MODE"] = "metered"
+                        return _raw_flask_wsgi(environ, start_response)
                 else:
                     # Flat: deduct fixed amount upfront (existing behavior)
                     price_str = route_cfg.accepts[0].price  # e.g. "$0.01"
                     cost = float(price_str.lstrip("$"))
                     key_data = validate_key(key)
-                    if key_data and key_data.get("balance_usd", 0) >= cost:
+                    if key_data:
                         # 20% bulk discount for prepaid keys with balance >= $2.00
                         if key_data.get("balance_usd", 0) >= 2.00:
                             cost = round(cost * 0.8, 4)
@@ -922,7 +971,7 @@ def _api_key_wsgi(environ, start_response):
                     calls_today = row["calls_used"] if row else 0
             except Exception as _ft_err:
                 logging.getLogger(__name__).error("Free tier lookup failed: %s", _ft_err)
-                calls_today = 10
+                calls_today = 3
             # Add x402-standard headers + upgrade hints + discovery Link headers
             route_cfg_hdr = routes.get(route_key)
             try:
@@ -947,7 +996,7 @@ def _api_key_wsgi(environ, start_response):
             price = route_cfg.accepts[0].price if route_cfg else "varies"
             enrichment = json.dumps({
                 "error": "payment_required",
-                "message": f"Free tier exhausted ({calls_today}/{10} calls used today). Get unlimited access starting at $1.",
+                "message": f"Free tier exhausted ({calls_today}/{3} calls used today). Get unlimited access starting at $1.",
                 "endpoint": path,
                 "price": price,
                 "unlock": {

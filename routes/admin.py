@@ -1643,7 +1643,7 @@ a{{color:#6366f1}}h1,h2{{color:#1e1b4b}}.stat{{display:inline-block;background:#
   <div class="stat"><div class="n">{total_calls:,}</div><div class="l">Total API calls</div></div>
   <div class="stat"><div class="n">${total_earned:.2f}</div><div class="l">Revenue logged</div></div>
   <div class="stat"><div class="n">169</div><div class="l">MCP Tools</div></div>
-  <div class="stat"><div class="n">10</div><div class="l">Free calls/day</div></div>
+  <div class="stat"><div class="n">3</div><div class="l">Free calls/day</div></div>
   <div class="stat"><div class="n">${cost['total_cost_usd']:.4f}</div><div class="l">Claude cost today</div></div>
 </div>
 

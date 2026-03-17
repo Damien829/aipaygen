@@ -14,8 +14,10 @@ def fresh_db(tmp_path):
     """Use a temp DB for each test."""
     db_path = str(tmp_path / "network.db")
     with patch("agent_network.DB_PATH", db_path):
-        from agent_network import init_network_db
-        init_network_db()
+        import agent_network
+        agent_network._fingerprint_db_initialized = False
+        agent_network._free_tier_cache.clear()
+        agent_network.init_network_db()
         yield db_path
 
 
@@ -57,6 +59,88 @@ class TestFreeTier:
         check_and_use_free_tier(ip)
         status = get_free_tier_status(ip)
         assert "calls_today" in status or "remaining" in status
+
+
+class TestFingerprinting:
+    """Tests for fingerprint-based IP rotation detection."""
+
+    def test_build_fingerprint_deterministic(self, fresh_db):
+        from agent_network import build_fingerprint
+        fp1 = build_fingerprint("Mozilla/5.0", "en-US", "gzip, br")
+        fp2 = build_fingerprint("Mozilla/5.0", "en-US", "gzip, br")
+        assert fp1 == fp2
+        assert len(fp1) == 32
+
+    def test_different_headers_different_fingerprint(self, fresh_db):
+        from agent_network import build_fingerprint
+        fp1 = build_fingerprint("Mozilla/5.0", "en-US", "gzip")
+        fp2 = build_fingerprint("curl/7.88", "de-DE", "gzip")
+        assert fp1 != fp2
+
+    def test_fingerprint_allows_normal_use(self, fresh_db):
+        from agent_network import record_fingerprint
+        fp = "a" * 32
+        # Same fingerprint from 1 IP should be fine
+        assert record_fingerprint("1.2.3.4", fp) is True
+        assert record_fingerprint("1.2.3.4", fp) is True
+
+    def test_fingerprint_blocks_after_threshold(self, fresh_db):
+        from agent_network import record_fingerprint, _FINGERPRINT_IP_THRESHOLD
+        fp = "b" * 32
+        # Use the fingerprint from many different IPs
+        for i in range(_FINGERPRINT_IP_THRESHOLD - 1):
+            assert record_fingerprint(f"10.0.0.{i}", fp) is True
+        # The 5th IP should trigger the block
+        assert record_fingerprint(f"10.0.0.99", fp) is False
+
+    def test_fingerprint_block_exhausts_all_ips(self, fresh_db):
+        from agent_network import record_fingerprint, check_and_use_free_tier, _FINGERPRINT_IP_THRESHOLD
+        fp = "c" * 32
+        ips = [f"10.1.0.{i}" for i in range(_FINGERPRINT_IP_THRESHOLD)]
+        for ip in ips[:-1]:
+            record_fingerprint(ip, fp)
+        # Trigger block on last IP
+        record_fingerprint(ips[-1], fp)
+        # All those IPs should now be blocked from free tier
+        for ip in ips:
+            assert check_and_use_free_tier(ip) is False
+
+    def test_is_fingerprint_blocked(self, fresh_db):
+        from agent_network import record_fingerprint, is_fingerprint_blocked, _FINGERPRINT_IP_THRESHOLD
+        fp = "d" * 32
+        assert is_fingerprint_blocked(fp) is False
+        for i in range(_FINGERPRINT_IP_THRESHOLD):
+            record_fingerprint(f"10.2.0.{i}", fp)
+        assert is_fingerprint_blocked(fp) is True
+
+    def test_empty_fingerprint_not_blocked(self, fresh_db):
+        from agent_network import record_fingerprint, is_fingerprint_blocked
+        assert record_fingerprint("1.2.3.4", "") is True
+        assert is_fingerprint_blocked("") is False
+
+    def test_different_fingerprints_independent(self, fresh_db):
+        from agent_network import record_fingerprint, _FINGERPRINT_IP_THRESHOLD
+        fp_bad = "e" * 32
+        fp_good = "f" * 32
+        # Block fp_bad
+        for i in range(_FINGERPRINT_IP_THRESHOLD):
+            record_fingerprint(f"10.3.0.{i}", fp_bad)
+        # fp_good should still work
+        assert record_fingerprint("10.4.0.1", fp_good) is True
+
+
+class TestAtomicFreeTier:
+    """Tests for atomic (BEGIN IMMEDIATE) free tier enforcement."""
+
+    def test_check_and_use_is_atomic(self, fresh_db):
+        """Verify that check_and_use_free_tier correctly limits under sequential calls."""
+        from agent_network import check_and_use_free_tier, FREE_DAILY_LIMIT
+        ip = "atomic-test-ip"
+        results = []
+        for _ in range(FREE_DAILY_LIMIT + 5):
+            results.append(check_and_use_free_tier(ip))
+        assert results.count(True) == FREE_DAILY_LIMIT
+        assert results.count(False) == 5
 
 
 class TestMessaging:

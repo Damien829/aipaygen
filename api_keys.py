@@ -108,7 +108,9 @@ def validate_key(key: str) -> dict | None:
 
 
 def deduct(key: str, amount: float) -> bool:
-    """Atomically deduct amount from key balance. Returns False if insufficient funds."""
+    """Atomically deduct amount from key balance. Returns False if insufficient funds or invalid amount."""
+    if amount < 0:
+        return False
     now = datetime.utcnow().isoformat()
     c = sqlite3.connect(DB_PATH, isolation_level=None)
     c.execute("PRAGMA journal_mode=WAL")
@@ -135,24 +137,34 @@ def deduct_metered(key: str, input_tokens: int, output_tokens: int,
     """Deduct actual token cost from key balance. Returns cost info or None if insufficient.
 
     Rates are USD per million tokens.
+    Uses BEGIN IMMEDIATE to prevent race conditions (same pattern as deduct()).
     """
     cost = (input_tokens * input_rate + output_tokens * output_rate) / 1_000_000
+    if cost < 0:
+        return None
     now = datetime.utcnow().isoformat()
-    with _conn() as c:
-        row = c.execute(
-            "SELECT balance_usd FROM api_keys WHERE key = ? AND is_active = 1",
-            (key,),
-        ).fetchone()
-        if not row or row["balance_usd"] < cost:
-            return None
-        c.execute(
+    c = sqlite3.connect(DB_PATH, isolation_level=None)
+    c.execute("PRAGMA journal_mode=WAL")
+    c.row_factory = sqlite3.Row
+    try:
+        c.execute("BEGIN IMMEDIATE")
+        cur = c.execute(
             "UPDATE api_keys SET balance_usd = balance_usd - ?, total_spent = total_spent + ?, "
             "call_count = call_count + 1, last_used_at = ?, "
             "first_used_at = CASE WHEN first_used_at IS NULL THEN ? ELSE first_used_at END "
-            "WHERE key = ?",
-            (cost, cost, now, now, key),
+            "WHERE key = ? AND is_active = 1 AND balance_usd >= ?",
+            (cost, cost, now, now, key, cost),
         )
+        if cur.rowcount == 0:
+            c.execute("ROLLBACK")
+            return None
         new_balance = c.execute(
             "SELECT balance_usd FROM api_keys WHERE key = ?", (key,),
         ).fetchone()["balance_usd"]
-    return {"cost": round(cost, 8), "balance_remaining": round(new_balance, 8)}
+        c.execute("COMMIT")
+        return {"cost": round(cost, 8), "balance_remaining": round(new_balance, 8)}
+    except Exception:
+        c.execute("ROLLBACK")
+        raise
+    finally:
+        c.close()
