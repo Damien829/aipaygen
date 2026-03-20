@@ -13,8 +13,10 @@ import anthropic
 import requests as _requests
 from apscheduler.schedulers.background import BackgroundScheduler
 
+
 # Shared utilities (extracted from this file)
 from helpers import (
+    APP_VERSION,
     cache_get as _cache_get, cache_set as _cache_set,
     check_rate_limit as _check_rate_limit,
     check_identity_rate_limit as _check_identity_rate_limit,
@@ -54,7 +56,7 @@ from specialist_agents import bootstrap_all_agents
 from api_keys import (
     init_keys_db, generate_key, topup_key, get_key_status, validate_key,
     deduct, deduct_metered, check_daily_spend, get_key_tier, get_tier_rate_limit,
-    get_allowed_tools,
+    get_allowed_tools, decrement_subscription_call,
 )
 from async_jobs import init_jobs_db, submit_job, get_job, run_job_async
 from file_storage import init_files_db, save_file, get_file, delete_file, list_files, storage_stats
@@ -728,6 +730,11 @@ routes: dict[str, RouteConfig] = {
         description="Run multi-step AI workflow — chain tools together with 15% discount",
     ),
     # ── Streaming endpoints (were unprotected — now gated) ────────────────────
+    "POST /stream/chat": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
+        mime_type="text/event-stream",
+        description="Streaming chat — SSE events for multi-turn AI conversation ($0.03)",
+    ),
     "POST /stream/research": RouteConfig(
         accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
         mime_type="text/event-stream",
@@ -774,8 +781,17 @@ def _api_key_wsgi(environ, start_response):
     # Only bypass if truly local (no CF-Connecting-IP means not via tunnel)
     remote_addr = environ.get("REMOTE_ADDR", "")
     cf_ip = environ.get("HTTP_CF_CONNECTING_IP", "")
-    if remote_addr in ("127.0.0.1", "::1") and not cf_ip and routes.get(route_key):
-        return _raw_flask_wsgi(environ, start_response)
+    # Localhost bypass: only for internal/admin endpoints, NOT AI tool calls
+    # AI tools from localhost still go through free tier enforcement
+    if remote_addr in ("127.0.0.1", "::1") and not cf_ip:
+        path = environ.get("PATH_INFO", "")
+        _internal_prefixes = ("/admin", "/health", "/status", "/stats", "/discovery",
+                              "/skills/absorb", "/skills/harvest", "/blog", "/indexnow")
+        if any(path.startswith(p) for p in _internal_prefixes):
+            return _raw_flask_wsgi(environ, start_response)
+        # AI tool calls from localhost: set free tier flag so they use llama-local
+        if routes.get(route_key) and not auth.startswith("Bearer apk_"):
+            environ["X_FREE_TIER"] = "1"
 
     # 0. Banned IP check — auto-banned IPs get 429 immediately
     _ip = environ.get("HTTP_CF_CONNECTING_IP", environ.get("REMOTE_ADDR", "unknown"))
@@ -808,6 +824,7 @@ def _api_key_wsgi(environ, start_response):
             else:
                 _tier = "free"
                 _rate_limit = 20
+            environ["X_TIER_RATE_LIMIT"] = str(_rate_limit)
             if not _check_rate_limit(_ip, limit_override=_rate_limit):
                 body = json.dumps({
                     "error": "rate_limited",
@@ -897,6 +914,7 @@ def _api_key_wsgi(environ, start_response):
         key = auth[7:]  # strip "Bearer "
         route_cfg = routes.get(route_key)
         pricing_mode = environ.get("HTTP_X_PRICING", "flat").lower()
+        key_data = None
         if route_cfg:
             try:
                 key_data = validate_key(key)
@@ -925,6 +943,26 @@ def _api_key_wsgi(environ, start_response):
                             "allowed_tools": _allowed,
                         }).encode()
                         start_response("403 Forbidden", [
+                            ("Content-Type", "application/json"),
+                            ("Content-Length", str(len(body))),
+                            ("Access-Control-Allow-Origin", "*"),
+                        ])
+                        return [body]
+
+                # Subscription key path — decrement calls instead of balance
+                if key_data.get("subscription_tier"):
+                    if decrement_subscription_call(key):
+                        environ["X_APIKEY_BYPASS"] = key
+                        environ["X_PRICING_MODE"] = "subscription"
+                        return _raw_flask_wsgi(environ, start_response)
+                    else:
+                        body = json.dumps({
+                            "error": "subscription_calls_exhausted",
+                            "message": "Monthly call allowance exhausted. Upgrade your plan or wait for reset.",
+                            "subscription_tier": key_data.get("subscription_tier"),
+                            "upgrade": "https://aipaygen.com/pricing",
+                        }).encode()
+                        start_response("402 Payment Required", [
                             ("Content-Type", "application/json"),
                             ("Content-Length", str(len(body))),
                             ("Access-Control-Allow-Origin", "*"),
@@ -1214,6 +1252,8 @@ init_referral_db()
 init_discovery_db()
 from accounts import init_accounts_db
 init_accounts_db()
+from workflow_db import init_workflow_db
+init_workflow_db()
 bootstrap_all_agents()
 
 # Register all DB paths for weekly maintenance vacuum
@@ -1414,9 +1454,23 @@ def gzip_response(response):
     return response
 
 
+# ── Template globals (ads, version) ───────────────────────────────────────────
+_ADSENSE_PUB_ID = os.getenv("ADSENSE_PUB_ID", "ca-pub-XXXXXXX")
+
+@app.context_processor
+def inject_globals():
+    return {"ADSENSE_PUB_ID": _ADSENSE_PUB_ID, "APP_VERSION": APP_VERSION}
+
+
 # ── Cache-Control headers for specific routes ──────────────────────────────────
 
-_CACHE_PUBLIC_1H = frozenset({"/pricing", "/docs", "/discover", "/docs/api", "/sell", "/sdk"})
+_CACHE_PUBLIC_1H = frozenset({
+    "/pricing", "/docs", "/discover", "/docs/api", "/sell", "/sdk",
+    "/.well-known/ai-plugin.json", "/.well-known/agent.json", "/.well-known/x402.json",
+    "/.well-known/x402", "/.well-known/pricing.json", "/.well-known/agents.json",
+    "/.well-known/security.txt", "/agent.json", "/ai-plugin.json",
+    "/openapi.json", "/llms.txt", "/models",
+})
 _CACHE_NO_CACHE = frozenset({"/health", "/status"})
 
 @app.after_request
@@ -1432,7 +1486,10 @@ def set_cache_headers(response):
     return response
 
 
-_ALLOWED_ORIGINS = {"https://aipaygen.com", "https://api.aipaygen.com", "https://mcp.aipaygen.com", "https://app.aipaygen.com"}
+_ALLOWED_ORIGINS = {
+    "https://aipaygen.com", "https://api.aipaygen.com", "https://mcp.aipaygen.com", "https://app.aipaygen.com",
+    "http://localhost:8081", "http://localhost:19006",  # Expo dev servers
+}
 
 @app.after_request
 def add_cors(response):
@@ -1459,13 +1516,14 @@ def add_cors(response):
     response.headers["X-Request-Id"] = req_id
 
     # ── API Version + Powered-By ───────────────────────────────────────────────
-    response.headers["X-API-Version"] = "1.9.0"
+    response.headers["X-API-Version"] = APP_VERSION
     response.headers["X-Powered-By"] = "AiPayGen"
 
     # ── Rate Limit Headers ─────────────────────────────────────────────────────
     try:
         ip = _get_client_ip()
-        rl = _get_rate_limit_info(ip)
+        _tier_limit = request.environ.get("X_TIER_RATE_LIMIT")
+        rl = _get_rate_limit_info(ip, limit_override=int(_tier_limit) if _tier_limit else None)
         response.headers["X-RateLimit-Limit"] = str(rl["limit"])
         response.headers["X-RateLimit-Remaining"] = str(rl["remaining"])
         response.headers["X-RateLimit-Reset"] = str(rl["reset"])
@@ -1541,7 +1599,7 @@ def inject_free_tier_upsell(response):
             return response
         data["_free_tier"] = {
             "calls_remaining": remaining_int,
-            "total_daily": 10,
+            "total_daily": 3,
         }
         if remaining_int <= 5:
             data["_free_tier"]["upgrade"] = {
@@ -1890,6 +1948,11 @@ from routes.crypto import crypto_bp
 from crypto_deposits import init_crypto_db
 init_crypto_db()
 app.register_blueprint(crypto_bp)
+
+# Workflow CRUD & marketplace
+from routes.workflows import workflows_bp, init_workflows_bp
+init_workflows_bp()
+app.register_blueprint(workflows_bp)
 
 # Start crypto deposit poller (background thread)
 from crypto_poller import start_poller as _start_crypto_poller
