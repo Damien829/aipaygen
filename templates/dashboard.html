@@ -49,6 +49,11 @@
       <div style="color:var(--text-muted);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Total Spent</div>
       <div style="font-size:2rem;font-weight:700;font-family:'IBM Plex Mono',monospace">${{ "%.4f"|format(data.total_spent) }}</div>
     </div>
+    <div style="background:linear-gradient(135deg,#1a1000 0%,#2a1800 100%);border:1px solid #3a2a00;border-radius:12px;padding:1.5rem;text-align:center">
+      <div style="font-size:2rem;margin-bottom:0.25rem">&#128293;</div>
+      <div style="font-size:2rem;font-weight:700;font-family:'IBM Plex Mono',monospace;color:#ffa500">{{ data.streak_days if data.streak_days else 0 }}</div>
+      <div style="color:var(--text-muted);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;margin-top:0.25rem">Day Streak</div>
+    </div>
   </div>
 
   <!-- Key Info -->
@@ -119,17 +124,37 @@
   <!-- Refer & Earn -->
   <div style="background:linear-gradient(135deg,#0a1628 0%,#0d2040 100%);border:1px solid var(--green,#00ff9d);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1rem">
-      <h3 style="font-family:'IBM Plex Mono',monospace;font-size:1rem;color:var(--green,#00ff9d);margin:0">Refer &amp; Earn $0.10</h3>
+      <h3 style="font-family:'IBM Plex Mono',monospace;font-size:1rem;color:var(--green,#00ff9d);margin:0">&#127873; Refer &amp; Earn $0.10</h3>
       <a href="/referrals?key={{ data.key_full }}" style="color:var(--cyan,#00d4ff);font-size:0.85rem;text-decoration:none">View all referrals &rarr;</a>
     </div>
     <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1rem">Share your link. You both get $0.10 in API credits when they sign up.</p>
+    <div style="display:grid;grid-template-columns:auto 1fr auto;gap:0.75rem;align-items:center;margin-bottom:0.75rem">
+      <span style="color:var(--text-muted);font-size:0.8rem;font-family:'IBM Plex Mono',monospace">Code:</span>
+      <code style="background:#070e18;border:1px solid #1a2a3a;color:var(--green,#00ff9d);padding:0.5rem 0.75rem;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;font-weight:700">{{ data.referral_code }}</code>
+      <button onclick="navigator.clipboard.writeText('{{ data.referral_code }}').then(()=>{this.textContent='Copied!';setTimeout(()=>{this.textContent='Copy Code'},2000)})"
+              style="background:transparent;border:1px solid var(--green,#00ff9d);color:var(--green,#00ff9d);padding:0.4rem 1rem;border-radius:8px;font-weight:600;cursor:pointer;font-size:0.8rem;white-space:nowrap">Copy Code</button>
+    </div>
     <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center">
       <input type="text" id="ref-link-dash" value="https://aipaygen.com/buy-credits?ref={{ data.referral_code }}" readonly
              style="flex:1;min-width:220px;background:#070e18;border:1px solid #1a2a3a;color:#c8d8e8;padding:0.5rem 0.75rem;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.8rem">
-      <button onclick="navigator.clipboard.writeText(document.getElementById('ref-link-dash').value).then(()=>{this.textContent='Copied!';setTimeout(()=>{this.textContent='Copy'},2000)})"
-              style="background:var(--green,#00ff9d);color:#020408;border:none;padding:0.5rem 1.2rem;border-radius:8px;font-weight:600;cursor:pointer;font-size:0.85rem;white-space:nowrap">Copy</button>
+      <button onclick="navigator.clipboard.writeText(document.getElementById('ref-link-dash').value).then(()=>{this.textContent='Copied!';setTimeout(()=>{this.textContent='Copy Link'},2000)})"
+              style="background:var(--green,#00ff9d);color:#020408;border:none;padding:0.5rem 1.2rem;border-radius:8px;font-weight:600;cursor:pointer;font-size:0.85rem;white-space:nowrap">Copy Link</button>
     </div>
   </div>
+
+  <!-- Favorite Tools -->
+  {% if data.favorite_tools %}
+  <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
+    <h3 style="font-family:'IBM Plex Mono',monospace;font-size:1rem;margin-bottom:1rem;color:var(--cyan,#00d4ff)">&#11088; Favorite Tools</h3>
+    <div style="display:flex;flex-wrap:wrap;gap:0.5rem">
+      {% for fav in data.favorite_tools %}
+      <a href="/playground?tool={{ fav }}" style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.2);border-radius:20px;padding:6px 14px;color:var(--cyan,#00d4ff);font-family:'IBM Plex Mono',monospace;font-size:0.8rem;text-decoration:none;transition:all 0.15s">
+        {{ fav }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
 
   <!-- Account Info -->
   <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem;margin-bottom:2rem">

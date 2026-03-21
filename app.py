@@ -1268,8 +1268,8 @@ for _dbf in _db_files:
         _wc = _sqlite3.connect(_dbf)
         _wc.execute("PRAGMA journal_mode=WAL")
         _wc.close()
-    except Exception:
-        pass
+    except Exception as e:
+        _logging.getLogger(__name__).warning("Failed to enable WAL on %s: %s", _dbf, e)
 
 # Scheduler now in scheduler.py — all jobs registered there
 from scheduler import init_scheduler, get_scheduler
@@ -1769,7 +1769,9 @@ def unsupported_media_type(e):
 @app.errorhandler(429)
 def rate_limited(e):
     req_id = getattr(request, '_request_id', None)
-    return jsonify({"error": "rate_limited", "message": "Rate limit exceeded. Upgrade to a paid plan for higher limits.", "request_id": req_id, "pricing": "https://aipaygen.com/pricing", "buy_credits": "https://aipaygen.com/buy-credits"}), 429
+    resp = jsonify({"error": "rate_limited", "message": "Rate limit exceeded. Upgrade to a paid plan for higher limits.", "request_id": req_id, "pricing": "https://aipaygen.com/pricing", "buy_credits": "https://aipaygen.com/buy-credits"})
+    resp.headers["Retry-After"] = "60"
+    return resp, 429
 
 
 @app.errorhandler(500)
@@ -1953,6 +1955,10 @@ app.register_blueprint(crypto_bp)
 from routes.workflows import workflows_bp, init_workflows_bp
 init_workflows_bp()
 app.register_blueprint(workflows_bp)
+
+# Engagement (streaks, favorites, recents, AI workflow generation)
+from routes.engagement import engagement_bp
+app.register_blueprint(engagement_bp)
 
 # Start crypto deposit poller (background thread)
 from crypto_poller import start_poller as _start_crypto_poller

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}AiPayGen{% endblock %} — AI Agent API</title>
-<meta name="description" content="{% block description %}250 AI tools in one API. Multi-model. Pay per call with API key, x402 USDC, or MCP. 3 free calls/day.{% endblock %}">
+<meta name="description" content="{% block description %}250 AI tools in one API. Multi-model. Pay per call ($0.01-$0.50) with API key, x402 USDC, or MCP. 1 free call/day + 2 with ads. No subscriptions.{% endblock %}">
 <link rel="canonical" href="https://aipaygen.com{% block canonical %}{{ request.path }}{% endblock %}">
 <link rel="icon" href="/static/icon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -17,6 +17,13 @@
 <meta property="og:site_name" content="AiPayGen">
 <meta name="twitter:site" content="@aipaygen">
 {% block head %}{% endblock %}
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4228277826827893" crossorigin="anonymous"></script>
+<style>
+.ad-slot{text-align:center;margin:1.5rem auto;max-width:728px;min-height:90px;overflow:hidden}
+.ad-slot-sidebar{max-width:300px;min-height:250px}
+.ad-slot-inline{max-width:100%;min-height:100px;margin:2rem 0}
+@media(max-width:768px){.ad-slot{max-width:320px;min-height:50px}}
+</style>
 </head>
 <body>
 <a href="#main-content" class="sr-only" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:9999" onfocus="this.style.position='static';this.style.width='auto';this.style.height='auto'" onblur="this.style.position='absolute';this.style.left='-9999px';this.style.width='1px';this.style.height='1px'">Skip to main content</a>
@@ -40,13 +47,28 @@
       <li><a href="/integrations">Integrations</a></li>
       <li><a href="/status">Status</a></li>
       <li><a href="/dashboard">Dashboard</a></li>
+      <li><a href="/app" style="color:#00d4ff">Mobile App</a></li>
       <li><a href="/get-key" class="nav-cta">Get API Key</a></li>
     </ul>
   </div>
 </nav>
 
 <main class="pt-nav" id="main-content">
+<!-- Ad: Top leaderboard -->
+<!-- TODO: Replace TOP_SLOT_ID with a real ad slot ID after AdSense approval -->
+<div class="ad-slot" aria-label="Advertisement">
+  <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-4228277826827893" data-ad-slot="TOP_SLOT_ID" data-ad-format="horizontal" data-full-width-responsive="true"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</div>
+
 {% block content %}{% endblock %}
+
+<!-- Ad: Bottom before footer -->
+<!-- TODO: Replace BOTTOM_SLOT_ID with a real ad slot ID after AdSense approval -->
+<div class="ad-slot" aria-label="Advertisement">
+  <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-4228277826827893" data-ad-slot="BOTTOM_SLOT_ID" data-ad-format="horizontal" data-full-width-responsive="true"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</div>
 </main>
 
 <!-- Footer -->
@@ -54,7 +76,7 @@
   <div class="footer-inner">
     <div class="footer-brand">
       <div class="logo">AiPayGen</div>
-      <p>The AI agent API marketplace. 250 tools, 15 models, 7 providers. Pay per call.</p>
+      <p>The AI agent API marketplace. 250 tools, 15 models, 7 providers. $0.01-$0.50/call. No subscriptions. 70% creator revenue.</p>
       <p class="mt-2" style="color:var(--text-muted)">Base Mainnet &middot; x402 Protocol</p>
     </div>
     <div class="footer-col">
@@ -64,6 +86,7 @@
       <a href="/builder">Agent Builder</a>
       <a href="/sell">Sell Your API</a>
       <a href="/buy-credits">Pricing</a>
+      <a href="/app">Mobile App</a>
       <a href="/sdk">SDK</a>
     </div>
     <div class="footer-col">

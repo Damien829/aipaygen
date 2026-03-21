@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 {% block title %}AiPayGen{% endblock %}
-{% block description %}250 AI tools in one API. Multi-model (Claude, GPT-4o, Gemini, DeepSeek, Grok). Pay per call. 3 free calls/day. $0.25 trial credits.{% endblock %}
+{% block description %}250 AI tools in one API. Multi-model (Claude, GPT-4o, Gemini, DeepSeek, Grok). Pay per call. 1 free call/day + 2 with ads. No subscriptions. No minimums.{% endblock %}
 
 {% block head %}
 <!-- OG Tags -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="AiPayGen — The AI Agent API">
-<meta property="og:description" content="250 AI tools, 15 models, 7 providers. Pay per call. 3 free calls/day. $0.25 trial credits.">
+<meta property="og:description" content="250 AI tools, 15 models, 7 providers. Pay per call ($0.01-$0.50). 1 free call/day + 2 with ads. No subscriptions.">
 <meta property="og:url" content="https://aipaygen.com">
 <meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta property="og:site_name" content="AiPayGen">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="AiPayGen — The AI Agent API">
-<meta name="twitter:description" content="250 AI tools, 15 models, 7 providers. Pay per call. 3 free calls/day.">
+<meta name="twitter:description" content="250 AI tools, 15 models, 7 providers. $0.01-$0.50/call. 1 free call/day + 2 with ads. No subscriptions.">
 <meta name="twitter:image" content="https://aipaygen.com/og-image.png">
 <!-- JSON-LD -->
 <script type="application/ld+json">
@@ -25,7 +25,7 @@
   "applicationCategory": "DeveloperApplication",
   "operatingSystem": "Any",
   "offers": [
-    {"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free", "description": "3 API calls per day"},
+    {"@type": "Offer", "price": "0", "priceCurrency": "USD", "name": "Free", "description": "1 free call/day + 2 with ads"},
     {"@type": "Offer", "price": "5.00", "priceCurrency": "USD", "name": "Starter", "description": "~830 prepaid API calls"},
     {"@type": "Offer", "price": "20.00", "priceCurrency": "USD", "name": "Pro", "description": "~4,000 prepaid API calls"}
   ],
@@ -232,19 +232,19 @@
   <div class="gradient-orb"></div>
   <div style="position:relative;z-index:1">
     <div class="hero-badge fade-in">
-      <span class="badge" style="background:rgba(0,255,157,0.15);color:#00ff9d;">From $0.004/call</span>
+      <span class="badge" style="background:rgba(0,255,157,0.15);color:#00ff9d;">$0.01 - $0.50 per call</span>
       <span class="badge badge-cyan">One API Key</span>
     </div>
     <h1 class="fade-in delay-1">The AI Agent API</h1>
     <p class="hero-sub fade-in delay-2">
-      250 tools. 15 models. One API key. From $0.004/call.
+      250 tools. 15 models. One API key. $0.01 - $0.50 per call.
     </p>
     <div class="hero-actions fade-in delay-3">
       <a href="/try" class="btn btn-primary" style="padding:18px 44px;font-size:1.05rem;">Try Free</a>
       <a href="/pricing" class="btn btn-secondary">View Pricing</a>
     </div>
     <p class="hero-tag fade-in delay-3">
-      <span>3 free calls/day</span> &middot; No sign-up required &middot;
+      <span>1 free call/day + 2 with ads</span> &middot; No subscriptions. No minimums. &middot;
       <code>pip install aipaygen-mcp</code>
     </p>
   </div>
@@ -314,7 +314,7 @@
     <div class="step-card card">
       <div class="step-num">3</div>
       <h3>Pay per use</h3>
-      <p>3 free calls/day. Then prepay with Stripe ($1+) or pay per call with USDC.</p>
+      <p>1 free call/day + 2 with ads. Then $0.01-$0.50 per call with Stripe or USDC.</p>
       <div class="code-block mt-4" style="text-align:left">
         <pre><code class="language-bash"># Get a free API key with $0.25 credits
 curl -X POST https://api.aipaygen.com/auth/generate-key \
@@ -414,7 +414,7 @@ curl -X POST https://api.aipaygen.com/auth/generate-key \
         </tr>
         <tr>
           <td class="col-feature">Free tier</td>
-          <td class="col-us compare-highlight"><span class="compare-check">3 calls/day</span></td>
+          <td class="col-us compare-highlight"><span class="compare-check">1 free + 2 with ads/day</span></td>
           <td class="col-them"><span class="compare-cross">No</span></td>
           <td class="col-them"><span class="compare-cross">No</span></td>
           <td class="col-them"><span class="compare-cross">No</span></td>
@@ -583,14 +583,14 @@ curl -X POST https://api.aipaygen.com/auth/generate-key \
 <!-- Pricing -->
 <section class="section fade-in">
   <div class="section-title text-center" style="max-width:none">Simple pricing</div>
-  <div class="section-subtitle text-center" style="max-width:none;margin:0 auto 48px">Pay only for what you use</div>
+  <div class="section-subtitle text-center" style="max-width:none;margin:0 auto 48px">No subscriptions. No minimums. $0.01 - $0.50 per call. 70% creator revenue on the marketplace.</div>
   <div class="pricing-grid" style="grid-template-columns:repeat(4,1fr)">
     <div class="card pricing-card">
       <div style="font-weight:600;color:var(--text-secondary)">Free</div>
       <div class="pricing-amount">$0</div>
       <div class="pricing-period">forever</div>
       <ul class="pricing-features">
-        <li>3 AI calls per day</li>
+        <li>1 free call/day + 2 with ads</li>
         <li>No sign-up required</li>
         <li>All 250 tools</li>
         <li>MCP access</li>
@@ -708,7 +708,7 @@ curl -X POST https://api.aipaygen.com/auth/generate-key \
 <!-- CTA -->
 <section class="cta-section fade-in">
   <div class="section-title" style="margin-bottom:16px">Start building now</div>
-  <p class="text-muted mb-4">250 tools, 15 models, from $0.004/call. 3 free calls/day, no signup.</p>
+  <p class="text-muted mb-4">250 tools, 15 models, $0.01-$0.50/call. 1 free call/day + 2 with ads. No subscriptions. No minimums.</p>
   <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:20px">
     <a href="/try" class="btn btn-primary" style="padding:16px 40px">Try Free</a>
     <a href="/get-key" class="btn btn-secondary">Get API Key</a>
