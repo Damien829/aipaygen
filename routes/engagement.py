@@ -55,14 +55,19 @@ init_engagement_db()
 # ── Streak Endpoints ──────────────────────────────────────────────────────────
 
 def _get_user_id():
-    """Extract user_id from the validated API key."""
-    return request.api_key or "admin"
+    """Extract user_id from the validated API key. Reject if no key."""
+    key = getattr(request, "api_key", None)
+    if not key:
+        return None
+    return key
 
 
 @engagement_bp.route("/engagement/checkin", methods=["POST"])
 @require_api_key
 def checkin():
     user_id = _get_user_id()
+    if not user_id:
+        return jsonify({"error": "API key required"}), 401
     today = date.today().isoformat()
 
     with _conn() as c:
@@ -113,33 +118,39 @@ def claim_streak():
     from api_keys import topup_key
 
     user_id = _get_user_id()
+    if not user_id:
+        return jsonify({"error": "API key required"}), 401
 
     with _conn() as c:
-        row = c.execute("SELECT * FROM streaks WHERE user_id = ?", (user_id,)).fetchone()
-
-        if not row:
-            return jsonify({"error": "No streak found. Check in first."}), 400
-
-        if row["current_streak"] < 3:
-            return jsonify({"error": "Need at least a 3-day streak to claim bonus.", "streak": row["current_streak"]}), 400
-
-        if row["bonus_claimed"] == 1:
+        # Atomic: only update if streak >= 3 and bonus not yet claimed
+        c.execute(
+            "UPDATE streaks SET bonus_claimed = 1 WHERE user_id = ? AND current_streak >= 3 AND bonus_claimed = 0",
+            (user_id,),
+        )
+        if c.execute("SELECT changes()").fetchone()[0] == 0:
+            # Either no row, streak < 3, or already claimed
+            row = c.execute("SELECT * FROM streaks WHERE user_id = ?", (user_id,)).fetchone()
+            if not row:
+                return jsonify({"error": "No streak found. Check in first."}), 400
+            if row["current_streak"] < 3:
+                return jsonify({"error": "Need at least a 3-day streak.", "streak": row["current_streak"]}), 400
             return jsonify({"error": "Bonus already claimed for this streak."}), 400
 
         # Grant bonus: topup the user's API key balance ($0.01 = ~1 call)
-        api_key = request.api_key
-        if api_key:
-            topup_key(api_key, 0.01)
+        topup_key(user_id, 0.01)
 
-        c.execute("UPDATE streaks SET bonus_claimed = 1 WHERE user_id = ?", (user_id,))
+        row = c.execute("SELECT current_streak FROM streaks WHERE user_id = ?", (user_id,)).fetchone()
+        streak = row["current_streak"] if row else 0
 
-    return jsonify({"success": True, "bonus_calls": 1, "streak": row["current_streak"]})
+    return jsonify({"success": True, "bonus_calls": 1, "streak": streak})
 
 
 @engagement_bp.route("/engagement/streak", methods=["GET"])
 @require_api_key
 def get_streak():
     user_id = _get_user_id()
+    if not user_id:
+        return jsonify({"error": "API key required"}), 401
 
     with _conn() as c:
         row = c.execute("SELECT * FROM streaks WHERE user_id = ?", (user_id,)).fetchone()
