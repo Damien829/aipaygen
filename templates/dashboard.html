@@ -31,8 +31,18 @@
   {% endif %}
 
   {% if data %}
-  <!-- Balance Card -->
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem;margin-bottom:2rem">
+  <!-- Quick Actions -->
+  <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.25rem;margin-bottom:2rem">
+    <div style="display:flex;flex-wrap:wrap;gap:0.75rem;justify-content:center">
+      <a href="/playground" style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,255,157,0.08);border:1px solid rgba(0,255,157,0.25);border-radius:20px;padding:8px 18px;color:var(--green,#00ff9d);font-family:'IBM Plex Mono',monospace;font-size:0.85rem;text-decoration:none;font-weight:600;transition:all 0.15s">&#9889; Try a Tool</a>
+      <a href="/builder" style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.25);border-radius:20px;padding:8px 18px;color:var(--cyan,#00d4ff);font-family:'IBM Plex Mono',monospace;font-size:0.85rem;text-decoration:none;font-weight:600;transition:all 0.15s">&#128736; Build Workflow</a>
+      <a href="/marketplace" style="display:inline-flex;align-items:center;gap:6px;background:rgba(0,136,255,0.08);border:1px solid rgba(0,136,255,0.25);border-radius:20px;padding:8px 18px;color:var(--blue,#0088ff);font-family:'IBM Plex Mono',monospace;font-size:0.85rem;text-decoration:none;font-weight:600;transition:all 0.15s">&#128722; Browse Marketplace</a>
+      <a href="/app" style="display:inline-flex;align-items:center;gap:6px;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.25);border-radius:20px;padding:8px 18px;color:#a78bfa;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;text-decoration:none;font-weight:600;transition:all 0.15s">&#128241; Get Mobile App</a>
+    </div>
+  </div>
+
+  <!-- Stats Grid -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:2rem">
     <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem">
       <div style="color:var(--text-muted);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Balance</div>
       <div style="font-size:2rem;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--green,#00ff9d)">${{ "%.2f"|format(data.balance_usd) }}</div>
@@ -49,10 +59,67 @@
       <div style="color:var(--text-muted);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Total Spent</div>
       <div style="font-size:2rem;font-weight:700;font-family:'IBM Plex Mono',monospace">${{ "%.4f"|format(data.total_spent) }}</div>
     </div>
+    <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem">
+      <div style="color:var(--text-muted);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">This Week</div>
+      <div style="font-size:2rem;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--cyan,#00d4ff)">{{ data.calls_week|default(0) }}</div>
+    </div>
+    <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem">
+      <div style="color:var(--text-muted);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">This Month</div>
+      <div style="font-size:2rem;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--blue,#0088ff)">{{ data.calls_month|default(0) }}</div>
+    </div>
+    <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem">
+      <div style="color:var(--text-muted);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Last 90 Days</div>
+      <div style="font-size:2rem;font-weight:700;font-family:'IBM Plex Mono',monospace;color:#a78bfa">{{ data.calls_90d|default(0) }}</div>
+    </div>
     <div style="background:linear-gradient(135deg,#1a1000 0%,#2a1800 100%);border:1px solid #3a2a00;border-radius:12px;padding:1.5rem;text-align:center">
       <div style="font-size:2rem;margin-bottom:0.25rem">&#128293;</div>
       <div style="font-size:2rem;font-weight:700;font-family:'IBM Plex Mono',monospace;color:#ffa500">{{ data.streak_days if data.streak_days else 0 }}</div>
       <div style="color:var(--text-muted);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;margin-top:0.25rem">Day Streak</div>
+    </div>
+  </div>
+
+  <!-- Usage Over Time Chart -->
+  <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
+    <h2 style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem;margin:0 0 1rem 0">Usage — Last 14 Days</h2>
+    {% if data.daily_usage %}
+    {% set ns = namespace(max_calls=1) %}
+    {% for day in data.daily_usage %}
+      {% if day.calls > ns.max_calls %}{% set ns.max_calls = day.calls %}{% endif %}
+    {% endfor %}
+    <div style="display:flex;align-items:flex-end;gap:4px;height:160px;padding:0 4px">
+      {% for day in data.daily_usage %}
+      <div style="flex:1;background:var(--cyan,#00d4ff);border-radius:4px 4px 0 0;height:{{ (day.calls / ns.max_calls * 100)|round(1) }}%;min-height:2px;opacity:{{ 0.5 + (day.calls / ns.max_calls * 0.5) }};transition:opacity 0.15s" title="{{ day.date }}: {{ day.calls }} calls"></div>
+      {% endfor %}
+    </div>
+    <div style="display:flex;gap:4px;padding:6px 4px 0;border-top:1px solid var(--border,#1a2a3a);margin-top:4px">
+      {% for day in data.daily_usage %}
+      <div style="flex:1;text-align:center;font-size:0.6rem;color:var(--text-muted);font-family:'IBM Plex Mono',monospace;overflow:hidden;white-space:nowrap">{{ day.date[-5:] }}</div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p style="color:var(--text-muted);text-align:center;margin:2rem 0;font-size:0.9rem">No usage data yet.</p>
+    {% endif %}
+  </div>
+
+  <!-- Spending Breakdown -->
+  <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
+    <h2 style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem;margin:0 0 1rem 0">Spending Breakdown</h2>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem">
+      <div style="background:rgba(0,136,255,0.06);border:1px solid rgba(0,136,255,0.15);border-radius:10px;padding:1.25rem;text-align:center">
+        <div style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.75rem">Today</div>
+        <div style="font-size:1.5rem;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--blue,#0088ff);margin-bottom:0.25rem">{{ data.calls_today }}</div>
+        <div style="color:var(--text-muted);font-size:0.8rem;font-family:'IBM Plex Mono',monospace">calls</div>
+      </div>
+      <div style="background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.15);border-radius:10px;padding:1.25rem;text-align:center">
+        <div style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.75rem">This Week</div>
+        <div style="font-size:1.5rem;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--cyan,#00d4ff);margin-bottom:0.25rem">{{ data.calls_week|default(0) }}</div>
+        <div style="color:var(--text-muted);font-size:0.8rem;font-family:'IBM Plex Mono',monospace">${{ "%.4f"|format(data.spent_week|default(0)) }}</div>
+      </div>
+      <div style="background:rgba(167,139,250,0.06);border:1px solid rgba(167,139,250,0.15);border-radius:10px;padding:1.25rem;text-align:center">
+        <div style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.75rem">This Month</div>
+        <div style="font-size:1.5rem;font-weight:700;font-family:'IBM Plex Mono',monospace;color:#a78bfa;margin-bottom:0.25rem">{{ data.calls_month|default(0) }}</div>
+        <div style="color:var(--text-muted);font-size:0.8rem;font-family:'IBM Plex Mono',monospace">${{ "%.4f"|format(data.spent_month|default(0)) }}</div>
+      </div>
     </div>
   </div>
 
@@ -71,9 +138,19 @@
 
   <!-- Top Tools -->
   {% if data.top_tools %}
-  <h2 style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem;margin-bottom:1rem">Top Tools</h2>
   <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;overflow:hidden;margin-bottom:2rem">
-    <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1rem 0;flex-wrap:wrap;gap:0.5rem">
+      <h2 style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem;margin:0">Top Tools</h2>
+      <div style="display:flex;gap:2px;background:#070e18;border-radius:8px;padding:3px" id="tools-period-tabs">
+        <button onclick="document.querySelectorAll('#tools-period-tabs button').forEach(b=>{b.style.background='transparent';b.style.color='var(--text-muted)'});this.style.background='var(--bg-alt,#0a1628)';this.style.color='var(--text,#c8d8e8)'"
+                style="background:var(--bg-alt,#0a1628);color:var(--text,#c8d8e8);border:none;padding:5px 14px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;cursor:pointer;font-weight:600">All Time</button>
+        <button onclick="document.querySelectorAll('#tools-period-tabs button').forEach(b=>{b.style.background='transparent';b.style.color='var(--text-muted)'});this.style.background='var(--bg-alt,#0a1628)';this.style.color='var(--text,#c8d8e8)'"
+                style="background:transparent;color:var(--text-muted);border:none;padding:5px 14px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;cursor:pointer">This Week</button>
+        <button onclick="document.querySelectorAll('#tools-period-tabs button').forEach(b=>{b.style.background='transparent';b.style.color='var(--text-muted)'});this.style.background='var(--bg-alt,#0a1628)';this.style.color='var(--text,#c8d8e8)'"
+                style="background:transparent;color:var(--text-muted);border:none;padding:5px 14px;border-radius:6px;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;cursor:pointer">This Month</button>
+      </div>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:0.9rem;margin-top:0.5rem">
       <thead>
         <tr style="border-bottom:1px solid var(--border,#1a2a3a)">
           <th style="text-align:left;padding:0.75rem 1rem;color:var(--text-muted);font-weight:500">#</th>
@@ -125,7 +202,10 @@
   <div style="background:linear-gradient(135deg,#0a1628 0%,#0d2040 100%);border:1px solid var(--green,#00ff9d);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
     <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:1rem;margin-bottom:1rem">
       <h3 style="font-family:'IBM Plex Mono',monospace;font-size:1rem;color:var(--green,#00ff9d);margin:0">&#127873; Refer &amp; Earn $0.10</h3>
-      <a href="/referrals?key={{ data.key_full }}" style="color:var(--cyan,#00d4ff);font-size:0.85rem;text-decoration:none">View all referrals &rarr;</a>
+      <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+        <span style="color:var(--text-muted);font-size:0.8rem;font-family:'IBM Plex Mono',monospace">Referrals this month: <strong style="color:var(--green,#00ff9d)">{{ data.referral_count_month|default(0) }}</strong></span>
+        <a href="/referrals?key={{ data.key_full }}" style="color:var(--cyan,#00d4ff);font-size:0.85rem;text-decoration:none">View all referrals &rarr;</a>
+      </div>
     </div>
     <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:1rem">Share your link. You both get $0.10 in API credits when they sign up.</p>
     <div style="display:grid;grid-template-columns:auto 1fr auto;gap:0.75rem;align-items:center;margin-bottom:0.75rem">
@@ -168,6 +248,16 @@
       <span style="color:{% if data.is_active %}var(--green,#00ff9d){% else %}#ff4444{% endif %}">{{ 'Active' if data.is_active else 'Inactive' }}</span>
     </div>
   </div>
+
+  <!-- Responsive Grid Override -->
+  <style>
+    @media (max-width: 768px) {
+      section > div:nth-child(3) { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+    @media (max-width: 480px) {
+      section > div:nth-child(3) { grid-template-columns: 1fr !important; }
+    }
+  </style>
 
   {% endif %}
 </section>

@@ -160,10 +160,14 @@ auth_bp = Blueprint("auth", __name__)
 def auth_generate_key():
     ip = request.headers.get("CF-Connecting-IP", request.remote_addr)
     if not check_identity_rate_limit(ip):
-        return jsonify({"error": "rate_limited", "message": "Too many key generation requests. Max 10/min."}), 429
+        resp = jsonify({"error": "rate_limited", "message": "Too many key generation requests. Max 10/min."})
+        resp.headers["Retry-After"] = "60"
+        return resp, 429
     # Max 5 keys per IP per day
     if not check_key_gen_rate(ip, max_per_day=5):
-        return jsonify({"error": "rate_limited", "message": "Maximum 5 API keys per IP per day. Contact support for higher limits."}), 429
+        resp = jsonify({"error": "rate_limited", "message": "Maximum 5 API keys per IP per day. Contact support for higher limits."})
+        resp.headers["Retry-After"] = "60"
+        return resp, 429
     data = request.get_json() or {}
     label = data.get("label", "")
     source = data.get("source", request.cookies.get("aipaygen_ref", "api-direct"))
@@ -556,7 +560,7 @@ def stripe_create_checkout():
         action = "new"
 
     try:
-        calls_estimate = int(amount * 160) if amount <= 1 else int(amount * 166)
+        calls_estimate = int(amount * 100)
         checkout_kwargs = dict(
             payment_method_types=["card"],
             line_items=[{
@@ -574,6 +578,7 @@ def stripe_create_checkout():
             client_reference_id=existing_key or "new",
             metadata={"amount": str(amount), "action": action, "label": label,
                        "ref_source": request.cookies.get("aipaygen_ref", "direct"),
+                       "ref_agent": data.get("ref_agent", "") or request.cookies.get("aipaygen_ref_agent", ""),
                        **({"api_key": existing_key} if existing_key else {}),
                        **({"customer_email": email} if email else {})},
             success_url=f"{BASE_URL}/buy-credits/success?session_id={{CHECKOUT_SESSION_ID}}",
@@ -616,9 +621,6 @@ def stripe_webhook():
     if event_id and is_stripe_event_processed(event_id):
         logger.info("Skipping duplicate Stripe event: %s", event_id)
         return jsonify({"received": True, "duplicate": True})
-    if event_id:
-        mark_stripe_event_processed(event_id)
-
     # Handle subscription invoice paid (monthly renewal)
     if event["type"] == "invoice.paid":
         invoice = event["data"]["object"]
@@ -718,6 +720,12 @@ def stripe_webhook():
             return jsonify({"received": True})
 
         amount = float(meta.get("amount", 0))
+        # Validate metadata amount against actual Stripe charge (cents -> dollars)
+        stripe_amount = session.get("amount_total", 0) / 100
+        if amount != stripe_amount:
+            logger.warning("Stripe amount mismatch: metadata=%.2f, actual=%.2f (session %s)",
+                           amount, stripe_amount, session.get("id", ""))
+            amount = stripe_amount
         action = meta.get("action", "new")
         label = meta.get("label", "credit-pack")
         api_key = meta.get("api_key", "")
@@ -788,7 +796,49 @@ def stripe_webhook():
                 except Exception:
                     pass
 
+    # Mark event as processed AFTER all business logic succeeds
+    # so Stripe retries if we crash mid-processing
+    if event_id:
+        mark_stripe_event_processed(event_id)
+
     return jsonify({"received": True})
+
+
+# ── Refund Credit Redemption ───────────────────────────────────────────────
+
+@auth_bp.route("/redeem-refund", methods=["POST"])
+def redeem_refund():
+    """Redeem a refund credit code to add balance to an API key."""
+    data = request.get_json() or {}
+    code = data.get("code", "").strip()
+    api_key = data.get("api_key", "").strip()
+
+    if not code or not api_key:
+        return jsonify({"error": "code and api_key required"}), 400
+
+    import sqlite3 as _sq
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "refunds.db")
+    conn = _sq.connect(db_path)
+    conn.row_factory = _sq.Row
+    row = conn.execute("SELECT * FROM refund_credits WHERE code = ? AND redeemed = 0", (code,)).fetchone()
+
+    if not row:
+        conn.close()
+        return jsonify({"error": "Invalid or already redeemed code"}), 400
+
+    amount = row["amount_usd"]
+
+    # Mark as redeemed
+    conn.execute("UPDATE refund_credits SET redeemed = 1, redeemed_at = datetime('now') WHERE code = ?", (code,))
+    conn.commit()
+    conn.close()
+
+    # Add balance to the API key
+    result = topup_key(api_key, amount)
+    if result.get("error"):
+        return jsonify({"error": "Failed to apply credit: " + result["error"]}), 400
+
+    return jsonify({"ok": True, "credited": amount, "message": f"${amount:.2f} added to your balance"})
 
 
 # ── Subscription Endpoints ─────────────────────────────────────────────────
@@ -1035,6 +1085,102 @@ def _get_usage_data(api_key):
     except Exception:
         pass
 
+    # Calls this week (last 7 days)
+    calls_week = 0
+    try:
+        conn = sqlite3.connect(tool_usage_db)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT SUM(count) as wk FROM tool_usage WHERE api_key = ? AND last_used >= datetime('now', '-7 days')",
+            (api_key,),
+        ).fetchone()
+        calls_week = row["wk"] or 0
+        conn.close()
+    except Exception:
+        pass
+
+    # Calls this month (last 30 days)
+    calls_month = 0
+    try:
+        conn = sqlite3.connect(tool_usage_db)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT SUM(count) as mo FROM tool_usage WHERE api_key = ? AND last_used >= datetime('now', '-30 days')",
+            (api_key,),
+        ).fetchone()
+        calls_month = row["mo"] or 0
+        conn.close()
+    except Exception:
+        pass
+
+    # Calls last 90 days
+    calls_90d = 0
+    try:
+        conn = sqlite3.connect(tool_usage_db)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute(
+            "SELECT SUM(count) as q FROM tool_usage WHERE api_key = ? AND last_used >= datetime('now', '-90 days')",
+            (api_key,),
+        ).fetchone()
+        calls_90d = row["q"] or 0
+        conn.close()
+    except Exception:
+        pass
+
+    # Spending this week and month
+    spent_week = 0
+    spent_month = 0
+    try:
+        conn = sqlite3.connect(tool_usage_db)
+        conn.row_factory = sqlite3.Row
+        avg_cost = (status.get("total_spent", 0) / max(status.get("call_count", 1), 1))
+        spent_week = round(calls_week * avg_cost, 4)
+        spent_month = round(calls_month * avg_cost, 4)
+        conn.close()
+    except Exception:
+        pass
+
+    # Daily usage for chart (last 14 days)
+    daily_usage = []
+    try:
+        conn = sqlite3.connect(tool_usage_db)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(
+            """SELECT date(last_used) as day, SUM(count) as calls
+               FROM tool_usage WHERE api_key = ? AND last_used >= datetime('now', '-14 days')
+               GROUP BY date(last_used) ORDER BY day""",
+            (api_key,),
+        ).fetchall()
+        daily_usage = [{"date": r["day"], "calls": r["calls"]} for r in rows]
+        conn.close()
+    except Exception:
+        pass
+
+    # Streak from engagement.db
+    streak_days = 0
+    try:
+        eng_db = os.path.join(base_dir, "engagement.db")
+        conn = sqlite3.connect(eng_db)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT current_streak, longest_streak FROM streaks WHERE user_id = ?", (api_key,)).fetchone()
+        if row:
+            streak_days = row["current_streak"]
+        conn.close()
+    except Exception:
+        pass
+
+    # Favorites from engagement.db
+    favorite_tools = []
+    try:
+        eng_db = os.path.join(base_dir, "engagement.db")
+        conn = sqlite3.connect(eng_db)
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute("SELECT item_slug FROM favorites WHERE user_id = ? AND item_type = 'tool' ORDER BY created_at DESC LIMIT 10", (api_key,)).fetchall()
+        favorite_tools = [r["item_slug"] for r in rows]
+        conn.close()
+    except Exception:
+        pass
+
     return {
         "key": api_key[:8] + "..." + api_key[-4:],
         "key_full": api_key,
@@ -1049,6 +1195,14 @@ def _get_usage_data(api_key):
         "is_active": status.get("is_active", 1),
         "label": status.get("label", ""),
         "referral_code": status.get("referral_code", ""),
+        "calls_week": calls_week,
+        "calls_month": calls_month,
+        "calls_90d": calls_90d,
+        "spent_week": spent_week,
+        "spent_month": spent_month,
+        "daily_usage": daily_usage,
+        "streak_days": streak_days,
+        "favorite_tools": favorite_tools,
     }
 
 
@@ -1071,6 +1225,14 @@ def api_usage():
         "balance_usd": data["balance_usd"],
         "total_calls": data["total_calls"],
         "calls_today": data["calls_today"],
+        "calls_week": data["calls_week"],
+        "calls_month": data["calls_month"],
+        "calls_90d": data["calls_90d"],
+        "spent_week": data["spent_week"],
+        "spent_month": data["spent_month"],
+        "daily_usage": data["daily_usage"],
+        "streak_days": data["streak_days"],
+        "favorite_tools": data["favorite_tools"],
         "top_tools": data["top_tools"],
         "created_at": data["created_at"],
     })
