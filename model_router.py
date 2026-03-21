@@ -67,13 +67,14 @@ def clear_cache():
 # ---------------------------------------------------------------------------
 
 MODEL_REGISTRY = {
+    # Free tier now uses claude-haiku instead of local Ollama (saves Pi resources)
     "llama-local": {
-        "canonical_name": "llama-local",
-        "provider": "ollama",
-        "model_id": "llama3.2:3b",
-        "input_cost_per_m": 0.0,
-        "output_cost_per_m": 0.0,
-        "max_tokens": 2048,
+        "canonical_name": "claude-haiku",
+        "provider": "anthropic",
+        "model_id": "claude-haiku-4-5-20251001",
+        "input_cost_per_m": 0.80,
+        "output_cost_per_m": 4.0,
+        "max_tokens": 1024,
         "vision": False,
         "streaming": True,
         "latency_tier": "fast",
@@ -259,6 +260,144 @@ MODEL_REGISTRY = {
         "latency_tier": "fast",
         "strengths": ["general", "code"],
     },
+    # --- OpenAI o-series reasoning models ---
+    "o3": {
+        "canonical_name": "o3",
+        "provider": "openai",
+        "model_id": "o3",
+        "input_cost_per_m": 10.00,
+        "output_cost_per_m": 40.00,
+        "max_tokens": 16384,
+        "vision": True,
+        "streaming": True,
+        "latency_tier": "slow",
+        "strengths": ["reasoning", "code", "math"],
+    },
+    "o4-mini": {
+        "canonical_name": "o4-mini",
+        "provider": "openai",
+        "model_id": "o4-mini",
+        "input_cost_per_m": 1.10,
+        "output_cost_per_m": 4.40,
+        "max_tokens": 16384,
+        "vision": True,
+        "streaming": True,
+        "latency_tier": "medium",
+        "strengths": ["reasoning", "code", "math"],
+    },
+    # --- OpenAI GPT-4.1 family ---
+    "gpt-4.1": {
+        "canonical_name": "gpt-4.1",
+        "provider": "openai",
+        "model_id": "gpt-4.1",
+        "input_cost_per_m": 2.00,
+        "output_cost_per_m": 8.00,
+        "max_tokens": 32768,
+        "vision": True,
+        "streaming": True,
+        "latency_tier": "medium",
+        "strengths": ["general", "code", "creative", "reasoning"],
+    },
+    "gpt-4.1-mini": {
+        "canonical_name": "gpt-4.1-mini",
+        "provider": "openai",
+        "model_id": "gpt-4.1-mini",
+        "input_cost_per_m": 0.40,
+        "output_cost_per_m": 1.60,
+        "max_tokens": 16384,
+        "vision": True,
+        "streaming": True,
+        "latency_tier": "fast",
+        "strengths": ["general", "code"],
+    },
+    "gpt-4.1-nano": {
+        "canonical_name": "gpt-4.1-nano",
+        "provider": "openai",
+        "model_id": "gpt-4.1-nano",
+        "input_cost_per_m": 0.10,
+        "output_cost_per_m": 0.40,
+        "max_tokens": 16384,
+        "vision": True,
+        "streaming": True,
+        "latency_tier": "fast",
+        "strengths": ["general"],
+    },
+    # --- Meta Llama 4 ---
+    "llama-4-scout": {
+        "canonical_name": "llama-4-scout",
+        "provider": "together",
+        "model_id": "meta-llama/Llama-4-Scout-17B-16E-Instruct",
+        "input_cost_per_m": 0.18,
+        "output_cost_per_m": 0.30,
+        "max_tokens": 8192,
+        "vision": True,
+        "streaming": True,
+        "latency_tier": "fast",
+        "strengths": ["general", "code", "multilingual"],
+    },
+    "llama-4-maverick": {
+        "canonical_name": "llama-4-maverick",
+        "provider": "together",
+        "model_id": "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+        "input_cost_per_m": 0.27,
+        "output_cost_per_m": 0.85,
+        "max_tokens": 8192,
+        "vision": True,
+        "streaming": True,
+        "latency_tier": "medium",
+        "strengths": ["reasoning", "code", "creative", "multilingual"],
+    },
+    # --- Cohere Command A ---
+    "command-a": {
+        "canonical_name": "command-a",
+        "provider": "cohere",
+        "model_id": "command-a-03-2025",
+        "input_cost_per_m": 2.50,
+        "output_cost_per_m": 10.00,
+        "max_tokens": 8192,
+        "vision": False,
+        "streaming": True,
+        "latency_tier": "medium",
+        "strengths": ["general", "rag", "code"],
+    },
+    # --- Perplexity online models ---
+    "sonar-pro": {
+        "canonical_name": "sonar-pro",
+        "provider": "perplexity",
+        "model_id": "sonar-pro",
+        "input_cost_per_m": 3.00,
+        "output_cost_per_m": 15.00,
+        "max_tokens": 8192,
+        "vision": False,
+        "streaming": True,
+        "latency_tier": "medium",
+        "strengths": ["research", "general", "realtime"],
+    },
+    "sonar": {
+        "canonical_name": "sonar",
+        "provider": "perplexity",
+        "model_id": "sonar",
+        "input_cost_per_m": 1.00,
+        "output_cost_per_m": 1.00,
+        "max_tokens": 8192,
+        "vision": False,
+        "streaming": True,
+        "latency_tier": "fast",
+        "strengths": ["research", "general", "realtime"],
+    },
+    # --- Qwen 3 ---
+    "qwen-3-235b": {
+        "canonical_name": "qwen-3-235b",
+        "provider": "together",
+        "model_id": "Qwen/Qwen3-235B-A22B-fp8",
+        "input_cost_per_m": 0.80,
+        "output_cost_per_m": 0.80,
+        "max_tokens": 8192,
+        "vision": False,
+        "streaming": True,
+        "latency_tier": "medium",
+        "strengths": ["reasoning", "code", "multilingual"],
+    },
 }
 
 _ALIASES = {
@@ -267,14 +406,28 @@ _ALIASES = {
     "opus": "claude-opus",
     "gpt4o": "gpt-4o",
     "gpt4o-mini": "gpt-4o-mini",
+    "gpt41": "gpt-4.1",
+    "gpt41-mini": "gpt-4.1-mini",
+    "gpt41-nano": "gpt-4.1-nano",
     "gemini": "gemini-2.5-flash",
     "gemini-pro": "gemini-2.5-pro",
     "deepseek": "deepseek-v3",
-    "llama": "llama-3.3-70b",
+    "llama": "llama-4-scout",
+    "llama4": "llama-4-scout",
+    "llama-scout": "llama-4-scout",
+    "llama-maverick": "llama-4-maverick",
+    "llama3": "llama-3.3-70b",
     "mistral": "mistral-large",
     "grok": "grok-3",
     "grok-mini": "grok-3-mini",
     "mistral-direct": "mistral-large-direct",
+    "cohere": "command-a",
+    "command": "command-a",
+    "perplexity": "sonar-pro",
+    "sonar-pro": "sonar-pro",
+    "pplx": "sonar",
+    "qwen": "qwen-3-235b",
+    "qwen3": "qwen-3-235b",
     "default": "claude-haiku",
 }
 
@@ -303,7 +456,9 @@ _FALLBACK_CHAINS: dict[str, str] = {
     "google": "anthropic",
     "xai": "openai",
     "mistral": "together",
-    "ollama": "anthropic",  # If local Ollama is down, fall back to Haiku
+    # Free tier uses claude-haiku directly (no local Ollama)
+    "cohere": "anthropic",
+    "perplexity": "openai",
 }
 
 # Map provider to a cheap default model for fallback
@@ -315,6 +470,8 @@ _PROVIDER_DEFAULT: dict[str, str] = {
     "together": "llama-3.3-70b",
     "xai": "grok-3-mini",
     "mistral": "mistral-small",
+    "cohere": "command-a",
+    "perplexity": "sonar",
 }
 
 
@@ -437,6 +594,37 @@ def list_models() -> list[dict]:
     """Return list of all model configs (for API response)."""
     return list(MODEL_REGISTRY.values())
 
+
+def register_model(canonical_name: str, provider: str, model_id: str,
+                   input_cost_per_m: float, output_cost_per_m: float,
+                   max_tokens: int = 4096, vision: bool = False,
+                   streaming: bool = True, latency_tier: str = "medium",
+                   strengths: list[str] | None = None,
+                   aliases: list[str] | None = None) -> dict:
+    """Dynamically register a new model at runtime. Returns the config."""
+    cfg = {
+        "canonical_name": canonical_name,
+        "provider": provider,
+        "model_id": model_id,
+        "input_cost_per_m": input_cost_per_m,
+        "output_cost_per_m": output_cost_per_m,
+        "max_tokens": max_tokens,
+        "vision": vision,
+        "streaming": streaming,
+        "latency_tier": latency_tier,
+        "strengths": strengths or ["general"],
+    }
+    MODEL_REGISTRY[canonical_name] = cfg
+    if aliases:
+        for alias in aliases:
+            _ALIASES[alias] = canonical_name
+    if provider not in _FALLBACK_CHAINS:
+        _FALLBACK_CHAINS[provider] = "anthropic"
+    if provider not in _PROVIDER_DEFAULT:
+        _PROVIDER_DEFAULT[provider] = canonical_name
+    _log.info("registered model %s (%s/%s)", canonical_name, provider, model_id)
+    return cfg
+
 # ---------------------------------------------------------------------------
 # Lazy-initialized provider clients
 # ---------------------------------------------------------------------------
@@ -516,6 +704,18 @@ def _dispatch(cfg: dict, messages: list[dict], system: str, tok_limit: int, temp
             os.environ.get("MISTRAL_API_KEY", ""),
             model_id, messages, system, tok_limit, temperature,
         )
+    elif provider == "cohere":
+        return _call_openai_compatible(
+            "https://api.cohere.com/v2/chat/completions",
+            os.environ.get("COHERE_API_KEY", ""),
+            model_id, messages, system, tok_limit, temperature,
+        )
+    elif provider == "perplexity":
+        return _call_openai_compatible(
+            "https://api.perplexity.ai/chat/completions",
+            os.environ.get("PERPLEXITY_API_KEY", ""),
+            model_id, messages, system, tok_limit, temperature,
+        )
     elif provider == "ollama":
         return _call_openai_compatible(
             os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434") + "/v1/chat/completions",
@@ -555,8 +755,9 @@ def call_model(
         model = force_model
         selected_reason = "forced_model"
     elif _is_free:
-        model = "llama-local"  # Self-hosted Ollama, $0 cost
-        selected_reason = "free_tier_local"
+        model = "claude-haiku"  # Free tier uses cheap Haiku (~$0.001/call)
+        selected_reason = "free_tier_haiku"
+        max_tokens = min(max_tokens or 512, 512)  # cap free tier output
     elif model == "auto":
         task_text = ""
         for m in messages:
@@ -633,6 +834,12 @@ def call_model(
             _record_failure(provider)
 
     # Fallback if all retries failed
+    # CRITICAL: Never fall back to paid models for free tier users
+    if result is None and _is_free:
+        raise ModelNotFoundError(
+            "Free tier model is temporarily unavailable. "
+            "Get an API key for $0.25 trial credits: POST /auth/generate-key"
+        )
     if result is None:
         fallback = _get_fallback_model(canonical)
         if fallback:
@@ -686,6 +893,20 @@ def call_model_stream(
     - {"done": True, "model": ..., "cost_usd": ..., "input_tokens": ..., "output_tokens": ...} at the end
     Falls back to blocking call_model() for providers without streaming support.
     """
+    # Free tier enforcement — force llama-local for free users (same as call_model)
+    _is_free = False
+    try:
+        from flask import request as _req
+        if _req.environ.get("X_FREE_TIER") == "1":
+            _is_free = True
+    except (ImportError, RuntimeError):
+        pass
+    if not _is_free and os.environ.get("_AIPAYGEN_FREE_TIER") == "1":
+        _is_free = True
+    if _is_free:
+        model = "claude-haiku"  # Free tier uses cheap Haiku (~$0.001/call)
+        max_tokens = min(max_tokens or 512, 512)
+
     if model == "auto":
         task_text = ""
         for m in messages:
@@ -738,6 +959,16 @@ def call_model_stream(
             yield from _stream_openai_compatible(
                 "https://api.mistral.ai/v1/chat/completions",
                 os.environ.get("MISTRAL_API_KEY", ""),
+                cfg["model_id"], messages, system, tok_limit, temperature, canonical)
+        elif provider == "cohere":
+            yield from _stream_openai_compatible(
+                "https://api.cohere.com/v2/chat/completions",
+                os.environ.get("COHERE_API_KEY", ""),
+                cfg["model_id"], messages, system, tok_limit, temperature, canonical)
+        elif provider == "perplexity":
+            yield from _stream_openai_compatible(
+                "https://api.perplexity.ai/chat/completions",
+                os.environ.get("PERPLEXITY_API_KEY", ""),
                 cfg["model_id"], messages, system, tok_limit, temperature, canonical)
         else:
             result = call_model(model, messages, system=system, max_tokens=max_tokens, temperature=temperature)

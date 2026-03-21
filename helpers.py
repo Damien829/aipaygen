@@ -2,6 +2,8 @@
 import hmac
 import json
 import os
+
+APP_VERSION = "1.9.0"
 import time as _time
 import hashlib as _hashlib
 import threading
@@ -67,18 +69,22 @@ def check_rate_limit(ip: str, limit_override: int = None) -> bool:
     return True
 
 
-def get_rate_limit_info(ip: str) -> dict:
+def get_rate_limit_info(ip: str, limit_override: int = None) -> dict:
     """Return current rate limit state for the given IP.
+
+    Args:
+        limit_override: Override the default rate limit (e.g. tier-specific limit).
 
     Returns dict with limit, remaining, and reset (unix timestamp).
     """
+    limit = limit_override or _RATE_LIMIT
     now = _time.time()
     times = [t for t in _ip_rate.get(ip, []) if t > now - _RATE_WINDOW]
-    remaining = max(0, _RATE_LIMIT - len(times))
+    remaining = max(0, limit - len(times))
     # Reset = when the oldest request in the window expires
     reset_ts = int(times[0] + _RATE_WINDOW) if times else int(now + _RATE_WINDOW)
     return {
-        "limit": _RATE_LIMIT,
+        "limit": limit,
         "remaining": remaining,
         "reset": reset_ts,
         "window": _RATE_WINDOW,
@@ -136,6 +142,7 @@ def get_client_ip():
 
 # ── Payment Logging ──────────────────────────────────────────────────────────
 PAYMENTS_LOG = os.path.join(os.path.dirname(__file__), "payments.jsonl")
+_payment_log_lock = threading.Lock()
 
 
 def log_payment(endpoint, amount_usd, caller_ip, request_id="", payment_type="x402", tx_hash=""):
@@ -148,8 +155,9 @@ def log_payment(endpoint, amount_usd, caller_ip, request_id="", payment_type="x4
         "payment_type": payment_type,
         "tx_hash": tx_hash,
     }
-    with open(PAYMENTS_LOG, "a") as f:
-        f.write(json.dumps(entry) + "\n")
+    with _payment_log_lock:
+        with open(PAYMENTS_LOG, "a") as f:
+            f.write(json.dumps(entry) + "\n")
 
 
 # ── JSON Parsing ─────────────────────────────────────────────────────────────
@@ -278,7 +286,7 @@ def call_llm(messages, system="", max_tokens=1024, endpoint="unknown", model_ove
     # Force free local model for free tier calls — zero provider cost
     is_free = request.environ.get("X_FREE_TIER") == "1"
     if is_free:
-        model_name = "llama-local"  # Self-hosted Ollama, $0 cost
+        model_name = "claude-haiku"  # Free tier uses cheap Haiku (~$0.001/call)
         max_tokens = min(max_tokens, 512)
     try:
         result = call_model(model_name, messages, system=system, max_tokens=max_tokens)
