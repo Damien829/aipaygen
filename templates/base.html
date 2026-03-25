@@ -16,7 +16,16 @@
 <link rel="manifest" href="/static/manifest.json">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
 <meta property="og:site_name" content="AiPayGen">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
+<meta property="og:description" content="{% block og_desc %}250+ AI tools in one app. Chat, research, write, translate, code. Free to try.{% endblock %}">
+<meta property="og:image" content="https://aipaygen.com/og-image.png">
+<meta property="og:url" content="https://aipaygen.com{{ request.path }}">
+<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@aipaygen">
+<meta name="twitter:title" content="{% block tw_title %}{{ self.title() }}{% endblock %}">
+<meta name="twitter:description" content="{% block tw_desc %}250+ AI tools. Chat, research, write, translate, code. Free to try.{% endblock %}">
+<meta name="twitter:image" content="https://aipaygen.com/og-image.png">
 {% block head %}{% endblock %}
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4228277826827893" crossorigin="anonymous"></script>
 {% if GA4_ID %}
