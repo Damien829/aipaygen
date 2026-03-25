@@ -4,7 +4,7 @@ import sqlite3
 import json
 import uuid
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "agent_network.db")
 
@@ -12,6 +12,9 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "agent_network.db")
 def _conn():
     c = sqlite3.connect(DB_PATH)
     c.execute("PRAGMA journal_mode=WAL")
+    c.execute("PRAGMA synchronous=NORMAL")
+    c.execute("PRAGMA cache_size=-8000")
+    c.execute("PRAGMA temp_store=MEMORY")
     c.row_factory = sqlite3.Row
     return c
 
@@ -33,6 +36,7 @@ def init_network_db():
         """)
         c.execute("CREATE INDEX IF NOT EXISTS idx_msg_to ON agent_messages(to_agent)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_msg_thread ON agent_messages(thread_id)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_msg_to_unread ON agent_messages(to_agent, read)")
         c.execute("""
             CREATE TABLE IF NOT EXISTS knowledge_base (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -119,7 +123,7 @@ def init_network_db():
 def send_message(from_agent: str, to_agent: str, subject: str, body: str,
                  thread_id: str = None) -> dict:
     msg_id = str(uuid.uuid4())
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     tid = thread_id or msg_id
     with _conn() as c:
         c.execute(
@@ -160,7 +164,7 @@ def broadcast_message(from_agent: str, subject: str, body: str) -> int:
 def add_knowledge(topic: str, content: str, author_agent: str,
                   tags: list = None, entry_id: str = None) -> dict:
     eid = entry_id or str(uuid.uuid4())
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     tags_str = json.dumps(tags or [])
     with _conn() as c:
         existing = c.execute("SELECT id FROM knowledge_base WHERE entry_id=?", (eid,)).fetchone()
@@ -228,7 +232,7 @@ def vote_knowledge(entry_id: str, up: bool = True) -> dict:
 def submit_task(posted_by: str, title: str, description: str,
                 skills_needed: list = None, reward_usd: float = 0.0) -> dict:
     task_id = str(uuid.uuid4())
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     skills_str = json.dumps(skills_needed or [])
     with _conn() as c:
         c.execute(
@@ -265,7 +269,7 @@ def browse_tasks(status: str = "open", skill: str = None, limit: int = 20) -> li
 
 
 def claim_task(task_id: str, agent_id: str) -> bool:
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         cur = c.execute(
             "UPDATE task_board SET status='claimed', claimed_by=?, updated_at=? WHERE task_id=? AND status='open'",
@@ -275,7 +279,7 @@ def claim_task(task_id: str, agent_id: str) -> bool:
 
 
 def complete_task(task_id: str, agent_id: str, result: str) -> bool:
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         cur = c.execute(
             "UPDATE task_board SET status='completed', result=?, updated_at=? "
@@ -299,7 +303,7 @@ def get_task(task_id: str) -> dict | None:
 
 # ── Free Daily Tier ────────────────────────────────────────────────────────────
 
-FREE_DAILY_LIMIT = 3
+FREE_DAILY_LIMIT = 1  # 1 free call/day per IP — matches site messaging
 
 # In-memory cache for free tier counts: {(ip, date): (calls_used, cache_time)}
 import time as _time
@@ -350,7 +354,7 @@ def record_fingerprint(ip: str, fingerprint: str) -> bool:
     """Record fingerprint→IP mapping. Returns False if this fingerprint is blocked."""
     if not fingerprint:
         return True  # No fingerprint available (e.g., curl with no headers)
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     _init_fingerprint_table()
     with _conn() as c:
         # Check if already blocked
@@ -398,7 +402,7 @@ def is_fingerprint_blocked(fingerprint: str) -> bool:
     """Check if a fingerprint is blocked for today."""
     if not fingerprint:
         return False
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     _init_fingerprint_table()
     with _conn() as c:
         row = c.execute(
@@ -428,11 +432,12 @@ def _free_tier_cache_set(ip: str, today: str, calls_used: int):
 def check_and_use_free_tier(ip: str) -> bool:
     """Returns True and increments counter if this IP has free calls remaining today.
     Uses BEGIN IMMEDIATE for atomic read-then-write to prevent concurrent request races."""
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     # Check cache first to avoid DB hit
+    # Negative calls_used means ad-granted credits remain — allow those through
     cached = _free_tier_cache_get(ip, today)
-    if cached is not None and cached >= FREE_DAILY_LIMIT:
+    if cached is not None and cached >= FREE_DAILY_LIMIT and cached >= 0:
         return False
 
     c = sqlite3.connect(DB_PATH, isolation_level=None)
@@ -446,7 +451,8 @@ def check_and_use_free_tier(ip: str) -> bool:
             "SELECT calls_used FROM free_tier_usage WHERE ip=? AND date=?", (ip, today)
         ).fetchone()
         used = row["calls_used"] if row else 0
-        if used >= FREE_DAILY_LIMIT:
+        # Negative calls_used means ad-granted credits remain — allow those through
+        if used >= FREE_DAILY_LIMIT and used >= 0:
             c.execute("COMMIT")
             _free_tier_cache_set(ip, today, used)
             return False
@@ -475,7 +481,7 @@ def check_and_use_free_tier(ip: str) -> bool:
 
 def get_free_tier_remaining(identifier: str) -> int:
     """Return number of free calls remaining today for an identifier (IP or API key hash)."""
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
     # Check cache first
     cached = _free_tier_cache_get(identifier, today)
@@ -491,8 +497,32 @@ def get_free_tier_remaining(identifier: str) -> int:
     return max(0, FREE_DAILY_LIMIT - used)
 
 
+def grant_ad_bonus(ip: str) -> dict:
+    """Grant 1 bonus free tier call per watched ad by decrementing calls_used for today."""
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    bonus = 1
+    with _conn() as c:
+        row = c.execute(
+            "SELECT calls_used FROM free_tier_usage WHERE ip=? AND date=?", (ip, today)
+        ).fetchone()
+        if row:
+            new_val = row["calls_used"] - bonus
+            c.execute(
+                "UPDATE free_tier_usage SET calls_used=? WHERE ip=? AND date=?",
+                (new_val, ip, today)
+            )
+        else:
+            new_val = -bonus
+            c.execute(
+                "INSERT INTO free_tier_usage (ip, date, calls_used) VALUES (?, ?, ?)",
+                (ip, today, new_val)
+            )
+    _free_tier_cache_set(ip, today, new_val)
+    return {"ip": ip, "calls_used": new_val, "bonus_granted": bonus, "calls_available": abs(min(0, new_val))}
+
+
 def get_free_tier_status(ip: str) -> dict:
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     with _conn() as c:
         row = c.execute(
             "SELECT calls_used FROM free_tier_usage WHERE ip=? AND date=?", (ip, today)
@@ -512,7 +542,7 @@ def get_free_tier_status(ip: str) -> dict:
 
 def update_reputation(agent_id: str, task_done: bool = False,
                        knowledge_added: bool = False, upvote_received: bool = False):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         c.execute("""
             INSERT INTO agent_reputation (agent_id, task_completions, knowledge_contributions, upvotes_received, last_updated)
@@ -557,7 +587,7 @@ def get_leaderboard(limit: int = 20) -> list:
 
 def subscribe_tasks(agent_id: str, skills: list, callback_url: str) -> dict:
     sub_id = str(uuid.uuid4())
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         c.execute("DELETE FROM task_subscriptions WHERE agent_id=?", (agent_id,))
         c.execute(

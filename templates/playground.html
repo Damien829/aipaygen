@@ -1,16 +1,16 @@
 {% extends "base.html" %}
-{% block title %}API Playground{% endblock %}
-{% block description %}Test any AiPayGen API endpoint directly from your browser. Interactive request builder with live responses, chain builder, and shareable URLs.{% endblock %}
+{% block title %}AI Playground{% endblock %}
+{% block description %}Test any AI tool instantly from your browser. Try summarization, translation, research, code generation and more — no setup needed.{% endblock %}
 
 {% block head %}
 <meta property="og:type" content="website">
-<meta property="og:title" content="API Playground — AiPayGen">
-<meta property="og:description" content="Test any AiPayGen API endpoint directly from your browser. Interactive request builder with live responses.">
+<meta property="og:title" content="AI Playground — AiPayGen">
+<meta property="og:description" content="Test any AI tool instantly from your browser. Try summarization, translation, code generation and 250+ more.">
 <meta property="og:url" content="https://aipaygen.com/playground">
 <meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="API Playground — AiPayGen">
-<meta name="twitter:description" content="Test 250 AI tools directly from your browser. 1 free call/day + 2 with ads. Interactive request builder with live responses.">
+<meta name="twitter:title" content="AI Playground — AiPayGen">
+<meta name="twitter:description" content="Test 250+ AI tools directly from your browser. Free to try, no account needed.">
 <style>
 /* ── Playground Layout ── */
 .pg-wrap{max-width:1400px;margin:0 auto;padding:24px 24px 60px}
@@ -157,18 +157,18 @@
 
 {% block content %}
 <div class="pg-wrap">
-  <h1 class="pg-title"><span class="pg-dot"></span> API Playground</h1>
-  <p class="pg-sub">Test any AiPayGen endpoint directly from your browser &middot; <kbd style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:3px;font-size:0.8rem">Ctrl+Enter</kbd> to run</p>
+  <h1 class="pg-title"><span class="pg-dot"></span> AI Playground</h1>
+  <p class="pg-sub">Test any AI tool instantly &mdash; pick one, hit Run, and see the results &middot; <kbd style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:3px;font-size:0.8rem">Ctrl+Enter</kbd> to run</p>
 
   <div class="pg-banner" id="pgBanner">
-    <span>Free tier: <span class="cl" id="pgCalls">...</span> calls remaining today (1 free + 2 with ads)</span>
-    <a class="cta" href="/buy-credits">Need more? Get an API key &rarr;</a>
+    <span>Free uses today: <span class="cl" id="pgCalls">...</span> remaining</span>
+    <a class="cta" href="/buy-credits">Want unlimited? Open the app &rarr;</a>
   </div>
 
   <!-- Environment & Collections bar -->
   <div class="pg-topbar">
     <div class="pg-env-panel">
-      <div class="pg-lbl"><span class="pg-dot"></span> Environment</div>
+      <div class="pg-lbl"><span class="pg-dot"></span> Your Settings</div>
       <div class="pg-env-row">
         <label>API_KEY</label>
         <input class="pg-inp" id="envApiKey" placeholder="your-api-key" type="password" style="font-size:0.8rem">
@@ -178,27 +178,27 @@
         <label>BASE_URL</label>
         <input class="pg-inp" id="envBaseUrl" value="https://aipaygen.com" style="font-size:0.8rem">
       </div>
-      <div style="font-size:0.7rem;color:#4a5568;font-family:'IBM Plex Mono',monospace;margin-top:2px">Auto-injected into all requests. Saved in localStorage.</div>
+      <div style="font-size:0.7rem;color:#4a5568;font-family:'IBM Plex Mono',monospace;margin-top:2px">Optional. Your key is saved in this browser only.</div>
     </div>
     <div class="pg-coll-panel">
-      <div class="pg-lbl"><span class="pg-dot"></span> Collections</div>
+      <div class="pg-lbl"><span class="pg-dot"></span> Saved Requests</div>
       <div class="pg-coll-row">
         <select id="collSel" class="pg-sel" style="font-size:0.8rem">
-          <option value="">-- load collection --</option>
+          <option value="">-- load a saved request --</option>
           <optgroup label="Pre-built" id="collPrebuilt"></optgroup>
           <optgroup label="Saved" id="collSaved"></optgroup>
         </select>
         <button class="pg-bs" id="collLoadBtn" title="Load selected">Load</button>
         <button class="pg-bs" id="collDelBtn" title="Delete selected" style="color:#ff4444;border-color:rgba(255,68,68,0.2)">Del</button>
       </div>
-      <div style="font-size:0.7rem;color:#4a5568;font-family:'IBM Plex Mono',monospace;margin-top:6px">Save current request or load a saved one.</div>
+      <div style="font-size:0.7rem;color:#4a5568;font-family:'IBM Plex Mono',monospace;margin-top:6px">Save your favorite tools to quickly use them again.</div>
     </div>
   </div>
 
   <!-- Tabs -->
   <div class="pg-tabs">
-    <button class="pg-tab active" data-tab="single">Single Request</button>
-    <button class="pg-tab" data-tab="chain">Chain Builder</button>
+    <button class="pg-tab active" data-tab="single">Try a Tool</button>
+    <button class="pg-tab" data-tab="chain">Chain Tools Together</button>
   </div>
 
   <div class="pg-main-layout">
@@ -207,7 +207,7 @@
       <div class="pg-tab-content active" id="tab-single">
         <div class="pg-grid">
           <div class="pg-pnl">
-            <div class="pg-ph"><span class="pg-dot"></span> Request</div>
+            <div class="pg-ph"><span class="pg-dot"></span> Choose a Tool</div>
             <div class="pg-pb">
               <div class="pg-row">
                 <select id="pgM" class="pg-sel pg-ms">
@@ -215,7 +215,7 @@
                   <option value="POST" selected>POST</option>
                 </select>
                 <select id="pgE" class="pg-sel">
-                  <option value="">-- select endpoint --</option>
+                  <option value="">-- pick a tool --</option>
                 </select>
               </div>
               <div class="pg-desc" id="pgD"></div>
@@ -234,7 +234,7 @@
                 </div>
               </div>
               <div style="flex:1;display:flex;flex-direction:column">
-                <div class="pg-lbl">Request Body <span style="color:#4a5568">(JSON)</span></div>
+                <div class="pg-lbl">Input <span style="color:#4a5568">(JSON)</span></div>
                 <textarea id="pgB" class="pg-ta" spellcheck="false">{}</textarea>
               </div>
               <div class="pg-row">
@@ -252,7 +252,7 @@
                 <span class="pg-time" id="pgTm"></span>
                 <button class="pg-codegen-toggle" id="codegenToggle">&lt;/&gt; Generate Code</button>
               </div>
-              <div class="pg-rb" id="pgRb">Hit "Run" to send a request...</div>
+              <div class="pg-rb" id="pgRb">Pick a tool above and hit "Run" to see results here...</div>
               <!-- Code Generation Panel -->
               <div class="pg-codegen" id="codegenPanel">
                 <div class="pg-codegen-tabs" id="codegenTabs">
@@ -277,16 +277,16 @@
       <div class="pg-tab-content" id="tab-chain">
         <div class="pg-grid">
           <div class="pg-pnl">
-            <div class="pg-ph"><span class="pg-dot"></span> Chain Steps</div>
+            <div class="pg-ph"><span class="pg-dot"></span> Tool Chain</div>
             <div class="pg-pb">
-              <p style="color:#8b949e;font-size:0.82rem;margin-bottom:8px">Build multi-step chains. Use <code style="background:rgba(0,255,157,0.1);padding:2px 6px;border-radius:3px;color:#00ff9d;font-size:0.78rem">$prev.result</code> in any field to pipe the previous step's output.</p>
+              <p style="color:#8b949e;font-size:0.82rem;margin-bottom:8px">Run multiple tools in sequence. Each step can use the previous step's result automatically with <code style="background:rgba(0,255,157,0.1);padding:2px 6px;border-radius:3px;color:#00ff9d;font-size:0.78rem">$prev.result</code>.</p>
               <div>
-                <div class="pg-lbl">API Key <span style="color:#4a5568">(auto-filled from env)</span></div>
+                <div class="pg-lbl">API Key <span style="color:#4a5568">(optional, auto-filled from settings)</span></div>
                 <input class="pg-inp" id="chainKey" placeholder="your-api-key" style="width:100%;margin-top:4px">
               </div>
               <div class="chain-steps" id="chainSteps">
               </div>
-              <div class="chain-add" id="chainAddBtn">+ Add Step</div>
+              <div class="chain-add" id="chainAddBtn">+ Add Another Tool</div>
               <div style="margin-top:14px">
                 <div class="pg-row">
                   <button class="pg-run" id="chainRun" style="flex:1">&#9654; Run Chain</button>
@@ -296,14 +296,14 @@
             </div>
           </div>
           <div class="pg-pnl">
-            <div class="pg-ph"><span class="pg-dot"></span> Chain Results</div>
+            <div class="pg-ph"><span class="pg-dot"></span> Results</div>
             <div class="pg-pb">
               <div class="pg-st" id="chainSt" style="display:none">
                 <span class="pg-sc" id="chainSc"></span>
                 <span class="pg-time" id="chainTm"></span>
               </div>
               <div id="chainRb" style="flex:1;min-height:200px;max-height:600px;overflow:auto">
-                <div style="color:#8b949e;font-family:'IBM Plex Mono',monospace;font-size:0.82rem">Add steps and hit "Run Chain" to execute...</div>
+                <div style="color:#8b949e;font-family:'IBM Plex Mono',monospace;font-size:0.82rem">Add tools and hit "Run Chain" to see results here...</div>
               </div>
             </div>
           </div>
@@ -318,7 +318,7 @@
         <button class="pg-history-clear" id="historyClearBtn">Clear</button>
       </div>
       <div class="pg-history-list" id="historyList">
-        <div class="pg-history-empty">No requests yet.</div>
+        <div class="pg-history-empty">Nothing tried yet. Pick a tool and hit Run!</div>
       </div>
     </div>
   </div>
@@ -327,9 +327,9 @@
 <!-- Save to Collection Modal -->
 <div class="pg-modal-overlay" id="saveModal">
   <div class="pg-modal">
-    <h3>Save to Collection</h3>
-    <div class="pg-lbl" style="margin-bottom:6px">Collection name</div>
-    <input class="pg-inp" id="saveCollName" placeholder="My saved request">
+    <h3>Save This Request</h3>
+    <div class="pg-lbl" style="margin-bottom:6px">Give it a name</div>
+    <input class="pg-inp" id="saveCollName" placeholder="e.g. My translation request">
     <div class="pg-modal-btns">
       <button class="pg-modal-cancel" id="saveModalCancel">Cancel</button>
       <button class="pg-modal-save" id="saveModalSave">Save</button>
@@ -527,9 +527,9 @@ document.getElementById('pgR').addEventListener('click', run);
 async function run(){
   var btn=document.getElementById("pgR"),rb=document.getElementById("pgRb"),st=document.getElementById("pgSt"),sc=document.getElementById("pgSc"),tm=document.getElementById("pgTm");
   var method=mS.value,idx=eS.value;
-  if(idx===""){rb.textContent="Select an endpoint first.";return}
+  if(idx===""){rb.textContent="Pick a tool first from the dropdown above.";return}
   var e=EP[idx],path=e.ep,qs=e.q||"";
-  btn.disabled=true;btn.classList.add("ld");btn.textContent="Running...";rb.textContent="Sending request...";st.style.display="none";
+  btn.disabled=true;btn.classList.add("ld");btn.textContent="Running...";rb.textContent="Running...";st.style.display="none";
   hideCodegen();
 
   var headers=gH(),url=location.origin+path+(qs?"?"+qs:""),opts={method:method,headers:headers};
@@ -816,7 +816,7 @@ function renderHistory() {
   var h = getHistory();
   list.innerHTML = '';
   if (h.length === 0) {
-    list.innerHTML = '<div class="pg-history-empty">No requests yet.</div>';
+    list.innerHTML = '<div class="pg-history-empty">Nothing tried yet. Pick a tool and hit Run!</div>';
     return;
   }
   h.forEach(function(entry, idx) {
@@ -1002,7 +1002,7 @@ document.getElementById('collDelBtn').addEventListener('click', function() {
   var sel = document.getElementById('collSel');
   var val = sel.value;
   if (!val || val.indexOf('saved:') !== 0) {
-    if (window.showToast) showToast('Can only delete saved collections');
+    if (window.showToast) showToast('You can only delete your own saved requests');
     return;
   }
   var name = val.slice(6);
@@ -1027,14 +1027,14 @@ document.getElementById('saveModal').addEventListener('click', function(e) {
 // ── Share ──
 // ═══════════════════════════════════════
 document.getElementById('shareBtn').addEventListener('click', function() {
-  var idx=eS.value;if(idx===""){if(window.showToast)showToast("Select an endpoint first");return}
+  var idx=eS.value;if(idx===""){if(window.showToast)showToast("Pick a tool first");return}
   var params={tab:"single",ep:idx,method:mS.value};
   if(mS.value==="POST"){try{params.body=btoa(bA.value)}catch(_){}}
   var hv=document.querySelector('.hv');
   if(hv&&hv.value.trim())params.key=hv.value.trim();
   var hash="#"+new URLSearchParams(params).toString();
   var url=location.origin+"/playground"+hash;
-  navigator.clipboard.writeText(url).then(function(){if(window.showToast)showToast("Shareable URL copied to clipboard!")});
+  navigator.clipboard.writeText(url).then(function(){if(window.showToast)showToast("Link copied! Share it with anyone.")});
 });
 
 // ═══════════════════════════════════════
@@ -1305,7 +1305,7 @@ document.getElementById('chainShareBtn').addEventListener('click', function() {
   if (steps.length === 0) { if(window.showToast) showToast("Add at least one step"); return; }
   var hash = '#' + new URLSearchParams({tab:'chain', chain: btoa(JSON.stringify(steps))}).toString();
   var url = location.origin + '/playground' + hash;
-  navigator.clipboard.writeText(url).then(function() { if(window.showToast) showToast('Chain URL copied to clipboard!'); });
+  navigator.clipboard.writeText(url).then(function() { if(window.showToast) showToast('Chain link copied! Share it with anyone.'); });
 });
 
 // ═══════════════════════════════════════

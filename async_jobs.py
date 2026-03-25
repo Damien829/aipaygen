@@ -6,7 +6,7 @@ import threading
 import os
 import logging
 import requests
-from datetime import datetime
+from datetime import datetime, timezone
 
 _log = logging.getLogger("async_jobs")
 
@@ -17,6 +17,9 @@ UPLOADS_DIR = os.path.join(os.path.dirname(__file__), "uploads")
 def _conn():
     c = sqlite3.connect(DB_PATH)
     c.execute("PRAGMA journal_mode=WAL")
+    c.execute("PRAGMA synchronous=NORMAL")
+    c.execute("PRAGMA cache_size=-8000")
+    c.execute("PRAGMA temp_store=MEMORY")
     c.row_factory = sqlite3.Row
     return c
 
@@ -41,7 +44,7 @@ def init_jobs_db():
 
 def submit_job(endpoint: str, payload: dict, callback_url: str = None) -> str:
     job_id = str(uuid.uuid4())
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         c.execute(
             "INSERT INTO async_jobs (job_id, endpoint, payload, callback_url, created_at) "
@@ -75,7 +78,7 @@ def _mark_running(job_id: str):
 
 
 def _mark_done(job_id: str, result: dict):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         c.execute(
             "UPDATE async_jobs SET status='completed', result=?, completed_at=? WHERE job_id=?",
@@ -84,7 +87,7 @@ def _mark_done(job_id: str, result: dict):
 
 
 def _mark_failed(job_id: str, error: str):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         c.execute(
             "UPDATE async_jobs SET status='failed', error=?, completed_at=? WHERE job_id=?",

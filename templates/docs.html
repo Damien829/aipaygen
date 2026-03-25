@@ -3,16 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="canonical" href="https://aipaygen.com/docs">
 <title>AiPayGen — Documentation</title>
+<meta name="description" content="Complete API documentation for AiPayGen — 250+ AI tools, 27 models, authentication, pricing, code examples, and integration guides.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="AiPayGen Documentation — 250 AI Tools API">
-<meta property="og:description" content="Complete API documentation for AiPayGen — 250 AI tools, authentication, pricing, code examples, and integration guides.">
+<meta property="og:title" content="AiPayGen Documentation — 250+ AI Tools API">
+<meta property="og:description" content="Complete API documentation for AiPayGen — 250+ AI tools, 27 models, authentication, pricing, code examples, and integration guides.">
 <meta property="og:url" content="https://aipaygen.com/docs">
 <meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="AiPayGen Documentation">
-<meta name="twitter:description" content="Complete API docs for 250 AI tools. Authentication, pricing, code examples, and integration guides.">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="twitter:description" content="Complete API docs for 250+ AI tools, 27 models. Authentication, pricing, code examples, and integration guides.">
+<link rel="icon" href="/static/icon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
@@ -60,6 +62,10 @@ a:hover{text-decoration:underline}
 .cta-box a{display:inline-block;background:linear-gradient(135deg,#00ff9d,#00d4ff);color:#000;font-weight:700;padding:10px 24px;border-radius:6px;margin-top:12px;text-decoration:none;font-family:'IBM Plex Mono',monospace}
 @media(max-width:768px){.sidebar{display:none}.content{padding:24px 16px}}
 </style>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4228277826827893" crossorigin="anonymous"></script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"TechArticle","name":"AiPayGen API Documentation","description":"Complete API documentation for AiPayGen — 250+ AI tools, authentication, pricing, and integration guides.","url":"https://aipaygen.com/docs","publisher":{"@type":"Organization","name":"AiPayGen","url":"https://aipaygen.com"}}
+</script>
 </head>
 <body>
 <nav style="position:fixed;top:0;width:100%;z-index:100;background:rgba(2,4,8,0.95);backdrop-filter:blur(16px) saturate(180%);border-bottom:1px solid rgba(0,255,157,0.1);padding:14px 0">
@@ -92,7 +98,7 @@ a:hover{text-decoration:underline}
   <a href="#templates">Templates</a>
   <a href="#scheduling">Scheduling</a>
   <div class="section-title">API Reference</div>
-  <a href="#ai-tools">AI Tools (40+)</a>
+  <a href="#ai-tools">AI Tools (250+)</a>
   <a href="#data">Data Lookups</a>
   <a href="#scraping">Web Scraping</a>
   <a href="#agents">Agent System</a>
@@ -111,10 +117,10 @@ a:hover{text-decoration:underline}
 <div class="content">
 
 <h1>Documentation</h1>
-<p class="subtitle">250 AI tools, custom agent builder, scheduling, and 15 AI models — all in one API.</p>
+<p class="subtitle">250+ AI tools, custom agent builder, scheduling, and 27 AI models — all in one API.</p>
 
 <h2 id="overview">Overview</h2>
-<p>AiPayGen is the most comprehensive AI toolkit for developers and agents. Build custom AI agents, access 250 tools, 2200+ skills, and 4100+ APIs — all through a single API key or MCP connection.</p>
+<p>AiPayGen is the most comprehensive AI toolkit for developers and agents. Build custom AI agents, access 250+ tools, 27 models, 2200+ skills, and 4100+ APIs — all through a single API key or MCP connection.</p>
 
 <div style="display:flex;gap:12px;flex-wrap:wrap;margin:16px 0">
   <a href="/openapi.json" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:0.85rem;color:var(--cyan);text-decoration:none">OpenAPI Spec</a>
@@ -168,7 +174,7 @@ curl -X POST https://api.aipaygen.com/preview \
 <tr><th>Method</th><th>How</th><th>Best For</th></tr>
 <tr><td>API Key</td><td>POST /credits/buy with Stripe</td><td>Most users — simple, prepaid credits</td></tr>
 <tr><td>x402 USDC</td><td>HTTP 402 + X-Payment header</td><td>Crypto-native agents, no accounts</td></tr>
-<tr><td>MCP</td><td>pip install aipaygen-mcp</td><td>Claude/Cursor — 3 free/day, unlimited with key</td></tr>
+<tr><td>MCP</td><td>pip install aipaygen-mcp</td><td>Claude/Cursor — free key with $0.25 trial credits</td></tr>
 </table>
 
 <h2 id="builder">Build Your Own Agent <span class="badge badge-new">NEW</span></h2>
@@ -315,7 +321,7 @@ result = httpx.post(f"{BASE}/agents/custom/{agent_id}/run",
 <div class="endpoint"><span class="method post">POST</span><span class="path">/catalog/{id}/invoke</span><div class="desc">Invoke a cataloged API through AiPayGen.</div></div>
 
 <h2 id="mcp">MCP Integration</h2>
-<p>All 250 tools are available as MCP tools. Three ways to connect:</p>
+<p>All 250+ tools are available as MCP tools. Three ways to connect:</p>
 
 <h3>1. PyPI Package (Recommended)</h3>
 <pre><code># Install
@@ -343,19 +349,36 @@ URL: https://mcp.aipaygen.com/mcp</code></pre>
 # ID: io.github.Damien829/aipaygen</code></pre>
 
 <h2 id="models">Available Models</h2>
+<p>27 models across 7 providers. Pass a <code>model</code> parameter to choose, or let AiPayGen auto-route.</p>
 <table class="pricing-table">
 <tr><th>Model</th><th>Provider</th><th>Best For</th></tr>
 <tr><td>auto</td><td>AiPayGen</td><td>Automatic — picks best model for the task</td></tr>
-<tr><td>claude-sonnet</td><td>Anthropic</td><td>Complex reasoning, analysis</td></tr>
+<tr><td>claude-opus</td><td>Anthropic</td><td>Most capable, complex reasoning</td></tr>
+<tr><td>claude-sonnet</td><td>Anthropic</td><td>Strong reasoning, analysis</td></tr>
 <tr><td>claude-haiku</td><td>Anthropic</td><td>Fast, cheap, good enough for most tasks</td></tr>
 <tr><td>gpt-4o</td><td>OpenAI</td><td>General purpose, strong coding</td></tr>
 <tr><td>gpt-4o-mini</td><td>OpenAI</td><td>Fast and cheap</td></tr>
+<tr><td>gpt-4-turbo</td><td>OpenAI</td><td>High quality, large context</td></tr>
+<tr><td>o1</td><td>OpenAI</td><td>Advanced reasoning</td></tr>
+<tr><td>o1-mini</td><td>OpenAI</td><td>Fast reasoning</td></tr>
+<tr><td>o3-mini</td><td>OpenAI</td><td>Latest reasoning model</td></tr>
 <tr><td>deepseek-chat</td><td>DeepSeek</td><td>Coding, technical tasks</td></tr>
 <tr><td>deepseek-reasoner</td><td>DeepSeek</td><td>Complex reasoning chains</td></tr>
+<tr><td>gemini-2.5-pro</td><td>Google</td><td>Advanced multimodal reasoning</td></tr>
 <tr><td>gemini-2.0-flash</td><td>Google</td><td>Fast, multimodal</td></tr>
-<tr><td>grok-3-mini</td><td>xAI</td><td>Real-time knowledge</td></tr>
+<tr><td>gemini-1.5-pro</td><td>Google</td><td>Long context, multimodal</td></tr>
+<tr><td>gemini-1.5-flash</td><td>Google</td><td>Fast, efficient</td></tr>
+<tr><td>grok-3</td><td>xAI</td><td>Real-time knowledge, reasoning</td></tr>
+<tr><td>grok-3-mini</td><td>xAI</td><td>Fast real-time knowledge</td></tr>
+<tr><td>grok-2</td><td>xAI</td><td>General purpose</td></tr>
+<tr><td>mistral-large</td><td>Mistral</td><td>High quality, multilingual</td></tr>
 <tr><td>mistral-small</td><td>Mistral</td><td>Efficient, multilingual</td></tr>
+<tr><td>codestral</td><td>Mistral</td><td>Code generation</td></tr>
+<tr><td>pixtral</td><td>Mistral</td><td>Vision tasks</td></tr>
 <tr><td>llama-4-scout</td><td>Meta</td><td>Open-weight, fast</td></tr>
+<tr><td>llama-4-maverick</td><td>Meta</td><td>High quality open-weight</td></tr>
+<tr><td>llama-3.3-70b</td><td>Meta</td><td>Strong open-weight</td></tr>
+<tr><td>llama-3.1-8b</td><td>Meta</td><td>Lightweight, fast</td></tr>
 </table>
 <pre><code># Use any model on any endpoint
 httpx.post(f"{BASE}/research",
@@ -499,11 +522,11 @@ translated = httpx.post(f"{BASE}/translate", json={"text": summary["summary"], "
 <p><strong>How to fix:</strong> Set <code>Content-Type: application/json</code> in your request headers and ensure the body is valid JSON.</p>
 
 <h3>429 — Rate Limited</h3>
-<p>Too many requests. Free tier: 3 calls/day. Paid tier: 60 calls/minute.</p>
+<p>Too many requests. Free tier: 1 call/day. Paid tier: 60 calls/minute.</p>
 <pre><code>{
   "error": "Rate limit exceeded",
   "retry_after": 60,
-  "limit": "3/day",
+  "limit": "1/day",
   "reset_at": "2026-03-17T00:00:00Z",
   "upgrade_url": "https://aipaygen.com/buy-credits"
 }</code></pre>

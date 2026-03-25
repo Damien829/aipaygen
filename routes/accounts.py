@@ -91,7 +91,9 @@ def magic_link():
     _check_csrf()
     ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "unknown")
     if not check_identity_rate_limit(ip):
-        return jsonify({"error": "rate_limited", "message": "Too many requests. Try again later."}), 429
+        resp = jsonify({"error": "rate_limited", "message": "Too many requests. Try again later."})
+        resp.headers["Retry-After"] = "60"
+        return resp, 429
     data = request.get_json(silent=True) or {}
     email = (data.get("email") or "").strip().lower()
     if not email or not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
@@ -212,7 +214,9 @@ def key_lookup():
     _check_csrf()
     ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "unknown")
     if not check_identity_rate_limit(ip):
-        return jsonify({"error": "rate_limited", "message": "Too many requests. Try again later."}), 429
+        resp = jsonify({"error": "rate_limited", "message": "Too many requests. Try again later."})
+        resp.headers["Retry-After"] = "60"
+        return resp, 429
     # Always return same message to prevent email enumeration
     msg = "If an account exists for that email, a sign-in link has been sent. Check your inbox."
     data = request.get_json(silent=True) or {}

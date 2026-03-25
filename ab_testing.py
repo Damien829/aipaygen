@@ -3,7 +3,7 @@ import hashlib
 import logging
 import os
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 _log = logging.getLogger(__name__)
 
@@ -12,6 +12,10 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "ab_tests.db")
 
 def _conn():
     c = sqlite3.connect(DB_PATH)
+    c.execute("PRAGMA journal_mode=WAL")
+    c.execute("PRAGMA synchronous=NORMAL")
+    c.execute("PRAGMA cache_size=-8000")
+    c.execute("PRAGMA temp_store=MEMORY")
     c.row_factory = sqlite3.Row
     return c
 
@@ -47,7 +51,7 @@ def track_event(test_name: str, variant: str, visitor_id: str, event: str = "pag
     """Record an A/B test event."""
     if not test_name or not visitor_id:
         return
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     try:
         with _conn() as c:
             c.execute(
@@ -65,7 +69,7 @@ def track_conversion(test_name: str, variant: str, visitor_id: str, event: str =
 
 def get_test_results(test_name: str, days: int = 30) -> dict:
     """Return A vs B stats with conversion rates for a given test."""
-    cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
     results = {"test_name": test_name, "period_days": days, "variants": {}}
 
     with _conn() as c:
@@ -121,7 +125,7 @@ def get_test_results(test_name: str, days: int = 30) -> dict:
 
 def list_tests(days: int = 30) -> list:
     """List all active tests with basic stats."""
-    cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
     with _conn() as c:
         rows = c.execute(
             "SELECT test_name, COUNT(DISTINCT visitor_id) as visitors, COUNT(*) as events, "

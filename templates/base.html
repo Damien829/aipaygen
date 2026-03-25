@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{% block title %}AiPayGen{% endblock %} — AI Agent API</title>
-<meta name="description" content="{% block description %}250 AI tools in one API. Multi-model. Pay per call ($0.01-$0.50) with API key, x402 USDC, or MCP. 1 free call/day + 2 with ads. No subscriptions.{% endblock %}">
+<title>{% block title %}AiPayGen{% endblock %} — 250+ AI Tools in One App</title>
+<meta name="description" content="{% block description %}250+ AI tools in one app. Chat with AI, research, write, translate, code, and more. 27 models from Claude, GPT-4o, Gemini. Free to try. No sign up needed.{% endblock %}">
 <link rel="canonical" href="https://aipaygen.com{% block canonical %}{{ request.path }}{% endblock %}">
 <link rel="icon" href="/static/icon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -13,11 +13,16 @@
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/css/main.css">
 <meta name="theme-color" content="#020408">
+<link rel="manifest" href="/static/manifest.json">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
 <meta property="og:site_name" content="AiPayGen">
 <meta name="twitter:site" content="@aipaygen">
 {% block head %}{% endblock %}
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4228277826827893" crossorigin="anonymous"></script>
+{% if GA4_ID %}
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ GA4_ID }}"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{ GA4_ID }}');</script>
+{% endif %}
 <style>
 .ad-slot{text-align:center;margin:1.5rem auto;max-width:728px;min-height:90px;overflow:hidden}
 .ad-slot-sidebar{max-width:300px;min-height:250px}
@@ -39,34 +44,21 @@
       <span></span><span></span><span></span>
     </button>
     <ul class="nav-links" id="navLinks">
-      <li><a href="/try">Try Free</a></li>
-      <li><a href="/docs">Docs</a></li>
       <li><a href="/pricing">Pricing</a></li>
-      <li><a href="/playground">Playground</a></li>
-      <li><a href="/premium" style="color:#ffd700">Pro</a></li>
-      <li><a href="/integrations">Integrations</a></li>
-      <li><a href="/status">Status</a></li>
-      <li><a href="/dashboard">Dashboard</a></li>
-      <li><a href="/app" style="color:#00d4ff">Mobile App</a></li>
-      <li><a href="/get-key" class="nav-cta">Get API Key</a></li>
+      <li><a href="/discover">Tools</a></li>
+      <li><a href="/docs">API Docs</a></li>
+      <li><a href="/support">Help</a></li>
+      <li><a href="/app/" class="nav-cta" style="background:var(--accent);color:#000">Open App</a></li>
     </ul>
   </div>
 </nav>
 
 <main class="pt-nav" id="main-content">
-<!-- Ad: Top leaderboard -->
-<!-- TODO: Replace TOP_SLOT_ID with a real ad slot ID after AdSense approval -->
-<div class="ad-slot" aria-label="Advertisement">
-  <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-4228277826827893" data-ad-slot="TOP_SLOT_ID" data-ad-format="horizontal" data-full-width-responsive="true"></ins>
-  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-</div>
-
 {% block content %}{% endblock %}
 
 <!-- Ad: Bottom before footer -->
-<!-- TODO: Replace BOTTOM_SLOT_ID with a real ad slot ID after AdSense approval -->
 <div class="ad-slot" aria-label="Advertisement">
-  <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-4228277826827893" data-ad-slot="BOTTOM_SLOT_ID" data-ad-format="horizontal" data-full-width-responsive="true"></ins>
+  <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-4228277826827893" data-ad-slot="9290236735" data-ad-format="auto" data-full-width-responsive="true"></ins>
   <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
 </div>
 </main>
@@ -76,41 +68,39 @@
   <div class="footer-inner">
     <div class="footer-brand">
       <div class="logo">AiPayGen</div>
-      <p>The AI agent API marketplace. 250 tools, 15 models, 7 providers. $0.01-$0.50/call. No subscriptions. 70% creator revenue.</p>
-      <p class="mt-2" style="color:var(--text-muted)">Base Mainnet &middot; x402 Protocol</p>
+      <p>250+ AI tools in one app. Chat, research, write, translate, code, and more. Free to try.</p>
     </div>
     <div class="footer-col">
       <h4>Product</h4>
-      <a href="/docs">Documentation</a>
-      <a href="/try">Try Free</a>
-      <a href="/builder">Agent Builder</a>
-      <a href="/sell">Sell Your API</a>
-      <a href="/buy-credits">Pricing</a>
-      <a href="/app">Mobile App</a>
-      <a href="/sdk">SDK</a>
+      <a href="/try">Open App</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/discover">Browse Tools</a>
+      <a href="/playground">Playground</a>
+      <a href="/premium">Pro Tools</a>
+      <a href="/builder">Workflow Builder</a>
     </div>
     <div class="footer-col">
-      <h4>Resources</h4>
-      <a href="/blog">Blog</a>
+      <h4>Developers</h4>
+      <a href="/docs">API Docs</a>
+      <a href="/get-key">Get API Key</a>
+      <a href="/integrations">Integrations</a>
       <a href="/openapi.json">OpenAPI Spec</a>
-      <a href="/discover">API Catalog</a>
-      <a href="/llms.txt">llms.txt</a>
-      <a href="/sitemap.xml">Sitemap</a>
+      <a href="https://pypi.org/project/aipaygen-mcp/" target="_blank" rel="noopener">PyPI</a>
+      <a href="/sell">Sell Your Tools</a>
     </div>
     <div class="footer-col">
-      <h4>Connect</h4>
+      <h4>Company</h4>
+      <a href="/blog">Blog</a>
+      <a href="/support">Support</a>
       <a href="https://instagram.com/aipaygen" target="_blank" rel="noopener">Instagram</a>
       <a href="https://x.com/aipaygen" target="_blank" rel="noopener">X / Twitter</a>
-      <a href="https://pypi.org/project/aipaygen-mcp/" target="_blank" rel="noopener">PyPI</a>
-      <a href="https://registry.modelcontextprotocol.io" target="_blank" rel="noopener">MCP Registry</a>
-      <a href="https://smithery.ai/servers/Damien829/Aipaygen" target="_blank" rel="noopener">Smithery</a>
-      <a href="/links">Link Tree</a>
-      <a href="/support">Support</a>
+      <a href="/links">Links</a>
+      <a href="/status">Status</a>
     </div>
   </div>
   <div class="footer-bottom">
     <span>&copy; 2026 AiPayGen. All rights reserved.</span>
-    <span>Built on Base &middot; Powered by Claude</span>
+    <span><a href="/privacy" style="color:inherit;text-decoration:none;">Privacy Policy</a> &middot; <a href="/terms" style="color:inherit;text-decoration:none;">Terms of Service</a></span>
   </div>
 </footer>
 

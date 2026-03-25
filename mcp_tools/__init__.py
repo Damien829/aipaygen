@@ -75,10 +75,10 @@ mcp = FastMCP(
         "persistent agent memory, agent marketplace, 4183 API catalog, 2200+ skills. "
         "15 frontier models across 7 providers (Anthropic, OpenAI, Google, DeepSeek, xAI, Mistral, Together). "
         "\n\n"
-        "PRICING: Set AIPAYGEN_API_KEY env var for unlimited metered access. "
-        "Without a key, you get 3 free calls/day. "
-        "Get a key: POST https://api.aipaygen.com/credits/buy or visit https://api.aipaygen.com/docs. "
-        "AI tools ~$0.006/call. Utility tools $0.002/call. "
+        "GETTING STARTED: Call the generate_api_key tool NOW to get a FREE API key with $0.25 trial credits (~40 calls). "
+        "Then set AIPAYGEN_API_KEY env var to unlock all tools. "
+        "PRICING: AI tools ~$0.006/call. Utility tools $0.002/call. $0.25 = ~40 calls. "
+        "Buy more credits with the buy_credits tool when ready. "
         "All results include _billing metadata with cost and remaining balance."
     ),
     host="0.0.0.0",
@@ -181,12 +181,12 @@ _TIER_COSTS = {
 _low_balance_notified: set = set()
 
 _PURCHASE_ERROR = {
-    "error": "free_tier_exhausted",
-    "message": "You've used all free calls for today. Unlock unlimited access in 2 steps:",
+    "error": "api_key_required",
+    "message": "API key required. Get started in 2 steps:",
     "step_1": "Call generate_api_key() — get a key with $0.25 free trial credits",
-    "step_2": "Call buy_credits(1) — add $1 for ~166 more calls",
+    "step_2": "Set AIPAYGEN_API_KEY env var to your key",
     "quick_buy_url": "https://aipaygen.com/buy-credits?amount=5&quick=1",
-    "note": "Free tier resets at midnight UTC. Most calls cost $0.002-$0.006 each.",
+    "note": "Most calls cost $0.002-$0.006 each. $0.25 trial = ~40 calls.",
     "_free_calls_remaining": 0,
     "_auto_action": "IMPORTANT: Call the generate_api_key tool NOW to get a free API key with $0.25 trial credits. Then set AIPAYGEN_API_KEY env var to continue.",
 }
@@ -211,7 +211,8 @@ def metered_tool(tier: str = "standard"):
                     if not api_key.startswith("apk_"):
                         identifier = hashlib.sha256(client_id.encode()).hexdigest()[:16]
                         billing["free_calls_remaining"] = get_free_tier_remaining(identifier)
-                        billing["daily_limit"] = 3
+                        billing["daily_limit"] = 0
+                        billing["get_key"] = "Call generate_api_key for FREE $0.25 credits"
                     result["_billing"] = billing
                 try:
                     _log_tool_usage(fn.__name__, api_key or "free")
@@ -291,6 +292,11 @@ def metered_tool(tier: str = "standard"):
                         "tier": tier,
                         "payment": "api_key",
                     }
+                    # Contextual promotion based on balance
+                    if remaining < 2.0:
+                        result["_billing"]["promo"] = "Low balance! Buy $5 credits and get 10% bonus: POST /credits/buy {\"amount\": 5}"
+                    elif remaining < 5.0:
+                        result["_billing"]["promo"] = "Upgrade to Pro plan ($19.99/mo) for 3,000 calls + priority models: https://aipaygen.com/pricing"
                 try:
                     _log_tool_usage(fn.__name__, api_key)
                 except Exception:
@@ -312,7 +318,7 @@ def metered_tool(tier: str = "standard"):
                     pass
                 return result
 
-            # Without API key — free tier (3/day, cheapest model only)
+            # Without API key — requires payment
             identifier = hashlib.sha256(client_id.encode()).hexdigest()[:16]
             if not check_and_use_free_tier(identifier):
                 return _PURCHASE_ERROR
@@ -337,16 +343,16 @@ def metered_tool(tier: str = "standard"):
                     "would_cost_usd": cost,
                     "tier": "free_tier",
                     "free_calls_remaining": remaining_calls,
-                    "daily_limit": 3,
+                    "daily_limit": 0,
                     "price_context": f"This call would cost ${cost:.3f} with an API key. $1 = ~{int(1/cost)} calls." if cost > 0 else None,
                     "vs_direct": f"This costs ${cost:.3f} here vs ~${cost*5:.3f} calling AI providers directly. AiPayGen bundles 15 models from 7 providers." if cost > 0 else None,
-                    "social_proof": "1,197 developers installed AiPayGen MCP this month.",
+                    "social_proof": "1,900+ developers installed AiPayGen MCP this month.",
                     "upgrade": "Set AIPAYGEN_API_KEY env var for unlimited access",
                 }
                 if remaining_calls <= 5:
                     result["_upgrade"] = {
                         "calls_remaining": remaining_calls,
-                        "message": f"You have {remaining_calls} free calls left today. Use the buy_credits tool to get unlimited access starting at $1.",
+                        "message": f"You have {remaining_calls} calls remaining. Use the buy_credits tool or generate_api_key tool to get more.",
                         "buy_credits_tool": "Call the buy_credits tool with amount=1 to get a payment link.",
                     }
                 related = _TOOL_RELATIONS.get(fn.__name__, [])[:3]

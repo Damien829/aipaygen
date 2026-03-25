@@ -4,7 +4,7 @@ import time
 import logging
 import sqlite3
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 _log = logging.getLogger("react_agent")
 
@@ -341,7 +341,7 @@ class ReActAgent:
                               "result": parsed["answer"], "cost": result.get("cost_usd", 0), "model": result.get("model", "")})
                 if agent_id and self.memory.get("set"):
                     try:
-                        self.memory["set"](agent_id, f"task_result:{datetime.utcnow().isoformat()}", {
+                        self.memory["set"](agent_id, f"task_result:{datetime.now(timezone.utc).isoformat()}", {
                             "task": task[:200], "answer": str(parsed["answer"])[:500], "steps": step, "cost": tracker.total})
                     except Exception:
                         pass

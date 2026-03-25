@@ -7,12 +7,12 @@
 {% block head %}
 <meta property="og:type" content="article">
 <meta property="og:title" content="Why I Built AiPayGen: 250 AI Tools for the Price of One API Call">
-<meta property="og:description" content="One API, 250 tools, 15 models. Pay $0.006 per call instead of $20/month per provider.">
+<meta property="og:description" content="One API, 250+ tools, 27 models. Pay $0.006 per call instead of $20/month per provider.">
 <meta property="og:url" content="https://aipaygen.com/blog/launch">
 <meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Why I Built AiPayGen: 250 AI Tools for the Price of One API Call">
-<meta name="twitter:description" content="One API, 250 tools, 15 models. Pay $0.006 per call instead of $20/month per provider.">
+<meta name="twitter:description" content="One API, 250+ tools, 27 models. Pay $0.006 per call instead of $20/month per provider.">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -80,7 +80,7 @@
 
   <h2>What if you could pay per call?</h2>
 
-  <p>That's the core idea behind AiPayGen. One API endpoint, 250 tools, 15 AI models from 7 providers. You pay only when you make a call. No monthly fees. No unused quotas expiring at the end of the month.</p>
+  <p>That's the core idea behind AiPayGen. One API endpoint, 250 tools, 27 AI models from 7 providers. You pay only when you make a call. No monthly fees. No unused quotas expiring at the end of the month.</p>
 
   <div class="price-compare">
     <div class="old">
@@ -121,7 +121,7 @@
     <li><strong>SQLite in WAL mode</strong> for all persistence — agents, skills, API catalog, usage tracking. No Postgres, no Redis, no external dependencies.</li>
     <li><strong>Cloudflare tunnel</strong> for TLS termination and DDoS protection</li>
     <li><strong>Oracle Cloud</strong> for hosting (started on a Raspberry Pi 5, migrated for uptime)</li>
-    <li><strong>15 AI models</strong> from 7 providers, auto-routed by task type and complexity</li>
+    <li><strong>27 AI models</strong> from 7 providers, auto-routed by task type and complexity</li>
     <li><strong>x402 protocol</strong> for crypto payments — USDC on Base, Solana, or Stellar. The payment travels with the HTTP request, so AI agents can pay for API calls autonomously.</li>
   </ul>
 
@@ -138,7 +138,7 @@
   <pre><code class="language-bash"># Free — no key needed
 curl "https://api.aipaygen.com/data/weather?city=Tokyo"
 
-# AI tool — uses free tier (3 calls/day)
+# AI tool — uses free tier (1 call/day)
 curl -X POST "https://api.aipaygen.com/summarize" \
   -H "Content-Type: application/json" \
   -d '{"text": "Paste any long text here", "length": "short"}'
@@ -157,7 +157,7 @@ claude mcp add aipaygen -- aipaygen-mcp</code></pre>
   <p>That's it. All 250 tools are now available in your AI coding assistant.</p>
 
   <div class="blog-callout">
-    <strong>Free tier:</strong> 3 calls per day, no API key needed, no credit card required.<br>
+    <strong>Free tier:</strong> 1 call per day, no API key needed, no credit card required.<br>
     <strong>Paid:</strong> Load credits from $1 via Stripe. AI calls ~$0.006, utilities ~$0.002, scraping ~$0.01.<br>
     <strong>Crypto:</strong> Pay per call in USDC via x402 on Base, Solana, or Stellar.
   </div>

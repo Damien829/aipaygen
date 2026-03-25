@@ -4,7 +4,7 @@ import json
 import os
 import threading
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 import requests as _requests
 import stripe
@@ -134,7 +134,7 @@ def sell_directory():
         "pages": (total + per_page - 1) // per_page,
         "_meta": {
             "endpoint": "/sell/directory",
-            "ts": datetime.utcnow().isoformat() + "Z",
+            "ts": datetime.now(timezone.utc).isoformat() + "Z",
             "hint": "Use ANY /sell/<slug>/<path> to call a seller API",
         },
     })
@@ -179,7 +179,7 @@ def sell_docs(slug):
         "category": api.get("category", "general"),
         "escrow_enabled": api.get("escrow_enabled", False),
         "paths": paths,
-        "_meta": {"generated_at": datetime.utcnow().isoformat() + "Z"},
+        "_meta": {"generated_at": datetime.now(timezone.utc).isoformat() + "Z"},
     }
     return jsonify(doc)
 

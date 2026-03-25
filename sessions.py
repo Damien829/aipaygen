@@ -16,6 +16,9 @@ def _get_conn():
     if _conn is None:
         _conn = sqlite3.connect(SESSIONS_DB, check_same_thread=False)
         _conn.execute("PRAGMA journal_mode=WAL")
+        _conn.execute("PRAGMA synchronous=NORMAL")
+        _conn.execute("PRAGMA cache_size=-8000")
+        _conn.execute("PRAGMA temp_store=MEMORY")
         _conn.row_factory = sqlite3.Row
     return _conn
 
@@ -80,10 +83,14 @@ def get_session(session_id):
             conn.commit()
             return None
     except (ValueError, TypeError):
-        pass  # If timestamp parsing fails, allow the session
-    now_iso = now.isoformat()
-    conn.execute("UPDATE sessions SET last_active = ? WHERE id = ?", (now_iso, session_id))
-    conn.commit()
+        last_active = now  # If timestamp parsing fails, allow the session
+    # Only update last_active if it's more than 60 seconds old
+    if (now - last_active).total_seconds() > 60:
+        now_iso = now.isoformat()
+        conn.execute("UPDATE sessions SET last_active = ? WHERE id = ?", (now_iso, session_id))
+        conn.commit()
+    else:
+        now_iso = row["last_active"]
     return {
         "session_id": row["id"],
         "agent_id": row["agent_id"],

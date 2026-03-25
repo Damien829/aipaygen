@@ -3,7 +3,7 @@ import re
 import sqlite3
 import uuid
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "file_storage.db")
 FILES_DIR = os.path.join(os.path.dirname(__file__), "uploads")
@@ -13,6 +13,10 @@ MAX_TOTAL_MB = 500                  # 500 MB total storage
 
 def _conn():
     c = sqlite3.connect(DB_PATH)
+    c.execute("PRAGMA journal_mode=WAL")
+    c.execute("PRAGMA synchronous=NORMAL")
+    c.execute("PRAGMA cache_size=-8000")
+    c.execute("PRAGMA temp_store=MEMORY")
     c.row_factory = sqlite3.Row
     return c
 
@@ -51,7 +55,7 @@ def save_file(agent_id: str, filename: str, content_type: str,
         raise ValueError("Invalid filename")
     with open(path, "wb") as f:
         f.write(data)
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         c.execute(
             "INSERT INTO files (file_id, agent_id, filename, content_type, size_bytes, path, created_at) "

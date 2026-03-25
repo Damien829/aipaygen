@@ -24,7 +24,7 @@ AiPayGen — one API with 250 AI tools. Research, summarize, translate, code gen
 - Started on a Raspberry Pi 5, migrated for uptime
 
 **Pricing model:**
-- Free: 3 calls/day (runs on self-hosted Llama, costs me $0)
+- Free: 1 call/day (runs on self-hosted Llama, costs me $0)
 - Paid: from $0.50. AI calls ~$0.006 each
 - No subscriptions. Credits never expire.
 - Crypto option for autonomous AI agents
@@ -45,7 +45,7 @@ AiPayGen — one API with 250 AI tools. Research, summarize, translate, code gen
 
 **What's NOT working:**
 - 0 paying customers despite 450 daily visitors
-- Free tier may be too generous (lowered from 10 to 3 calls/day)
+- Free tier lowered from 10 to 3 to 1 call/day
 - Reddit posts got removed from 3/4 subreddits (spam filters)
 - No social proof yet
 

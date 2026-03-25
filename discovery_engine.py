@@ -14,7 +14,7 @@ import json
 import sqlite3
 import time
 import requests
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +28,10 @@ MAX_PINGS_PER_HOUR = 10  # directory pings
 
 def _conn():
     c = sqlite3.connect(DB_PATH, timeout=10)
+    c.execute("PRAGMA journal_mode=WAL")
+    c.execute("PRAGMA synchronous=NORMAL")
+    c.execute("PRAGMA cache_size=-8000")
+    c.execute("PRAGMA temp_store=MEMORY")
     c.row_factory = sqlite3.Row
     return c
 
@@ -81,7 +85,7 @@ def init_discovery_db():
 
 
 def _log(action: str, target: str, status: str, detail: str = ""):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         c.execute(
             "INSERT INTO outreach_log (action, target, status, detail, created_at) VALUES (?, ?, ?, ?, ?)",
@@ -90,7 +94,7 @@ def _log(action: str, target: str, status: str, detail: str = ""):
 
 
 def _already_targeted(target: str, within_days: int = 30) -> bool:
-    cutoff = (datetime.utcnow() - timedelta(days=within_days)).isoformat()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=within_days)).isoformat()
     with _conn() as c:
         row = c.execute(
             "SELECT id FROM outreach_log WHERE target=? AND created_at > ?",
@@ -100,7 +104,7 @@ def _already_targeted(target: str, within_days: int = 30) -> bool:
 
 
 def _prs_today() -> int:
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     with _conn() as c:
         row = c.execute(
             "SELECT COUNT(*) as cnt FROM outreach_log WHERE action='github_pr' AND created_at LIKE ?",
@@ -125,12 +129,12 @@ AWESOME_LIST_TARGETS = [
     (
         "public-apis/public-apis",
         "Machine Learning",
-        "| AiPayGen | Claude-powered AI API — research, write, code, analyze, 250 tools and 140+ endpoints. First 3 calls/day free. | No | Yes | Yes |",
+        "| AiPayGen | Claude-powered AI API — research, write, code, analyze, 250 tools and 140+ endpoints. 1 call/day free. | No | Yes | Yes |",
     ),
     (
         "humanloop/awesome-ai-agents",
         "APIs",
-        "- [AiPayGen](https://api.aipaygen.com) - Pay-per-use Claude AI API with 250 tools and 140+ endpoints. Agent messaging, task board, file storage, webhook relay. 3 free calls/day.",
+        "- [AiPayGen](https://api.aipaygen.com) - Pay-per-use Claude AI API with 250 tools and 140+ endpoints. Agent messaging, task board, file storage, webhook relay. $0.25 free trial credits.",
     ),
     (
         "e2b-dev/awesome-ai-agents",
@@ -247,7 +251,7 @@ def _try_pr_awesome_list(repo: str, section: str, entry: str) -> dict:
 
     # 5. Create a new branch and commit
     import base64 as _b64
-    branch_name = f"add-aipaygen-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
+    branch_name = f"add-aipaygen-{datetime.now(timezone.utc).strftime('%Y%m%d%H%M%S')}"
 
     # Get the fork's default branch SHA
     try:
@@ -299,7 +303,7 @@ def _try_pr_awesome_list(repo: str, section: str, entry: str) -> dict:
                     "- **Data**: weather, crypto, stocks, Wikipedia, arXiv, GitHub trending, YouTube transcripts\n"
                     "- **Agent infra**: messaging, task board, file storage, webhook relay, async jobs\n"
                     "- **Scraping**: Google Maps, Twitter, LinkedIn, YouTube, TikTok\n\n"
-                    "**First 3 calls/day free** — no API key needed.\n\n"
+                    "**1 call/day free** — no API key needed.\n\n"
                     "API: https://api.aipaygen.com\n"
                     "OpenAPI spec: https://api.aipaygen.com/openapi.json\n"
                     "MCP tools: https://api.aipaygen.com/sdk"
@@ -356,18 +360,8 @@ def ping_directories():
     except Exception as e:
         results.append({"target": "health", "status": "error"})
 
-    # Index our sitemap (ping Google/Bing search console URLs)
-    indexing_urls = [
-        f"https://www.google.com/ping?sitemap={BASE_URL}/sitemap.xml",
-        f"https://www.bing.com/ping?sitemap={BASE_URL}/sitemap.xml",
-    ]
-    for url in indexing_urls:
-        try:
-            requests.get(url, timeout=8)
-            _log("sitemap_ping", url, "ok")
-            results.append({"target": url, "status": "pinged"})
-        except Exception:
-            pass
+    # Deprecated: Google/Bing sitemap ping endpoints removed in 2023.
+    # Use Google Search Console and IndexNow instead.
 
     return results
 
@@ -393,13 +387,13 @@ def generate_blog_post(slug: str, title: str, endpoint: str, claude_client) -> s
     prompt = f"""Write a comprehensive developer tutorial blog post titled "{title}".
 
 This is for AiPayGen (https://api.aipaygen.com) — a pay-per-use Claude AI API with 250 tools and 140+ endpoints.
-The first 3 calls/day are free. After that, users pay with a prepaid API key or USDC on Base.
+The first call/day is free. After that, users pay with a prepaid API key or USDC on Base.
 
 The post should:
 1. Explain the problem being solved
 2. Show how to use the relevant AiPayGen endpoint(s) with real curl + Python examples
 3. Include example responses
-4. Mention the 3 free calls/day and /buy-credits for more
+4. Mention the $0.25 free trial credits and /buy-credits for more
 5. Be 600-900 words, written for developers
 6. End with links to https://api.aipaygen.com/discover and https://api.aipaygen.com/openapi.json
 
@@ -426,7 +420,7 @@ def generate_all_blog_posts(claude_client, force: bool = False):
             continue
         try:
             content = generate_blog_post(slug, title, endpoint, claude_client)
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
             with _conn() as c:
                 c.execute(
                     "INSERT OR REPLACE INTO blog_posts (slug, title, content, endpoint, generated_at) VALUES (?, ?, ?, ?, ?)",
@@ -493,7 +487,7 @@ _disabled_endpoints: dict = {}  # endpoint -> disabled_at
 def run_canary(base_url: str = BASE_URL) -> dict:
     """Probe key endpoints, record health, auto-disable persistently broken ones."""
     results = []
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         for method, path, payload, expected_key in CANARY_ENDPOINTS:
             url = f"{base_url}{path}"
@@ -635,7 +629,7 @@ def generate_trending_blog_posts(claude_client) -> dict:
         with _conn() as c:
             existing = c.execute(
                 "SELECT slug FROM blog_posts WHERE slug=? AND generated_at > ?",
-                (slug, (datetime.utcnow() - timedelta(days=7)).isoformat())
+                (slug, (datetime.now(timezone.utc) - timedelta(days=7)).isoformat())
             ).fetchone()
         if existing:
             results.append({"slug": slug, "status": "recent_exists"})
@@ -648,7 +642,7 @@ def generate_trending_blog_posts(claude_client) -> dict:
 This is for AiPayGen (https://api.aipaygen.com) — a pay-per-use Claude AI API.
 Connect the topic to how AiPayGen can help developers working in this space.
 Show a concrete curl or Python code example using the most relevant AiPayGen endpoint.
-End with: "Try it free at https://api.aipaygen.com — 3 calls/day, no credit card."
+End with: "Try it free at https://api.aipaygen.com — 1 call/day, no credit card."
 Return only clean HTML article body (no doctype/head tags)."""
 
             msg = claude_client.messages.create(
@@ -657,7 +651,7 @@ Return only clean HTML article body (no doctype/head tags)."""
                 messages=[{"role": "user", "content": prompt}]
             )
             content = msg.content[0].text
-            now = datetime.utcnow().isoformat()
+            now = datetime.now(timezone.utc).isoformat()
             blog_title = f"{title} — How to Use AI Agents for This"
             with _conn() as c:
                 c.execute(
@@ -676,7 +670,7 @@ Return only clean HTML article body (no doctype/head tags)."""
     if new_urls:
         _ping_indexnow(new_urls)
 
-    return {"stories_checked": len(stories), "results": results, "ts": datetime.utcnow().isoformat()}
+    return {"stories_checked": len(stories), "results": results, "ts": datetime.now(timezone.utc).isoformat()}
 
 
 # ── Database Self-Maintenance ──────────────────────────────────────────────────
@@ -698,7 +692,7 @@ def register_db_paths(paths: list):
 def run_maintenance() -> dict:
     """Weekly: prune old records + VACUUM all SQLite databases."""
     results = []
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     # Prune endpoint_health older than 7 days
     cutoff_7d = (now - timedelta(days=7)).isoformat()
@@ -763,7 +757,7 @@ def track_cost(endpoint: str, model: str, tokens_in: int, tokens_out: int):
         (0.001, 0.005)
     )
     cost = (tokens_in / 1000 * in_rate) + (tokens_out / 1000 * out_rate)
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     with _conn() as c:
         c.execute("""
             INSERT INTO cost_tracking (date, model, endpoint, tokens_in, tokens_out, cost_usd)
@@ -778,7 +772,7 @@ def track_cost(endpoint: str, model: str, tokens_in: int, tokens_out: int):
 
 def get_daily_cost(date: str = None) -> dict:
     """Get total Claude API cost for a given date (default: today)."""
-    day = date or datetime.utcnow().strftime("%Y-%m-%d")
+    day = date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
     with _conn() as c:
         row = c.execute(
             "SELECT SUM(cost_usd) as total, SUM(tokens_in) as tin, SUM(tokens_out) as tout "
@@ -808,7 +802,7 @@ def run_hourly(claude_client=None):
     return {
         "directories": ping_directories(),
         "canary": run_canary(),
-        "ts": datetime.utcnow().isoformat(),
+        "ts": datetime.now(timezone.utc).isoformat(),
     }
 
 
@@ -816,7 +810,7 @@ def run_daily(claude_client=None):
     """Runs daily: GitHub outreach + trending blog posts."""
     results = {
         "github_outreach": check_and_pr_awesome_lists(claude_client),
-        "ts": datetime.utcnow().isoformat(),
+        "ts": datetime.now(timezone.utc).isoformat(),
     }
     if claude_client:
         results["trending_blogs"] = generate_trending_blog_posts(claude_client)
@@ -825,7 +819,7 @@ def run_daily(claude_client=None):
 
 def run_weekly(claude_client=None):
     """Runs weekly: regenerate all blog posts + DB maintenance."""
-    result = {"maintenance": run_maintenance(), "ts": datetime.utcnow().isoformat()}
+    result = {"maintenance": run_maintenance(), "ts": datetime.now(timezone.utc).isoformat()}
     if claude_client:
         result["blog_generation"] = generate_all_blog_posts(claude_client)
     return result

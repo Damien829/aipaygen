@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aipaygen-mcp"
-version = "1.9.0"
-description = "MCP server for AiPayGen — 250 AI tools with pay-per-call USDC payments, free tier, and in-chat purchasing"
+version = "1.9.4"
+description = "MCP server for AiPayGen — 250+ AI tools. Get a free API key with $0.25 trial credits. Research, write, code, translate, scrape, and more."
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Damien" }]

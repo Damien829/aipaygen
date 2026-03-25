@@ -5,7 +5,7 @@ import threading
 import tempfile
 import time as _time
 import hashlib as _hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from cryptography.fernet import Fernet
 from flask import Flask, request, jsonify, render_template_string, Response, stream_with_context
 from dotenv import load_dotenv
@@ -163,8 +163,19 @@ else:
 
 app = Flask(__name__)
 app.config["PREFERRED_URL_SCHEME"] = "https"
+app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10MB max request body
-app.secret_key = os.getenv("ADMIN_SECRET") or os.urandom(32).hex()
+def _get_or_create_secret():
+    secret_file = os.path.join(os.path.dirname(__file__), '.flask_secret')
+    if os.path.exists(secret_file):
+        with open(secret_file) as f:
+            return f.read().strip()
+    secret = os.urandom(32).hex()
+    with open(secret_file, 'w') as f:
+        f.write(secret)
+    return secret
+
+app.secret_key = os.getenv("ADMIN_SECRET") or _get_or_create_secret()
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 app.config["SESSION_COOKIE_SECURE"] = True
 
@@ -225,7 +236,7 @@ def _issue_refund_credit(amount_usd: float, endpoint: str = "", request_id: str 
     with sqlite3.connect(_refund_db_path) as conn:
         conn.execute(
             "INSERT INTO refund_credits (code, amount_usd, endpoint, request_id, created_at) VALUES (?, ?, ?, ?, ?)",
-            (code, amount_usd, endpoint, request_id, datetime.utcnow().isoformat()),
+            (code, amount_usd, endpoint, request_id, datetime.now(timezone.utc).isoformat()),
         )
         conn.commit()
     return code
@@ -755,25 +766,292 @@ routes: dict[str, RouteConfig] = {
         mime_type="text/event-stream",
         description="Streaming autonomous agent — SSE events as agent reasons and acts ($0.10)",
     ),
+    # ── AI tools that were missing payment enforcement ────────────────────────
+    "POST /mock": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Generate mock/sample data from a description ($0.01)",
+    ),
+    "POST /score": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Score or rate content based on criteria ($0.01)",
+    ),
+    "POST /timeline": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Generate a timeline from events or topics ($0.01)",
+    ),
+    "POST /action": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Execute an AI action/command ($0.02)",
+    ),
+    "POST /pitch": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Generate a pitch or proposal ($0.02)",
+    ),
+    "POST /debate": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="AI debate on a topic with multiple perspectives ($0.02)",
+    ),
+    "POST /headline": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Generate headlines or titles ($0.01)",
+    ),
+    "POST /fact": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Fact-check a claim ($0.01)",
+    ),
+    "POST /rewrite": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Rewrite text in a different style or tone ($0.01)",
+    ),
+    "POST /tag": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Auto-tag content with relevant labels ($0.01)",
+    ),
+    "POST /review-code": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="AI code review with suggestions ($0.02)",
+    ),
+    "POST /generate-docs": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Generate documentation from code ($0.02)",
+    ),
+    "POST /convert-code": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Convert code between programming languages ($0.02)",
+    ),
+    "POST /generate-api-spec": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Generate OpenAPI spec from description ($0.02)",
+    ),
+    "POST /diff": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Compare and diff two text inputs ($0.01)",
+    ),
+    "POST /parse-csv": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Parse and analyze CSV data ($0.01)",
+    ),
+    "POST /cron": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Generate or explain cron expressions ($0.01)",
+    ),
+    "POST /changelog": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Generate changelog entries from descriptions ($0.01)",
+    ),
+    "POST /name-generator": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Generate creative names for products/projects ($0.01)",
+    ),
+    "POST /privacy-check": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Analyze text for privacy/PII issues ($0.01)",
+    ),
+    "POST /think": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Deep reasoning with extended thinking ($0.05)",
+    ),
+    "POST /pipeline": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Multi-step AI pipeline — chain operations ($0.05)",
+    ),
+    "POST /vision": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Analyze images with AI vision ($0.03)",
+    ),
+    "POST /rag": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Retrieval-augmented generation — search + AI answer ($0.03)",
+    ),
+    "POST /diagram": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Generate diagrams from descriptions ($0.02)",
+    ),
+    "POST /json-schema": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Generate JSON schema from description or sample ($0.01)",
+    ),
+    "POST /test-cases": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Generate test cases for code or requirements ($0.02)",
+    ),
+    "POST /workflow": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.10", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Run multi-step AI workflow ($0.10)",
+    ),
+    "POST /code/run": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Execute code in sandboxed environment ($0.02)",
+    ),
+    "POST /web/search": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Web search with AI summary ($0.01)",
+    ),
+    "POST /enrich": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Enrich entity data with AI ($0.02)",
+    ),
+    # ── Scraping endpoints ────────────────────────────────────────────────────
+    "POST /scrape/google-maps": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Scrape Google Maps listings ($0.02)",
+    ),
+    "POST /scrape/instagram": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Scrape Instagram profiles/posts ($0.02)",
+    ),
+    "POST /scrape/tweets": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Scrape tweets from Twitter/X ($0.02)",
+    ),
+    "POST /scrape/linkedin": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Scrape LinkedIn profiles ($0.02)",
+    ),
+    "POST /scrape/youtube": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Scrape YouTube video data ($0.02)",
+    ),
+    "POST /scrape/web": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Scrape any website ($0.01)",
+    ),
+    "POST /scrape/tiktok": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Scrape TikTok profiles/videos ($0.02)",
+    ),
+    "POST /scrape/facebook-ads": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Scrape Facebook Ad Library ($0.02)",
+    ),
+    "POST /scrape/actor": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Run custom scraping actor ($0.03)",
+    ),
+    # ── Skills endpoints ──────────────────────────────────────────────────────
+    "POST /skills/execute": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Execute a skill from the skills library ($0.02)",
+    ),
+    "POST /skills/create": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Create a new skill ($0.03)",
+    ),
+    "POST /ask": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Ask a question — AI routes to the best tool ($0.02)",
+    ),
+    # ── Agent endpoints ───────────────────────────────────────────────────────
+    "POST /agent": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.10", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Run autonomous ReAct agent ($0.10)",
+    ),
+    "POST /chain": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Chain multiple AI operations ($0.05)",
+    ),
+    "POST /marketplace/call": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.02", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Call a marketplace-listed API ($0.02)",
+    ),
+    "POST /api-call": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Call an API from the catalog ($0.01)",
+    ),
+    "POST /workflow/generate": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="AI-generate a workflow from description ($0.05)",
+    ),
+    "POST /workflows/run": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Run a saved workflow ($0.05)",
+    ),
+    "POST /agents/build": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Build a custom agent from spec ($0.05)",
+    ),
 }
 
 _raw_flask_wsgi = app.wsgi_app  # save original Flask WSGI before x402 wraps it
-payment_middleware(app, routes=routes, server=server)
+_x402_middleware = payment_middleware(app, routes=routes, server=server)
 
 # API key WSGI wrapper — intercepts Bearer apk_xxx before x402 checks
 _x402_wsgi = app.wsgi_app
 
 
 def _api_key_wsgi(environ, start_response):
-    # Fix URL scheme/host for x402 402 headers (behind Cloudflare tunnel)
+    # Fix URL scheme for Cloudflare tunnel (always HTTPS externally)
     if environ.get("HTTP_CF_CONNECTING_IP"):
         environ["wsgi.url_scheme"] = "https"
-        environ["HTTP_HOST"] = "api.aipaygen.com"
-        environ["SERVER_NAME"] = "api.aipaygen.com"
         environ["SERVER_PORT"] = "443"
+        # Preserve original host for app.aipaygen.com SPA routing
+        host = environ.get("HTTP_HOST", "").split(":")[0]
+        if host not in ("app.aipaygen.com", "www.aipaygen.com", "mcp.aipaygen.com"):
+            environ["HTTP_HOST"] = "api.aipaygen.com"
+            environ["SERVER_NAME"] = "api.aipaygen.com"
+
+    # app/www bypass — SPA and redirect served by Flask before_request, skip payment middleware
+    _host = environ.get("HTTP_HOST", "").split(":")[0]
+    if _host in ("app.aipaygen.com", "www.aipaygen.com"):
+        return _raw_flask_wsgi(environ, start_response)
 
     auth = environ.get("HTTP_AUTHORIZATION", "")
     path = environ.get("PATH_INFO", "")
+
+    # OAuth bypass — callbacks must reach Flask directly, not go through x402
+    if path.startswith("/sign-in/"):
+        import sys; print(f"[OAUTH] Bypass for {path}", file=sys.stderr, flush=True)
+        return _raw_flask_wsgi(environ, start_response)
     method = environ.get("REQUEST_METHOD", "GET")
     route_key = f"{method} {path}"
 
@@ -844,7 +1122,7 @@ def _api_key_wsgi(environ, start_response):
         except Exception:
             pass
 
-    # 0.5 Free tier — 3 calls/day per IP before requiring payment
+    # 0.5 Free tier — 1 call/day per IP before requiring payment
     #     Fingerprint tracking: detect IP rotation via VPN/proxy abuse.
     #     Only trust CF-Connecting-IP (set by Cloudflare, not spoofable by clients).
     #     X-Forwarded-For is NEVER used for billing decisions.
@@ -875,31 +1153,60 @@ def _api_key_wsgi(environ, start_response):
             ])
             return [body]
 
+        # Block pro/expensive tools from free tier (ad-watching users)
+        _PRO_ONLY_PREFIXES = (
+            "/pipeline", "/workflow", "/scrape/google-maps", "/scrape/instagram",
+            "/scrape/tweets", "/scrape/linkedin", "/scrape/youtube", "/scrape/tiktok",
+            "/scrape/facebook-ads", "/scrape/actor", "/scrape/web",
+            "/vision", "/rag", "/review-code", "/generate-docs", "/think",
+            "/api-call", "/chain",
+        )
+        _path = environ.get("PATH_INFO", "")
+        if any(_path.startswith(p) for p in _PRO_ONLY_PREFIXES):
+            body = json.dumps({
+                "error": "pro_tool",
+                "message": f"'{_path}' is a Pro tool. Get an API key with $0.25 free credits to unlock all tools.",
+                "unlock": {
+                    "step_1": "Get free key: POST https://api.aipaygen.com/auth/generate-key",
+                    "step_2": "Add to requests: Authorization: Bearer apk_YOUR_KEY",
+                    "buy_more": "https://aipaygen.com/buy-credits",
+                },
+            }).encode()
+            start_response("402 Payment Required", [
+                ("Content-Type", "application/json"),
+                ("Content-Length", str(len(body))),
+                ("Access-Control-Allow-Origin", "*"),
+            ])
+            return [body]
+
         if check_and_use_free_tier(_ip):
             remaining = get_free_tier_remaining(_ip)
             environ["X_FREE_TIER"] = "1"
             environ["X_FREE_REMAINING"] = str(remaining)
 
             def _free_tier_start_response(status, headers, exc_info=None):
-                headers = list(headers) + [("X-Free-Calls-Remaining", str(remaining))]
-                if remaining <= 5:
-                    headers.append(("X-Upgrade-Hint", "Get a free API key with $0.25 trial credits: POST https://api.aipaygen.com/auth/generate-key"))
+                headers = list(headers) + [
+                    ("X-Free-Calls-Remaining", str(remaining)),
+                    ("X-Upgrade-Hint", "Get a free API key with $0.25 trial credits (~40 calls): POST https://api.aipaygen.com/auth/generate-key"),
+                    ("X-Get-Key", "https://aipaygen.com/quick-key"),
+                ]
                 return start_response(status, headers, exc_info)
 
             return _raw_flask_wsgi(environ, _free_tier_start_response)
         else:
             funnel_log_event("free_tier_exhausted", endpoint=environ.get("PATH_INFO", ""), ip=_ip, user_agent=environ.get("HTTP_USER_AGENT", ""))
             _track_402(_ip)
-            # Return 402 — free tier exhausted, must pay
+            # Return 402 — no credits, must watch ad, get key, or pay
             body = json.dumps({
-                "error": "free_tier_exhausted",
-                "message": "You've used all 3 free calls for today. Get an API key to continue.",
-                "upgrade": {
-                    "free_key": "POST https://aipaygen.com/auth/generate-key (includes $0.25 trial credits)",
-                    "buy_credits": "https://aipaygen.com/buy-credits",
-                    "pricing": "https://aipaygen.com/pricing",
+                "error": "payment_required",
+                "message": "Free tier exhausted for today. Get an API key with $0.25 free credits (one click, no card needed).",
+                "options": {
+                    "1_free_key": {"description": "Get a free API key with $0.25 trial credits (~40 calls) — one click, no card", "url": "https://aipaygen.com/quick-key"},
+                    "2_watch_ad": {"description": "Watch a short ad to earn 1 free API call", "endpoint": "POST /auth/ad-reward"},
+                    "3_buy_credits": {"description": "Buy credits from $1 (Stripe)", "url": "https://aipaygen.com/buy-credits"},
+                    "4_x402_crypto": {"description": "Pay per call with USDC via x402 — no account needed", "docs": "https://aipaygen.com/docs#x402"},
                 },
-                "x402": "Or send USDC payment via X-Payment header",
+                "quick_start": "curl -X POST https://api.aipaygen.com/auth/generate-key -d '{}'",
             }).encode()
             start_response("402 Payment Required", [
                 ("Content-Type", "application/json"),
@@ -1110,14 +1417,14 @@ def _api_key_wsgi(environ, start_response):
             # Get today's usage stats for personalized message
             try:
                 from agent_network import _conn as _network_conn
-                from datetime import datetime
-                today = datetime.utcnow().strftime("%Y-%m-%d")
+                from datetime import datetime, timezone
+                today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
                 with _network_conn() as nc:
                     row = nc.execute("SELECT calls_used FROM free_tier_usage WHERE ip=? AND date=?", (ip, today)).fetchone()
                     calls_today = row["calls_used"] if row else 0
             except Exception as _ft_err:
                 logging.getLogger(__name__).error("Free tier lookup failed: %s", _ft_err)
-                calls_today = 3
+                calls_today = 0
             # Add x402-standard headers + upgrade hints + discovery Link headers
             route_cfg_hdr = routes.get(route_key)
             try:
@@ -1142,13 +1449,15 @@ def _api_key_wsgi(environ, start_response):
             price = route_cfg.accepts[0].price if route_cfg else "varies"
             enrichment = json.dumps({
                 "error": "payment_required",
-                "message": f"Free tier exhausted ({calls_today}/{3} calls used today). Get unlimited access starting at $1.",
+                "message": f"Payment required. Watch an ad for 1 free call, or get an API key with $0.25 free credits.",
                 "endpoint": path,
                 "price": price,
                 "unlock": {
                     "1_get_free_key": {
-                        "description": "Generate a free API key with $0.25 trial credits (~40 calls). No payment needed.",
-                        "command": "curl -X POST https://api.aipaygen.com/auth/generate-key -H 'Content-Type: application/json' -d '{\"label\": \"my-key\"}'",
+                        "description": "Get a free API key with $0.25 trial credits (~40 calls). No payment needed.",
+                        "one_click": "https://api.aipaygen.com/quick-key",
+                        "command": "curl -s -X POST https://api.aipaygen.com/auth/generate-key -H 'Content-Type: application/json' -d '{\"label\": \"my-key\"}' | grep -o 'apk_[^\"]*'",
+                        "mcp": "If using MCP: call the generate_api_key tool, then set AIPAYGEN_API_KEY env var.",
                     },
                     "2_use_key": {
                         "description": "Add the key to your requests.",
@@ -1197,6 +1506,15 @@ def _api_key_wsgi(environ, start_response):
 
 
 app.wsgi_app = _api_key_wsgi
+
+# OAuth direct handler — bypass all WSGI middleware
+@app.before_request
+def _oauth_bypass():
+    from flask import request as _req
+    if _req.path.startswith("/sign-in/"):
+        from routes.oauth import oauth_bp
+        # Let Flask handle it normally — the blueprint is registered
+        return None
 
 class _TrackedMessages:
     """Wraps anthropic.messages to auto-call track_cost() on every Claude API call."""
@@ -1278,12 +1596,12 @@ init_scheduler(
     claude_client=claude,
     call_model_fn=call_model,
     parse_json_fn=parse_json_from_claude,
-    run_hourly_fn=run_hourly,
-    run_daily_fn=run_daily,
-    run_weekly_fn=run_weekly,
-    run_canary_fn=run_canary,
-    generate_blog_fn=generate_all_blog_posts,
-    run_economy_fn=None,  # set below after _run_agent_economy is defined
+    run_hourly_fn=None,       # DISABLED — costs API credits with $0 revenue
+    run_daily_fn=None,        # DISABLED — re-enable when revenue covers costs
+    run_weekly_fn=None,       # DISABLED — re-enable when revenue covers costs
+    run_canary_fn=run_canary, # Keep — lightweight health check
+    generate_blog_fn=None,    # DISABLED — costs API credits
+    run_economy_fn=None,
 )
 
 
@@ -1455,11 +1773,12 @@ def gzip_response(response):
 
 
 # ── Template globals (ads, version) ───────────────────────────────────────────
-_ADSENSE_PUB_ID = os.getenv("ADSENSE_PUB_ID", "ca-pub-XXXXXXX")
+_ADSENSE_PUB_ID = os.getenv("ADSENSE_PUB_ID", "ca-pub-4228277826827893")
+_GA4_MEASUREMENT_ID = os.getenv("GA4_MEASUREMENT_ID", "")
 
 @app.context_processor
 def inject_globals():
-    return {"ADSENSE_PUB_ID": _ADSENSE_PUB_ID, "APP_VERSION": APP_VERSION}
+    return {"ADSENSE_PUB_ID": _ADSENSE_PUB_ID, "GA4_ID": _GA4_MEASUREMENT_ID, "APP_VERSION": APP_VERSION}
 
 
 # ── Cache-Control headers for specific routes ──────────────────────────────────
@@ -1565,7 +1884,7 @@ def add_cors(response):
     # CSP: full policy for HTML pages, relaxed for JSON API responses
     content_type = response.content_type or ""
     if "text/html" in content_type:
-        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; object-src 'none'; frame-ancestors 'none'"
+        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://adservice.google.com https://www.googletagservices.com https://tpc.googlesyndication.com https://ep1.adtrafficquality.google https://ep2.adtrafficquality.google https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; connect-src 'self' https://api.aipaygen.com https://*.aipaygen.com wss://*.aipaygen.com https://pagead2.googlesyndication.com https://*.adtrafficquality.google https://*.google.com https://*.googlesyndication.com https://*.doubleclick.net; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; frame-src https://googleads.g.doubleclick.net https://tpc.googlesyndication.com https://www.google.com https://afs.googlesyndication.com https://*.adtrafficquality.google; object-src 'none'; frame-ancestors 'none'"
     elif "json" in content_type:
         response.headers["Content-Security-Policy"] = "default-src 'none'"
     else:
@@ -1680,7 +1999,7 @@ def enrich_402_response(response):
             "quick_buy_url": "https://aipaygen.com/buy-credits?amount=5&quick=1",
             "also_accepted": {
                 "x402_usdc": {"description": "Pay per call with USDC. No signup.", "docs": "https://x402.org"},
-                "mcp": {"description": "Install MCP package for 3 free calls/day.", "install": "pip install aipaygen-mcp"},
+                "mcp": {"description": "Install MCP package for $0.25 free trial credits with API key.", "install": "pip install aipaygen-mcp"},
             },
             "quick_buy_url": "https://aipaygen.com/buy-credits?amount=5&quick=1",
             "try_free": f"https://aipaygen.com/try?tool={request.path.strip('/')}",
@@ -1718,7 +2037,7 @@ _COMMON_MISSPELLINGS = {
     "api": "/docs/api", "swagger": "/docs/api", "openapi": "/openapi.json",
     "staus": "/status", "statsu": "/status",
     "catalog": "/discover", "tools": "/discover",
-    "signin": "/buy-credits", "login": "/buy-credits", "signup": "/buy-credits",
+    "signin": "/buy-credits", "signup": "/buy-credits",
 }
 
 
@@ -1732,15 +2051,20 @@ def not_found(e):
         {"name": "Pricing", "url": "https://aipaygen.com/pricing"},
         {"name": "Discover", "url": "https://aipaygen.com/discover"},
     ]
-    if request.accept_mimetypes.best == 'text/html':
-        hint = f'<p>Did you mean <a href="{suggestion}">{suggestion}</a>?</p>' if suggestion else ""
-        links = "".join(f'<li><a href="{p["url"]}">{p["name"]}</a></li>' for p in suggested_pages)
-        html = f"""<!DOCTYPE html><html><head><title>404 — Not Found</title>
-<style>body{{font-family:sans-serif;background:#0d1117;color:#c9d1d9;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0}}
-.box{{text-align:center;max-width:480px;padding:40px}}h1{{color:#f85149;font-size:3rem}}a{{color:#58a6ff}}</style></head>
-<body><div class="box"><h1>404</h1><p>This page does not exist.</p>{hint}<h3>Try these instead:</h3><ul style="list-style:none;padding:0">{links}</ul>
-<p style="margin-top:24px;color:#8b949e"><a href="/">Back to home</a></p></div></body></html>"""
-        return html, 404
+    # Serve styled HTML 404 for browsers, JSON for API clients
+    # Detect browser: check Accept header, User-Agent, or non-API paths
+    accept = request.headers.get("Accept", "")
+    ua = request.headers.get("User-Agent", "").lower()
+    is_api_path = request.path.startswith("/auth/") or request.path.startswith("/stripe/")
+    is_browser = (
+        ("text/html" in accept or "application/xhtml" in accept or "*/*" in accept)
+        and "application/json" not in accept
+    ) or ("mozilla" in ua and not is_api_path)
+    if is_browser:
+        try:
+            return render_template("404.html"), 404
+        except Exception:
+            pass
     req_id = getattr(request, '_request_id', None)
     resp = {
         "error": "not_found",
@@ -1793,6 +2117,52 @@ def internal_error(e):
         "status_page": "https://aipaygen.com/status",
         "health": "https://aipaygen.com/health",
     }), 500
+
+
+@app.before_request
+def www_redirect():
+    """Redirect www.aipaygen.com → aipaygen.com for SEO."""
+    host = request.host.split(":")[0]
+    if host == "www.aipaygen.com":
+        from flask import redirect
+        return redirect(f"https://aipaygen.com{request.full_path}", code=301)
+
+
+@app.before_request
+def serve_web_app():
+    """Serve Expo web app for app.aipaygen.com — SPA with all routes falling through to index.html."""
+    host = request.host.split(":")[0]
+    if host != "app.aipaygen.com":
+        return None
+    path = request.path.lstrip("/")
+    # Let admin, API, and health routes pass through to Flask — don't serve as SPA
+    _passthrough = ("admin", "auth", "health", "support/ticket", "api/", "stream/", "status", "blog")
+    if any(path.startswith(p) for p in _passthrough):
+        return None
+    static_dir = os.path.join(os.path.dirname(__file__), "static", "app")
+    full_path = os.path.join(static_dir, path)
+    if path and os.path.isfile(full_path):
+        from flask import send_from_directory
+        return send_from_directory(static_dir, path)
+    # Font files: Cloudflare blocks @ in paths, serve from /static/fonts/
+    if path.startswith("assets/") and (path.endswith(".ttf") or path.endswith(".woff2")):
+        font_name = os.path.basename(path)
+        fonts_dir = os.path.join(os.path.dirname(__file__), "static", "fonts")
+        font_path = os.path.join(fonts_dir, font_name)
+        if os.path.isfile(font_path):
+            from flask import send_from_directory
+            return send_from_directory(fonts_dir, font_name)
+    # SPA fallback — serve index.html with custom styles injected
+    from flask import make_response
+    html_path = os.path.join(static_dir, "index.html")
+    with open(html_path, "r") as f:
+        html = f.read()
+    inject = '<link rel="stylesheet" href="/web-custom.css">'
+    html = html.replace("</head>", inject + "\n</head>", 1)
+    resp = make_response(html)
+    resp.headers["Content-Type"] = "text/html; charset=utf-8"
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
 
 
 @app.before_request
@@ -1903,6 +2273,7 @@ app.register_blueprint(data_bp)
 app.register_blueprint(streaming_bp)
 app.register_blueprint(network_bp)
 app.register_blueprint(auth_bp)
+# oauth_bp temporarily disabled for debugging
 app.register_blueprint(agent_bp)
 app.register_blueprint(marketplace_bp)
 app.register_blueprint(admin_bp)
@@ -1964,6 +2335,37 @@ app.register_blueprint(engagement_bp)
 from crypto_poller import start_poller as _start_crypto_poller
 _start_crypto_poller(WALLET_ADDRESS)
 
+
+
+@app.route("/sign-in/github")
+def github_oauth_start():
+    from routes.oauth import GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, GITHUB_AUTH_URL, BASE_URL
+    from authlib.integrations.requests_client import OAuth2Session
+    from flask import redirect, session
+    if not GITHUB_CLIENT_ID:
+        return jsonify({"error": "GitHub OAuth not configured"}), 503
+    redirect_uri = f"{BASE_URL}/sign-in/github/callback"
+    oauth = OAuth2Session(GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, redirect_uri=redirect_uri,
+                          scope="read:user user:email")
+    uri, state = oauth.create_authorization_url(GITHUB_AUTH_URL)
+    session["oauth_state"] = state
+    session["oauth_redirect"] = request.args.get("redirect", "/dashboard")
+    return redirect(uri)
+
+@app.route("/sign-in/github/callback")
+def github_oauth_callback():
+    from routes.oauth import github_callback
+    return github_callback()
+
+@app.route("/sign-in/google")
+def google_oauth_start():
+    from routes.oauth import google_login
+    return google_login()
+
+@app.route("/sign-in/google/callback")
+def google_oauth_callback():
+    from routes.oauth import google_callback
+    return google_callback()
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5001, debug=False)

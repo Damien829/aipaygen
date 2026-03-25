@@ -15,10 +15,10 @@ import requests as _mcp_requests
 def get_current_time() -> dict:
     """Get current UTC time, Unix timestamp, date, and week number. Free, no payment needed."""
     from datetime import datetime, timezone
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     return {
         "utc": now.isoformat() + "Z",
-        "unix": int(now.replace(tzinfo=timezone.utc).timestamp()),
+        "unix": int(now.timestamp()),
         "date": now.strftime("%Y-%m-%d"),
         "time": now.strftime("%H:%M:%S"),
         "day_of_week": now.strftime("%A"),
@@ -61,8 +61,8 @@ def get_quote() -> dict:
 @metered_tool("free")
 def get_holidays(country: Annotated[str, Field(description="ISO 2-letter country code (e.g. US, GB, DE)")] = "US", year: Annotated[str, Field(description="Year to get holidays for (default: current year)")] = "") -> dict:
     """Get public holidays for a country. country: ISO 2-letter code (US, GB, DE). Free."""
-    from datetime import datetime
-    yr = year or str(datetime.utcnow().year)
+    from datetime import datetime, timezone
+    yr = year or str(datetime.now(timezone.utc).year)
     try:
         resp = _mcp_requests.get(
             f"https://date.nager.at/api/v3/PublicHolidays/{yr}/{country.upper()}",

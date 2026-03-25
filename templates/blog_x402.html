@@ -168,7 +168,7 @@ print(response.json())</code></pre>
   <p>Every paid endpoint in AiPayGen supports three payment methods:</p>
 
   <ol>
-    <li><strong>Free tier</strong> (3 calls/day) &mdash; no key, no payment, just call the endpoint</li>
+    <li><strong>Free tier</strong> (1 call/day) &mdash; no key, no payment, just call the endpoint</li>
     <li><strong>API key</strong> &mdash; prepaid balance via Stripe, deducted per call</li>
     <li><strong>x402</strong> &mdash; pay per call in USDC, no account needed</li>
   </ol>
@@ -230,7 +230,7 @@ def payment_middleware():
 
   <h2>Try it yourself</h2>
 
-  <p>You don't need crypto to start. The free tier (3 calls/day) and API key ($1 via Stripe) both work without a wallet. But if you're building autonomous agents that need to pay for tools, x402 is the cleanest path.</p>
+  <p>You don't need crypto to start. The free tier (1 call/day) and API key ($1 via Stripe) both work without a wallet. But if you're building autonomous agents that need to pay for tools, x402 is the cleanest path.</p>
 
   <pre><code class="language-bash"># No payment needed — free tier
 curl -X POST "https://api.aipaygen.com/summarize" \

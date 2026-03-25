@@ -16,7 +16,7 @@ import ast
 import operator
 import statistics
 import unicodedata
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse, urljoin
 from xml.etree import ElementTree
 
@@ -33,6 +33,35 @@ _log = logging.getLogger(__name__)
 
 # Domain validation regex — prevents command injection via dig subprocess calls
 DOMAIN_RE = re.compile(r'^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$')
+
+
+import ipaddress as _ipaddress
+
+
+def _is_url_safe(url: str) -> bool:
+    """Block SSRF — reject URLs pointing to private/internal IPs."""
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+        for info in socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM):
+            addr = info[4][0]
+            ip = _ipaddress.ip_address(addr)
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                return False
+        return True
+    except Exception:
+        return False
+
+
+def _ssrf_check(url: str):
+    """Return a 400 JSON response if URL targets internal network, else None."""
+    if not _is_url_safe(url):
+        return jsonify({"error": "blocked", "message": "URL must point to a public internet address."}), 400
+    return None
 
 
 def _valid_domain(domain: str) -> bool:
@@ -321,6 +350,8 @@ def url_meta():
     url = request.args.get("url", "").strip()
     if not url:
         return jsonify({"error": "url parameter required"}), 400
+    blocked = _ssrf_check(url)
+    if blocked: return blocked
     try:
         r = _requests.get(url, timeout=10, headers={"User-Agent": "AiPayGen/1.0"})
         html = r.text[:50000]
@@ -348,6 +379,8 @@ def extract_links():
     url = request.args.get("url", "").strip()
     if not url:
         return jsonify({"error": "url parameter required"}), 400
+    blocked = _ssrf_check(url)
+    if blocked: return blocked
     try:
         r = _requests.get(url, timeout=10, headers={"User-Agent": "AiPayGen/1.0"})
         links = re.findall(r'href=["\']([^"\']+)["\']', r.text)
@@ -433,6 +466,8 @@ def http_headers():
     url = request.args.get("url", "").strip()
     if not url:
         return jsonify({"error": "url parameter required"}), 400
+    blocked = _ssrf_check(url)
+    if blocked: return blocked
     try:
         r = _requests.head(url, timeout=10, headers={"User-Agent": "AiPayGen/1.0"},
                            allow_redirects=True)
@@ -491,12 +526,12 @@ def jwt_decode():
         header = pyjwt.get_unverified_header(token)
         payload = pyjwt.decode(token, options={"verify_signature": False})
         exp = payload.get("exp")
-        expired = datetime.utcfromtimestamp(exp) < datetime.utcnow() if exp else None
+        expired = datetime.fromtimestamp(exp, tz=timezone.utc) < datetime.now(timezone.utc) if exp else None
         return jsonify({
             "header": header,
             "payload": payload,
             "expired": expired,
-            "expiry": datetime.utcfromtimestamp(exp).isoformat() if exp else None,
+            "expiry": datetime.fromtimestamp(exp, tz=timezone.utc).isoformat() if exp else None,
         })
     except Exception:
         _log.exception("Invalid input")
@@ -765,6 +800,8 @@ def extract_text():
     html = data.get("html", "")
     url = data.get("url", "")
     if url:
+        blocked = _ssrf_check(url)
+        if blocked: return blocked
         try:
             r = _requests.get(url, timeout=10, headers={"User-Agent": "AiPayGen/1.0"})
             html = r.text
@@ -1084,7 +1121,7 @@ def unix_timestamp():
             ts_float = float(ts)
             if ts_float > 1e12:
                 ts_float /= 1000
-            dt = datetime.utcfromtimestamp(ts_float)
+            dt = datetime.fromtimestamp(ts_float, tz=timezone.utc)
             return jsonify({
                 "timestamp": int(ts_float),
                 "iso": dt.isoformat() + "Z",
@@ -1094,7 +1131,7 @@ def unix_timestamp():
             })
         except Exception:
             return jsonify({"error": "Invalid timestamp"}), 400
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     return jsonify({
         "timestamp": int(now.timestamp()),
         "timestamp_ms": int(now.timestamp() * 1000),
@@ -1113,6 +1150,8 @@ def security_headers_audit():
     url = request.args.get("url", "").strip()
     if not url:
         return jsonify({"error": "url parameter required"}), 400
+    blocked = _ssrf_check(url)
+    if blocked: return blocked
     try:
         r = _requests.get(url, timeout=10, headers={"User-Agent": "AiPayGen/1.0"},
                           allow_redirects=True)
@@ -1148,6 +1187,8 @@ def techstack_detect():
     url = request.args.get("url", "").strip()
     if not url:
         return jsonify({"error": "url parameter required"}), 400
+    blocked = _ssrf_check(url)
+    if blocked: return blocked
     try:
         r = _requests.get(url, timeout=10, headers={"User-Agent": "AiPayGen/1.0"})
         html = r.text[:100000]
@@ -1204,6 +1245,8 @@ def uptime_check():
     url = request.args.get("url", "").strip()
     if not url:
         return jsonify({"error": "url parameter required"}), 400
+    blocked = _ssrf_check(url)
+    if blocked: return blocked
     try:
         start = time.time()
         r = _requests.get(url, timeout=15, headers={"User-Agent": "AiPayGen/1.0"},

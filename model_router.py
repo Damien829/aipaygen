@@ -750,6 +750,14 @@ def call_model(
         pass
     if not _is_free and os.environ.get("_AIPAYGEN_FREE_TIER") == "1":
         _is_free = True
+    # Flat pricing: force haiku — user pays fixed route price, can't request expensive models
+    _is_flat = False
+    try:
+        from flask import request as _req2
+        if _req2.environ.get("X_PRICING_MODE") == "flat":
+            _is_flat = True
+    except (ImportError, RuntimeError):
+        pass
     force_model = os.environ.get("AIPAYGEN_FORCE_MODEL")
     if force_model:
         model = force_model
@@ -758,6 +766,10 @@ def call_model(
         model = "claude-haiku"  # Free tier uses cheap Haiku (~$0.001/call)
         selected_reason = "free_tier_haiku"
         max_tokens = min(max_tokens or 512, 512)  # cap free tier output
+    elif _is_flat:
+        model = "claude-haiku"  # Flat pricing: fixed price = fixed model
+        selected_reason = "flat_pricing_haiku"
+        max_tokens = min(max_tokens or 2048, 2048)
     elif model == "auto":
         task_text = ""
         for m in messages:
@@ -903,9 +915,20 @@ def call_model_stream(
         pass
     if not _is_free and os.environ.get("_AIPAYGEN_FREE_TIER") == "1":
         _is_free = True
+    # Flat pricing enforcement — force haiku (same as call_model)
+    _is_flat = False
+    try:
+        from flask import request as _req2
+        if _req2.environ.get("X_PRICING_MODE") == "flat":
+            _is_flat = True
+    except (ImportError, RuntimeError):
+        pass
     if _is_free:
         model = "claude-haiku"  # Free tier uses cheap Haiku (~$0.001/call)
         max_tokens = min(max_tokens or 512, 512)
+    elif _is_flat:
+        model = "claude-haiku"  # Flat pricing: fixed price = fixed model
+        max_tokens = min(max_tokens or 2048, 2048)
 
     if model == "auto":
         task_text = ""
@@ -983,17 +1006,16 @@ def call_model_stream(
 
 
 def _stream_anthropic(model_id, messages, system, max_tokens, temperature, canonical):
-    client = _get_anthropic_client()
-    kwargs = dict(model=model_id, messages=messages, max_tokens=max_tokens, temperature=temperature)
-    if system:
-        kwargs["system"] = system
-    with client.messages.stream(**kwargs) as stream:
-        for text in stream.text_stream:
-            yield {"text": text}
-        resp = stream.get_final_message()
-    cost = calculate_cost(canonical, resp.usage.input_tokens, resp.usage.output_tokens)
+    """Stream via claude CLI — runs blocking call then yields result as chunks for SSE compat."""
+    result = _call_anthropic(model_id, messages, system, max_tokens, temperature)
+    text = result["text"]
+    # Simulate streaming by yielding in chunks (CLI doesn't support true SSE streaming)
+    chunk_size = 40
+    for i in range(0, len(text), chunk_size):
+        yield {"text": text[i:i + chunk_size]}
+    cost = calculate_cost(canonical, result["input_tokens"], result["output_tokens"])
     yield {"done": True, "model": canonical, "cost_usd": cost,
-           "input_tokens": resp.usage.input_tokens, "output_tokens": resp.usage.output_tokens}
+           "input_tokens": result["input_tokens"], "output_tokens": result["output_tokens"]}
 
 
 def _stream_openai(model_id, messages, system, max_tokens, temperature, canonical):
@@ -1075,20 +1097,31 @@ _RETRY_MAX_ATTEMPTS = 2
 _RETRY_BASE_DELAY = 1.0  # seconds
 
 
+def _model_id_to_cli_flag(model_id: str) -> str:
+    """Map Anthropic model ID to claude CLI --model flag."""
+    if "haiku" in model_id:
+        return "haiku"
+    if "sonnet" in model_id:
+        return "sonnet"
+    if "opus" in model_id:
+        return "opus"
+    return "haiku"  # default to cheapest
+
+
 def _call_anthropic(model_id, messages, system, max_tokens, temperature):
+    """Route Anthropic calls through the Python SDK."""
     client = _get_anthropic_client()
-    kwargs = dict(model=model_id, messages=messages, max_tokens=max_tokens, temperature=temperature)
+    kwargs = {
+        "model": model_id,
+        "messages": messages,
+        "max_tokens": max_tokens or 1024,
+        "temperature": temperature if temperature is not None else 0.7,
+    }
     if system:
         kwargs["system"] = system
-    try:
-        resp = client.messages.create(**kwargs)
-    except Exception as exc:
-        msg = str(exc).lower()
-        if "credit balance" in msg or "billing" in msg or "purchase credits" in msg:
-            raise BillingError(f"Anthropic billing error: {exc}") from exc
-        raise
+    resp = client.messages.create(**kwargs)
     return {
-        "text": resp.content[0].text,
+        "text": resp.content[0].text if resp.content else "",
         "input_tokens": resp.usage.input_tokens,
         "output_tokens": resp.usage.output_tokens,
     }

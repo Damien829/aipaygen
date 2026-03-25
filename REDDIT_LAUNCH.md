@@ -41,7 +41,7 @@ curl -X POST "https://api.aipaygen.com/code" \
 
 ### Pricing that doesn't require a spreadsheet
 
-- **Free tier**: 3 calls/day, no API key, no signup — just hit the endpoint
+- **Free tier**: 1 call/day, no API key, no signup — just hit the endpoint
 - **Paid**: Load credits from $1. AI calls ~$0.006 each. Utility calls ~$0.002. Scraping ~$0.01.
 - **Crypto option**: Pay per call in USDC via x402 protocol (Base, Solana, Stellar) — agents can pay autonomously
 
@@ -84,7 +84,7 @@ Just `pip install aipaygen-mcp` and `claude mcp add aipaygen -- aipaygen-mcp`. O
 
 250 tools. 15 AI models auto-routed. Web scraping (Maps, Twitter, YouTube), 43 utility APIs (WHOIS, SSL, geocoding, stocks), vision, RAG, diagrams, workflows.
 
-Free: 3 calls/day. Paid: $0.006/call for AI, $0.002 for utilities. Also supports x402 crypto payments (USDC on Base/Solana/Stellar).
+Free: 1 call/day. Paid: $0.006/call for AI, $0.002 for utilities. Also supports x402 crypto payments (USDC on Base/Solana/Stellar).
 
 Built by a solo dev. $0 revenue. Looking for feedback.
 
@@ -97,7 +97,7 @@ Try without installing: https://aipaygen.com/try
 ### Title
 I run a 250-tool AI API on Oracle Cloud (started on a Raspberry Pi 5) — MCP server, 15 models, SQLite, Cloudflare tunnel
 
-Full write-up in comments. `pip install aipaygen-mcp` to try it. Free tier: 3 calls/day. Serves 292 agents, 4183 APIs, 2439 skills. SQLite WAL mode, Gunicorn with 2 workers, 4 cron jobs for auto-maintenance. 1260 tests passing.
+Full write-up in comments. `pip install aipaygen-mcp` to try it. Free tier: 1 call/day. Serves 292 agents, 4183 APIs, 2439 skills. SQLite WAL mode, Gunicorn with 2 workers, 4 cron jobs for auto-maintenance. 1260 tests passing.
 
 ---
 

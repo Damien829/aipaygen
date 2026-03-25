@@ -1,8 +1,9 @@
 {% extends "base.html" %}
-{% block title %}Pro Tools{% endblock %}
-{% block description %}Premium AI tools with advanced capabilities. Skill absorption, execution, agent sessions, and more.{% endblock %}
+{% block title %}Pro Tools — Unlock Advanced AI Capabilities{% endblock %}
+{% block description %}Go beyond the basics. Pro tools let you teach AI new skills, chain tasks together, process in bulk, and build autonomous agents.{% endblock %}
 
 {% block head %}
+<meta property="og:title" content="Pro Tools — AiPayGen">
 <style>
 .premium-hero {
   text-align: center; padding: 80px 24px 48px;
@@ -77,9 +78,9 @@
 {% block content %}
 <section class="premium-hero fade-in">
   <span class="pro-badge" style="margin-bottom:16px">Pro Tools</span>
-  <h1>Premium Features</h1>
+  <h1>Unlock Advanced AI Capabilities</h1>
   <p style="color:var(--text-secondary);max-width:560px;margin:0 auto;font-size:var(--text-lg)">
-    Advanced AI capabilities for power users. Skill absorption, batch execution, priority routing, and more.
+    Go beyond the basics. Teach AI new skills, automate multi-step workflows, process data in bulk, and build agents that work for you.
   </p>
 </section>
 
@@ -87,96 +88,96 @@
   <div class="premium-card">
     <span class="pro-badge">Pro</span>
     <div class="premium-price">$0.05/call</div>
-    <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:8px">Absorb Skill</h3>
+    <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:8px">Teach AI New Skills</h3>
     <p class="premium-desc">
-      Feed any URL, API spec, or text description -- AiPayGen reads it and creates a callable skill automatically. Build your own tool library from any source.
+      Give AiPayGen any website, document, or description and it learns a new skill from it. Build a custom toolkit tailored to your exact needs.
     </p>
     <div class="premium-endpoint">POST /skills/absorb</div>
     <ul class="premium-features">
-      <li>Auto-extract from URLs or text</li>
-      <li>Creates callable skill with schema</li>
-      <li>AI-powered prompt template generation</li>
-      <li>Categorized and searchable</li>
+      <li>Learn from any URL or text you provide</li>
+      <li>Creates a reusable skill you can call anytime</li>
+      <li>AI writes the instructions automatically</li>
+      <li>Organized and searchable in your library</li>
     </ul>
   </div>
 
   <div class="premium-card">
     <span class="pro-badge">Pro</span>
     <div class="premium-price">$0.03/call</div>
-    <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:8px">Execute Skill</h3>
+    <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:8px">Run Any Skill</h3>
     <p class="premium-desc">
-      Run any of 2,400+ skills by name. Pass custom input and get structured JSON output. Choose your model or let smart routing decide.
+      Access 2,400+ ready-made skills. Just pick one, give it your input, and get clean results back. We pick the best AI model for the job.
     </p>
     <div class="premium-endpoint">POST /skills/execute</div>
     <ul class="premium-features">
-      <li>2,400+ skills available</li>
-      <li>Custom model selection</li>
-      <li>Structured JSON responses</li>
-      <li>Usage tracking per skill</li>
+      <li>2,400+ skills ready to use</li>
+      <li>Choose your preferred AI model</li>
+      <li>Clean, structured results every time</li>
+      <li>Track what you use and how often</li>
     </ul>
   </div>
 
   <div class="premium-card">
     <span class="pro-badge">Pro</span>
     <div class="premium-price">$0.10/call</div>
-    <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:8px">Workflow Chains</h3>
+    <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:8px">Chain Tasks Together</h3>
     <p class="premium-desc">
-      Chain up to 10 AI tools in a single API call. Each step can reference previous output with $prev.result. Build complex pipelines.
+      Link up to 10 AI tools in sequence. Research a topic, then summarize it, then translate it &mdash; all in one go. Each step builds on the last.
     </p>
     <div class="premium-endpoint">POST /chain</div>
     <ul class="premium-features">
-      <li>Up to 10 steps per chain</li>
-      <li>Output piping between steps</li>
-      <li>Mixed tools per chain</li>
-      <li>Single billing for entire chain</li>
+      <li>Up to 10 steps in a single chain</li>
+      <li>Each step uses the previous result</li>
+      <li>Mix and match any tools</li>
+      <li>One price for the whole chain</li>
     </ul>
   </div>
 
   <div class="premium-card">
     <span class="pro-badge">Pro</span>
     <div class="premium-price">$0.20/call</div>
-    <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:8px">Agentic Workflow</h3>
+    <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:8px">Let AI Handle It</h3>
     <p class="premium-desc">
-      Multi-step agentic reasoning with Claude Sonnet. Describe your goal and the agent breaks it down, executes steps, and returns results.
+      Just describe what you need and AI figures out the steps. It plans, executes, and delivers &mdash; like having a smart assistant that thinks ahead.
     </p>
     <div class="premium-endpoint">POST /workflow</div>
     <ul class="premium-features">
-      <li>Autonomous goal decomposition</li>
-      <li>Multi-tool orchestration</li>
+      <li>Describe your goal in plain English</li>
+      <li>AI breaks it into steps automatically</li>
       <li>Powered by Claude Sonnet</li>
-      <li>Detailed step-by-step logs</li>
+      <li>See exactly what it did, step by step</li>
     </ul>
   </div>
 
   <div class="premium-card">
     <span class="pro-badge">Pro</span>
     <div class="premium-price">$0.10/call</div>
-    <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:8px">Batch API</h3>
+    <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:8px">Process in Bulk</h3>
     <p class="premium-desc">
-      Run up to 20 operations in parallel with a single request. Ideal for bulk processing, data enrichment, and high-throughput workflows.
+      Need to analyze 20 documents at once? Translate a batch of messages? Run up to 20 tasks in parallel and get all results back together.
     </p>
     <div class="premium-endpoint">POST /batch</div>
     <ul class="premium-features">
-      <li>Up to 20 parallel operations</li>
-      <li>Mixed tool types per batch</li>
-      <li>Aggregated billing</li>
-      <li>Individual error handling</li>
+      <li>Up to 20 tasks at the same time</li>
+      <li>Mix different tools in one batch</li>
+      <li>One combined bill</li>
+      <li>Each task handled independently</li>
     </ul>
   </div>
 
   <div class="premium-card">
     <span class="pro-badge">Pro</span>
     <div class="premium-price">$0.01/call</div>
-    <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:8px">Agent Sessions</h3>
+    <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:8px">Agents with Memory</h3>
     <p class="premium-desc">
-      Persistent agent sessions with memory, task management, and inter-agent messaging. Build autonomous AI agents that collaborate.
+      Build AI agents that remember context, manage tasks, and even talk to each other. Create always-on assistants that get smarter over time.
     </p>
     <div class="premium-endpoint">POST /agent/register</div>
     <ul class="premium-features">
-      <li>Persistent memory (key-value + search)</li>
-      <li>Task board with subscriptions</li>
-      <li>Agent-to-agent messaging</li>
-      <li>Reputation and leaderboard</li>
+      <li>Agents remember past conversations</li>
+      <li>Built-in task management</li>
+      <li>Agents can collaborate with each other</li>
+      <li>Track reputation and performance</li>
     </ul>
   </div>
 </div>
@@ -205,27 +206,27 @@
       <span class="pro">Best available</span>
     </div>
     <div class="compare-row">
-      <span class="label">Response truncation</span>
-      <span class="free">Yes</span>
-      <span class="pro">Full responses</span>
+      <span class="label">Full-length results</span>
+      <span class="free">Trimmed</span>
+      <span class="pro">Always complete</span>
     </div>
     <div class="compare-row">
-      <span class="label">Skill absorption</span>
+      <span class="label">Teach AI new skills</span>
       <span class="free">--</span>
       <span class="pro">Included</span>
     </div>
     <div class="compare-row">
-      <span class="label">Workflow chains</span>
+      <span class="label">Chain tasks together</span>
       <span class="free">--</span>
       <span class="pro">Up to 10 steps</span>
     </div>
     <div class="compare-row">
-      <span class="label">Batch processing</span>
+      <span class="label">Bulk processing</span>
       <span class="free">--</span>
-      <span class="pro">20 parallel</span>
+      <span class="pro">20 at a time</span>
     </div>
     <div class="compare-row">
-      <span class="label">Bulk discount</span>
+      <span class="label">Volume discount</span>
       <span class="free">--</span>
       <span class="pro">20% off ($2+ balance)</span>
     </div>
@@ -233,11 +234,11 @@
 </div>
 
 <section style="text-align:center;padding:60px 24px 80px" class="fade-in">
-  <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:12px">Ready to go Pro?</h3>
-  <p style="color:var(--text-secondary);margin-bottom:24px">Get started with $1. Pro features unlock automatically with any API key.</p>
+  <h3 style="font-family:var(--font-mono);font-weight:700;margin-bottom:12px">Ready to unlock Pro?</h3>
+  <p style="color:var(--text-secondary);margin-bottom:24px">Start with just $1 in credits. Pro features activate automatically &mdash; no special upgrade needed.</p>
   <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
-    <a href="/buy-credits" class="btn btn-primary" style="padding:16px 40px">Buy Credits</a>
-    <a href="/docs" class="btn btn-secondary">View Docs</a>
+    <a href="/subscribe" class="btn btn-primary" style="padding:16px 40px">Choose a Plan</a>
+    <a href="/buy-credits" class="btn btn-secondary">Buy Credits</a>
   </div>
 </section>
 {% endblock %}

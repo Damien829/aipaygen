@@ -16,7 +16,7 @@ import os
 import sqlite3
 import sys
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
@@ -60,7 +60,7 @@ def _init_alerts_db():
 
 def _log_alert(alert_type: str, ip: str = "", details: dict = None, action: str = ""):
     """Write a security alert to alerts.db."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with sqlite3.connect(ALERTS_DB) as conn:
         conn.execute(
             "INSERT INTO security_alerts (alert_type, ip, details, action_taken, created_at) VALUES (?, ?, ?, ?, ?)",
@@ -71,7 +71,7 @@ def _log_alert(alert_type: str, ip: str = "", details: dict = None, action: str 
 
 def _add_temp_block(ip: str, reason: str, duration: int = TEMP_BLOCK_DURATION):
     """Add an IP to the temporary block list."""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     blocked_until = (now + timedelta(seconds=duration)).isoformat()
     with sqlite3.connect(ALERTS_DB) as conn:
         conn.execute(
@@ -83,7 +83,7 @@ def _add_temp_block(ip: str, reason: str, duration: int = TEMP_BLOCK_DURATION):
 
 def _cleanup_expired_blocks():
     """Remove expired entries from temp_blocklist."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with sqlite3.connect(ALERTS_DB) as conn:
         deleted = conn.execute("DELETE FROM temp_blocklist WHERE blocked_until < ?", (now,)).rowcount
         if deleted:
@@ -96,7 +96,7 @@ def check_scraping_abuse():
         log.info("No funnel.db found, skipping scraping check")
         return 0
 
-    cutoff = (datetime.utcnow() - timedelta(minutes=10)).isoformat()
+    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
     alerts = 0
     with sqlite3.connect(FUNNEL_DB) as conn:
         conn.row_factory = sqlite3.Row
@@ -120,7 +120,7 @@ def check_premium_abuse():
     if not os.path.exists(FUNNEL_DB):
         return 0
 
-    cutoff = (datetime.utcnow() - timedelta(minutes=10)).isoformat()
+    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
     alerts = 0
     with sqlite3.connect(FUNNEL_DB) as conn:
         conn.row_factory = sqlite3.Row
@@ -146,7 +146,7 @@ def check_free_tier_abuse():
     if not os.path.exists(FUNNEL_DB):
         return 0
 
-    cutoff = (datetime.utcnow() - timedelta(minutes=10)).isoformat()
+    cutoff = (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
     alerts = 0
     with sqlite3.connect(FUNNEL_DB) as conn:
         conn.row_factory = sqlite3.Row
@@ -168,7 +168,7 @@ def check_free_tier_abuse():
 
 def get_blocked_ips():
     """Return currently blocked IPs (for use by app.py or admin endpoints)."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with sqlite3.connect(ALERTS_DB) as conn:
         conn.row_factory = sqlite3.Row
         rows = conn.execute(
@@ -180,7 +180,7 @@ def get_blocked_ips():
 
 def get_recent_alerts(hours: int = 24, limit: int = 50):
     """Return recent security alerts."""
-    cutoff = (datetime.utcnow() - timedelta(hours=hours)).isoformat()
+    cutoff = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
     with sqlite3.connect(ALERTS_DB) as conn:
         conn.row_factory = sqlite3.Row
         rows = conn.execute(

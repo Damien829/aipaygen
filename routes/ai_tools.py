@@ -1616,6 +1616,11 @@ def enrich():
     raw = {}
     try:
         if entity_type == "ip":
+            import ipaddress as _ipaddr
+            try:
+                _ipaddr.ip_address(entity)
+            except ValueError:
+                return jsonify({"error": "invalid IP address"}), 400
             raw = _requests.get(f"http://ip-api.com/json/{entity}", timeout=8).json()
         elif entity_type == "crypto":
             resp = _requests.get(

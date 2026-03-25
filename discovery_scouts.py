@@ -16,7 +16,7 @@ import urllib.error
 import urllib.parse
 
 logger = logging.getLogger(__name__)
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 BASE_URL = os.getenv("BASE_URL", "https://api.aipaygen.com")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
@@ -73,7 +73,7 @@ def init_scout_db():
 
 
 def _log_outreach(scout, target_id, action, message="", status="sent", cost_usd=0.0):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _scout_conn() as c:
         c.execute(
             "INSERT OR IGNORE INTO scout_outreach "
@@ -85,7 +85,7 @@ def _log_outreach(scout, target_id, action, message="", status="sent", cost_usd=
 
 
 def _already_scouted(scout, target_id, within_days=30):
-    cutoff = (datetime.utcnow() - timedelta(days=within_days)).isoformat()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=within_days)).isoformat()
     with _scout_conn() as c:
         row = c.execute(
             "SELECT id FROM scout_outreach WHERE scout=? AND target_id=? AND created_at > ?",
@@ -169,7 +169,7 @@ class SkillAbsorberMixin:
 
         # Check how many we already absorbed this run
         with _scout_conn() as c:
-            today = datetime.utcnow().strftime("%Y-%m-%d")
+            today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
             today_count = c.execute(
                 "SELECT COUNT(*) FROM scout_absorbed_skills WHERE scout=? AND created_at LIKE ?",
                 (scout_name, f"{today}%"),
@@ -420,7 +420,7 @@ class GitHubScout(SkillAbsorberMixin):
                     f"Topics: {topics}\n\n"
                     "Suggest AiPayGen as a tool/skill provider. We offer:\n"
                     "- 1500+ skills via MCP protocol and REST API\n"
-                    "- Free tier (3 calls/day), then x402 USDC micropayments\n"
+                    "- Free tier (1 call/day), then x402 USDC micropayments\n"
                     "- Multi-model AI (Claude, GPT-4, Gemini, DeepSeek)\n"
                     f"- Endpoint: {BASE_URL}\n"
                     "- MCP: mcp.aipaygen.com\n\n"
@@ -454,7 +454,7 @@ class GitHubScout(SkillAbsorberMixin):
         return resp.get("status") in (201, 200)
 
     def _issues_opened_today(self):
-        today = datetime.utcnow().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         with _scout_conn() as c:
             row = c.execute(
                 "SELECT COUNT(*) FROM scout_outreach "
@@ -512,7 +512,7 @@ class RegistryScout(SkillAbsorberMixin):
         "url": BASE_URL,
         "mcp_endpoint": "https://mcp.aipaygen.com/mcp",
         "docs": f"{BASE_URL}/discover",
-        "pricing": "Free tier (3 calls/day), then x402 USDC micropayments",
+        "pricing": "Free tier (1 call/day), then x402 USDC micropayments",
         "categories": ["ai", "tools", "mcp", "agent", "skills"],
     }
 
@@ -757,7 +757,7 @@ class SocialScout:
             return False
 
     def _replies_today(self):
-        today = datetime.utcnow().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         with _scout_conn() as c:
             row = c.execute(
                 "SELECT COUNT(*) FROM scout_outreach "
@@ -969,7 +969,7 @@ class TwitterScout:
         if stats["actions"] < max_actions and today_posted + stats["original_posted"] < self.MAX_TWEETS_PER_DAY:
             tweet = self._draft_original_tweet()
             if tweet:
-                _log_outreach("twitter", f"original_{datetime.utcnow().isoformat()}", "tweet_drafted",
+                _log_outreach("twitter", f"original_{datetime.now(timezone.utc).isoformat()}", "tweet_drafted",
                               message=tweet, status="drafted")
                 stats["original_posted"] += 1
                 stats["actions"] += 1
@@ -1058,7 +1058,7 @@ class TwitterScout:
             return None
 
     def _tweets_today(self):
-        today = datetime.utcnow().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         with _scout_conn() as c:
             row = c.execute(
                 "SELECT COUNT(*) FROM scout_outreach "
@@ -1090,7 +1090,7 @@ class FollowUpAgent:
         self._expire_old()
 
         # Find entries needing follow-up
-        cutoff = (datetime.utcnow() - timedelta(hours=self.FOLLOW_UP_AFTER_HOURS)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=self.FOLLOW_UP_AFTER_HOURS)).isoformat()
         with _scout_conn() as c:
             entries = c.execute(
                 "SELECT * FROM scout_outreach WHERE status='sent' AND created_at < ? "
@@ -1155,7 +1155,7 @@ class FollowUpAgent:
         return resp.get("status") == 200
 
     def _expire_old(self):
-        cutoff = (datetime.utcnow() - timedelta(days=self.EXPIRE_AFTER_DAYS)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=self.EXPIRE_AFTER_DAYS)).isoformat()
         with _scout_conn() as c:
             count = c.execute(
                 "UPDATE scout_outreach SET status='expired' "
@@ -1213,7 +1213,7 @@ def get_scout_status():
 
 def get_weekly_report():
     """Weekly summary report of all scout activity."""
-    week_ago = (datetime.utcnow() - timedelta(days=7)).isoformat()
+    week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
     with _scout_conn() as c:
         outreach = c.execute(
             "SELECT scout, action, status, COUNT(*) as cnt "
@@ -1227,7 +1227,7 @@ def get_weekly_report():
             (week_ago,),
         ).fetchone()
     return {
-        "period": f"{week_ago[:10]} to {datetime.utcnow().strftime('%Y-%m-%d')}",
+        "period": f"{week_ago[:10]} to {datetime.now(timezone.utc).strftime('%Y-%m-%d')}",
         "outreach": [dict(r) for r in outreach],
         "conversions": dict(conversions) if conversions else {"cnt": 0, "revenue": 0},
     }

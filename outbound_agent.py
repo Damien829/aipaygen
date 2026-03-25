@@ -15,7 +15,7 @@ import time
 import urllib.request
 import urllib.error
 import urllib.parse
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 BASE_URL = os.getenv("BASE_URL", "https://api.aipaygen.com")
 WALLET = os.getenv("WALLET_ADDRESS", "0x366D488a48de1B2773F3a21F1A6972715056Cb30")
@@ -156,6 +156,10 @@ _INTRO_TEMPLATES = {
 
 def _conn():
     c = sqlite3.connect(DB_PATH)
+    c.execute("PRAGMA journal_mode=WAL")
+    c.execute("PRAGMA synchronous=NORMAL")
+    c.execute("PRAGMA cache_size=-8000")
+    c.execute("PRAGMA temp_store=MEMORY")
     c.row_factory = sqlite3.Row
     return c
 
@@ -197,7 +201,7 @@ def _ensure_tables():
 
 
 def _log(action: str, target: str, status: str, detail: str = ""):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         c.execute(
             "INSERT INTO outreach_log (action, target, status, detail, created_at) VALUES (?, ?, ?, ?, ?)",
@@ -207,7 +211,7 @@ def _log(action: str, target: str, status: str, detail: str = ""):
 
 def _record_outcome(action: str, target: str, status: str, strategy: str = "", detail: str = ""):
     """Log result with granular status and strategy tag for success rate tracking."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         c.execute(
             "INSERT INTO outreach_log (action, target, status, detail, created_at) VALUES (?, ?, ?, ?, ?)",
@@ -216,7 +220,7 @@ def _record_outcome(action: str, target: str, status: str, strategy: str = "", d
 
 
 def _already_targeted(target: str, within_days: int = DEDUP_DAYS) -> bool:
-    cutoff = (datetime.utcnow() - timedelta(days=within_days)).isoformat()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=within_days)).isoformat()
     with _conn() as c:
         row = c.execute(
             "SELECT id FROM outreach_log WHERE target=? AND created_at > ?",
@@ -249,7 +253,7 @@ def _gh_api(path: str, method: str = "GET", payload: dict = None) -> dict:
 
 
 def _upsert_service(url: str, name: str, service_type: str, manifest: dict = None, status: str = "discovered"):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     manifest_json = json.dumps(manifest) if manifest else None
     with _conn() as c:
         c.execute("""
@@ -263,7 +267,7 @@ def _upsert_service(url: str, name: str, service_type: str, manifest: dict = Non
 
 
 def _update_service_status(url: str, status: str, response_summary: str = ""):
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         c.execute(
             "UPDATE discovered_services SET our_status=?, last_contacted=?, response_summary=? WHERE url=?",
@@ -288,7 +292,7 @@ class OutboundAgent:
             "posts_made": 0,
             "directory_scraped": 0,
             "errors": 0,
-            "started_at": datetime.utcnow().isoformat(),
+            "started_at": datetime.now(timezone.utc).isoformat(),
         }
         actions_left = MAX_ACTIONS_PER_RUN
 
@@ -317,7 +321,7 @@ class OutboundAgent:
                 _log("outbound_strategy_error", name, "error", str(e))
                 stats["errors"] += 1
 
-        stats["finished_at"] = datetime.utcnow().isoformat()
+        stats["finished_at"] = datetime.now(timezone.utc).isoformat()
         _log("outbound_run", "all", "ok", json.dumps(stats))
         return stats
 
@@ -366,7 +370,7 @@ class OutboundAgent:
 
     def _get_undiscovered_from_db(self) -> list:
         """Get services from DB that haven't been scanned recently. Prioritize high-quality hunter targets."""
-        cutoff = (datetime.utcnow() - timedelta(days=DEDUP_DAYS)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=DEDUP_DAYS)).isoformat()
         with _conn() as c:
             rows = c.execute(
                 "SELECT url, name, service_type, COALESCE(source, '') as source, "
@@ -769,8 +773,8 @@ Keep it concise, friendly, agent-to-agent. No markdown. Mention our MCP endpoint
     def follow_up_targets(self, max_actions: int = 2) -> dict:
         """Re-contact targets that got initial outreach but no conversion."""
         result = {"follow_ups": 0, "actions": 0, "errors": 0}
-        cutoff_old = (datetime.utcnow() - timedelta(days=7)).isoformat()
-        cutoff_recent = (datetime.utcnow() - timedelta(days=1)).isoformat()
+        cutoff_old = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+        cutoff_recent = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
 
         with _conn() as c:
             # Find targets contacted 7+ days ago with 'ok' status, not already followed up recently
@@ -1033,8 +1037,8 @@ Title should be specific, not generic. Body should provide value, not just self-
             """).fetchall()
 
             # 24h vs 7d trending
-            day_ago = (datetime.utcnow() - timedelta(days=1)).isoformat()
-            week_ago = (datetime.utcnow() - timedelta(days=7)).isoformat()
+            day_ago = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+            week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
             last_24h = c.execute("SELECT COUNT(*) FROM outreach_log WHERE created_at > ?", (day_ago,)).fetchone()[0]
             last_24h_ok = c.execute("SELECT COUNT(*) FROM outreach_log WHERE status='ok' AND created_at > ?", (day_ago,)).fetchone()[0]
             last_7d = c.execute("SELECT COUNT(*) FROM outreach_log WHERE created_at > ?", (week_ago,)).fetchone()[0]

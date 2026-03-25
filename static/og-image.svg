@@ -1,20 +1,68 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
-  <rect width="1200" height="630" fill="#0f172a"/>
-  <rect x="0" y="0" width="1200" height="630" fill="url(#grid)" opacity="0.08"/>
   <defs>
-    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#334155" stroke-width="0.5"/>
-    </pattern>
-    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#00ff9d"/>
-      <stop offset="100%" style="stop-color:#0088ff"/>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#020408"/>
+      <stop offset="100%" style="stop-color:#0a0f1a"/>
     </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#00d4ff"/>
+    </linearGradient>
+    <linearGradient id="accent2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:0.15"/>
+      <stop offset="100%" style="stop-color:#00d4ff;stop-opacity:0.05"/>
+    </linearGradient>
+    <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
+      <path d="M 60 0 L 0 0 0 60" fill="none" stroke="#1e293b" stroke-width="0.4"/>
+    </pattern>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
   </defs>
-  <circle cx="600" cy="200" r="300" fill="#00ff9d" opacity="0.04"/>
-  <circle cx="600" cy="200" r="180" fill="#0088ff" opacity="0.05"/>
-  <text x="600" y="260" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="96" font-weight="700" fill="url(#accent)">AiPayGen</text>
-  <text x="600" y="340" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="36" font-weight="400" fill="#c8d8e8">155 AI Tools for Agents</text>
-  <line x1="400" y1="380" x2="800" y2="380" stroke="#1e293b" stroke-width="1"/>
-  <text x="600" y="430" text-anchor="middle" font-family="monospace" font-size="24" fill="#4a6070">Pay per call &middot; MCP &middot; x402 &middot; Base Mainnet</text>
-  <text x="600" y="540" text-anchor="middle" font-family="monospace" font-size="22" fill="#64748b">aipaygen.com</text>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#grid)" opacity="0.06"/>
+
+  <!-- Ambient glow orbs -->
+  <ellipse cx="350" cy="250" rx="300" ry="250" fill="#6366f1" opacity="0.04"/>
+  <ellipse cx="850" cy="350" rx="280" ry="220" fill="#00d4ff" opacity="0.035"/>
+
+  <!-- Top accent line -->
+  <rect x="0" y="0" width="1200" height="3" fill="url(#accent)"/>
+
+  <!-- Main title -->
+  <text x="600" y="240" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="88" font-weight="800" letter-spacing="-2" fill="url(#accent)" filter="url(#glow)">AiPayGen</text>
+
+  <!-- Tagline -->
+  <text x="600" y="320" text-anchor="middle" font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="34" font-weight="500" fill="#e2e8f0">250+ AI Tools · 27 Models · Pay Per Call</text>
+
+  <!-- Divider -->
+  <line x1="420" y1="365" x2="780" y2="365" stroke="url(#accent)" stroke-width="1.5" opacity="0.4"/>
+
+  <!-- Subtitle -->
+  <text x="600" y="420" text-anchor="middle" font-family="'SF Mono', 'Fira Code', 'Cascadia Code', monospace" font-size="22" fill="#94a3b8">MCP Server · x402 Payments · Agent-Native APIs</text>
+
+  <!-- Pill badges -->
+  <rect x="340" y="460" width="140" height="36" rx="18" fill="#6366f1" opacity="0.15" stroke="#6366f1" stroke-width="1" stroke-opacity="0.3"/>
+  <text x="410" y="484" text-anchor="middle" font-family="system-ui, sans-serif" font-size="15" font-weight="600" fill="#a5b4fc">Research</text>
+
+  <rect x="500" y="460" width="100" height="36" rx="18" fill="#00d4ff" opacity="0.1" stroke="#00d4ff" stroke-width="1" stroke-opacity="0.3"/>
+  <text x="550" y="484" text-anchor="middle" font-family="system-ui, sans-serif" font-size="15" font-weight="600" fill="#67e8f9">Code</text>
+
+  <rect x="620" y="460" width="110" height="36" rx="18" fill="#6366f1" opacity="0.15" stroke="#6366f1" stroke-width="1" stroke-opacity="0.3"/>
+  <text x="675" y="484" text-anchor="middle" font-family="system-ui, sans-serif" font-size="15" font-weight="600" fill="#a5b4fc">Vision</text>
+
+  <rect x="750" y="460" width="110" height="36" rx="18" fill="#00d4ff" opacity="0.1" stroke="#00d4ff" stroke-width="1" stroke-opacity="0.3"/>
+  <text x="805" y="484" text-anchor="middle" font-family="system-ui, sans-serif" font-size="15" font-weight="600" fill="#67e8f9">Scrape</text>
+
+  <!-- Domain -->
+  <text x="600" y="570" text-anchor="middle" font-family="'SF Mono', 'Fira Code', monospace" font-size="20" fill="#475569">aipaygen.com</text>
+
+  <!-- Bottom accent line -->
+  <rect x="0" y="627" width="1200" height="3" fill="url(#accent)"/>
 </svg>

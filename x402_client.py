@@ -1,7 +1,7 @@
 """x402 outbound payment client — lets our agent pay other x402 services."""
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ _daily_spend = {"date": "", "total": 0.0}
 
 
 def _check_budget(cost: float) -> bool:
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     if _daily_spend["date"] != today:
         _daily_spend["date"] = today
         _daily_spend["total"] = 0.0

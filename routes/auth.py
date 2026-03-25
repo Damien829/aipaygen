@@ -6,7 +6,7 @@ import re
 import subprocess
 import threading
 import time as _time
-from datetime import datetime
+from datetime import datetime, timezone
 
 import stripe as _stripe
 from flask import Blueprint, request, jsonify, render_template, make_response, redirect
@@ -75,7 +75,7 @@ def _schedule_email(email: str, api_key: str, email_type: str, delay_seconds: in
     import sqlite3
     from datetime import timedelta
     _init_email_queue()
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     send_after = (now + timedelta(seconds=delay_seconds)).isoformat()
     with sqlite3.connect(_EMAIL_QUEUE_DB) as c:
         c.execute(
@@ -89,7 +89,7 @@ def _process_email_queue():
     """Process pending scheduled emails. Called by cron or internal endpoint."""
     import sqlite3
     _init_email_queue()
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with sqlite3.connect(_EMAIL_QUEUE_DB) as c:
         c.row_factory = sqlite3.Row
         pending = c.execute(
@@ -106,6 +106,9 @@ def _process_email_queue():
             elif row["email_type"] == "abandoned_checkout":
                 from email_service import send_abandoned_checkout
                 send_abandoned_checkout(row["email"])
+            elif row["email_type"] == "low_balance":
+                from email_service import send_low_balance_reminder
+                send_low_balance_reminder(row["email"], row["api_key"], 0.0)
             sent_ids.append(row["id"])
         except Exception as e:
             logger.error("email_queue: failed to send %s to %s: %s", row["email_type"], row["email"], e)
@@ -135,23 +138,299 @@ def _cleanup_session_keys():
 
 def _notify_checkout(amount, action, api_key):
     """Log checkout and broadcast wall notification."""
-    ts = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
     msg = f"[{ts}] CHECKOUT ${amount} ({action}) key={api_key[:12]}..."
     try:
         with open(_NOTIFY_LOG, "a") as f:
             f.write(msg + "\n")
     except Exception:
         pass
+    # Write to dedicated payment alert log (easy to tail -f)
+    if action == "PAID":
+        try:
+            alert_file = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "payments.log")
+            with open(alert_file, "a") as f:
+                f.write(f"[{ts}] $$$ PAYMENT RECEIVED: ${amount:.2f} | key={api_key[:16]}... $$$\n")
+        except Exception:
+            pass
     # Broadcast to all terminals (non-blocking)
     def _wall():
         try:
-            wall_msg = f"AiPayGen: ${amount} checkout ({action})"
+            if action == "PAID":
+                wall_msg = f"$$$ AiPayGen PAYMENT: ${amount:.2f} received! key={api_key[:12]}... $$$"
+            else:
+                wall_msg = f"AiPayGen: ${amount} checkout ({action})"
             subprocess.run(["wall", wall_msg], timeout=3, capture_output=True)
         except Exception:
             pass
     threading.Thread(target=_wall, daemon=True).start()
 
 auth_bp = Blueprint("auth", __name__)
+
+
+# ── Email + Password Auth ──────────────────────────────────────────────────────
+
+import hashlib
+import secrets
+import sqlite3
+import jwt as _jwt
+
+_JWT_SECRET = os.environ.get("JWT_SECRET", "aipaygen-jwt-2026")
+_ACCOUNTS_DB = os.getenv("ACCOUNTS_DB", os.path.join(os.path.dirname(os.path.dirname(__file__)), "accounts.db"))
+
+
+def _ensure_password_columns():
+    """Add password_hash and salt columns to accounts table if missing."""
+    conn = sqlite3.connect(_ACCOUNTS_DB)
+    try:
+        cols = [row[1] for row in conn.execute("PRAGMA table_info(accounts)").fetchall()]
+        if "password_hash" not in cols:
+            conn.execute("ALTER TABLE accounts ADD COLUMN password_hash TEXT")
+        if "salt" not in cols:
+            conn.execute("ALTER TABLE accounts ADD COLUMN salt TEXT")
+        conn.commit()
+    finally:
+        conn.close()
+
+
+try:
+    _ensure_password_columns()
+except Exception:
+    pass
+
+
+def _hash_password(password: str, salt: str) -> str:
+    return hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), iterations=600_000).hex()
+
+
+def _make_jwt(email: str, api_key: str) -> str:
+    now = int(_time.time())
+    payload = {"email": email, "api_key": api_key, "iat": now, "exp": now + 30 * 86400}
+    return _jwt.encode(payload, _JWT_SECRET, algorithm="HS256")
+
+
+_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+# ── Auth rate limiter (anti brute-force) ──────────────────────────────────
+_auth_attempts = {}  # ip -> [(timestamp, ...)]
+_AUTH_RATE_LIMIT = 10  # max attempts per IP
+_AUTH_RATE_WINDOW = 300  # in 5 minutes
+
+def _check_auth_rate(ip):
+    """Return True if IP is rate-limited for auth endpoints."""
+    if not ip or ip in ("127.0.0.1", "::1"):
+        return False
+    now = _time.time()
+    attempts = _auth_attempts.get(ip, [])
+    attempts = [t for t in attempts if now - t < _AUTH_RATE_WINDOW]
+    if len(attempts) >= _AUTH_RATE_LIMIT:
+        _auth_attempts[ip] = attempts
+        return True
+    attempts.append(now)
+    _auth_attempts[ip] = attempts
+    return False
+
+
+@auth_bp.route("/auth/register", methods=["POST"])
+def auth_register():
+    ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "")
+    if _check_auth_rate(ip):
+        return jsonify({"error": "Too many attempts. Please wait a few minutes."}), 429
+    data = request.get_json() or {}
+    email = (data.get("email") or "").strip().lower()
+    password = data.get("password") or ""
+
+    if not email or not _EMAIL_RE.match(email):
+        return jsonify({"error": "Invalid email format"}), 400
+    if len(password) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
+
+    ip = request.headers.get("CF-Connecting-IP", request.remote_addr)
+
+    # Check if account already exists with a password
+    conn = sqlite3.connect(_ACCOUNTS_DB)
+    conn.row_factory = sqlite3.Row
+    try:
+        row = conn.execute("SELECT * FROM accounts WHERE email = ?", (email,)).fetchone()
+        if row and row["password_hash"]:
+            return jsonify({"error": "Account already exists. Please log in."}), 409
+
+        salt = secrets.token_hex(16)
+        pw_hash = _hash_password(password, salt)
+        now = datetime.now(timezone.utc).isoformat()
+
+        if row:
+            # Account exists (e.g. from magic link) but no password — set it
+            conn.execute(
+                "UPDATE accounts SET password_hash=?, salt=? WHERE email=?",
+                (pw_hash, salt, email),
+            )
+            conn.commit()
+            account_id = row["id"]
+        else:
+            conn.execute(
+                "INSERT INTO accounts (email, created_at, password_hash, salt) VALUES (?, ?, ?, ?)",
+                (email, now, pw_hash, salt),
+            )
+            conn.commit()
+            account_id = conn.execute("SELECT id FROM accounts WHERE email=?", (email,)).fetchone()["id"]
+    finally:
+        conn.close()
+
+    # Generate API key with $0.25 trial balance
+    from api_keys import generate_key
+    from accounts import link_key_to_account
+    if has_received_trial_credits(ip):
+        trial_balance = 0.0
+    else:
+        trial_balance = 0.25
+        mark_trial_credits_used(ip)
+    key_data = generate_key(initial_balance=trial_balance)
+    link_key_to_account(account_id, key_data["key"])
+
+    token = _make_jwt(email, key_data["key"])
+    return jsonify({
+        "jwt": token,
+        "api_key": key_data["key"],
+        "email": email,
+        "balance_usd": key_data["balance_usd"],
+    })
+
+
+@auth_bp.route("/auth/login", methods=["POST"])
+def auth_login():
+    ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "")
+    if _check_auth_rate(ip):
+        return jsonify({"error": "Too many login attempts. Please wait a few minutes."}), 429
+    data = request.get_json() or {}
+    email = (data.get("email") or "").strip().lower()
+    password = data.get("password") or ""
+
+    if not email or not password:
+        return jsonify({"error": "Email and password required"}), 400
+
+    conn = sqlite3.connect(_ACCOUNTS_DB)
+    conn.row_factory = sqlite3.Row
+    try:
+        row = conn.execute("SELECT * FROM accounts WHERE email = ?", (email,)).fetchone()
+    finally:
+        conn.close()
+
+    if not row or not row["password_hash"] or not row["salt"]:
+        return jsonify({"error": "Invalid email or password"}), 401
+
+    if _hash_password(password, row["salt"]) != row["password_hash"]:
+        # Check legacy SHA256 hash for migration
+        legacy = hashlib.sha256((password + row["salt"]).encode()).hexdigest()
+        if legacy != row["password_hash"]:
+            return jsonify({"error": "Invalid email or password"}), 401
+        # Migrate to PBKDF2
+        try:
+            import sqlite3 as _sq
+            new_hash = _hash_password(password, row["salt"])
+            with _sq.connect(_ACCOUNTS_DB) as c:
+                c.execute("UPDATE accounts SET password_hash = ? WHERE id = ?", (new_hash, row["id"]))
+        except Exception:
+            pass
+
+    # Update last login
+    from accounts import update_last_login, get_account_keys
+    update_last_login(row["id"])
+
+    # Get existing API key
+    keys = get_account_keys(row["id"])
+    if keys:
+        api_key = keys[0]["api_key"]
+    else:
+        # No key linked — generate one
+        from api_keys import generate_key
+        from accounts import link_key_to_account
+        key_data = generate_key(initial_balance=0.0)
+        link_key_to_account(row["id"], key_data["key"])
+        api_key = key_data["key"]
+
+    # Get balance
+    status = get_key_status(api_key)
+    balance = status["balance_usd"] if status else 0.0
+
+    token = _make_jwt(email, api_key)
+    return jsonify({
+        "jwt": token,
+        "api_key": api_key,
+        "email": email,
+        "balance_usd": balance,
+    })
+
+
+# ── Ad Reward (server-side bonus) ─────────────────────────────────────────────
+
+_ad_reward_cache = {}  # {ip: date_str} — simple once-per-day rate limit
+
+
+@auth_bp.route("/auth/ad-reward", methods=["POST"])
+def auth_ad_reward():
+    ip = request.headers.get("CF-Connecting-IP", request.remote_addr)
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    # Rate limit: max 10 ad rewards per IP per day (1 per ad watched)
+    cache_key = f"{ip}:{today}"
+    count = _ad_reward_cache.get(cache_key, 0)
+    if count >= 10:
+        return jsonify({"error": "Maximum ad rewards reached today. Get an API key for unlimited access.", "get_key": "/get-key"}), 429
+
+    from agent_network import grant_ad_bonus
+    result = grant_ad_bonus(ip)
+    _ad_reward_cache[cache_key] = count + 1
+    return jsonify({"ok": True, "bonus_calls": 1, "calls_used": result["calls_used"], "calls_available": result.get("calls_available", 0), "rewards_remaining": 10 - count - 1})
+
+
+# ── Quick Key (zero-click key generation page) ────────────────────────────────
+
+@auth_bp.route("/quick-key")
+def quick_key_page():
+    """Auto-generate a key on page visit and display it immediately."""
+    ip = request.headers.get("CF-Connecting-IP", request.remote_addr)
+    if not check_key_gen_rate(ip, max_per_day=5):
+        return '<html><body style="background:#0a0c10;color:#e0e0e0;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif"><div style="text-align:center"><h2>Daily limit reached</h2><p><a href="/buy-credits" style="color:#6366f1">Buy credits</a> or try again tomorrow.</p></div></body></html>', 429
+    if has_received_trial_credits(ip):
+        trial_balance = 0.0
+    else:
+        trial_balance = 0.25
+        mark_trial_credits_used(ip)
+    record_key_gen(ip)
+    key_data = generate_key(initial_balance=trial_balance, label="quick-key", source="quick_key_page")
+    funnel_log_event("key_generated", endpoint="/quick-key", ip=ip, user_agent=request.headers.get("User-Agent", ""), metadata=json.dumps({"source": "quick_key_page", "balance": trial_balance}))
+    html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Your Free API Key — AiPayGen</title>
+<meta name="description" content="Get a free AiPayGen API key instantly with $0.25 trial credits. No sign-up needed. Start using 250+ AI tools in seconds.">
+<meta property="og:title" content="Get Free API Key — AiPayGen">
+<style>*{{box-sizing:border-box;margin:0;padding:0}}body{{font-family:-apple-system,sans-serif;background:#0a0c10;color:#e0e0e0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}}
+.card{{background:#141820;border:1px solid #1e2530;border-radius:16px;padding:40px;max-width:520px;width:100%;text-align:center}}
+h1{{color:#00ff9d;font-size:1.4rem;margin-bottom:8px}}p{{color:#8b949e;margin-bottom:20px;font-size:0.9rem}}
+.key{{background:#0d1117;border:1px solid #00ff9d33;border-radius:8px;padding:14px;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;color:#00ff9d;word-break:break-all;margin-bottom:16px;cursor:pointer}}
+.key:hover{{background:#0d1117cc;border-color:#00ff9d}}
+.bal{{color:#00ff9d;font-size:1.8rem;font-weight:700;margin-bottom:4px}}.bal-label{{color:#8b949e;font-size:0.8rem;margin-bottom:24px}}
+.steps{{text-align:left;background:#0d111799;border-radius:8px;padding:16px;margin-bottom:20px;font-size:0.82rem;line-height:1.6}}
+.steps code{{background:#1e2530;padding:2px 6px;border-radius:4px;color:#e0e0e0}}
+a.btn{{display:inline-block;background:#6366f1;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;margin:4px}}
+a.btn-outline{{background:transparent;border:1px solid #6366f1;color:#a78bfa}}
+</style></head><body>
+<div class="card">
+<h1>Your Free API Key</h1>
+<p>Click to copy — use this for all AiPayGen API calls</p>
+<div class="key" onclick="navigator.clipboard.writeText('{key_data["key"]}');this.textContent='Copied!';setTimeout(()=>this.textContent='{key_data["key"]}',2000)">{key_data["key"]}</div>
+<div class="bal">${trial_balance:.2f}</div>
+<div class="bal-label">Free trial credits (~{int(trial_balance/0.006)} calls)</div>
+<div class="steps">
+<strong>Use it in 3 ways:</strong><br>
+1. <strong>API:</strong> Add header <code>Authorization: Bearer {key_data["key"][:20]}...</code><br>
+2. <strong>MCP:</strong> Set <code>AIPAYGEN_API_KEY={key_data["key"][:20]}...</code> env var<br>
+3. <strong>Web:</strong> Paste at <a href="/playground" style="color:#6366f1">/playground</a>
+</div>
+<a class="btn" href="/buy-credits">Buy More Credits</a>
+<a class="btn btn-outline" href="/try">Try Tools Now</a>
+</div></body></html>"""
+    return html, 200, {"Content-Type": "text/html", "Cache-Control": "no-store"}
 
 
 # ── Auth / Key Management ─────────────────────────────────────────────────────
@@ -247,8 +526,8 @@ def auth_generate_key():
             "curl_example": f"curl -X POST -H 'Authorization: Bearer {api_key}' {BASE_URL}/sentiment -d '{{\"text\": \"hello world\"}}'",
             "mcp_install": "pip install aipaygen-mcp && claude mcp add aipaygen -- aipaygen-mcp",
             "docs": f"{BASE_URL}/docs",
-            "free_calls": 3,
-            "note": "You get 3 free calls/day. No payment needed to start.",
+            "free_calls": 0,
+            "note": f"Your key includes ${trial_balance:.2f} trial credits{f' (~{int(trial_balance/0.006)} calls)' if trial_balance > 0 else ''}. {'Buy more' if trial_balance > 0 else 'Add credits'} at /buy-credits.",
         },
     }
     if referral_applied:
@@ -329,7 +608,7 @@ def buy_credits():
                     line_items=[{
                         "price_data": {
                             "currency": "usd",
-                            "unit_amount": int(amount * 100),
+                            "unit_amount": int(round(amount * 100)),
                             "product_data": {"name": f"AiPayGen API Credits (${amount})"},
                         },
                         "quantity": 1,
@@ -454,6 +733,11 @@ def register_user_webhook():
         return jsonify({"error": "url and events required"}), 400
     if not url.startswith("https://"):
         return jsonify({"error": "Invalid URL — must be HTTPS"}), 400
+    # Block SSRF: reject internal IPs, localhost, and dangerous ports
+    from urllib.parse import urlparse as _urlparse
+    _wh_host = (_urlparse(url).hostname or "").lower()
+    if _wh_host in ("localhost", "127.0.0.1", "0.0.0.0", "::1") or _wh_host.startswith("10.") or _wh_host.startswith("192.168.") or _wh_host.startswith("172."):
+        return jsonify({"error": "Internal URLs not allowed"}), 400
     threshold = float(data.get("threshold", 0.50))
     from webhook_dispatch import register_webhook
     wh_id = register_webhook(api_key, url, events, threshold=threshold)
@@ -530,20 +814,47 @@ def buy_credits_page():
     return resp
 
 
+# ── Checkout rate limiter (anti card-testing) ─────────────────────────────
+_checkout_attempts = {}  # ip -> [(timestamp, ...)]
+_CHECKOUT_RATE_LIMIT = 5  # max attempts per IP
+_CHECKOUT_RATE_WINDOW = 300  # in 5 minutes
+
+def _check_checkout_rate(ip):
+    """Return True if IP is rate-limited."""
+    now = _time.time()
+    attempts = _checkout_attempts.get(ip, [])
+    attempts = [t for t in attempts if now - t < _CHECKOUT_RATE_WINDOW]
+    _checkout_attempts[ip] = attempts
+    if len(attempts) >= _CHECKOUT_RATE_LIMIT:
+        return True
+    attempts.append(now)
+    _checkout_attempts[ip] = attempts
+    return False
+
+
 @auth_bp.route("/stripe/create-checkout", methods=["POST"])
 def stripe_create_checkout():
     if not STRIPE_SECRET_KEY:
         return jsonify({"error": "Stripe not configured"}), 503
+
+    # Rate limit checkout creation to block card-testing bots
+    ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "")
+    if ip and ip not in ("127.0.0.1", "::1") and _check_checkout_rate(ip):
+        logger.warning("Checkout rate limited: %s", ip)
+        return jsonify({"error": "Too many checkout attempts. Please wait a few minutes."}), 429
+
     data = request.get_json() or {}
     # Accept both integer and float amounts for $0.50 support
-    raw_amount = data.get("amount", 20)
+    raw_amount = data.get("amount")
+    if raw_amount is None:
+        return jsonify({"error": "missing_amount", "message": "Amount is required. Choose: $0.50, $1, $5, $9, $10, $15, $20, $25, $29, $50, $79"}), 400
     try:
         amount = float(raw_amount)
     except (TypeError, ValueError):
         return jsonify({"error": "invalid amount"}), 400
     allowed_amounts = (0.50, 1, 5, 9, 10, 15, 20, 25, 29, 50, 79)
     if amount not in allowed_amounts:
-        return jsonify({"error": "amount must be one of: $0.50, $1, $5, $10, $15, $20, $25, or $50"}), 400
+        return jsonify({"error": "invalid_amount", "message": f"Amount must be one of: {', '.join(f'${a}' for a in allowed_amounts)}"}), 400
     label = str(data.get("label", ""))[:60]
     existing_key = str(data.get("existing_key", "")).strip()
     email = str(data.get("email", "")).strip().lower()[:120]
@@ -570,7 +881,7 @@ def stripe_create_checkout():
                         "name": f"AiPayGen API Credits — ${amount:.2f}",
                         "description": f"Prepaid credits for api.aipaygen.com. ~{calls_estimate} API calls.",
                     },
-                    "unit_amount": int(amount * 100),  # cents
+                    "unit_amount": int(round(amount * 100)),  # cents
                 },
                 "quantity": 1,
             }],
@@ -692,7 +1003,7 @@ def stripe_webhook():
 
             # Activate subscription
             from datetime import timedelta
-            reset_date = (datetime.utcnow().replace(day=1) + timedelta(days=32)).replace(day=1).strftime("%Y-%m-%d")
+            reset_date = (datetime.now(timezone.utc).replace(day=1) + timedelta(days=32)).replace(day=1).strftime("%Y-%m-%d")
             set_subscription(api_key, tier, sub_id, reset_date)
 
             _notify_checkout(SUBSCRIPTION_TIERS[tier]["price_usd"], f"SUBSCRIPTION-{tier.upper()}", api_key)
@@ -772,8 +1083,8 @@ def stripe_webhook():
                             "UPDATE email_queue SET sent = 1 WHERE email = ? AND email_type = 'abandoned_checkout' AND sent = 0",
                             (customer_email,),
                         )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("Failed to cancel abandoned checkout email: %s", e)
 
             # Send API key email and link to account
             if customer_email and api_key:
@@ -785,8 +1096,8 @@ def stripe_webhook():
                     send_welcome_email(customer_email, api_key)
                     acct = create_or_get_account(customer_email)
                     link_key_to_account(acct["id"], api_key)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.error("Failed to send key email to %s: %s", customer_email, e)
 
             # Credit referral commission if ?ref= was passed during checkout
             ref_agent = meta.get("ref_agent", "")
@@ -871,7 +1182,7 @@ def _get_or_create_stripe_price(tier: str) -> str:
     )
     price = _stripe.Price.create(
         product=product.id,
-        unit_amount=tier_info["price_usd"] * 100,
+        unit_amount=int(round(tier_info["price_usd"] * 100)),
         currency="usd",
         recurring={"interval": "month"},
     )
@@ -929,6 +1240,12 @@ def subscribe_page_or_create():
             funnel_log_event("subscription_checkout_started", endpoint="/subscribe",
                              ip=ip, metadata=json.dumps({"tier": tier}),
                              user_agent=request.headers.get("User-Agent", ""))
+        # Schedule abandoned checkout follow-up for subscription too
+        if email:
+            try:
+                _schedule_email(email, "", "abandoned_checkout", delay_seconds=3600)
+            except Exception:
+                pass
         return jsonify({"url": session.url, "session_id": session.id})
     except Exception as e:
         logger.error("Stripe subscription checkout failed: %s", e)

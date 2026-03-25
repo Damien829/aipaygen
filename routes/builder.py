@@ -4,7 +4,7 @@ import json
 import os
 import sqlite3
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, request, jsonify, render_template_string
 
@@ -110,7 +110,7 @@ def init_builder_db():
 
 
 def _seed_templates(conn):
-    now = datetime.utcnow().isoformat() + "Z"
+    now = datetime.now(timezone.utc).isoformat() + "Z"
     templates = [
         {
             "id": str(uuid.uuid4()),
@@ -320,7 +320,7 @@ def _execute_agent_run(agent_config, task, triggered_by="manual"):
     from react_agent import ReActAgent, make_tool_handler
 
     run_id = str(uuid.uuid4())
-    now = datetime.utcnow().isoformat() + "Z"
+    now = datetime.now(timezone.utc).isoformat() + "Z"
     agent_id = agent_config["id"]
 
     # Record run as started
@@ -375,7 +375,7 @@ def _execute_agent_run(agent_config, task, triggered_by="manual"):
         )
 
         result_json = json.dumps(result)
-        completed_at = datetime.utcnow().isoformat() + "Z"
+        completed_at = datetime.now(timezone.utc).isoformat() + "Z"
 
         conn = _get_db()
         conn.execute("""
@@ -389,7 +389,7 @@ def _execute_agent_run(agent_config, task, triggered_by="manual"):
 
     except Exception as e:
         _log.exception("agent run %s failed", run_id)
-        completed_at = datetime.utcnow().isoformat() + "Z"
+        completed_at = datetime.now(timezone.utc).isoformat() + "Z"
         conn = _get_db()
         conn.execute("""
             UPDATE agent_runs SET result = ?, status = 'failed', completed_at = ?
@@ -432,7 +432,7 @@ def create_agent():
             return jsonify({"error": f"invalid tool name: {t}"}), 400
 
     agent_id = str(uuid.uuid4())
-    now = datetime.utcnow().isoformat() + "Z"
+    now = datetime.now(timezone.utc).isoformat() + "Z"
     knowledge_base = data.get("knowledge_base", [])
     schedule = data.get("schedule")
 
@@ -569,7 +569,7 @@ def update_custom_agent(agent_id):
                 conn.close()
                 return jsonify({"error": f"invalid tool name: {t}"}), 400
 
-    now = datetime.utcnow().isoformat() + "Z"
+    now = datetime.now(timezone.utc).isoformat() + "Z"
 
     updatable = ["name", "avatar_url", "system_prompt", "tools", "model",
                  "memory_enabled", "knowledge_base", "schedule", "price_per_use",
@@ -621,7 +621,7 @@ def delete_custom_agent(agent_id):
         conn.close()
         return jsonify({"error": "agent not found or unauthorized"}), 404
 
-    now = datetime.utcnow().isoformat() + "Z"
+    now = datetime.now(timezone.utc).isoformat() + "Z"
     conn.execute("UPDATE agents_custom SET status = 'archived', updated_at = ? WHERE id = ?",
                  (now, agent_id))
     conn.commit()
@@ -699,7 +699,7 @@ def set_agent_schedule(agent_id):
                 return jsonify({"error": "cron hour must be 0-23 or '*'"}), 400
 
     schedule = {"type": stype, "config": config}
-    now = datetime.utcnow().isoformat() + "Z"
+    now = datetime.now(timezone.utc).isoformat() + "Z"
 
     conn.execute("UPDATE agents_custom SET schedule = ?, updated_at = ? WHERE id = ?",
                  (json.dumps(schedule), now, agent_id))
@@ -729,7 +729,7 @@ def remove_agent_schedule(agent_id):
         conn.close()
         return jsonify({"error": "agent not found or unauthorized"}), 404
 
-    now = datetime.utcnow().isoformat() + "Z"
+    now = datetime.now(timezone.utc).isoformat() + "Z"
     conn.execute("UPDATE agents_custom SET schedule = NULL, updated_at = ? WHERE id = ?",
                  (now, agent_id))
     conn.commit()

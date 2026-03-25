@@ -3,13 +3,13 @@ import hmac
 import json
 import os
 
-APP_VERSION = "1.9.0"
+APP_VERSION = "1.9.4"
 import time as _time
 import hashlib as _hashlib
 import threading
 _cache_lock = threading.Lock()
 import functools
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import request, jsonify
 
 
@@ -147,7 +147,7 @@ _payment_log_lock = threading.Lock()
 
 def log_payment(endpoint, amount_usd, caller_ip, request_id="", payment_type="x402", tx_hash=""):
     entry = {
-        "ts": datetime.utcnow().isoformat(),
+        "ts": datetime.now(timezone.utc).isoformat(),
         "endpoint": endpoint,
         "amount_usd": amount_usd,
         "ip": _hashlib.sha256(caller_ip.encode()).hexdigest()[:16],
@@ -193,7 +193,7 @@ def agent_response(data: dict, endpoint: str, network: str = "eip155:8453", mode
         "endpoint": endpoint,
         "model": model,
         "network": network,
-        "ts": datetime.utcnow().isoformat() + "Z",
+        "ts": datetime.now(timezone.utc).isoformat() + "Z",
     }
     return data
 
@@ -288,6 +288,11 @@ def call_llm(messages, system="", max_tokens=1024, endpoint="unknown", model_ove
     if is_free:
         model_name = "claude-haiku"  # Free tier uses cheap Haiku (~$0.001/call)
         max_tokens = min(max_tokens, 512)
+    # Flat pricing: force haiku — user pays fixed price, can't request expensive models
+    pricing_mode = request.environ.get("X_PRICING_MODE", "")
+    if pricing_mode == "flat":
+        model_name = "claude-haiku"
+        max_tokens = min(max_tokens, 2048)
     try:
         result = call_model(model_name, messages, system=system, max_tokens=max_tokens)
     except ModelNotFoundError:

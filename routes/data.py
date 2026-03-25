@@ -4,7 +4,7 @@ import io
 import base64
 import colorsys
 import hashlib as _hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, request, jsonify
 import requests as _requests
@@ -466,7 +466,7 @@ def data_screenshot():
 def free_time():
     """Free endpoint: current UTC time + timezone conversions. No payment needed."""
     from datetime import timezone
-    now_utc = datetime.utcnow()
+    now_utc = datetime.now(timezone.utc)
     return jsonify({
         "utc": now_utc.isoformat() + "Z",
         "unix": int(now_utc.replace(tzinfo=timezone.utc).timestamp()),
@@ -889,7 +889,7 @@ def data_timezone():
 @data_bp.route("/data/holidays", methods=["GET"])
 def data_holidays():
     country = request.args.get("country", "US").upper()
-    year = request.args.get("year", str(datetime.utcnow().year))
+    year = request.args.get("year", str(datetime.now(timezone.utc).year))
     ck = f"holidays:{country}:{year}"
     cached = _cache_get(ck)
     if cached:

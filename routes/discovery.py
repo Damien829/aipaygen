@@ -5,12 +5,12 @@ import json
 import os
 import re
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from contextlib import contextmanager
 
 from flask import Blueprint, request, jsonify
 
-from helpers import agent_response
+from helpers import APP_VERSION, agent_response
 
 discovery_bp = Blueprint("discovery", __name__)
 
@@ -207,7 +207,7 @@ def discover_catalog():
         "currency": "USDC",
         "facilitator": "https://api.cdp.coinbase.com/platform/v2/x402",
         "_meta": {
-            "ts": datetime.utcnow().isoformat() + "Z",
+            "ts": datetime.now(timezone.utc).isoformat() + "Z",
             "hint": "Use ?category=ai&search=code to filter. All endpoints accept x402 USDC payments.",
         },
     })
@@ -319,7 +319,7 @@ def wallet_analytics():
         by_seller = [{"seller": r["seller_slug"], "calls": r["calls"], "spent_usd": round(r["spent"], 4)} for r in seller_rows]
 
         # Spend by day (last 30 days)
-        thirty_days_ago = (datetime.utcnow() - timedelta(days=30)).isoformat()
+        thirty_days_ago = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
         daily_rows = conn.execute(
             "SELECT DATE(created_at) as day, COUNT(*) as calls, SUM(amount_usd) as spent "
             "FROM wallet_transactions WHERE wallet_id=? AND created_at >= ? "
@@ -346,7 +346,7 @@ def wallet_analytics():
                 "spent_today_usd": wallet_info.get("spent_today", 0),
                 "spent_month_usd": wallet_info.get("spent_month", 0),
             },
-            "_meta": {"ts": datetime.utcnow().isoformat() + "Z"},
+            "_meta": {"ts": datetime.now(timezone.utc).isoformat() + "Z"},
         })
     finally:
         conn.close()
@@ -384,7 +384,7 @@ def discover_openapi():
         "info": {
             "title": "AiPayGen API",
             "description": "250 AI tools with x402 USDC micropayments on Base Mainnet",
-            "version": "2.0.0",
+            "version": APP_VERSION,
             "x-402-protocol": True,
             "contact": {"url": "https://aipaygen.com"},
         },
@@ -451,7 +451,7 @@ def well_known_x402():
             "analytics": "GET https://api.aipaygen.com/wallet/analytics",
         },
         "_meta": {
-            "ts": datetime.utcnow().isoformat() + "Z",
+            "ts": datetime.now(timezone.utc).isoformat() + "Z",
             "docs": "https://aipaygen.com/docs",
         },
     })
@@ -464,14 +464,14 @@ def discover_compare():
         "comparison": [
             {
                 "platform": "AiPayGen",
-                "endpoints": "155",
+                "endpoints": "250",
                 "protocol": "x402",
                 "chains": ["Base"],
                 "settlement": "~2s",
                 "min_price": "$0.001",
                 "platform_fee": "3%",
-                "free_tier": "3 calls/day",
-                "mcp_tools": 153,
+                "free_tier": "1 call/day",
+                "mcp_tools": 250,
                 "agent_builder": True,
                 "seller_marketplace": True,
                 "url": "https://api.aipaygen.com",

@@ -26,7 +26,7 @@ I built a pay-per-call AI API with 250 tools behind a single endpoint. Instead o
 curl "https://api.aipaygen.com/free/time"
 curl "https://api.aipaygen.com/data/weather?city=London"
 
-# AI tool (free tier, 3 calls/day)
+# AI tool (free tier, 1 call/day)
 curl -X POST "https://api.aipaygen.com/summarize" \
   -H "Content-Type: application/json" \
   -d '{"text": "Your long text here", "length": "short"}'
@@ -34,7 +34,7 @@ curl -X POST "https://api.aipaygen.com/summarize" \
 
 Interactive demo (no signup): https://aipaygen.com/try
 
-Free tier: 3 calls/day. Paid: from $1 (Stripe or USDC).
+Free tier: 1 call/day. Paid: from $1 (Stripe or USDC).
 
 - API: https://api.aipaygen.com
 - PyPI: https://pypi.org/project/aipaygen-mcp/ (v1.9.0)

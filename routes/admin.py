@@ -7,10 +7,11 @@ import hmac
 import os
 import re as _re
 import json
+import time
 import base64
 import hmac
 import requests as _requests
-from datetime import datetime
+from datetime import datetime, timezone
 import logging
 
 from flask import Blueprint, request, jsonify, render_template, Response
@@ -54,6 +55,16 @@ from agent_network import (
 )
 
 admin_bp = Blueprint("admin", __name__)
+
+
+@admin_bp.after_request
+def _admin_no_cache(response):
+    """Prevent Cloudflare/browser from caching admin pages."""
+    if request.path.startswith("/admin"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+    return response
+
 
 # ── Module-level references set by init_admin_bp() ──────────────────────────
 claude = None
@@ -111,6 +122,53 @@ def stats():
 
 
 # ══════════════════════════════════════════════════════════════════════════════
+# MODEL MANAGEMENT — Dynamic model registration
+# ══════════════════════════════════════════════════════════════════════════════
+
+@admin_bp.route("/admin/models", methods=["POST"])
+@require_admin
+def admin_add_model():
+    """Register a new model at runtime."""
+    from model_router import register_model, MODEL_REGISTRY
+    data = request.get_json() or {}
+    required = ["canonical_name", "provider", "model_id", "input_cost_per_m", "output_cost_per_m"]
+    missing = [f for f in required if f not in data]
+    if missing:
+        return jsonify({"error": "missing_fields", "missing": missing}), 400
+    if data["canonical_name"] in MODEL_REGISTRY:
+        return jsonify({"error": "model_exists", "model": data["canonical_name"]}), 409
+    cfg = register_model(
+        canonical_name=data["canonical_name"],
+        provider=data["provider"],
+        model_id=data["model_id"],
+        input_cost_per_m=float(data["input_cost_per_m"]),
+        output_cost_per_m=float(data["output_cost_per_m"]),
+        max_tokens=int(data.get("max_tokens", 4096)),
+        vision=bool(data.get("vision", False)),
+        streaming=bool(data.get("streaming", True)),
+        latency_tier=data.get("latency_tier", "medium"),
+        strengths=data.get("strengths", ["general"]),
+        aliases=data.get("aliases"),
+    )
+    return jsonify({"registered": cfg["canonical_name"], "provider": cfg["provider"],
+                    "total_models": len(MODEL_REGISTRY)})
+
+
+@admin_bp.route("/admin/models", methods=["GET"])
+@require_admin
+def admin_list_models():
+    """List all models with provider details."""
+    from model_router import MODEL_REGISTRY, _ALIASES, _FALLBACK_CHAINS
+    return jsonify({
+        "total": len(MODEL_REGISTRY),
+        "providers": sorted(set(v["provider"] for v in MODEL_REGISTRY.values())),
+        "models": {k: v for k, v in MODEL_REGISTRY.items()},
+        "aliases": dict(_ALIASES),
+        "fallback_chains": dict(_FALLBACK_CHAINS),
+    })
+
+
+# ══════════════════════════════════════════════════════════════════════════════
 # FUNNEL DASHBOARD — Visual conversion funnel analytics
 # ══════════════════════════════════════════════════════════════════════════════
 
@@ -149,16 +207,28 @@ def admin_sw():
     return "self.addEventListener('fetch', e => e.respondWith(fetch(e.request)));", 200, {"Content-Type": "application/javascript"}
 
 
+_admin_login_attempts = {}  # {ip: (count, first_attempt_time)}
+
 @admin_bp.route("/admin/login", methods=["GET", "POST"])
 def admin_login():
     """Simple admin login page — sets session cookie."""
     from flask import session, redirect
     if request.method == "POST":
+        ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "")
+        # Rate limit: max 5 attempts per 5 minutes
+        now = time.time()
+        attempts = _admin_login_attempts.get(ip, (0, now))
+        if now - attempts[1] > 300:
+            attempts = (0, now)
+        if attempts[0] >= 5:
+            return "Too many login attempts. Try again in 5 minutes.", 429
         key = request.form.get("key", "")
         admin_secret = os.getenv("ADMIN_SECRET", "")
         if admin_secret and hmac.compare_digest(key, admin_secret):
+            _admin_login_attempts.pop(ip, None)
             session["admin"] = True
             return redirect("/admin/funnel")
+        _admin_login_attempts[ip] = (attempts[0] + 1, attempts[1])
         return """<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Admin Login</title><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:-apple-system,sans-serif;background:#0a0a0a;color:#e8e8e8;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}.card{background:#141414;border:1px solid #2a2a2a;border-radius:14px;padding:32px;max-width:380px;width:100%}h1{font-size:1.3rem;margin-bottom:16px}input{width:100%;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:10px 14px;color:#e8e8e8;font-size:0.9rem;margin-bottom:12px}button{width:100%;background:#6366f1;color:#fff;border:none;border-radius:8px;padding:12px;font-size:0.95rem;font-weight:600;cursor:pointer}.err{color:#f87171;font-size:0.85rem;margin-bottom:12px}</style></head><body>
 <div class="card"><h1>Admin Login</h1><p class="err">Invalid key</p><form method="POST"><input type="password" name="key" placeholder="Admin key" autofocus><button type="submit">Login</button></form></div></body></html>""", 401, {"Content-Type": "text/html"}
@@ -243,7 +313,8 @@ def funnel_dashboard():
             is_paid = "PAID" in line
             color = "#059669" if is_paid else "#f59e0b"
             icon = "&#10003;" if is_paid else "&#9888;"
-            alerts_html += f'<div class="alert-row" style="border-left:3px solid {color}"><span style="color:{color}">{icon}</span> {line}</div>'
+            from markupsafe import escape as _esc
+            alerts_html += f'<div class="alert-row" style="border-left:3px solid {color}"><span style="color:{color}">{icon}</span> {_esc(line)}</div>'
     except FileNotFoundError:
         alerts_html = '<div class="alert-row" style="color:#555">No checkout attempts yet</div>'
 
@@ -287,105 +358,174 @@ def funnel_dashboard():
             other_html += f'<div class="other-card"><div class="other-count">{cnt}</div><div class="other-label">{evt}</div></div>'
         other_html += '</div>'
 
-    return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Funnel Dashboard — AiPayGen</title>
-<link rel="manifest" href="/admin/manifest.json">
-<meta name="theme-color" content="#0a0a0a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="AiPayGen">
-<link rel="apple-touch-icon" href="/admin/icon-192.png">
-<style>
-  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-  body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e8e8e8; padding: 32px 16px; }}
-  .wrap {{ max-width: 800px; margin: 0 auto; }}
-  h1 {{ font-size: 1.5rem; margin-bottom: 4px; }}
-  .sub {{ color: #888; font-size: 0.85rem; margin-bottom: 24px; }}
-  .period {{ display: flex; gap: 8px; margin-bottom: 24px; }}
-  .period a {{ padding: 6px 14px; border-radius: 6px; background: #1e1e1e; color: #888; text-decoration: none; font-size: 0.82rem; border: 1px solid #2a2a2a; }}
-  .period a.active {{ background: #6366f1; color: #fff; border-color: #6366f1; }}
-  .card {{ background: #141414; border: 1px solid #2a2a2a; border-radius: 14px; padding: 28px; margin-bottom: 20px; }}
-  .funnel-row {{ display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }}
-  .funnel-label {{ min-width: 160px; font-size: 0.82rem; color: #aaa; text-align: right; }}
-  .funnel-bar-wrap {{ flex: 1; background: #1a1a1a; border-radius: 6px; height: 32px; overflow: hidden; }}
-  .funnel-bar {{ height: 100%; border-radius: 6px; display: flex; align-items: center; padding: 0 10px; font-size: 0.8rem; font-weight: 700; color: #fff; min-width: 30px; transition: width 0.4s; }}
-  .stat-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }}
-  .stat {{ background: #1a1a1a; border-radius: 10px; padding: 16px; text-align: center; }}
-  .stat .num {{ font-size: 1.6rem; font-weight: 800; color: #6366f1; }}
-  .stat .lbl {{ font-size: 0.75rem; color: #666; margin-top: 4px; }}
-  h2 {{ font-size: 1.1rem; margin: 24px 0 12px; }}
-  table {{ width: 100%; border-collapse: collapse; font-size: 0.82rem; }}
-  th, td {{ padding: 8px 12px; text-align: left; border-bottom: 1px solid #222; }}
-  th {{ color: #888; font-weight: 600; }}
-  .other-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }}
-  .other-card {{ background: #1a1a1a; border-radius: 8px; padding: 12px; text-align: center; }}
-  .other-count {{ font-size: 1.2rem; font-weight: 700; color: #818cf8; }}
-  .other-label {{ font-size: 0.72rem; color: #666; margin-top: 4px; word-break: break-all; }}
-  .alert-row {{ background: #1a1a1a; border-radius: 6px; padding: 10px 14px; margin-bottom: 6px; font-size: 0.8rem; font-family: monospace; color: #ccc; display: flex; align-items: center; gap: 8px; }}
-  .alerts-wrap {{ max-height: 300px; overflow-y: auto; }}
-</style>
-</head>
-<body>
-<div class="wrap">
-  <h1>Conversion Funnel</h1>
-  <p class="sub">Last {days} days &middot; {stats['total_events']} total events</p>
+    # ── Fetch extra data for unified dashboard ────────────────────────────
+    from datetime import timedelta as _td
+    _base_dir = os.path.dirname(os.path.dirname(__file__))
+    _keys_db = os.path.join(_base_dir, "api_keys.db")
+    _tool_usage_db = os.path.join(_base_dir, "tool_usage.db")
+    _now = datetime.now(timezone.utc)
+    _week_ago = (_now - _td(days=7)).isoformat()
 
-  <div class="period">
-    <a href="?days=1" class="{'active' if days==1 else ''}">24h</a>
-    <a href="?days=7" class="{'active' if days==7 else ''}">7d</a>
-    <a href="?days=30" class="{'active' if days==30 else ''}">30d</a>
-    <a href="?days=90" class="{'active' if days==90 else ''}">90d</a>
-  </div>
+    _rev_total = _query_one(_keys_db, "SELECT COALESCE(SUM(total_spent), 0) as v FROM api_keys").get("v", 0)
+    _rev_today = _query_one(_keys_db, "SELECT COALESCE(SUM(total_spent), 0) as v FROM api_keys WHERE date(last_used_at) = date('now')").get("v", 0)
+    _rev_week = _query_one(_keys_db, "SELECT COALESCE(SUM(total_spent), 0) as v FROM api_keys WHERE last_used_at >= ?", (_week_ago,)).get("v", 0)
+    _users_total = _query_one(_keys_db, "SELECT COUNT(*) as v FROM api_keys").get("v", 0)
+    _users_active = _query_one(_keys_db, "SELECT COUNT(*) as v FROM api_keys WHERE balance_usd > 0 AND is_active = 1").get("v", 0)
+    _usage_total = _query_one(_keys_db, "SELECT COALESCE(SUM(call_count), 0) as v FROM api_keys").get("v", 0)
+    _top_tools = _query_db(_tool_usage_db, "SELECT tool_name, SUM(count) as total_calls FROM tool_usage GROUP BY tool_name ORDER BY total_calls DESC LIMIT 8")
+    _max_tc = max((t["total_calls"] for t in _top_tools), default=1) or 1
 
-  <div class="stat-grid">
-    <div class="stat"><div class="num">{by_type.get('discover_hit', 0)}</div><div class="lbl">Discover Hits</div></div>
-    <div class="stat"><div class="num">{by_type.get('demo_used', 0)}</div><div class="lbl">Demos Used</div></div>
-    <div class="stat"><div class="num">{by_type.get('402_shown', 0)}</div><div class="lbl">402s Shown</div></div>
-    <div class="stat"><div class="num">{by_type.get('checkout_started', 0)}</div><div class="lbl">Checkouts</div></div>
-    <div class="stat"><div class="num">{by_type.get('credits_bought', 0)}</div><div class="lbl">Purchases</div></div>
-  </div>
+    _tool_bars = ""
+    for _t in _top_tools:
+        _pct = round(100 * _t["total_calls"] / _max_tc)
+        _tool_bars += (
+            f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:0.8rem">'
+            f'<span style="width:100px;text-align:right;color:#aaa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{_t["tool_name"]}</span>'
+            f'<div style="flex:1;height:18px;background:#1a1a1a;border-radius:4px;overflow:hidden"><div style="height:100%;width:{_pct}%;background:linear-gradient(90deg,#6366f1,#818cf8);border-radius:4px"></div></div>'
+            f'<span style="width:40px;color:#888;font-size:0.72rem">{_t["total_calls"]}</span></div>'
+        )
+    if not _tool_bars:
+        _tool_bars = '<p style="color:#555;font-size:0.85rem">No tool usage yet</p>'
 
-  <div class="card">
-    <h2 style="margin-top:0">Checkout Alerts</h2>
-    <div class="alerts-wrap">{alerts_html}</div>
-  </div>
+    # Support tickets
+    _support_db = os.path.join(_base_dir, "support.db")
+    _tickets_open = _tickets_total = 0
+    _tickets_html = '<p style="color:#555;font-size:0.85rem">No tickets yet</p>'
+    try:
+        import sqlite3 as _s3
+        _sc = _s3.connect(_support_db)
+        _sc.row_factory = _s3.Row
+        _tickets_total = _sc.execute("SELECT COUNT(*) FROM tickets").fetchone()[0]
+        _tickets_open = _sc.execute("SELECT COUNT(*) FROM tickets WHERE status='open'").fetchone()[0]
+        _tix = _sc.execute("SELECT id, email, name, message, status, created_at, reply FROM tickets ORDER BY id DESC LIMIT 10").fetchall()
+        if _tix:
+            _tickets_html = ""
+            for _tk in _tix:
+                _bc = "#fbbf24" if _tk["status"] == "open" else "#34d399" if _tk["status"] == "replied" else "#666"
+                _tickets_html += (
+                    f'<div style="background:#1a1a1a;border-radius:8px;padding:14px;margin-bottom:8px;border-left:3px solid {_bc}">'
+                    f'<div style="display:flex;justify-content:space-between;margin-bottom:6px">'
+                    f'<b style="color:#e8e8e8;font-size:0.85rem">#{_tk["id"]} {_tk["name"] or "Anonymous"}</b>'
+                    f'<span style="color:{_bc};font-size:0.72rem;text-transform:uppercase;font-weight:600">{_tk["status"]}</span></div>'
+                    f'<p style="color:#aaa;font-size:0.82rem;margin-bottom:4px">{str(_tk["message"])[:200]}</p>'
+                    f'<div style="font-size:0.72rem;color:#555">{_tk["email"]} &middot; {str(_tk["created_at"] or "")[:16]}</div></div>'
+                )
+        _sc.close()
+    except Exception:
+        pass
 
-  <div class="card">
-    <h2 style="margin-top:0">Funnel</h2>
-    {bars_html}
-  </div>
+    # Recent API keys (paid vs seed)
+    _recent_keys = ""
+    _paid_keys = 0
+    _seed_keys = 0
+    try:
+        _rk = _query_db(_keys_db, "SELECT key, balance_usd, total_spent, call_count, source, label, created_at FROM api_keys ORDER BY id DESC LIMIT 12")
+        for _k in _rk:
+            _is_seed = _k.get("label", "").startswith("test-") or _k["source"] in ("unknown", "", None)
+            if _is_seed:
+                _seed_keys += 1
+            else:
+                _paid_keys += 1
+            _tag = '<span style="color:#f87171;font-size:0.65rem">SEED</span>' if _is_seed else '<span style="color:#34d399;font-size:0.65rem">PAID</span>'
+            _recent_keys += (
+                f'<tr><td><code>{_k["key"][:12]}...</code></td>'
+                f'<td style="color:#34d399">${_k["balance_usd"]:.2f}</td>'
+                f'<td>${_k["total_spent"]:.2f}</td><td>{_k["call_count"]}</td>'
+                f'<td>{_tag}</td></tr>'
+            )
+    except Exception:
+        _recent_keys = '<tr><td colspan="5" style="color:#555">Error loading keys</td></tr>'
 
-  {other_html}
+    # Stripe live data
+    _stripe_html = ""
+    _stripe_revenue = 0
+    _stripe_pending = 0
+    _stripe_failed = 0
+    try:
+        import stripe as _stripe_mod
+        _stripe_mod.api_key = os.environ.get("STRIPE_SECRET_KEY")
+        if _stripe_mod.api_key:
+            _bal = _stripe_mod.Balance.retrieve()
+            _stripe_revenue = sum(b.get("amount", 0) for b in _bal.get("available", [])) / 100
+            _stripe_pending_amt = sum(b.get("amount", 0) for b in _bal.get("pending", [])) / 100
+            _sessions = _stripe_mod.checkout.Session.list(limit=15)
+            _completed = _abandoned = _open_sess = 0
+            _sess_rows = ""
+            for _ss in _sessions.data:
+                _amt = (_ss.amount_total or 0) / 100
+                if _ss.status == "complete":
+                    _completed += 1
+                    _sc = "#34d399"
+                elif _ss.status == "expired":
+                    _abandoned += 1
+                    _sc = "#f87171"
+                else:
+                    _open_sess += 1
+                    _sc = "#fbbf24"
+                import time as _time_mod
+                _ts = _time_mod.strftime("%b %d %H:%M", _time_mod.gmtime(_ss.created))
+                _sess_rows += (
+                    f'<tr><td style="color:{_sc};font-weight:600;text-transform:uppercase;font-size:0.72rem">{_ss.status}</td>'
+                    f'<td>${_amt:.2f}</td>'
+                    f'<td style="color:#666;font-size:0.72rem">{_ts}</td></tr>'
+                )
+            _stripe_html = _sess_rows
+            _stripe_pending = _open_sess
+            _stripe_failed = _abandoned
+    except Exception as _se:
+        _stripe_html = f'<tr><td colspan="3" style="color:#f87171">Stripe error: {_se}</td></tr>'
 
-  <div class="card">
-    <h2 style="margin-top:0">Daily Breakdown</h2>
-    <table>
-      <thead><tr><th>Date</th><th>Event</th><th>Count</th></tr></thead>
-      <tbody>{daily_rows if daily_rows else '<tr><td colspan="3" style="color:#555">No events yet</td></tr>'}</tbody>
-    </table>
-  </div>
+    def _usd(v):
+        return f"${v:,.2f}" if v else "$0.00"
 
-  <div class="card" style="margin-top:24px">
-    <h2 style="margin-top:0;margin-bottom:8px">Key Attribution</h2>
-    <p style="color:#888;margin-bottom:12px">Median time to first call: <b style="color:#6366f1">{median_label}</b></p>
-    <table style="width:100%;border-collapse:collapse">
-      <tr style="color:#888;text-align:left;border-bottom:1px solid #2a2a2a"><th style="padding:8px">Source</th><th style="padding:8px">Keys</th><th style="padding:8px">0 Calls</th><th style="padding:8px">Active</th><th style="padding:8px">Activation %</th></tr>
-      {key_stats_html}
-    </table>
-  </div>
+    # System health data
+    import shutil as _shutil
+    import psutil as _psutil
+    _disk = _shutil.disk_usage("/")
+    _mem = _psutil.virtual_memory()
+    _cpu = _psutil.cpu_percent(interval=0.1)
+    _health = {
+        "cpu": f"{_cpu:.0f}%",
+        "cpu_val": _cpu,
+        "mem": f"{_mem.percent:.0f}%",
+        "mem_val": _mem.percent,
+        "disk_free": f"{_disk.free / (1024**3):.1f} GB",
+        "disk_pct": round(100 * _disk.used / _disk.total),
+        "uptime": "",
+    }
+    try:
+        _boot = _psutil.boot_time()
+        _up_secs = _now.timestamp() - _boot
+        _up_days = int(_up_secs // 86400)
+        _up_hrs = int((_up_secs % 86400) // 3600)
+        _health["uptime"] = f"{_up_days}d {_up_hrs}h"
+    except Exception:
+        _health["uptime"] = "N/A"
 
-  <p style="text-align:center;margin-top:20px;font-size:0.75rem;color:#444"><a href="/stats" style="color:#555">Payment stats</a> &middot; Auto-refreshes every 5m</p>
-</div>
-<script>
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('/admin/sw.js');
-setTimeout(() => location.reload(), 300000);
-</script>
-</body>
-</html>""", 200, {"Content-Type": "text/html"}
+    try:
+        _hresp = _requests.get("http://localhost:5001/health", timeout=3).json()
+        _health["api_status"] = _hresp.get("status", "unknown")
+        _health["api_ms"] = f"{_hresp.get('checks', {}).get('health_check_ms', 0):.1f}ms"
+    except Exception:
+        _health["api_status"] = "error"
+        _health["api_ms"] = "N/A"
+
+    return render_template("admin_hq.html",
+        ts=_now.strftime("%b %d %H:%M UTC"), days=days,
+        rev_total=_usd(_stripe_revenue) if _stripe_revenue else _usd(_rev_total),
+        rev_today=_usd(_rev_today), rev_week=_usd(_rev_week),
+        stripe_revenue=_usd(_stripe_revenue), stripe_pending=_stripe_pending, stripe_failed=_stripe_failed,
+        users_total=_users_total, users_active=_users_active, usage_total=f"{_usage_total:,}",
+        paid_keys=_paid_keys, seed_keys=_seed_keys,
+        total_events=f"{stats['total_events']:,}", checkouts=by_type.get('checkout_started', 0),
+        tickets_open=_tickets_open, tickets_total=_tickets_total, tickets_resolved=_tickets_total - _tickets_open,
+        tool_bars=_tool_bars, alerts=alerts_html, bars=bars_html, other=other_html,
+        key_stats=key_stats_html, median_label=median_label,
+        daily_rows=daily_rows if daily_rows else '<tr><td colspan="3" style="color:#555">No events yet</td></tr>',
+        tickets=_tickets_html, recent_keys=_recent_keys, stripe_sessions=_stripe_html,
+        health=_health,
+    )
+
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -401,48 +541,18 @@ def blog_index():
         {"slug": "5-things-you-can-build", "title": "5 Things You Can Build with 250 AI Tools", "generated_at": "2026-03-15"},
         {"slug": "x402-explained", "title": "How x402 Makes AI APIs Pay-Per-Use", "generated_at": "2026-03-15"},
     ]
-    # Show only the 3 hand-written posts — hide auto-generated trending topic posts
     posts = static_posts
     items = "".join(
         f'<li style="margin:0.6rem 0"><a href="/blog/{sanitize_html(p["slug"])}">{sanitize_html(p["title"])}</a> <small style="color:#888">· {sanitize_html(p.get("generated_at","")[:10])}</small></li>'
         for p in posts
     )
-    html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AiPayGen Blog — AI Agent & API Developer Tutorials</title>
-<meta name="description" content="Developer tutorials for building with AiPayGen — 250 tools and 140+ Claude-powered AI API endpoints. Covers AI agents, scraping, x402 payments, real-time data, and more. First 3 calls/day free.">
-<link rel="canonical" href="https://api.aipaygen.com/blog">
-<link rel="alternate" type="application/rss+xml" title="AiPayGen Blog RSS" href="/feed.xml">
-<meta property="og:type" content="website">
-<meta property="og:title" content="AiPayGen Developer Blog">
-<meta property="og:description" content="Tutorials for building AI agents and automations with AiPayGen's 250 tools and 140+ Claude-powered endpoints.">
-<meta property="og:url" content="https://aipaygen.com/blog">
-<meta property="og:image" content="https://aipaygen.com/og-image.png">
-<meta name="twitter:card" content="summary_large_image">
-<script type="application/ld+json">{json.dumps({"@context":"https://schema.org","@type":"Blog","name":"AiPayGen Developer Blog","url":"https://aipaygen.com/blog","description":"Developer tutorials for AI agent APIs","publisher":{"@type":"Organization","name":"AiPayGen","url":"https://aipaygen.com"}})}</script>
-<style>body{{font-family:system-ui,sans-serif;max-width:800px;margin:40px auto;padding:0 20px;line-height:1.6;color:#1a1a1a}}a{{color:#6366f1}}h1{{color:#1e1b4b}}.rss{{float:right;font-size:0.85rem;background:#f4f4f4;padding:4px 10px;border-radius:20px;text-decoration:none;color:#555}}</style>
-</head>
-<body>
-<nav style="background:#f8f7ff;padding:10px 20px;border-radius:8px;margin-bottom:24px;font-size:0.9rem">
-<a href="/try" style="margin-right:12px">Try Free</a>
-<a href="/docs" style="margin-right:12px">Docs</a>
-<a href="/pricing" style="margin-right:12px">Pricing</a>
-<a href="/playground" style="margin-right:12px">Playground</a>
-<a href="/examples" style="margin-right:12px">Examples</a>
-<a href="/status" style="margin-right:12px">Status</a>
-<a href="/buy-credits" style="font-weight:600">Get API Key</a>
-</nav>
-<a class="rss" href="/feed.xml">RSS feed</a>
-<h1>AiPayGen Developer Blog</h1>
-<p>Tutorials for building AI agents with AiPayGen — 250 tools and 140+ Claude-powered endpoints. <strong>First 3 calls/day free.</strong></p>
-<ul style="padding-left:1.2rem">{items}</ul>
-<p><a href="https://api.aipaygen.com/discover">Browse all 250 tools and 140+ endpoints →</a> · <a href="https://api.aipaygen.com/buy-credits">Buy credits ($5+) →</a></p>
-</body>
-</html>"""
-    resp = Response(html, content_type="text/html")
+    jsonld = json.dumps({
+        "@context": "https://schema.org", "@type": "Blog",
+        "name": "AiPayGen Developer Blog", "url": "https://aipaygen.com/blog",
+        "description": "Developer tutorials for AI agent APIs",
+        "publisher": {"@type": "Organization", "name": "AiPayGen", "url": "https://aipaygen.com"},
+    })
+    resp = Response(render_template("admin_blog.html", items=items, jsonld=jsonld), content_type="text/html")
     resp.headers["Link"] = '</feed.xml>; rel="alternate"; type="application/rss+xml"'
     return resp
 
@@ -529,7 +639,7 @@ pre{{padding:16px;overflow-x:auto;display:block}}a{{color:#6366f1}}h1{{color:#1e
 <h1>{safe_title}</h1>
 {post['content']}
 <div class="cta">
-  <strong>Try it free →</strong> First 3 calls/day free, no credit card. <a href="https://api.aipaygen.com/discover">Browse all 250 tools and 140+ endpoints</a> or <a href="https://api.aipaygen.com/buy-credits">buy credits ($5+)</a>.
+  <strong>Try it free →</strong> 1 free call/day, no credit card. <a href="https://api.aipaygen.com/discover">Browse all 250 tools and 140+ endpoints</a> or <a href="https://api.aipaygen.com/buy-credits">buy credits ($5+)</a>.
 </div>
 <p style="color:#888;font-size:0.85rem">Published: {post.get('generated_at','')[:10]} · <a href="/feed.xml">RSS feed</a></p>
 </body>
@@ -1002,7 +1112,7 @@ def admin_funnel_enhanced():
     funnel_db = os.path.join(base_dir, "funnel.db")
     keys_db = os.path.join(base_dir, "api_keys.db")
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     cutoff = (now - timedelta(days=days)).isoformat()
 
     # ── Full funnel with percentages ──
@@ -1250,7 +1360,7 @@ _KNOWLEDGE_SEEDS = [
             "AiPayGen API (https://api.aipaygen.com) has 250 tools and 140+ endpoints. "
             "Key endpoints: /research ($0.01), /write ($0.05), /analyze ($0.02), /code ($0.05), "
             "/scrape/google-maps ($0.10), /chain ($0.25 for 5-step pipelines), /rag ($0.05). "
-            "Free tier: 3 calls/day per IP. Prepaid keys: /buy-credits. "
+            "Free tier: 1 call/day per IP. Prepaid keys: /buy-credits. "
             "OpenAPI spec: /openapi.json. MCP tools: /sdk."
         ),
         "tags": ["api", "aipaygen", "reference"],
@@ -1312,7 +1422,7 @@ def _run_agent_economy():
     3. Agents auto-claim and complete open tasks using Claude.
     """
     global _economy_stats
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     _economy_stats["last_run"] = now
 
     # 1. Seed knowledge base (idempotent by entry_id)
@@ -1467,7 +1577,7 @@ def rss_feed():
   <channel>
     <title>AiPayGen Developer Blog</title>
     <link>https://api.aipaygen.com/blog</link>
-    <description>Developer tutorials for building AI agents with AiPayGen — 250 tools and 140+ Claude-powered API endpoints. First 3 calls/day free.</description>
+    <description>Developer tutorials for building AI agents with AiPayGen — 250 tools and 140+ Claude-powered API endpoints. 1 call/day free.</description>
     <language>en-us</language>
     <atom:link href="https://api.aipaygen.com/feed.xml" rel="self" type="application/rss+xml"/>
     <image>
@@ -1713,7 +1823,7 @@ def crosspost_to_devto(title: str, content_html: str, slug: str, tags: list = No
                 "body_markdown": (
                     f"{markdown_body}\n\n"
                     f"---\n"
-                    f"*Try it free at [api.aipaygen.com](https://api.aipaygen.com) — 3 calls/day, no credit card.*\n"
+                    f"*Try it free at [api.aipaygen.com](https://api.aipaygen.com) — 1 call/day, no credit card.*\n"
                     f"*Original post: [api.aipaygen.com/blog/{slug}](https://api.aipaygen.com/blog/{slug})*"
                 ),
                 "tags": (tags or ["ai", "api", "python"])[:4],
@@ -1749,11 +1859,11 @@ def reddit_posts():
     subreddits = [
         {
             "subreddit": "r/MachineLearning",
-            "title": "[P] AiPayGen — Pay-per-use Claude API with 250 tools and 140+ endpoints. Free tier (10/day), x402 crypto payments, MCP tools.",
+            "title": "[P] AiPayGen — Pay-per-use Claude API with 250 tools and 140+ endpoints. Free tier (1/day), x402 crypto payments, MCP tools.",
             "body": f"""I built a pay-per-use AI API on top of Claude with 250 tools and 140+ endpoints — research, write, code, analyze, scrape, RAG, vision, diagrams, and more.
 
 **Key features:**
-- First 3 calls/day completely free (no signup, no key)
+- 1 call/day completely free (no signup, no key)
 - Pay per call with Stripe ($5 for ~500 calls) or USDC via x402 V2 (Base, Solana, Stellar)
 - 79 MCP tools for Claude Code/Desktop
 - Agent infrastructure: messaging, task board, file storage, webhook relay, async jobs
@@ -1771,7 +1881,7 @@ Blog: https://api.aipaygen.com/blog""",
         },
         {
             "subreddit": "r/LocalLLaMA",
-            "title": "AiPayGen — Claude API with x402 V2 micropayments. Agents pay per call with USDC on Base/Solana/Stellar, 3 free calls/day",
+            "title": "AiPayGen — Claude API with x402 V2 micropayments. Agents pay per call with USDC on Base/Solana/Stellar, free API key with $0.25 trial credits",
             "body": f"""Built a micro-payment AI API for agent-to-agent use. Your AI agent can call it autonomously using x402 V2 (HTTP 402 payment protocol) with USDC on Base, Solana, or Stellar — or just use the free tier.
 
 **Why this is interesting for agents:**
@@ -1901,7 +2011,7 @@ def admin_export_data():
         except Exception:
             output.write("(no tool_usage data)\n")
 
-    now_str = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    now_str = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
     return Response(
         output.getvalue(),
         mimetype="text/csv",
@@ -1947,7 +2057,7 @@ def admin_analytics():
     funnel_db = os.path.join(base_dir, "funnel.db")
     tool_usage_db = os.path.join(base_dir, "tool_usage.db")
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     week_ago = (now - timedelta(days=7)).isoformat()
     month_ago = (now - timedelta(days=30)).isoformat()
 
@@ -2269,12 +2379,15 @@ def admin_analytics():
         '    </table>'
         '  </div>'
         '</div>'
-        '<p style="text-align:center;margin-top:20px;font-size:0.72rem;color:#444">'
-        '  <a href="/admin/funnel" style="color:#555">Funnel dashboard</a> &middot;'
-        '  <a href="/stats" style="color:#555">Payment stats</a> &middot;'
-        '  <a href="/status" style="color:#555">Status</a> &middot;'
-        '  <a href="/admin/export" style="color:#555">Export CSV</a>'
-        '</p>'
+        '<div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:24px;padding:16px;background:#141414;border:1px solid #2a2a2a;border-radius:12px">'
+        '  <a href="/admin/analytics" style="color:#00ff9d;font-weight:600;font-size:0.85rem;text-decoration:none">Analytics</a>'
+        '  <a href="/admin/funnel" style="color:#a5b4fc;font-size:0.85rem;text-decoration:none">Funnel</a>'
+        '  <a href="/admin/support" style="color:#a5b4fc;font-size:0.85rem;text-decoration:none">Support Tickets</a>'
+        '  <a href="/admin/showcase" style="color:#a5b4fc;font-size:0.85rem;text-decoration:none">Showcase</a>'
+        '  <a href="/admin/export" style="color:#a5b4fc;font-size:0.85rem;text-decoration:none">Export CSV</a>'
+        '  <a href="/status" style="color:#a5b4fc;font-size:0.85rem;text-decoration:none">Status</a>'
+        '  <a href="/health/deep" style="color:#a5b4fc;font-size:0.85rem;text-decoration:none">Health</a>'
+        '</div>'
         '</div>'
         f'<script>{actions_js}</script>'
         '</body></html>'
@@ -2347,6 +2460,26 @@ def showcase_admin():
         '</body></html>'
     )
     return html, 200, {"Content-Type": "text/html"}
+
+
+@admin_bp.route("/admin/support")
+def admin_support_dashboard():
+    """Admin support ticket dashboard — requires admin session."""
+    from flask import session, redirect
+    admin_secret = os.getenv("ADMIN_SECRET", "")
+    if session.get("admin"):
+        pass
+    elif not admin_secret:
+        return redirect("/admin/login")
+    elif hmac.compare_digest(request.args.get("key", ""), admin_secret):
+        session["admin"] = True
+    elif hmac.compare_digest(request.headers.get("X-Admin-Key", ""), admin_secret):
+        pass
+    elif hmac.compare_digest(request.headers.get("Authorization", "").replace("Bearer ", ""), admin_secret):
+        pass
+    else:
+        return redirect("/admin/login")
+    return render_template("admin_support.html")
 
 
 @admin_bp.route("/admin/showcase/<int:entry_id>/approve", methods=["POST"])

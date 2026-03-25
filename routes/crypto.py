@@ -190,7 +190,9 @@ def crypto_claim():
     """Verify an onchain tx and credit the user's balance."""
     ip = get_client_ip()
     if not check_identity_rate_limit(ip):
-        return jsonify({"error": "rate limited, try again later"}), 429
+        resp = jsonify({"error": "rate limited, try again later"})
+        resp.headers["Retry-After"] = "60"
+        return resp, 429
 
     data = request.get_json(force=True, silent=True) or {}
     api_key = data.get("api_key", "").strip()

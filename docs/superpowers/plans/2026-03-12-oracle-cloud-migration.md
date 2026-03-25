@@ -219,7 +219,7 @@ Expected: 1400+ passed, ~9 failed (same crypto order-dependent ones)
 ssh -i ~/.ssh/oracle_key damien809@$ORACLE_IP << 'REMOTE'
 sudo tee /etc/systemd/system/aipaygent.service << 'EOF'
 [Unit]
-Description=AiPayGent Flask API
+Description=AiPayGen Flask API
 After=network.target
 
 [Service]

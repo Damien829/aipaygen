@@ -2,7 +2,7 @@
 import sqlite3
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "agent_memory.db")
 
@@ -10,6 +10,9 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "agent_memory.db")
 def _conn():
     c = sqlite3.connect(DB_PATH)
     c.execute("PRAGMA journal_mode=WAL")
+    c.execute("PRAGMA synchronous=NORMAL")
+    c.execute("PRAGMA cache_size=-8000")
+    c.execute("PRAGMA temp_store=MEMORY")
     c.row_factory = sqlite3.Row
     return c
 
@@ -68,7 +71,7 @@ def init_memory_db():
 
 
 def memory_set(agent_id: str, key: str, value, tags: list = None) -> dict:
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     val_str = json.dumps(value) if not isinstance(value, str) else value
     tags_str = json.dumps(tags or [])
     with _conn() as c:
@@ -139,7 +142,7 @@ def memory_clear(agent_id: str) -> int:
 
 def register_agent(agent_id: str, name: str, description: str,
                    capabilities: list, endpoint: str = None) -> dict:
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     caps_str = json.dumps(capabilities)
     with _conn() as c:
         c.execute("""
@@ -173,7 +176,7 @@ def marketplace_list_service(agent_id: str, name: str, description: str,
                               capabilities: list = None,
                               wallet_address: str = "") -> dict:
     """Register/update a service in the agent marketplace."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     caps_str = json.dumps(capabilities or [])
     listing_id = str(_uuid.uuid4())
     with _conn() as c:
@@ -270,7 +273,7 @@ def init_payment_splits_table():
 
 def queue_seller_payment(seller_wallet: str, seller_amount: float, platform_fee: float, listing_id: str) -> dict:
     """Queue a payment split for later settlement."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         c.execute(
             "INSERT INTO payment_splits (listing_id, seller_wallet, seller_amount, platform_fee, created_at) VALUES (?, ?, ?, ?, ?)",

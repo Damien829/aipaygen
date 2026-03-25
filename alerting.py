@@ -16,6 +16,9 @@ _alert_lock = threading.Lock()
 def _conn():
     c = sqlite3.connect(DB_PATH, timeout=5)
     c.execute("PRAGMA journal_mode=WAL")
+    c.execute("PRAGMA synchronous=NORMAL")
+    c.execute("PRAGMA cache_size=-8000")
+    c.execute("PRAGMA temp_store=MEMORY")
     c.row_factory = sqlite3.Row
     return c
 

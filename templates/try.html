@@ -2,19 +2,36 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AiPayGen">
+<link rel="apple-touch-icon" href="/static/icon.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0a0a0a">
 <link rel="canonical" href="https://aipaygen.com/try">
-<title>Try AiPayGen — Free Interactive Demo</title>
-<meta name="description" content="Try 250 AI tools free — no sign-up required. Sentiment analysis, translation, summarization, code generation, and more.">
-<meta property="og:title" content="Try AiPayGen Free — 250 AI Tools">
-<meta property="og:description" content="Interactive demo of 250 AI tools. No sign-up, no credit card. 1 free call + 2 with ads/day.">
+<title>Try AiPayGen — Free AI Tools, No Sign-Up</title>
+<meta name="description" content="Try any AI tool right now — no sign-up needed. Summarize, translate, analyze, write code, and more. Completely free to try.">
+<meta property="og:title" content="Try AiPayGen Free — AI Tools You Can Use Right Now">
+<meta property="og:description" content="Try any AI tool instantly — no account, no credit card. Summarize text, translate languages, generate code, and more.">
 <meta property="og:url" content="https://aipaygen.com/try">
 <meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e8e8e8; min-height: 100vh; padding: 32px 16px; }
+  html { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0a0a0a; color: #e8e8e8;
+    min-height: 100vh; min-height: -webkit-fill-available;
+    padding: 32px 16px;
+    padding-top: calc(32px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+    padding-left: calc(16px + env(safe-area-inset-left, 0px));
+    padding-right: calc(16px + env(safe-area-inset-right, 0px));
+    overflow-y: auto; -webkit-overflow-scrolling: touch;
+  }
   .wrap { max-width: 680px; margin: 0 auto; }
   h1 { font-size: 1.5rem; margin-bottom: 4px; }
   .sub { color: #888; font-size: 0.88rem; margin-bottom: 24px; }
@@ -72,6 +89,21 @@
   .email-capture input { flex: 1; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 14px; color: #e8e8e8; font-size: 0.9rem; outline: none; }
   .email-capture button { background: #6366f1; color: #fff; border: none; border-radius: 8px; padding: 10px 18px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 
+  /* Email gate (inline before first demo) */
+  .email-gate { display: none; background: #111118; border: 1px solid #2a2a3e; border-radius: 10px; padding: 16px 18px; margin-top: 12px; }
+  .email-gate.show { display: block; }
+  .email-gate p { font-size: 0.82rem; color: #b0b0c8; margin-bottom: 10px; line-height: 1.4; }
+  .email-gate-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .email-gate-form input { flex: 1; min-width: 180px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 9px 12px; color: #e8e8e8; font-size: 0.85rem; outline: none; }
+  .email-gate-form input:focus { border-color: #6366f1; }
+  .email-gate-form button { background: #059669; color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+  .email-gate-form button:hover { background: #047857; }
+  .email-gate-form button:disabled { background: #333; color: #666; cursor: wait; }
+  .email-gate-skip { font-size: 0.72rem; color: #555; margin-top: 8px; text-align: right; }
+  .email-gate-skip a { color: #555; cursor: pointer; text-decoration: underline; }
+  .email-gate-skip a:hover { color: #888; }
+  .email-gate-error { font-size: 0.75rem; color: #ef4444; margin-top: 6px; display: none; }
+
   /* Upsell modal */
   .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
   .modal-overlay.show { display: flex; }
@@ -97,12 +129,15 @@
   @media (max-width: 500px) { .modal { padding: 24px 18px; } }
 </style>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4228277826827893" crossorigin="anonymous"></script>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"AiPayGen Free AI Tools","description":"Try 250+ AI tools for free — summarize, translate, analyze, write, code, and more. No sign-up needed.","url":"https://aipaygen.com/try","applicationCategory":"DeveloperApplication","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+</script>
 </head>
 <body>
 <div class="wrap">
-  <div style="display:flex;gap:16px;margin-bottom:20px;font-size:0.85rem;align-items:center"><a href="/" style="color:#888;text-decoration:none">Home</a><a href="/try" style="color:#818cf8;text-decoration:none;font-weight:600">Try Free</a><a href="/docs" style="color:#888;text-decoration:none">Docs</a><a href="/pricing" style="color:#888;text-decoration:none">Pricing</a><a href="/playground" style="color:#888;text-decoration:none">Playground</a><a href="/status" style="color:#888;text-decoration:none">Status</a><a href="/buy-credits" style="color:#000;text-decoration:none;font-weight:700;background:linear-gradient(135deg,#6366f1,#818cf8);padding:5px 14px;border-radius:6px;font-size:0.8rem">Get API Key</a></div>
-  <h1>Try AiPayGen</h1>
-  <p class="sub">Test any tool below — completely free, no sign-up. <a href="/discover">See all 250 tools &rarr;</a></p>
+  <div style="display:flex;gap:16px;margin-bottom:20px;font-size:0.85rem;align-items:center"><a href="/" style="color:#888;text-decoration:none">Home</a><a href="/try" style="color:#818cf8;text-decoration:none;font-weight:600">Try Free</a><a href="/pricing" style="color:#888;text-decoration:none">Pricing</a><a href="/playground" style="color:#888;text-decoration:none">Playground</a><a href="/status" style="color:#888;text-decoration:none">Status</a></div>
+  <h1>Try Any AI Tool Right Now</h1>
+  <p class="sub">No sign-up needed. Just pick a tool, type something, and see the magic. <a href="/discover">Browse all 250+ tools &rarr;</a></p>
 
   <!-- Popular Tools -->
   <div class="demo-card" id="popular-section" style="display:none;margin-bottom:16px">
@@ -113,45 +148,55 @@
     <div class="tool-row" id="popular-row"></div>
   </div>
 
-  <div class="nudge-banner warn" id="nudge-warn">3 free demos remaining — <a href="/buy-credits">Upgrade for unlimited access</a></div>
-  <div class="nudge-banner urgent" id="nudge-urgent">2 free demos remaining — <a href="/buy-credits">Upgrade now</a></div>
+  <div class="nudge-banner warn" id="nudge-warn">Out of free tries — <a href="/get-key">Get a free API key ($0.25 credits)</a> or watch an ad for 1 more</div>
+  <div class="nudge-banner urgent" id="nudge-urgent">No tries left — <a href="/get-key">Get free API key</a> for ~40 more calls</div>
   <div class="demo-card">
     <div class="demo-progress" id="demo-progress">
-      <div class="demo-progress-label"><span id="demo-progress-text">0 / 3 demos used</span><span id="demo-progress-pct">0%</span></div>
+      <div class="demo-progress-label"><span id="demo-progress-text">0 / 3 demo tries used</span><span id="demo-progress-pct">0%</span></div>
       <div class="demo-progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="3" aria-label="Demo usage"><div class="demo-progress-fill" id="demo-progress-fill"></div></div>
     </div>
     <div class="tool-row">
-      <div class="tool-btn active" data-tool="sentiment" data-placeholder="Type any text to analyze sentiment..." data-desc="Detects polarity, emotions, confidence, and key phrases">Sentiment</div>
-      <div class="tool-btn" data-tool="summarize" data-placeholder="Paste text to summarize..." data-desc="Condenses long text into key bullet points">Summarize</div>
-      <div class="tool-btn" data-tool="translate" data-placeholder="Text to translate..." data-desc="Translates text to any language (add target language on second line)">Translate</div>
-      <div class="tool-btn" data-tool="keywords" data-placeholder="Paste text to extract keywords..." data-desc="Extracts topics, entities, and key phrases">Keywords</div>
-      <div class="tool-btn" data-tool="explain" data-placeholder="Enter a concept to explain..." data-desc="Explains any concept in simple terms with analogies">Explain</div>
-      <div class="tool-btn" data-tool="code" data-placeholder="Describe what code to generate..." data-desc="Generates code in any language from a description">Code</div>
-      <div class="tool-btn" data-tool="research" data-placeholder="Enter a topic to research..." data-desc="Researches any topic with key points and sources">Research</div>
-      <div class="tool-btn" data-tool="analyze" data-placeholder="Paste content to analyze (add question on second line)..." data-desc="Analyzes content with findings, sentiment, and confidence">Analyze</div>
-      <div class="tool-btn" data-tool="compare" data-placeholder="Enter two items separated by a blank line..." data-desc="Compares two texts with similarities, differences, and scores">Compare</div>
-      <div class="tool-btn" data-tool="extract" data-placeholder="Paste text, then what to extract on second line..." data-desc="Extracts structured data, entities, and facts from text">Extract</div>
-      <div class="tool-btn" data-tool="questions" data-placeholder="Enter a topic to generate questions about..." data-desc="Generates FAQ, interview, or quiz questions from content">Questions</div>
-      <div class="tool-btn" data-tool="decide" data-placeholder="Describe a decision (options on second line, comma-separated)..." data-desc="Analyzes decisions with pros, cons, risks, and recommendations">Decide</div>
-      <div class="tool-btn" data-tool="classify" data-placeholder="Text to classify (categories on second line, comma-separated)..." data-desc="Classifies text into custom categories with confidence scores">Classify</div>
-      <div class="tool-btn" data-tool="rewrite" data-placeholder="Text to rewrite (style/audience on second line)..." data-desc="Rewrites text for a different audience or tone">Rewrite</div>
-      <div class="tool-btn" data-tool="headline" data-placeholder="Enter content to generate headlines for..." data-desc="Generates engaging headlines and titles for any content">Headline</div>
-      <div class="tool-btn" data-tool="geocode" data-placeholder="Enter an address or place name..." data-desc="Geocodes addresses to lat/lon coordinates via OpenStreetMap">Geocode</div>
-      <div class="tool-btn" data-tool="math-eval" data-placeholder="Enter a math expression (e.g. 2^10 + sqrt(144))..." data-desc="Evaluates math expressions safely using AST parsing">Math Eval</div>
-      <div class="tool-btn" data-tool="unit-convert" data-placeholder="Enter: value, from_unit, to_unit (e.g. 100, km, mi)..." data-desc="Converts units — length, weight, volume, speed, data, temperature">Unit Convert</div>
-      <div class="tool-btn" data-tool="readability" data-placeholder="Paste text to score readability..." data-desc="Flesch-Kincaid readability score with grade level and difficulty">Readability</div>
-      <div class="tool-btn" data-tool="language-detect" data-placeholder="Type or paste text in any language..." data-desc="Detects language and script from text using character analysis">Language</div>
-      <div class="tool-btn" data-tool="whois" data-placeholder="Enter a domain name (e.g. example.com)..." data-desc="WHOIS/RDAP lookup — registrar, nameservers, status, dates">WHOIS</div>
-      <div class="tool-btn" data-tool="security-headers" data-placeholder="Enter a URL to audit (e.g. https://example.com)..." data-desc="Audits security headers and assigns A+ to F grade">Sec Headers</div>
-      <div class="tool-btn" data-tool="currency-convert" data-placeholder="Enter: amount, from, to (e.g. 100, USD, EUR)..." data-desc="Converts currencies using live exchange rates (150+ currencies)">Currency</div>
-      <div class="tool-btn" data-tool="stats" data-placeholder="Enter numbers separated by commas (e.g. 10, 20, 30, 40, 50)..." data-desc="Statistical analysis — mean, median, std dev, quartiles">Stats</div>
+      <div class="tool-btn active" data-tool="sentiment" data-placeholder="Type anything — a review, a tweet, a message..." data-desc="Find out if text sounds positive, negative, or neutral">Sentiment</div>
+      <div class="tool-btn" data-tool="summarize" data-placeholder="Paste an article, email, or any long text..." data-desc="Get the key points from any long text in seconds">Summarize</div>
+      <div class="tool-btn" data-tool="translate" data-placeholder="Type what you want translated (add the language on the next line)..." data-desc="Translate text into any language instantly">Translate</div>
+      <div class="tool-btn" data-tool="keywords" data-placeholder="Paste any text to find the main topics..." data-desc="Pull out the most important words and topics from any text">Keywords</div>
+      <div class="tool-btn" data-tool="explain" data-placeholder="What do you want explained? (e.g. quantum computing, NFTs)..." data-desc="Get a simple, easy-to-understand explanation of anything">Explain</div>
+      <div class="tool-btn" data-tool="code" data-placeholder="Describe what you need (e.g. a countdown timer)..." data-desc="Describe what you want and get working code back">Code</div>
+      <div class="tool-btn" data-tool="research" data-placeholder="What topic do you want to learn about?..." data-desc="Get a quick research summary with key facts on any topic">Research</div>
+      <div class="tool-btn" data-tool="analyze" data-placeholder="Paste something to analyze (add your question on the next line)..." data-desc="Get AI-powered insights and answers about any content">Analyze</div>
+      <div class="tool-btn" data-tool="compare" data-placeholder="Enter two things to compare, separated by a blank line..." data-desc="See a side-by-side breakdown of similarities and differences">Compare</div>
+      <div class="tool-btn" data-tool="extract" data-placeholder="Paste text, then describe what you need on the next line..." data-desc="Pull out names, dates, numbers, or any details from text">Extract</div>
+      <div class="tool-btn" data-tool="questions" data-placeholder="Enter a topic to generate questions about..." data-desc="Generate great questions for interviews, quizzes, or FAQs">Questions</div>
+      <div class="tool-btn" data-tool="decide" data-placeholder="What decision are you making? (list options on the next line)..." data-desc="Get a pros-and-cons breakdown to help you decide">Decide</div>
+      <div class="tool-btn" data-tool="classify" data-placeholder="Paste text, then list categories on the next line..." data-desc="Sort text into categories you choose">Classify</div>
+      <div class="tool-btn" data-tool="rewrite" data-placeholder="Paste text to rewrite (add the style you want on the next line)..." data-desc="Rewrite anything in a different tone or style">Rewrite</div>
+      <div class="tool-btn" data-tool="headline" data-placeholder="Paste your content to get headline ideas..." data-desc="Generate catchy headlines and titles for your content">Headline</div>
+      <div class="tool-btn" data-tool="geocode" data-placeholder="Enter any address or place name..." data-desc="Look up the location coordinates for any address">Geocode</div>
+      <div class="tool-btn" data-tool="math-eval" data-placeholder="Type a math problem (e.g. 2^10 + sqrt(144))..." data-desc="Solve math problems instantly">Math</div>
+      <div class="tool-btn" data-tool="unit-convert" data-placeholder="Enter: value, from, to (e.g. 100, km, mi)..." data-desc="Convert between units — miles to km, lbs to kg, and more">Convert Units</div>
+      <div class="tool-btn" data-tool="readability" data-placeholder="Paste text to check how easy it is to read..." data-desc="Check how easy your writing is to read, with a grade level">Readability</div>
+      <div class="tool-btn" data-tool="language-detect" data-placeholder="Type or paste text in any language..." data-desc="Detect what language a piece of text is written in">Language</div>
+      <div class="tool-btn" data-tool="whois" data-placeholder="Enter a website address (e.g. example.com)..." data-desc="Look up who owns a website domain">WHOIS</div>
+      <div class="tool-btn" data-tool="security-headers" data-placeholder="Enter a website URL (e.g. https://example.com)..." data-desc="Check how secure a website is with a simple grade">Security Check</div>
+      <div class="tool-btn" data-tool="currency-convert" data-placeholder="Enter: amount, from, to (e.g. 100, USD, EUR)..." data-desc="Convert between 150+ currencies using live exchange rates">Currency</div>
+      <div class="tool-btn" data-tool="stats" data-placeholder="Enter numbers separated by commas (e.g. 10, 20, 30, 40, 50)..." data-desc="Get the average, median, and other stats for your numbers">Stats</div>
     </div>
-    <p class="tool-desc" id="desc">Detects polarity, emotions, confidence, and key phrases</p>
+    <p class="tool-desc" id="desc">Find out if text sounds positive, negative, or neutral</p>
     <label for="input" class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0">Tool input</label>
-    <textarea id="input" placeholder="Type any text to analyze sentiment..." aria-label="Enter text for the selected tool"></textarea>
-    <button class="run-btn" id="run" onclick="runTool()" aria-label="Run the selected tool">&#9654; Run</button>
+    <textarea id="input" placeholder="Type anything — a review, a tweet, a message..." aria-label="Enter text for the selected tool"></textarea>
+    <!-- Email gate: shown before first demo if no email captured -->
+    <div class="email-gate" id="email-gate">
+      <p>Enter your email to try free &mdash; we'll also send you an API key with $0.25 credits</p>
+      <div class="email-gate-form">
+        <input type="email" id="gate-email" placeholder="you@example.com" aria-label="Email for free trial" required>
+        <button type="button" id="gate-submit" onclick="submitEmailGate()">&#9654; Try It</button>
+      </div>
+      <div class="email-gate-error" id="gate-error"></div>
+      <div class="email-gate-skip"><a onclick="skipEmailGate()">Skip</a></div>
+    </div>
+    <button class="run-btn" id="run" onclick="runTool()" aria-label="Try this tool">&#9654; Try It</button>
     <div class="result-box" id="result" aria-live="polite" role="status"></div>
-    <div class="cost-hint" id="cost-hint">This call costs ~<strong>$0.006</strong> with an API key vs <strong>$0.03+</strong> direct from model providers. <a href="/buy-credits">Get a key from $1</a></div>
+    <div class="cost-hint" id="cost-hint">Want unlimited access? <a href="/get-key">Get a free API key</a> or <a href="/buy-credits">buy credits from $0.50</a></div>
     <div class="curl-wrap" id="curl-wrap">
       <div class="curl-box" id="curl-cmd"></div>
       <button class="copy-curl-btn" id="copy-curl" onclick="copyCurl()">Copy as curl</button>
@@ -162,7 +207,7 @@
   <div id="inline-convert" style="display:none;background:#141414;border:1px solid #6366f1;border-radius:14px;padding:24px;margin-top:16px;margin-bottom:16px;">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
       <span style="font-size:0.95rem;font-weight:600;">You've used <span id="inline-convert-count">5</span> demos</span>
-      <span style="font-size:0.75rem;color:#888;">Get an API key to keep going — starts from $1</span>
+      <span style="font-size:0.75rem;color:#888;">Want more? Open the app or grab a plan from $1</span>
     </div>
     <form id="inlineKeyForm" onsubmit="return inlineGenKey(event)" style="display:flex;gap:8px;flex-wrap:wrap;">
       <input type="email" id="inlineEmail" required placeholder="you@example.com" aria-label="Email for API key"
@@ -175,43 +220,44 @@
         <code id="inlineKeyValue" style="flex:1;font-size:0.85rem;color:#a78bfa;word-break:break-all;"></code>
         <button type="button" onclick="copyInlineKey()" id="inlineKeyCopy" style="background:#6366f1;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:0.72rem;cursor:pointer;">Copy</button>
       </div>
-      <div style="font-size:0.7rem;color:#555;margin-top:6px;">$0.25 trial credits loaded. <a href="/docs" style="color:#818cf8;">Docs</a> | <a href="/playground" style="color:#818cf8;">Playground</a></div>
+      <div style="font-size:0.7rem;color:#555;margin-top:6px;">$0.25 free credits loaded. <a href="/get-key" style="color:#818cf8;">Open App</a> | <a href="/playground" style="color:#818cf8;">Playground</a></div>
     </div>
     <div id="inlineKeyError" style="display:none;margin-top:8px;font-size:0.75rem;color:#ef4444;"></div>
   </div>
 
   <div class="cta">
-    <a href="/buy-credits">Get API Key — From $1</a>
-    <p>250 tools &middot; 15 AI models &middot; Credits never expire</p>
+    <a href="/get-key" style="font-size:1.1rem;padding:16px 36px;border-radius:12px;">Open the App</a>
+    <p>250+ AI tools &middot; No limits &middot; Start free</p>
   </div>
-  <p class="free-note">Free demo uses the same AI models as paid API. Limited to 3 demos per session.</p>
+  <p class="free-note">This demo uses the same AI as the full app. Limited to 3 tries per session.</p>
 </div>
 
 <!-- Upsell modal -->
 <div class="modal-overlay" id="upsell-modal" role="dialog" aria-modal="true" aria-label="Upgrade plan">
   <div class="modal">
     <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
-    <h2>You've used all 3 free demos</h2>
-    <p class="modal-sub">Pick a plan to unlock unlimited access to all 250 tools.</p>
+    <h2>You've used your free tries</h2>
+    <p class="modal-sub">Unlock unlimited access to all 250+ AI tools — plans start at just $0.50.</p>
     <div class="modal-plans">
-      <div class="modal-plan" data-amt="1" onclick="selectModalPlan(this)">
-        <div class="mp-left"><span class="mp-amount">$1</span><span class="mp-detail">~160 calls</span></div>
-        <span class="mp-tag gold">Starter</span>
+      <div class="modal-plan" data-amt="0.50" onclick="selectModalPlan(this)">
+        <div class="mp-left"><span class="mp-amount">$0.50</span><span class="mp-detail">~80 calls</span></div>
+        <span class="mp-tag gold">Try it</span>
       </div>
       <div class="modal-plan selected" data-amt="5" onclick="selectModalPlan(this)">
         <div class="mp-left"><span class="mp-amount">$5</span><span class="mp-detail">~830 calls</span></div>
-      </div>
-      <div class="modal-plan" data-amt="20" onclick="selectModalPlan(this)">
-        <div class="mp-left"><span class="mp-amount">$20</span><span class="mp-detail">~4,000 calls</span></div>
         <span class="mp-tag">Popular</span>
       </div>
+      <div class="modal-plan" data-amt="20" onclick="selectModalPlan(this)">
+        <div class="mp-left"><span class="mp-amount">$20</span><span class="mp-detail">~3,300 calls</span></div>
+      </div>
       <div class="modal-plan" data-amt="50" onclick="selectModalPlan(this)">
-        <div class="mp-left"><span class="mp-amount">$50</span><span class="mp-detail">~12,500 calls</span></div>
+        <div class="mp-left"><span class="mp-amount">$50</span><span class="mp-detail">~8,300 calls</span></div>
         <span class="mp-tag green">Best value</span>
       </div>
     </div>
-    <button class="modal-btn" id="modal-buy" onclick="modalCheckout()">Get API Key</button>
-    <p class="modal-or">or <a href="/buy-credits">view full pricing page</a></p>
+    <button class="modal-btn" id="modal-buy" onclick="modalCheckout()">Get Started</button>
+    <button class="modal-btn" id="modal-ad" onclick="watchAdForCall()" style="background:transparent;border:1px solid #6366f1;color:#a78bfa;margin-top:8px;font-size:0.85rem;">Watch Ad for 1 Free Call</button>
+    <p class="modal-or">or <a href="/get-key">get a free API key ($0.25 credits)</a> &middot; <a href="/pricing">see all plans</a></p>
   </div>
 </div>
 <script>
@@ -219,6 +265,33 @@ let currentTool = 'sentiment';
 let demoCount = 0;
 const MAX_DEMOS = 3;
 let lastCurl = '';
+let emailGatePassed = !!(localStorage.getItem('aipaygen_email') || localStorage.getItem('aipaygen_key') || localStorage.getItem('email_gate_skipped'));
+let pendingRunAfterGate = false;
+
+async function watchAdForCall() {
+  const btn = document.getElementById('modal-ad');
+  btn.disabled = true; btn.textContent = 'Loading ad...';
+  try {
+    // Trigger AdSense interstitial then claim reward
+    if (window.adsbygoogle) { try { (adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {} }
+    const res = await fetch('/auth/ad-reward', {method:'POST'});
+    const d = await res.json();
+    if (d.ok) {
+      demoCount = Math.max(0, demoCount - 1);
+      updateNudge();
+      closeModal();
+      btn.textContent = 'Watch Ad for 1 Free Call'; btn.disabled = false;
+      const box = document.getElementById('result');
+      box.textContent = '+1 free call earned! Try a tool now.';
+      box.className = 'result-box show';
+    } else {
+      btn.textContent = d.error || 'No more ad rewards today';
+      setTimeout(() => { btn.textContent = 'Watch Ad for 1 Free Call'; btn.disabled = false; }, 3000);
+    }
+  } catch(e) {
+    btn.textContent = 'Error'; btn.disabled = false;
+  }
+}
 
 // Fetch and render popular tools
 (function loadPopular() {
@@ -296,8 +369,8 @@ async function modalCheckout() {
     });
     const data = await res.json();
     if (data.url) { window.location.href = data.url; }
-    else { btn.disabled = false; btn.textContent = 'Get API Key'; alert(data.error || 'Something went wrong'); }
-  } catch(e) { btn.disabled = false; btn.textContent = 'Get API Key'; alert('Network error — try again'); }
+    else { btn.disabled = false; btn.textContent = 'Get Started'; alert(data.error || 'Something went wrong'); }
+  } catch(e) { btn.disabled = false; btn.textContent = 'Get Started'; alert('Network error — try again'); }
 }
 document.getElementById('upsell-modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
 
@@ -309,8 +382,15 @@ async function runTool() {
     showModal();
     return;
   }
+  // Email gate: show before first demo if not passed
+  if (!emailGatePassed && demoCount === 0) {
+    pendingRunAfterGate = true;
+    document.getElementById('email-gate').classList.add('show');
+    document.getElementById('gate-email').focus();
+    return;
+  }
   const btn = document.getElementById('run');
-  btn.disabled = true; btn.textContent = 'Running...';
+  btn.disabled = true; btn.textContent = 'Working...';
   box.className = 'result-box'; box.textContent = '';
   try {
     const body = {};
@@ -372,7 +452,7 @@ async function runTool() {
       body: JSON.stringify(body)
     });
     const data = await res.json();
-    if (res.status === 429) { showModal(); btn.disabled = false; btn.textContent = '\u25B6 Run'; return; }
+    if (res.status === 429) { showModal(); btn.disabled = false; btn.textContent = '\u25B6 Try It'; return; }
     demoCount++;
     updateNudge();
     const output = typeof data.result === 'string' ? data.result : JSON.stringify(data.result || data, null, 2);
@@ -382,7 +462,7 @@ async function runTool() {
       box.className = 'result-box show';
       setTimeout(showModal, 1500);
     } else {
-      box.textContent = output + '\n\n--- ' + remaining + ' free demo' + (remaining !== 1 ? 's' : '') + ' remaining';
+      box.textContent = output + '\n\n--- ' + remaining + ' free tr' + (remaining !== 1 ? 'ies' : 'y') + ' remaining';
       box.className = 'result-box show';
     }
     // Show cost comparison hint
@@ -400,7 +480,7 @@ async function runTool() {
     document.getElementById('cost-hint').className = 'cost-hint';
     document.getElementById('curl-wrap').className = 'curl-wrap';
   }
-  btn.disabled = false; btn.textContent = '\u25B6 Run';
+  btn.disabled = false; btn.textContent = '\u25B6 Try It';
 }
 
 function updateNudge() {
@@ -412,7 +492,7 @@ function updateNudge() {
   const pText = document.getElementById('demo-progress-text');
   const pPct = document.getElementById('demo-progress-pct');
   if (pFill) { pFill.style.width = (demoCount / MAX_DEMOS * 100) + '%'; if (remaining <= 1) pFill.style.background = '#f59e0b'; if (remaining === 0) pFill.style.background = '#ef4444'; }
-  if (pText) pText.textContent = demoCount + ' / ' + MAX_DEMOS + ' demos used';
+  if (pText) pText.textContent = demoCount + ' / ' + MAX_DEMOS + ' free tries used';
   if (pPct) pPct.textContent = Math.round(demoCount / MAX_DEMOS * 100) + '%';
 
   // Show inline conversion banner at 2 demos
@@ -423,16 +503,16 @@ function updateNudge() {
 
   if (remaining <= 2) {
     warn.classList.remove('show');
-    urgent.textContent = remaining + ' free demo' + (remaining !== 1 ? 's' : '') + ' remaining \u2014 ';
+    urgent.textContent = remaining + ' free tr' + (remaining !== 1 ? 'ies' : 'y') + ' remaining \u2014 ';
     const a = document.createElement('a');
-    a.href = '/buy-credits'; a.textContent = 'Upgrade now';
+    a.href = '/get-key'; a.textContent = 'Open the app for more';
     urgent.appendChild(a);
     urgent.classList.add('show');
   } else if (remaining <= 5) {
     urgent.classList.remove('show');
-    warn.textContent = remaining + ' free demos remaining \u2014 ';
+    warn.textContent = remaining + ' free tries remaining \u2014 ';
     const a = document.createElement('a');
-    a.href = '/buy-credits'; a.textContent = 'Upgrade for unlimited access';
+    a.href = '/get-key'; a.textContent = 'Open the app for unlimited access';
     warn.appendChild(a);
     warn.classList.add('show');
   } else {
@@ -479,11 +559,62 @@ function copyInlineKey() {
   });
 }
 
+async function submitEmailGate() {
+  const emailInput = document.getElementById('gate-email');
+  const email = emailInput.value.trim();
+  const errEl = document.getElementById('gate-error');
+  const btn = document.getElementById('gate-submit');
+  errEl.style.display = 'none';
+  if (!email || !emailInput.checkValidity()) {
+    errEl.textContent = 'Please enter a valid email.';
+    errEl.style.display = 'block';
+    return;
+  }
+  btn.disabled = true; btn.textContent = 'Working...';
+  try {
+    const res = await fetch('/auth/generate-key', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email: email, source: 'try_email_gate', label: 'try-page'})
+    });
+    const d = await res.json();
+    if (d.key) {
+      localStorage.setItem('aipaygen_key', d.key);
+      localStorage.setItem('aipaygen_email', email);
+    } else {
+      // Even if key gen fails, still capture email and let them through
+      localStorage.setItem('aipaygen_email', email);
+    }
+  } catch(e) {
+    // Network error — still let them through, just save email locally
+    localStorage.setItem('aipaygen_email', email);
+  }
+  emailGatePassed = true;
+  document.getElementById('email-gate').classList.remove('show');
+  btn.disabled = false; btn.textContent = '\u25B6 Try It';
+  if (pendingRunAfterGate) { pendingRunAfterGate = false; runTool(); }
+}
+
+function skipEmailGate() {
+  localStorage.setItem('email_gate_skipped', '1');
+  emailGatePassed = true;
+  document.getElementById('email-gate').classList.remove('show');
+  // Track skip in funnel
+  try { fetch('/auth/generate-key', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({email: 'skip@funnel', source: 'try_email_gate_skip', label: 'try-page'}) }).catch(() => {}); } catch(e) {}
+  if (pendingRunAfterGate) { pendingRunAfterGate = false; runTool(); }
+}
+
 function copyCurl() {
   navigator.clipboard.writeText(lastCurl).then(() => {
     document.getElementById('copy-curl').textContent = 'Copied!';
     setTimeout(() => { document.getElementById('copy-curl').textContent = 'Copy as curl'; }, 2000);
   });
+}
+</script>
+<script>
+// Register service worker for PWA support
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
 </script>
 </body>

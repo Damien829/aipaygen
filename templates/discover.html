@@ -1,105 +1,92 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link rel="canonical" href="https://aipaygen.com/discover">
-<title>Service Catalog — AiPayGen</title>
-<meta name="description" content="Browse 250 AI tools — sentiment analysis, translation, code generation, web scraping, and more. Try free, no sign-up required.">
-<meta property="og:title" content="250 AI Tools — AiPayGen Service Catalog">
-<meta property="og:description" content="Browse and try 250 AI tools. Sentiment, translation, summarization, code generation, web scraping, and more. 1 free call + 2 with ads/day.">
+{% extends "base.html" %}
+
+{% block title %}Browse AI Tools{% endblock %}
+{% block description %}Browse 250+ AI tools — writing, research, translation, code, analysis, and more. Try free, no sign-up required.{% endblock %}
+{% block canonical %}/discover{% endblock %}
+
+{% block head %}
+<meta property="og:title" content="Browse 250+ AI Tools — AiPayGen">
+<meta property="og:description" content="Writing, research, translation, code generation, web scraping, and more. Try any tool free — no sign-up needed.">
 <meta property="og:url" content="https://aipaygen.com/discover">
 <meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#020408;--green:#00ff9d;--card-bg:#0a0e14;--card-border:#111820;--card-hover:#00ff9d22;--text:#e1e4e8;--muted:#6b7280;--blue:#3b82f6;--orange:#f59e0b}
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;line-height:1.6;padding-top:70px}
-a{color:var(--green);text-decoration:none}
-a:hover{text-decoration:underline}
-.container{max-width:1200px;margin:0 auto;padding:0 24px}
 .page-header{text-align:center;padding:48px 24px 32px}
 .page-header h1{font-family:'IBM Plex Mono',monospace;font-size:2.2rem;font-weight:700;color:#fff}
-.page-header h1 span{color:var(--green)}
-.page-header .tagline{font-size:1rem;color:var(--muted);margin-top:8px;max-width:520px;margin-left:auto;margin-right:auto}
+.page-header h1 span{color:var(--accent,#00ff9d)}
+.page-header .tagline{font-size:1.05rem;color:var(--muted,#6b7280);margin-top:8px;max-width:560px;margin-left:auto;margin-right:auto;line-height:1.6}
 .search-wrap{max-width:560px;margin:0 auto 28px;position:relative}
-.search-wrap input{width:100%;padding:12px 16px 12px 44px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:0.95rem;outline:none;transition:border-color .2s}
-.search-wrap input:focus{border-color:var(--green)}
-.search-wrap input::placeholder{color:var(--muted)}
-.search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.search-wrap input{width:100%;padding:12px 16px 12px 44px;background:var(--card-bg,#0a0e14);border:1px solid var(--card-border,#111820);border-radius:10px;color:var(--text,#e1e4e8);font-family:'IBM Plex Sans',sans-serif;font-size:0.95rem;outline:none;transition:border-color .2s}
+.search-wrap input:focus{border-color:var(--accent,#00ff9d)}
+.search-wrap input::placeholder{color:var(--muted,#6b7280)}
+.search-wrap svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--muted,#6b7280)}
 .tabs{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:36px;padding:0 24px}
-.tab{padding:6px 18px;border-radius:20px;border:1px solid var(--card-border);background:transparent;color:var(--muted);font-family:'IBM Plex Sans',sans-serif;font-size:0.85rem;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap}
-.tab:hover{border-color:var(--green);color:var(--text)}
-.tab.active{background:var(--green);color:var(--bg);border-color:var(--green);font-weight:600}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-bottom:48px}
-@media(max-width:420px){.grid{grid-template-columns:1fr}}
-.card{background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;padding:18px 20px;transition:border-color .2s,box-shadow .2s}
-.card:hover{border-color:rgba(0,255,157,0.35);box-shadow:0 0 20px rgba(0,255,157,0.05)}
-.card-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-.endpoint{font-family:'IBM Plex Mono',monospace;font-size:0.9rem;color:#fff;font-weight:600}
-.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px}
-.badge-post{background:var(--blue);color:#fff}
-.badge-get{background:#22c55e;color:#fff}
-.desc{font-size:0.88rem;color:var(--muted);margin-bottom:10px;line-height:1.5}
+.tab{padding:6px 18px;border-radius:20px;border:1px solid var(--card-border,#111820);background:transparent;color:var(--muted,#6b7280);font-family:'IBM Plex Sans',sans-serif;font-size:0.85rem;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap}
+.tab:hover{border-color:var(--accent,#00ff9d);color:var(--text,#e1e4e8)}
+.tab.active{background:var(--accent,#00ff9d);color:var(--bg,#020408);border-color:var(--accent,#00ff9d);font-weight:600}
+.tool-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:14px;margin-bottom:48px}
+@media(max-width:420px){.tool-grid{grid-template-columns:1fr}}
+.tool-card{background:var(--card-bg,#0a0e14);border:1px solid var(--card-border,#111820);border-radius:10px;padding:18px 20px;transition:border-color .2s,box-shadow .2s}
+.tool-card:hover{border-color:rgba(0,255,157,0.35);box-shadow:0 0 20px rgba(0,255,157,0.05)}
+.tool-card-head{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.tool-icon{font-size:1.3rem;width:32px;text-align:center;flex-shrink:0}
+.tool-name{font-family:'IBM Plex Sans',sans-serif;font-size:0.95rem;color:#fff;font-weight:600}
+.tool-desc{font-size:0.88rem;color:var(--muted,#6b7280);margin-bottom:10px;line-height:1.5}
+.tool-card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
 .pricing-label{font-size:0.8rem;font-weight:600}
-.label-free{color:var(--green)}
-.label-x402{color:var(--orange)}
-.card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
-.try-btn{display:inline-block;padding:5px 14px;border:1px solid var(--green);color:var(--green);border-radius:6px;font-family:'IBM Plex Sans',sans-serif;font-size:0.78rem;font-weight:600;cursor:pointer;transition:all .2s;text-decoration:none}
-.try-btn:hover{background:var(--green);color:var(--bg);text-decoration:none}
-.empty{text-align:center;padding:48px 24px;color:var(--muted);font-size:0.95rem}
-.sticky-cta{position:fixed;bottom:0;left:0;right:0;z-index:999;background:linear-gradient(180deg,transparent,var(--bg) 20%);padding:24px 24px 16px;text-align:center}
-.sticky-cta-inner{display:inline-flex;align-items:center;gap:16px;padding:10px 24px;background:var(--card-bg);border:1px solid var(--green);border-radius:10px;box-shadow:0 -4px 24px rgba(0,255,157,0.15)}
-.sticky-cta-text{font-size:0.88rem;color:var(--text)}
-.sticky-cta-text strong{color:var(--green)}
-.sticky-cta-btn{padding:8px 20px;background:var(--green);color:var(--bg);border:none;border-radius:6px;font-family:'IBM Plex Sans',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;text-decoration:none;white-space:nowrap}
+.label-free{color:var(--accent,#00ff9d)}
+.label-paid{color:#f59e0b}
+.try-btn{display:inline-block;padding:5px 14px;border:1px solid var(--accent,#00ff9d);color:var(--accent,#00ff9d);border-radius:6px;font-family:'IBM Plex Sans',sans-serif;font-size:0.78rem;font-weight:600;cursor:pointer;transition:all .2s;text-decoration:none;background:transparent}
+.try-btn:hover{background:var(--accent,#00ff9d);color:var(--bg,#020408);text-decoration:none}
+.empty{text-align:center;padding:48px 24px;color:var(--muted,#6b7280);font-size:0.95rem}
+.sticky-cta{position:fixed;bottom:0;left:0;right:0;z-index:999;background:linear-gradient(180deg,transparent,var(--bg,#020408) 20%);padding:24px 24px 16px;text-align:center}
+.sticky-cta-inner{display:inline-flex;align-items:center;gap:16px;padding:10px 24px;background:var(--card-bg,#0a0e14);border:1px solid var(--accent,#00ff9d);border-radius:10px;box-shadow:0 -4px 24px rgba(0,255,157,0.15)}
+.sticky-cta-text{font-size:0.88rem;color:var(--text,#e1e4e8)}
+.sticky-cta-text strong{color:var(--accent,#00ff9d)}
+.sticky-cta-btn{padding:8px 20px;background:var(--accent,#00ff9d);color:var(--bg,#020408);border:none;border-radius:6px;font-family:'IBM Plex Sans',sans-serif;font-size:0.85rem;font-weight:700;cursor:pointer;text-decoration:none;white-space:nowrap}
 .sticky-cta-btn:hover{opacity:.9;text-decoration:none}
 .bottom-cta{text-align:center;padding:48px 24px 96px}
-.bottom-cta a{display:inline-block;padding:12px 32px;border:1px solid var(--green);color:var(--green);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:0.95rem;transition:all .2s}
-.bottom-cta a:hover{background:var(--green);color:var(--bg);text-decoration:none}
+.bottom-cta a{display:inline-block;padding:12px 32px;border:1px solid var(--accent,#00ff9d);color:var(--accent,#00ff9d);border-radius:8px;font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:0.95rem;transition:all .2s}
+.bottom-cta a:hover{background:var(--accent,#00ff9d);color:var(--bg,#020408);text-decoration:none}
+.category-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;background:rgba(59,130,246,0.15);color:#3b82f6}
 #demoOverlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center}
 #demoOverlay.open{display:flex}
-#demoPanel{background:var(--card-bg);border:1px solid var(--card-border);border-radius:14px;width:90%;max-width:560px;padding:24px;position:relative;max-height:80vh;overflow-y:auto}
-#demoPanel h3{font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:#fff;margin-bottom:4px}
-#demoPanel .demo-desc{color:var(--muted);font-size:0.85rem;margin-bottom:14px}
-#demoPanel textarea{width:100%;min-height:80px;background:var(--bg);border:1px solid var(--card-border);border-radius:8px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;padding:10px;resize:vertical;outline:none}
-#demoPanel textarea:focus{border-color:var(--green)}
-#demoRun{margin-top:10px;padding:8px 24px;background:var(--green);color:var(--bg);border:none;border-radius:6px;font-family:'IBM Plex Sans',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer}
+#demoPanel{background:var(--card-bg,#0a0e14);border:1px solid var(--card-border,#111820);border-radius:14px;width:90%;max-width:560px;padding:24px;position:relative;max-height:80vh;overflow-y:auto}
+#demoPanel h3{font-family:'IBM Plex Sans',sans-serif;font-size:1.1rem;color:#fff;margin-bottom:4px}
+#demoPanel .demo-desc{color:var(--muted,#6b7280);font-size:0.85rem;margin-bottom:14px}
+#demoPanel textarea{width:100%;min-height:80px;background:var(--bg,#020408);border:1px solid var(--card-border,#111820);border-radius:8px;color:var(--text,#e1e4e8);font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;padding:10px;resize:vertical;outline:none}
+#demoPanel textarea:focus{border-color:var(--accent,#00ff9d)}
+#demoRun{margin-top:10px;padding:8px 24px;background:var(--accent,#00ff9d);color:var(--bg,#020408);border:none;border-radius:6px;font-family:'IBM Plex Sans',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer}
 #demoRun:disabled{opacity:.5;cursor:wait}
-#demoResult{margin-top:14px;padding:12px;background:var(--bg);border:1px solid var(--card-border);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;white-space:pre-wrap;max-height:240px;overflow-y:auto;display:none;color:var(--green)}
-#demoClose{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--muted);font-size:1.4rem;cursor:pointer}
+#demoResult{margin-top:14px;padding:12px;background:var(--bg,#020408);border:1px solid var(--card-border,#111820);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;white-space:pre-wrap;max-height:240px;overflow-y:auto;display:none;color:var(--accent,#00ff9d)}
+#demoClose{position:absolute;top:12px;right:16px;background:none;border:none;color:var(--muted,#6b7280);font-size:1.4rem;cursor:pointer}
 #demoCost{display:inline-block;padding:3px 10px;border-radius:4px;font-size:0.78rem;font-weight:600;margin-left:8px}
-.cost-free{background:rgba(0,255,157,0.15);color:var(--green)}
-.cost-paid{background:rgba(245,158,11,0.15);color:var(--orange)}
-#demoCurl{margin-top:12px;padding:12px;background:#070d14;border:1px solid var(--card-border);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;white-space:pre-wrap;color:#e1e4e8;position:relative;display:none}
-#demoCurlCopy{position:absolute;top:8px;right:8px;background:var(--card-border);border:none;color:var(--muted);padding:3px 8px;border-radius:4px;font-size:0.7rem;cursor:pointer}
-#demoCurlCopy:hover{color:var(--green)}
+.cost-free{background:rgba(0,255,157,0.15);color:var(--accent,#00ff9d)}
+.cost-paid{background:rgba(245,158,11,0.15);color:#f59e0b}
+#demoCurl{margin-top:12px;padding:12px;background:#070d14;border:1px solid var(--card-border,#111820);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;white-space:pre-wrap;color:#e1e4e8;position:relative;display:none}
+#demoCurlCopy{position:absolute;top:8px;right:8px;background:var(--card-border,#111820);border:none;color:var(--muted,#6b7280);padding:3px 8px;border-radius:4px;font-size:0.7rem;cursor:pointer}
+#demoCurlCopy:hover{color:var(--accent,#00ff9d)}
 .demo-fields{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
-.demo-field label{display:block;font-size:0.78rem;color:var(--muted);margin-bottom:2px;font-weight:500}
-.demo-field input,.demo-field textarea{width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--card-border);border-radius:6px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:0.85rem;outline:none}
-.demo-field input:focus,.demo-field textarea:focus{border-color:var(--green)}
-.demo-method{display:inline-block;padding:2px 8px;border-radius:4px;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;font-weight:700;margin-right:6px}
-.demo-method-post{background:rgba(59,130,246,0.2);color:var(--blue)}
-.demo-method-get{background:rgba(34,197,94,0.2);color:#22c55e}
+.demo-field label{display:block;font-size:0.78rem;color:var(--muted,#6b7280);margin-bottom:2px;font-weight:500}
+.demo-field input,.demo-field textarea{width:100%;padding:8px 10px;background:var(--bg,#020408);border:1px solid var(--card-border,#111820);border-radius:6px;color:var(--text,#e1e4e8);font-family:'IBM Plex Sans',sans-serif;font-size:0.85rem;outline:none}
+.demo-field input:focus,.demo-field textarea:focus{border-color:var(--accent,#00ff9d)}
 .demo-tabs{display:flex;gap:4px;margin-top:12px;margin-bottom:4px}
-.demo-tab{padding:4px 12px;border:1px solid var(--card-border);background:transparent;color:var(--muted);border-radius:4px;font-size:0.75rem;cursor:pointer;font-family:'IBM Plex Sans',sans-serif}
-.demo-tab.active{background:var(--card-border);color:var(--text)}
+.demo-tab{padding:4px 12px;border:1px solid var(--card-border,#111820);background:transparent;color:var(--muted,#6b7280);border-radius:4px;font-size:0.75rem;cursor:pointer;font-family:'IBM Plex Sans',sans-serif}
+.demo-tab.active{background:var(--card-border,#111820);color:var(--text,#e1e4e8)}
 </style>
 {% if jsonld %}<script type="application/ld+json">{{ jsonld|safe }}</script>{% endif %}
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4228277826827893" crossorigin="anonymous"></script>
-</head>
-<body>
-{{ nav|safe }}
+{% endblock %}
+
+{% block content %}
 <div class="page-header">
-  <h1>Service <span>Catalog</span></h1>
-  <p class="tagline">250 AI tools. 1 free call + 2 with ads/day. Try any tool below — no sign-up required.</p>
+  <h1>Browse AI <span>Tools</span></h1>
+  <p class="tagline">250+ ready-to-use AI tools. Writing, research, translation, code, and more. Try any tool free — no sign-up needed.</p>
 </div>
 <div class="container">
   <div class="search-wrap">
     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-    <input type="text" id="searchInput" placeholder="Search endpoints..." autocomplete="off">
+    <input type="text" id="searchInput" placeholder="Search tools... e.g. summarize, translate, code" autocomplete="off">
   </div>
   <div class="tabs" id="categoryTabs">
     <button class="tab active" data-cat="all">All</button>
@@ -107,64 +94,81 @@ a:hover{text-decoration:underline}
     <button class="tab" data-cat="{{ cat_name }}">{{ cat_name }}</button>
     {% endfor %}
   </div>
-  <div class="grid" id="serviceGrid">
+
+  <!-- Inline ad between filters and results -->
+  <div class="ad-slot ad-slot-inline" aria-label="Advertisement">
+    <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-4228277826827893" data-ad-slot="6374231109" data-ad-format="auto" data-full-width-responsive="true"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+
+  <div class="tool-grid" id="serviceGrid">
     {% for cat_name, services in categories.items() %}
     {% for svc in services %}
-    <div class="card" data-category="{{ cat_name }}" data-endpoint="{{ svc.endpoint|lower }}" data-desc="{{ svc.description|lower }}" data-method="{{ svc.method }}" data-path="{{ svc.endpoint }}" data-price="{{ svc.price_usd }}" data-free="{{ 'true' if svc.free else 'false' }}">
-      <div class="card-head">
-        <span class="badge {{ 'badge-post' if svc.method == 'POST' else 'badge-get' }}">{{ svc.method }}</span>
-        <span class="endpoint">{{ svc.endpoint }}</span>
+    <div class="tool-card" data-category="{{ cat_name }}" data-endpoint="{{ svc.endpoint|lower }}" data-desc="{{ svc.friendly_desc|default(svc.description)|lower }}" data-method="{{ svc.method }}" data-path="{{ svc.endpoint }}" data-price="{{ svc.price_usd }}" data-free="{{ 'true' if svc.free else 'false' }}">
+      <div class="tool-card-head">
+        <span class="tool-icon">{{ svc.icon|default('') }}</span>
+        <span class="tool-name">{{ svc.friendly_name|default(svc.endpoint.replace('/', '').replace('_', ' ').title()) }}</span>
       </div>
-      <div class="desc">{{ svc.description }}</div>
-      <div class="card-footer">
-        <span class="pricing-label {{ 'label-free' if svc.free else 'label-x402' }}">
-          {{ 'FREE' if svc.free else ('$' + '%.4f'|format(svc.price_usd) if svc.price_usd else 'x402') }}
+      <div class="tool-desc">{{ svc.friendly_desc|default(svc.description) }}</div>
+      <div class="tool-card-footer">
+        <span class="pricing-label {{ 'label-free' if svc.free else 'label-paid' }}">
+          {% if svc.free %}
+            Free
+          {% elif svc.price_usd %}
+            From ${{ '%.4f'|format(svc.price_usd) }}/use
+          {% else %}
+            Pay per use
+          {% endif %}
         </span>
-        <button class="try-btn" data-tool="{{ svc.endpoint.replace('/', '') }}">Try it</button>
+        <a class="try-btn" href="/try" data-tool="{{ svc.endpoint.replace('/', '') }}">Try it free</a>
       </div>
     </div>
     {% endfor %}
     {% endfor %}
   </div>
-  <div class="empty" id="emptyState" style="display:none">No services match your search.</div>
+  <div class="empty" id="emptyState" style="display:none">No tools match your search. Try a different keyword.</div>
 </div>
 <div class="bottom-cta">
-  <a href="/try">Try Free — 3 calls/day, no sign-up &rarr;</a>
+  <a href="/try">Try Any Tool Free — No Sign-Up Needed &rarr;</a>
 </div>
 <div class="sticky-cta" id="stickyCta">
   <div class="sticky-cta-inner">
-    <span class="sticky-cta-text">Get <strong>$0.25 free credits</strong> (~40 AI calls)</span>
-    <a class="sticky-cta-btn" href="/buy-credits">Get API Key &rarr;</a>
+    <span class="sticky-cta-text"><strong>Try any tool free</strong> &mdash; no sign-up, no card</span>
+    <a class="sticky-cta-btn" href="/try">Try Now &rarr;</a>
   </div>
 </div>
+
+<!-- Try-it modal -->
 <div id="demoOverlay"><div id="demoPanel">
 <button id="demoClose">&times;</button>
-<h3 id="demoTitle"><span id="demoMethodBadge" class="demo-method"></span><span id="demoPath"></span><span id="demoCost"></span></h3>
+<h3 id="demoTitle"><span id="demoToolName"></span><span id="demoCost"></span></h3>
 <p class="demo-desc" id="demoDesc"></p>
 <div id="demoFields" class="demo-fields"></div>
 <textarea id="demoInput" placeholder="Enter your text here..." style="display:none"></textarea>
 <button id="demoRun">Run</button>
 <div class="demo-tabs">
-  <button class="demo-tab active" id="tabResponse">Response</button>
-  <button class="demo-tab" id="tabCurl">curl</button>
+  <button class="demo-tab active" id="tabResponse">Result</button>
+  <button class="demo-tab" id="tabCurl">Developer View</button>
 </div>
 <div id="demoResult"></div>
 <div id="demoCurl"><button id="demoCurlCopy">Copy</button><code id="demoCurlCode"></code></div>
-<div id="demoEmail" style="display:none;margin-top:12px;padding:12px;background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px">
-<p style="font-size:0.82rem;color:var(--muted);margin-bottom:8px">Get notified about new tools and features:</p>
+<div id="demoEmail" style="display:none;margin-top:12px;padding:12px;background:var(--card-bg,#0a0e14);border:1px solid var(--card-border,#111820);border-radius:8px">
+<p style="font-size:0.82rem;color:var(--muted,#6b7280);margin-bottom:8px">Get notified about new tools and features:</p>
 <form id="emailForm" style="display:flex;gap:8px">
-<input type="email" id="emailInput" placeholder="your@email.com" style="flex:1;padding:6px 10px;background:var(--bg);border:1px solid var(--card-border);border-radius:6px;color:var(--text);font-size:0.82rem">
-<button type="submit" style="padding:6px 14px;background:var(--green);color:var(--bg);border:none;border-radius:6px;font-size:0.82rem;font-weight:600;cursor:pointer">Subscribe</button>
+<input type="email" id="emailInput" placeholder="your@email.com" style="flex:1;padding:6px 10px;background:var(--bg,#020408);border:1px solid var(--card-border,#111820);border-radius:6px;color:var(--text,#e1e4e8);font-size:0.82rem">
+<button type="submit" style="padding:6px 14px;background:var(--accent,#00ff9d);color:var(--bg,#020408);border:none;border-radius:6px;font-size:0.82rem;font-weight:600;cursor:pointer">Subscribe</button>
 </form>
-<p id="emailMsg" style="display:none;font-size:0.78rem;color:var(--green);margin-top:6px"></p>
+<p id="emailMsg" style="display:none;font-size:0.78rem;color:var(--accent,#00ff9d);margin-top:6px"></p>
 </div>
 </div></div>
-{{ footer|safe }}
+{% endblock %}
+
+{% block scripts %}
 <script>
 (function(){
   var search = document.getElementById('searchInput');
   var tabs = document.querySelectorAll('.tab');
-  var cards = document.querySelectorAll('.card');
+  var cards = document.querySelectorAll('.tool-card');
   var empty = document.getElementById('emptyState');
   var grid = document.getElementById('serviceGrid');
   var activeCat = 'all';
@@ -189,6 +193,51 @@ a:hover{text-decoration:underline}
     });
   });
 
+  // Consumer-friendly names and descriptions for the try-it modal
+  var toolInfo = {
+    '/sentiment': {name:'Sentiment Analysis', desc:'Find out if text sounds positive, negative, or neutral.'},
+    '/summarize': {name:'Summarize', desc:'Get a short summary of any long text.'},
+    '/translate': {name:'Translate', desc:'Translate text into another language.'},
+    '/keywords': {name:'Extract Keywords', desc:'Pull out the key topics from any text.'},
+    '/explain': {name:'Explain a Concept', desc:'Get a clear, simple explanation of any topic.'},
+    '/analyze': {name:'Analyze Content', desc:'Get insights and analysis from any text.'},
+    '/compare': {name:'Compare', desc:'Compare two things side by side.'},
+    '/extract': {name:'Extract Information', desc:'Pull out names, dates, or key details from text.'},
+    '/questions': {name:'Generate Questions', desc:'Create questions based on any content.'},
+    '/decide': {name:'Decision Helper', desc:'Get a balanced pros-and-cons analysis to help you decide.'},
+    '/classify': {name:'Classify Text', desc:'Sort text into categories you define.'},
+    '/rewrite': {name:'Rewrite Text', desc:'Rewrite text in a different tone or style.'},
+    '/headline': {name:'Headline Generator', desc:'Generate catchy headlines for your content.'},
+    '/code': {name:'Code Generator', desc:'Generate code from a plain-English description.'},
+    '/research': {name:'Research a Topic', desc:'Get a quick research summary on any subject.'},
+    '/write': {name:'AI Writer', desc:'Write articles, blog posts, emails, and more.'},
+    '/social': {name:'Social Media Posts', desc:'Create ready-to-post content for social platforms.'},
+    '/qa': {name:'Ask a Question', desc:'Ask a question about a document and get an answer.'},
+    '/proofread': {name:'Proofread', desc:'Fix grammar, spelling, and punctuation errors.'},
+    '/outline': {name:'Create an Outline', desc:'Generate a structured outline for any topic.'},
+    '/email': {name:'Email Writer', desc:'Draft professional emails in seconds.'},
+    '/sql': {name:'SQL Generator', desc:'Describe what you need and get a database query.'},
+    '/regex': {name:'Pattern Matcher', desc:'Describe a text pattern and get a matching formula.'},
+    '/mock': {name:'Sample Data Generator', desc:'Generate realistic sample data for testing.'},
+    '/score': {name:'Content Scorer', desc:'Get a quality score and improvement tips for your writing.'},
+    '/plan': {name:'Action Plan', desc:'Turn a goal into a step-by-step action plan.'},
+    '/debate': {name:'Debate Both Sides', desc:'See arguments for and against any topic.'},
+    '/pitch': {name:'Pitch Generator', desc:'Create a compelling pitch for your product or idea.'},
+    '/fact': {name:'Fact Checker', desc:'Check if a statement is accurate.'},
+    '/tag': {name:'Auto Tagger', desc:'Automatically generate relevant tags for your content.'},
+    '/preview': {name:'Preview', desc:'Get a quick preview summary.'},
+    '/data/weather': {name:'Weather Lookup', desc:'Check the current weather for any city.'},
+    '/data/crypto': {name:'Crypto Prices', desc:'Get live cryptocurrency prices.'},
+    '/data/joke': {name:'Random Joke', desc:'Get a random joke to brighten your day.'},
+    '/data/quote': {name:'Daily Quote', desc:'Get an inspirational quote.'},
+    '/scrape/website': {name:'Website Reader', desc:'Extract the main content from any webpage.'},
+    '/vision': {name:'Image Analysis', desc:'Describe or analyze any image from a URL.'},
+    '/rag': {name:'Document Q&A', desc:'Upload documents and ask questions about them.'},
+    '/diagram': {name:'Diagram Builder', desc:'Create flowcharts and diagrams from a description.'},
+    '/workflow': {name:'Workflow Builder', desc:'Chain multiple AI tools together automatically.'},
+    '/batch': {name:'Batch Processing', desc:'Run multiple AI tools at once.'}
+  };
+
   // Tool field definitions for the interactive modal
   var toolFields = {
     '/sentiment':[{n:'text',l:'Text to analyze',p:'The new product launch exceeded all expectations!'}],
@@ -197,44 +246,44 @@ a:hover{text-decoration:underline}
     '/keywords':[{n:'text',l:'Text',p:'AI is transforming healthcare...',t:'textarea'}],
     '/explain':[{n:'concept',l:'Concept',p:'quantum computing'}],
     '/analyze':[{n:'content',l:'Content',p:'Q4 revenue grew 23%...',t:'textarea'}],
-    '/compare':[{n:'text_a',l:'Text A',p:'Python'},{n:'text_b',l:'Text B',p:'JavaScript'}],
-    '/extract':[{n:'text',l:'Text',p:'John Smith, CEO of Acme Corp...',t:'textarea'},{n:'schema_desc',l:'What to extract',p:'key entities',d:'key entities'}],
+    '/compare':[{n:'text_a',l:'First item',p:'Python'},{n:'text_b',l:'Second item',p:'JavaScript'}],
+    '/extract':[{n:'text',l:'Text',p:'John Smith, CEO of Acme Corp...',t:'textarea'},{n:'schema_desc',l:'What to extract',p:'key details',d:'key entities'}],
     '/questions':[{n:'content',l:'Content',p:'The x402 protocol enables AI payments...',t:'textarea'}],
-    '/decide':[{n:'decision',l:'Decision',p:'PostgreSQL vs MongoDB for my project?'}],
+    '/decide':[{n:'decision',l:'What are you deciding?',p:'PostgreSQL vs MongoDB for my project?'}],
     '/classify':[{n:'text',l:'Text',p:'This email is about scheduling a meeting.'},{n:'categories',l:'Categories (comma-separated)',p:'positive, negative, neutral',d:'positive, negative, neutral'}],
     '/rewrite':[{n:'text',l:'Text',p:'The thing was really good.',t:'textarea'},{n:'tone',l:'Tone',p:'professional',d:'professional'}],
     '/headline':[{n:'content',l:'Content',p:'Remote workers are 13% more productive',t:'textarea'}],
-    '/code':[{n:'description',l:'Description',p:'A Python function to sort a list'},{n:'language',l:'Language',p:'python',d:'python'}],
+    '/code':[{n:'description',l:'What should the code do?',p:'A Python function to sort a list'},{n:'language',l:'Language',p:'python',d:'python'}],
     '/research':[{n:'topic',l:'Topic',p:'quantum computing'}],
     '/write':[{n:'spec',l:'What to write',p:'A blog post about AI agents',t:'textarea'},{n:'type',l:'Type',p:'article',d:'article'}],
     '/social':[{n:'topic',l:'Topic',p:'AI-powered developer tools'},{n:'platforms',l:'Platforms (comma-separated)',p:'twitter, linkedin',d:'twitter, linkedin'}],
-    '/qa':[{n:'context',l:'Context document',p:'Paste context here...',t:'textarea'},{n:'question',l:'Question',p:'What is the main point?'}],
-    '/proofread':[{n:'text',l:'Text',p:'There going to the store tommorow.',t:'textarea'}],
+    '/qa':[{n:'context',l:'Paste your document',p:'Paste context here...',t:'textarea'},{n:'question',l:'Your question',p:'What is the main point?'}],
+    '/proofread':[{n:'text',l:'Text to proofread',p:'There going to the store tommorow.',t:'textarea'}],
     '/outline':[{n:'topic',l:'Topic',p:'Building a SaaS product'}],
-    '/email':[{n:'purpose',l:'Purpose',p:'Follow up on sales meeting'},{n:'tone',l:'Tone',p:'professional',d:'professional'}],
-    '/sql':[{n:'description',l:'Query description',p:'Find all users who signed up this month'}],
-    '/regex':[{n:'description',l:'Pattern description',p:'Match email addresses'}],
-    '/mock':[{n:'description',l:'Data description',p:'User profiles with name, email, age'},{n:'count',l:'Count',p:'5',d:'5'}],
-    '/score':[{n:'content',l:'Content',p:'Score this essay...',t:'textarea'}],
-    '/plan':[{n:'goal',l:'Goal',p:'Launch a side project in 30 days'}],
+    '/email':[{n:'purpose',l:'What is the email about?',p:'Follow up on a sales meeting'},{n:'tone',l:'Tone',p:'professional',d:'professional'}],
+    '/sql':[{n:'description',l:'Describe the data you need',p:'Find all users who signed up this month'}],
+    '/regex':[{n:'description',l:'Describe the pattern',p:'Match email addresses'}],
+    '/mock':[{n:'description',l:'What kind of data?',p:'User profiles with name, email, age'},{n:'count',l:'How many?',p:'5',d:'5'}],
+    '/score':[{n:'content',l:'Content to score',p:'Paste your writing here...',t:'textarea'}],
+    '/plan':[{n:'goal',l:'Your goal',p:'Launch a side project in 30 days'}],
     '/debate':[{n:'topic',l:'Topic',p:'Remote work vs office work'}],
-    '/pitch':[{n:'product',l:'Product',p:'AI-powered API marketplace'},{n:'audience',l:'Audience',p:'developers',d:'developers'}],
-    '/fact':[{n:'text',l:'Text',p:'The earth is 4.5 billion years old.',t:'textarea'}],
-    '/tag':[{n:'text',l:'Text',p:'AI agent that monitors crypto prices',t:'textarea'}],
+    '/pitch':[{n:'product',l:'Product or idea',p:'AI-powered API marketplace'},{n:'audience',l:'Who is it for?',p:'developers',d:'developers'}],
+    '/fact':[{n:'text',l:'Statement to check',p:'The earth is 4.5 billion years old.',t:'textarea'}],
+    '/tag':[{n:'text',l:'Content to tag',p:'AI agent that monitors crypto prices',t:'textarea'}],
     '/preview':[{n:'topic',l:'Topic',p:'AI agents'}],
     '/data/weather':[{n:'city',l:'City',p:'London',d:'London'}],
-    '/data/crypto':[{n:'symbol',l:'Symbols',p:'bitcoin,ethereum',d:'bitcoin'}],
+    '/data/crypto':[{n:'symbol',l:'Cryptocurrency',p:'bitcoin,ethereum',d:'bitcoin'}],
     '/data/joke':[],
     '/data/quote':[],
-    '/scrape/website':[{n:'url',l:'URL',p:'https://example.com'}],
+    '/scrape/website':[{n:'url',l:'Website URL',p:'https://example.com'}],
     '/vision':[{n:'url',l:'Image URL',p:'https://example.com/image.jpg'}],
-    '/rag':[{n:'documents',l:'Documents',p:'Paste documents here...',t:'textarea'},{n:'query',l:'Query',p:'What does the document say about...'}],
-    '/diagram':[{n:'description',l:'Description',p:'User login flow'},{n:'type',l:'Type',p:'flowchart',d:'flowchart'}],
-    '/workflow':[{n:'goal',l:'Goal',p:'Research and summarize latest AI news'}],
+    '/rag':[{n:'documents',l:'Your documents',p:'Paste documents here...',t:'textarea'},{n:'query',l:'Your question',p:'What does the document say about...'}],
+    '/diagram':[{n:'description',l:'Describe the diagram',p:'User login flow'},{n:'type',l:'Type',p:'flowchart',d:'flowchart'}],
+    '/workflow':[{n:'goal',l:'What do you want to accomplish?',p:'Research and summarize latest AI news'}],
     '/batch':[{n:'operations',l:'Operations (JSON array)',p:'[{"endpoint":"sentiment","input":{"text":"hello"}}]',t:'textarea'}],
   };
   // Fallback: single text field
-  var defaultFields = [{n:'text',l:'Input',p:'Enter your text here...',t:'textarea'}];
+  var defaultFields = [{n:'text',l:'Your input',p:'Enter your text here...',t:'textarea'}];
 
   var overlay = document.getElementById('demoOverlay');
   var demoDesc = document.getElementById('demoDesc');
@@ -244,8 +293,7 @@ a:hover{text-decoration:underline}
   var demoCurlCode = document.getElementById('demoCurlCode');
   var demoRun = document.getElementById('demoRun');
   var demoClose = document.getElementById('demoClose');
-  var demoMethodBadge = document.getElementById('demoMethodBadge');
-  var demoPath = document.getElementById('demoPath');
+  var demoToolName = document.getElementById('demoToolName');
   var demoCost = document.getElementById('demoCost');
   var tabResponse = document.getElementById('tabResponse');
   var tabCurl = document.getElementById('tabCurl');
@@ -264,7 +312,7 @@ a:hover{text-decoration:underline}
 
   function updateCurl(){
     var body = buildBody();
-    var cmd = 'curl -X '+currentMethod+' https://api.aipaygen.com'+currentEndpoint+' \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer apk_YOUR_KEY"';
+    var cmd = 'curl -X '+currentMethod+' https://api.aipaygen.com'+currentEndpoint+' \\\n  -H "Content-Type: application/json" \\\n  -H "Authorization: Bearer YOUR_KEY"';
     if(currentMethod==='POST' && body){
       cmd += ' \\\n  -d \''+JSON.stringify(body)+'\'';
     } else if(currentMethod==='GET' && body){
@@ -290,7 +338,6 @@ a:hover{text-decoration:underline}
       var val = inp.value.trim();
       if(!val) val = inp.getAttribute('data-default')||'';
       if(!val) return;
-      // Handle comma-separated arrays
       if(name==='categories'||name==='platforms'){
         body[name]=val.split(',').map(function(s){return s.trim();});
       } else if(name==='count'||name==='max_items'||name==='n'){
@@ -304,7 +351,6 @@ a:hover{text-decoration:underline}
     return body;
   }
 
-  // Map endpoint names to /try tool names for the free demo proxy
   var tryMap = {
     '/sentiment':'sentiment','/summarize':'summarize','/translate':'translate',
     '/keywords':'keywords','/explain':'explain','/analyze':'analyze',
@@ -316,26 +362,25 @@ a:hover{text-decoration:underline}
   document.querySelectorAll('.try-btn').forEach(function(btn){
     btn.addEventListener('click', function(e){
       e.preventDefault();
-      var card = btn.closest('.card');
+      var card = btn.closest('.tool-card');
       currentEndpoint = card.getAttribute('data-path');
       currentMethod = card.getAttribute('data-method');
       var price = parseFloat(card.getAttribute('data-price'))||0;
       var isFree = card.getAttribute('data-free')==='true';
 
-      demoPath.textContent = currentEndpoint;
-      demoMethodBadge.textContent = currentMethod;
-      demoMethodBadge.className = 'demo-method demo-method-'+currentMethod.toLowerCase();
-      demoCost.textContent = isFree ? 'FREE' : '$'+price.toFixed(4)+'/call';
+      var info = toolInfo[currentEndpoint] || {};
+      demoToolName.textContent = info.name || currentEndpoint.replace(/\//g,' ').trim();
+      demoCost.textContent = isFree ? 'Free' : '$'+price.toFixed(4)+'/use';
       demoCost.className = isFree ? 'cost-free' : 'cost-paid';
-      demoDesc.textContent = card.querySelector('.desc').textContent;
+      demoDesc.textContent = info.desc || card.querySelector('.tool-desc').textContent;
 
       // Build input fields
       var fields = toolFields[currentEndpoint] || defaultFields;
       while(demoFields.firstChild)demoFields.removeChild(demoFields.firstChild);
       if(fields.length===0){
         var noInput=document.createElement('p');
-        noInput.style.cssText='font-size:0.82rem;color:var(--muted)';
-        noInput.textContent='No input required — just click Run.';
+        noInput.style.cssText='font-size:0.82rem;color:var(--muted,#6b7280)';
+        noInput.textContent='No input needed — just click Run!';
         demoFields.appendChild(noInput);
       }
       fields.forEach(function(f){
@@ -376,20 +421,18 @@ a:hover{text-decoration:underline}
     demoRun.disabled = true;
     demoRun.textContent = 'Running...';
     demoResult.style.display = 'block';
-    demoResult.textContent = 'Processing...';
-    demoResult.style.color = 'var(--muted)';
+    demoResult.textContent = 'Working on it...';
+    demoResult.style.color = 'var(--muted,#6b7280)';
     tabResponse.classList.add('active');tabCurl.classList.remove('active');
     demoCurl.style.display='none';
 
     var body = buildBody();
-    // Use the /try proxy for free demo if available
     var mapped = tryMap[currentEndpoint];
     var fetchUrl, fetchOpts;
     if(mapped){
       fetchUrl = '/try/'+mapped;
       fetchOpts = {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)};
     } else {
-      // Direct call (will need API key for paid endpoints)
       fetchUrl = currentEndpoint;
       fetchOpts = {method:currentMethod,headers:{'Content-Type':'application/json'}};
       if(currentMethod==='POST') fetchOpts.body = JSON.stringify(body);
@@ -403,27 +446,26 @@ a:hover{text-decoration:underline}
     fetch(fetchUrl, fetchOpts)
     .then(function(r){ return r.json(); })
     .then(function(data){
-      demoResult.style.color = 'var(--green)';
+      demoResult.style.color = 'var(--accent,#00ff9d)';
       demoResult.textContent = JSON.stringify(data, null, 2);
       updateCurl();
-      // Show key gen CTA after demo when running low
       var remaining = data._free_tier ? data._free_tier.calls_remaining : null;
       var emailDiv = document.getElementById('demoEmail');
       if(remaining !== null && remaining <= 5) {
         emailDiv.style.display='block';
         while(emailDiv.firstChild) emailDiv.removeChild(emailDiv.firstChild);
         var wrap = document.createElement('div');
-        wrap.style.cssText = 'padding:10px;background:rgba(0,255,157,0.08);border:1px solid var(--green);border-radius:8px;text-align:center';
+        wrap.style.cssText = 'padding:10px;background:rgba(0,255,157,0.08);border:1px solid var(--accent,#00ff9d);border-radius:8px;text-align:center';
         var p1 = document.createElement('p');
-        p1.style.cssText = 'font-size:0.88rem;color:var(--green);margin-bottom:8px;font-weight:600';
-        p1.textContent = remaining + ' free calls left today';
+        p1.style.cssText = 'font-size:0.88rem;color:var(--accent,#00ff9d);margin-bottom:8px;font-weight:600';
+        p1.textContent = remaining + ' free uses left today';
         var p2 = document.createElement('p');
-        p2.style.cssText = 'font-size:0.82rem;color:var(--muted);margin-bottom:10px';
-        p2.textContent = 'Get a free API key with $0.25 trial credits (~40 calls)';
+        p2.style.cssText = 'font-size:0.82rem;color:var(--muted,#6b7280);margin-bottom:10px';
+        p2.textContent = 'Get started free with $0.25 in credits (~40 uses)';
         var ctaBtn = document.createElement('a');
         ctaBtn.href = '/buy-credits';
-        ctaBtn.style.cssText = 'display:inline-block;padding:8px 20px;background:var(--green);color:var(--bg);border-radius:6px;font-weight:700;font-size:0.85rem;text-decoration:none';
-        ctaBtn.textContent = 'Get API Key';
+        ctaBtn.style.cssText = 'display:inline-block;padding:8px 20px;background:var(--accent,#00ff9d);color:var(--bg,#020408);border-radius:6px;font-weight:700;font-size:0.85rem;text-decoration:none';
+        ctaBtn.textContent = 'Get Started';
         wrap.appendChild(p1);
         wrap.appendChild(p2);
         wrap.appendChild(ctaBtn);
@@ -433,7 +475,7 @@ a:hover{text-decoration:underline}
       }
     }).catch(function(err){
       demoResult.style.color = '#f87171';
-      demoResult.textContent = 'Error: ' + err.message;
+      demoResult.textContent = 'Something went wrong. Please try again.';
     }).finally(function(){
       demoRun.disabled = false;
       demoRun.textContent = 'Run';
@@ -453,7 +495,7 @@ a:hover{text-decoration:underline}
     .then(function(r){return r.json();})
     .then(function(d){
       document.getElementById('emailMsg').style.display='block';
-      document.getElementById('emailMsg').textContent = d.key ? 'Subscribed! You also got a free API key: '+d.key.substring(0,12)+'...' : 'Subscribed! Thanks.';
+      document.getElementById('emailMsg').textContent = d.key ? 'Subscribed! You also got a free key: '+d.key.substring(0,12)+'...' : 'Subscribed! Thanks.';
       localStorage.setItem('aipaygen_email_sub','1');
       document.getElementById('emailForm').style.display='none';
     });
@@ -461,7 +503,6 @@ a:hover{text-decoration:underline}
 })();
 </script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebAPI","name":"AiPayGen API","url":"https://aipaygen.com/discover","description":"250 AI-powered API tools — sentiment analysis, translation, summarization, code generation, web scraping, and more.","provider":{"@type":"Organization","name":"AiPayGen","url":"https://aipaygen.com"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"1 free call + 2 with ads per day, paid plans from $0.01-$0.50/call"}}
+{"@context":"https://schema.org","@type":"WebAPI","name":"AiPayGen AI Tools","url":"https://aipaygen.com/discover","description":"250+ AI tools — writing, research, translation, code generation, analysis, and more. Free to try, no sign-up needed.","provider":{"@type":"Organization","name":"AiPayGen","url":"https://aipaygen.com"},"offers":{"@type":"Offer","price":"0","priceCurrency":"USD","description":"1 free use per day, plans from $4.99/mo, credit packs from $0.50"}}
 </script>
-</body>
-</html>
+{% endblock %}

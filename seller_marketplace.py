@@ -5,7 +5,7 @@ import re
 import sqlite3
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from contextlib import contextmanager
 
 _DB_PATH = os.path.join(os.path.dirname(__file__), "seller_marketplace.db")
@@ -26,6 +26,9 @@ def _conn():
     c.row_factory = sqlite3.Row
     if not uri:
         c.execute("PRAGMA journal_mode=WAL")
+        c.execute("PRAGMA synchronous=NORMAL")
+        c.execute("PRAGMA cache_size=-8000")
+        c.execute("PRAGMA temp_store=MEMORY")
     try:
         yield c
         c.commit()
@@ -149,7 +152,7 @@ def register_seller_api(seller_id, slug, name, description, base_url, routes,
             return {"error": "Invalid Base (EVM) wallet address"}
 
     api_id = str(uuid.uuid4())[:12]
-    now = datetime.utcnow().isoformat() + "Z"
+    now = datetime.now(timezone.utc).isoformat() + "Z"
 
     with _conn() as c:
         existing = c.execute("SELECT id FROM seller_apis WHERE slug=?", (slug,)).fetchone()
@@ -348,7 +351,7 @@ def match_route(api, method, path):
 
 def process_payment(agent_wallet_id, seller_slug, route_path, amount_usd, escrow=False):
     """Process a payment: deduct from agent wallet, credit seller (or hold in escrow)."""
-    now = datetime.utcnow().isoformat() + "Z"
+    now = datetime.now(timezone.utc).isoformat() + "Z"
 
     with _conn() as c:
         wallet = c.execute("SELECT * FROM agent_wallets WHERE id=?", (agent_wallet_id,)).fetchone()
@@ -357,8 +360,8 @@ def process_payment(agent_wallet_id, seller_slug, route_path, amount_usd, escrow
         wallet = dict(wallet)
 
         # Reset daily/monthly if needed
-        today = datetime.utcnow().strftime("%Y-%m-%d")
-        month = datetime.utcnow().strftime("%Y-%m")
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        month = datetime.now(timezone.utc).strftime("%Y-%m")
         if wallet["last_daily_reset"] != today:
             c.execute("UPDATE agent_wallets SET spent_today=0, last_daily_reset=? WHERE id=?",
                       (today, agent_wallet_id))
@@ -437,7 +440,7 @@ def get_escrow_hold(escrow_id):
 
 def resolve_escrow(escrow_id, action="release"):
     """Release or refund an escrow hold. action: 'release' | 'refund'"""
-    now = datetime.utcnow().isoformat() + "Z"
+    now = datetime.now(timezone.utc).isoformat() + "Z"
 
     with _conn() as c:
         hold = c.execute("SELECT * FROM escrow_holds WHERE id=? AND status='held'",
@@ -480,9 +483,9 @@ def resolve_escrow(escrow_id, action="release"):
 def create_agent_wallet(owner_api_key, label="", daily_budget=10.0, monthly_budget=100.0):
     """Create a new agent wallet."""
     wallet_id = "aw_" + str(uuid.uuid4())[:10]
-    now = datetime.utcnow().isoformat() + "Z"
-    today = datetime.utcnow().strftime("%Y-%m-%d")
-    month = datetime.utcnow().strftime("%Y-%m")
+    now = datetime.now(timezone.utc).isoformat() + "Z"
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    month = datetime.now(timezone.utc).strftime("%Y-%m")
 
     with _conn() as c:
         c.execute("""INSERT INTO agent_wallets
@@ -508,7 +511,7 @@ def get_agent_wallet(wallet_id):
 
 def fund_agent_wallet(wallet_id, amount_usd):
     """Add funds to an agent wallet (called after Stripe payment)."""
-    now = datetime.utcnow().isoformat() + "Z"
+    now = datetime.now(timezone.utc).isoformat() + "Z"
     with _conn() as c:
         row = c.execute("SELECT id FROM agent_wallets WHERE id=?", (wallet_id,)).fetchone()
         if not row:
@@ -585,7 +588,7 @@ def list_agent_wallets(owner_api_key):
 
 def request_withdrawal(seller_id, amount_usd=None):
     """Request withdrawal of seller balance to their wallet."""
-    now = datetime.utcnow().isoformat() + "Z"
+    now = datetime.now(timezone.utc).isoformat() + "Z"
 
     with _conn() as c:
         rows = c.execute(

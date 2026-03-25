@@ -4,7 +4,7 @@ import logging
 import re as _re
 import sqlite3
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import requests
 
@@ -35,6 +35,10 @@ def is_bot(user_agent: str = "") -> bool:
 
 def _conn():
     c = sqlite3.connect(DB_PATH)
+    c.execute("PRAGMA journal_mode=WAL")
+    c.execute("PRAGMA synchronous=NORMAL")
+    c.execute("PRAGMA cache_size=-8000")
+    c.execute("PRAGMA temp_store=MEMORY")
     c.row_factory = sqlite3.Row
     return c
 
@@ -55,6 +59,7 @@ def init_funnel_db():
         c.execute("CREATE INDEX IF NOT EXISTS idx_funnel_type ON funnel_events(event_type)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_funnel_created ON funnel_events(created_at)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_funnel_created_type ON funnel_events(created_at, event_type)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_funnel_created_bot ON funnel_events(created_at, is_bot)")
         # Add is_bot column if missing (safe migration)
         try:
             c.execute("ALTER TABLE funnel_events ADD COLUMN is_bot INTEGER DEFAULT 0")
@@ -73,7 +78,7 @@ def log_event(event_type: str, endpoint: str = "", ip: str = "", metadata: str =
             user_agent = _req.headers.get("User-Agent", "")
         except (ImportError, RuntimeError):
             pass
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     bot_flag = 1 if is_bot(user_agent) else 0
     with _conn() as c:
         c.execute(
@@ -84,7 +89,7 @@ def log_event(event_type: str, endpoint: str = "", ip: str = "", metadata: str =
 
 def get_funnel_stats(days: int = 7, exclude_bots: bool = True) -> dict:
     """Get funnel event counts grouped by type for the last N days."""
-    cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
     bot_filter = " AND (is_bot IS NULL OR is_bot = 0)" if exclude_bots else ""
     with _conn() as c:
         rows = c.execute(
@@ -118,7 +123,7 @@ def get_funnel_stats(days: int = 7, exclude_bots: bool = True) -> dict:
 
 def get_analytics(days: int = 7) -> dict:
     """Extended analytics: total vs bot events, unique IPs, funnel conversion."""
-    cutoff = (datetime.utcnow() - timedelta(days=days)).isoformat()
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
     with _conn() as c:
         total = c.execute(
             "SELECT COUNT(*) as cnt FROM funnel_events WHERE created_at >= ?", (cutoff,)
@@ -132,13 +137,17 @@ def get_analytics(days: int = 7) -> dict:
         ).fetchone()["cnt"]
         # Funnel conversion stages (non-bot only)
         funnel_stages = ["discover_hit", "catalog_browse", "demo_used", "key_generated", "credits_bought"]
-        funnel = {}
-        for stage in funnel_stages:
-            row = c.execute(
-                "SELECT COUNT(*) as cnt FROM funnel_events WHERE created_at >= ? AND is_bot = 0 AND event_type = ?",
-                (cutoff, stage),
-            ).fetchone()
-            funnel[stage] = row["cnt"]
+        funnel = {s: 0 for s in funnel_stages}
+        rows = c.execute(
+            "SELECT event_type, COUNT(*) as cnt "
+            "FROM funnel_events "
+            "WHERE created_at >= ? AND is_bot = 0 "
+            "AND event_type IN ('discover_hit','catalog_browse','demo_used','key_generated','credits_bought') "
+            "GROUP BY event_type",
+            (cutoff,),
+        ).fetchall()
+        for row in rows:
+            funnel[row["event_type"]] = row["cnt"]
     return {
         "period_days": days,
         "total_events": total,

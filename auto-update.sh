@@ -34,10 +34,19 @@ git pull origin master >> "$LOG" 2>&1
 source venv/bin/activate
 if python -m pytest tests/ -q --tb=line >> "$LOG" 2>&1; then
     echo "[$TS] Tests passed. Restarting server..." >> "$LOG"
-    pkill -f "gunicorn.*app:app" || true
+    # Kill all gunicorn and restart fresh (runs as daemon process, not systemd)
+    pkill -9 -f "gunicorn.*app:app" 2>/dev/null || true
+    sleep 2
+    ./venv/bin/gunicorn -c gunicorn.conf.py app:app --daemon
     sleep 3
-    gunicorn --workers 2 --worker-class sync --bind 127.0.0.1:5001 --timeout 120 --keep-alive 5 --access-logfile /home/damien809/agent-service/access.log --error-logfile /home/damien809/agent-service/agent.log --log-level info --daemon app:app
-    echo "[$TS] Server restarted successfully." >> "$LOG"
+    # Verify restart succeeded
+    HEALTH=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 http://127.0.0.1:5001/health 2>/dev/null || echo "000")
+    if [ "$HEALTH" = "200" ]; then
+        echo "[$TS] Server restarted successfully (health=$HEALTH)." >> "$LOG"
+    else
+        echo "[$TS] CRITICAL: Server restart failed (health=$HEALTH)!" >> "$LOG"
+        wall "AiPayGen ALERT: Server restart failed after update!" 2>/dev/null || true
+    fi
 
     # Update MCP server too
     if systemctl --user is-active aipaygen-mcp.service > /dev/null 2>&1; then
@@ -89,10 +98,9 @@ if [ "$MINUTE" -lt 15 ]; then
     # Check if upgrade broke tests
     if python -m pytest tests/ -q --tb=line >> "$LOG" 2>&1; then
         echo "[$TS] Security updates applied. Tests still passing." >> "$LOG"
-        # Restart to pick up new packages
-        pkill -f "gunicorn.*app:app" || true
-        sleep 3
-        gunicorn --workers 2 --worker-class sync --bind 127.0.0.1:5001 --timeout 120 --keep-alive 5 --access-logfile /home/damien809/agent-service/access.log --error-logfile /home/damien809/agent-service/agent.log --log-level info --daemon app:app
+        pkill -9 -f "gunicorn.*app:app" 2>/dev/null || true
+        sleep 2
+        ./venv/bin/gunicorn -c gunicorn.conf.py app:app --daemon
         echo "[$TS] Server restarted after security updates." >> "$LOG"
     else
         echo "[$TS] WARNING: Tests failed after pip upgrade. Pinning back..." >> "$LOG"

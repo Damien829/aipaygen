@@ -150,7 +150,7 @@ class TestGenerateKey:
         assert resp.status_code == 200
         data = resp.get_json()
         assert "quickstart" in data
-        assert data["quickstart"]["free_calls"] == 3
+        assert data["quickstart"]["free_calls"] == 0
 
 
 # ── POST /auth/topup ────────────────────────────────────────────────────────

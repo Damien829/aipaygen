@@ -111,6 +111,7 @@ RSYNC_EXCLUDES=(
   --exclude='*.egg-info'
   --exclude='node_modules/'
   --exclude='.env'
+  --exclude='.flask_secret'
   --exclude='*.log'
   --exclude='*.log.*'
   --exclude='.claude/'

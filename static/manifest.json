@@ -1,0 +1,16 @@
+{
+  "name": "AiPayGen",
+  "short_name": "AiPayGen",
+  "description": "250+ AI tools in one app. Chat, research, write, translate, code, and more.",
+  "start_url": "/try",
+  "display": "standalone",
+  "background_color": "#020408",
+  "theme_color": "#00ff9d",
+  "icons": [
+    {
+      "src": "/static/icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

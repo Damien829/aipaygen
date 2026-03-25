@@ -20,3 +20,4 @@ cloudflared
 .worktrees/
 .mcp_publisher_token
 .agent_key
+.flask_secret

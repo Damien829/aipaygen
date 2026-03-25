@@ -10,7 +10,7 @@ Research, write, code, translate, scrape — from $0.004/call.
 
 MCP compatible. Works with Claude Code, Cursor, Windsurf.
 
-3 free calls/day. No signup.
+1 free call/day. No signup.
 
 https://aipaygen.com
 
@@ -57,7 +57,7 @@ pip install aipaygen-mcp
 
 Research. Write. Code. Translate. Analyze. Scrape.
 
-All from your terminal. 3 free calls/day.
+All from your terminal. 1 free call/day.
 
 https://pypi.org/project/aipaygen-mcp/
 
@@ -68,7 +68,7 @@ https://pypi.org/project/aipaygen-mcp/
 ```
 250 AI tools. Zero cost to start.
 
-3 free calls/day — no signup, no credit card, no API key.
+1 free call/day — no signup, no credit card, no API key.
 
 Just POST to any endpoint and get results.
 
@@ -165,7 +165,7 @@ https://aipaygen.com/status
 
 AiPayGen is live. Research, write, code, translate, analyze, scrape — powered by Claude, GPT-4o, Gemini, and DeepSeek.
 
-3 free calls/day. No signup required.
+1 free call/day. No signup required.
 
 Try it: aipaygen.com/try
 Link in bio.
@@ -221,7 +221,7 @@ AiPayGen routes your requests to the best model for the job across 7 providers.
 You get the same quality. We handle the routing.
 
 Pricing:
-- Free: 3 calls/day
+- Free: 1 call/day
 - $1: ~166 calls
 - $5: ~830 calls + 20% off
 - USDC: Pay per call on Base

@@ -1,6 +1,7 @@
 """Auto-generate OpenAPI 3.1.0 spec from the x402 routes dict."""
 
 import re
+from helpers import APP_VERSION
 
 # Free endpoints to include in the spec
 FREE_ENDPOINTS = [
@@ -103,7 +104,7 @@ _RATE_LIMIT_HEADERS = {
     },
     "X-API-Version": {
         "description": "Current API version",
-        "schema": {"type": "string", "example": "1.9.0"},
+        "schema": {"type": "string", "example": APP_VERSION},
     },
 }
 
@@ -303,7 +304,7 @@ def generate_openapi_spec(routes=None):
         "openapi": "3.1.0",
         "info": {
             "title": "AiPayGen API",
-            "version": "1.9.0",
+            "version": APP_VERSION,
             "description": (
                 "250 AI tools in one API. Research, write, code, translate, analyze, scrape — "
                 "pay per call with USDC on Base via x402, use a prepaid API key, or get $0.25 trial credits.\n\n"
@@ -311,7 +312,7 @@ def generate_openapi_spec(routes=None):
                 "Three options:\n"
                 "1. **API Key** (recommended): `Authorization: Bearer apk_xxx` — get a free key with $0.25 trial credits via `POST /auth/generate-key`\n"
                 "2. **x402 Payment**: `X-Payment` header with USDC micropayment on Base (eip155:8453)\n"
-                "3. **Free tier**: 3 calls/day per IP, no auth needed\n\n"
+                "3. **Free tier**: 1 call/day per IP, no auth needed\n\n"
                 "## Rate Limits\n"
                 "- Free tier: 60 requests/minute per IP, 3 AI calls/day\n"
                 "- API key: 60 requests/minute per IP (higher limits available)\n"

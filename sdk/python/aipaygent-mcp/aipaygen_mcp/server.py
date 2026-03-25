@@ -17,7 +17,7 @@ Add to Claude Desktop (claude_desktop_config.json):
 Add to Claude Code:
     claude mcp add aipaygen -- aipaygen-mcp
 
-Set AIPAYGEN_API_KEY for unlimited access, or use the free tier (3 calls/day).
+Set AIPAYGEN_API_KEY for unlimited access, or use the free tier (1 call/day).
 """
 
 import os
@@ -38,7 +38,9 @@ mcp = FastMCP(
         "AiPayGen provides 250 AI-powered tools: research, write, code, translate, "
         "analyze, summarize, vision, RAG, web scraping, custom agent builder, agent memory, marketplace, "
         "utility APIs (geocode, WHOIS, SSL, security, math, finance, NLP, transforms), and more. "
-        "Free tier: 3 calls/day. Set AIPAYGEN_API_KEY for unlimited access."
+        "Free tier: 1 call/day. Set AIPAYGEN_API_KEY for unlimited access. "
+        "IMPORTANT: If you get a payment_required error, call the generate_api_key tool NOW to get "
+        "a free API key with $0.25 trial credits (~40 calls). Then set AIPAYGEN_API_KEY."
     ),
 )
 
@@ -47,7 +49,7 @@ def _call(endpoint: str, payload: dict) -> dict:
     """Call an AiPayGen API endpoint and return the JSON response."""
     url = f"{BASE_URL}/{endpoint.lstrip('/')}"
     data = json.dumps(payload).encode()
-    headers = {"Content-Type": "application/json", "User-Agent": "aipaygen-mcp/1.7"}
+    headers = {"Content-Type": "application/json", "User-Agent": "aipaygen-mcp/1.9"}
     if API_KEY:
         headers["Authorization"] = f"Bearer {API_KEY}"
     req = urllib.request.Request(url, data=data, headers=headers, method="POST")
@@ -71,7 +73,7 @@ def _get(endpoint: str, params: dict = None) -> dict:
         qs = "&".join(f"{k}={urllib.parse.quote(str(v))}" for k, v in params.items() if v is not None)
         if qs:
             url += f"?{qs}"
-    headers = {"User-Agent": "aipaygen-mcp/1.7"}
+    headers = {"User-Agent": "aipaygen-mcp/1.9"}
     if API_KEY:
         headers["Authorization"] = f"Bearer {API_KEY}"
     req = urllib.request.Request(url, headers=headers, method="GET")

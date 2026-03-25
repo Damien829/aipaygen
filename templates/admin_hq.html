@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Admin HQ — AiPayGen</title>
+<meta name="theme-color" content="#0a0a0a">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #0a0a0a; color: #e8e8e8; padding: 0; -webkit-tap-highlight-color: transparent; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 16px; }
+  header { background: linear-gradient(135deg, #0d1117 0%, #141422 100%); border-bottom: 1px solid #1e2a3a; padding: 20px 16px 14px; position: sticky; top: 0; z-index: 50; }
+  header h1 { font-size: 1.25rem; letter-spacing: -0.3px; }
+  header h1 span { color: #00ff9d; }
+  .sub { color: #555; font-size: 0.72rem; margin-top: 2px; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 0; background: #0d1117; border-bottom: 1px solid #1e2a3a; overflow-x: auto; -webkit-overflow-scrolling: touch; position: sticky; top: 58px; z-index: 49; }
+  .tab { padding: 12px 20px; cursor: pointer; font-size: 0.82rem; font-weight: 600; color: #666; border-bottom: 2.5px solid transparent; transition: all 0.15s; white-space: nowrap; user-select: none; -webkit-user-select: none; }
+  .tab:active { transform: scale(0.97); }
+  .tab.active { color: #00ff9d; border-bottom-color: #00ff9d; }
+  .badge { background: #ef4444; color: #fff; border-radius: 10px; padding: 1px 7px; font-size: 0.62rem; margin-left: 5px; font-weight: 700; vertical-align: top; }
+
+  /* SECTIONS */
+  .section { display: none; animation: fadeIn 0.2s ease; }
+  .section.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* CARDS */
+  .card { background: #111318; border: 1px solid #1e2530; border-radius: 14px; padding: 18px; margin-bottom: 14px; }
+  .card h2 { font-size: 0.88rem; margin-bottom: 14px; color: #c4b5fd; font-weight: 700; letter-spacing: -0.2px; }
+
+  /* KPIs */
+  .kpi { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+  .ki { background: #111318; border: 1px solid #1e2530; border-radius: 12px; padding: 14px 12px; }
+  .kv { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.5px; }
+  .kv.g { color: #00ff9d; } .kv.b { color: #818cf8; } .kv.a { color: #fbbf24; } .kv.r { color: #ef4444; } .kv.w { color: #e8e8e8; }
+  .kl { font-size: 0.65rem; color: #555; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
+
+  /* PERIOD SELECTOR */
+  .period { display: flex; gap: 6px; margin-bottom: 14px; }
+  .period a { padding: 6px 14px; border-radius: 8px; background: #161b22; color: #888; text-decoration: none; font-size: 0.78rem; font-weight: 600; border: 1px solid #1e2530; transition: all 0.15s; }
+  .period a.act { background: #00ff9d; color: #000; border-color: #00ff9d; }
+
+  /* TABLES */
+  table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  th, td { padding: 8px 8px; text-align: left; border-bottom: 1px solid #161b22; }
+  th { color: #555; font-weight: 700; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px; }
+  code { background: #161b22; padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; color: #8b949e; }
+
+  /* FUNNEL BARS */
+  .fr { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .fl { min-width: 110px; font-size: 0.78rem; color: #8b949e; text-align: right; }
+  .fw { flex: 1; background: #161b22; border-radius: 6px; height: 26px; overflow: hidden; }
+  .fb { height: 100%; border-radius: 6px; display: flex; align-items: center; padding: 0 10px; font-size: 0.75rem; font-weight: 700; color: #fff; min-width: 26px; }
+
+  /* OTHER EVENTS */
+  .og { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; }
+  .oc { background: #161b22; border-radius: 8px; padding: 10px 8px; text-align: center; }
+  .ov { font-size: 1rem; font-weight: 700; color: #818cf8; }
+  .ol { font-size: 0.62rem; color: #555; margin-top: 3px; word-break: break-all; }
+
+  /* STATUS DOTS */
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+  .dot.green { background: #34d399; } .dot.yellow { background: #fbbf24; } .dot.red { background: #ef4444; }
+
+  /* ALERT BANNER */
+  .alert-banner { background: linear-gradient(135deg, #1e1b4b, #312e81); border: 1px solid #4338ca; border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; }
+  .alert-banner p { font-size: 0.82rem; line-height: 1.5; }
+  .alert-banner .label { color: #fbbf24; font-weight: 700; font-size: 0.72rem; text-transform: uppercase; margin-bottom: 4px; letter-spacing: 0.5px; }
+
+  /* RESPONSIVE */
+  @media(min-width: 600px) {
+    .kpi { grid-template-columns: repeat(4, 1fr); }
+    .wrap { padding: 20px; }
+  }
+  @media(min-width: 900px) {
+    .kpi { grid-template-columns: repeat(4, 1fr); }
+  }
+
+  /* TICKET CARDS */
+  .ticket { background: #161b22; border-radius: 10px; padding: 14px; margin-bottom: 8px; border-left: 3px solid #555; }
+  .ticket.open { border-left-color: #fbbf24; }
+  .ticket.replied { border-left-color: #34d399; }
+
+  /* STRIPE SESSION PILLS */
+  .spill { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; }
+  .spill.complete { background: #052e16; color: #34d399; }
+  .spill.expired { background: #450a0a; color: #ef4444; }
+  .spill.open { background: #422006; color: #fbbf24; }
+</style>
+</head>
+<body>
+<header>
+  <h1><span>Admin</span> HQ</h1>
+  <p class="sub">Updated {{ ts }} &middot; Auto-refreshes 5m</p>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="showTab('overview',this)">Overview</div>
+  <div class="tab" onclick="showTab('funnel',this)">Funnel</div>
+  <div class="tab" onclick="showTab('support',this)">Support{% if tickets_open %} <span class="badge">{{ tickets_open }}</span>{% endif %}</div>
+  <div class="tab" onclick="showTab('payments',this)">Payments</div>
+  <div class="tab" onclick="showTab('health',this)">Health</div>
+</div>
+
+<div class="wrap">
+
+  <!-- ═══ OVERVIEW ═══ -->
+  <div id="tab-overview" class="section active">
+    {% if stripe_revenue == '$0.00' and stripe_pending > 0 %}
+    <div class="alert-banner">
+      <p class="label">Checkout Activity</p>
+      <p>{{ stripe_pending }} pending checkout session{{ 's' if stripe_pending != 1 }} &middot; {{ stripe_failed }} abandoned &middot; Users are trying to pay but not completing. Check Stripe dashboard for details.</p>
+    </div>
+    {% endif %}
+
+    <div class="kpi">
+      <div class="ki"><div class="kv g">{{ stripe_revenue }}</div><div class="kl">Stripe Revenue</div></div>
+      <div class="ki"><div class="kv b">{{ users_total }}</div><div class="kl">API Keys</div></div>
+      <div class="ki"><div class="kv a">{{ usage_total }}</div><div class="kl">API Calls</div></div>
+      <div class="ki"><div class="kv w">{{ total_events }}</div><div class="kl">Events ({{ days }}d)</div></div>
+    </div>
+
+    <div class="kpi">
+      <div class="ki"><div class="kv" style="color:#34d399">{{ paid_keys }}</div><div class="kl">Paid Keys</div></div>
+      <div class="ki"><div class="kv" style="color:#555">{{ seed_keys }}</div><div class="kl">Seed/Test</div></div>
+      <div class="ki"><div class="kv r">{{ tickets_open }}</div><div class="kl">Open Tickets</div></div>
+      <div class="ki"><div class="kv a">{{ checkouts }}</div><div class="kl">Checkout Starts</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Top Tools by Usage</h2>
+      {{ tool_bars|safe }}
+    </div>
+
+    <div class="card">
+      <h2>Checkout Alerts</h2>
+      <div style="max-height:250px;overflow-y:auto">{{ alerts|safe }}</div>
+    </div>
+  </div>
+
+  <!-- ═══ FUNNEL ═══ -->
+  <div id="tab-funnel" class="section">
+    <div class="period">
+      <a href="?days=1&tab=funnel" class="{{ 'act' if days==1 }}">24h</a>
+      <a href="?days=7&tab=funnel" class="{{ 'act' if days==7 }}">7d</a>
+      <a href="?days=30&tab=funnel" class="{{ 'act' if days==30 }}">30d</a>
+      <a href="?days=90&tab=funnel" class="{{ 'act' if days==90 }}">90d</a>
+    </div>
+    <div class="card">
+      <h2>Conversion Funnel</h2>
+      {{ bars|safe }}
+    </div>
+    {{ other|safe }}
+    <div class="card">
+      <h2>Key Attribution</h2>
+      <p style="color:#8b949e;margin-bottom:10px;font-size:0.82rem">Median time to first call: <b style="color:#00ff9d">{{ median_label }}</b></p>
+      <div style="overflow-x:auto">
+        <table><tr><th>Source</th><th>Keys</th><th>0 Calls</th><th>Active</th><th>Rate</th></tr>{{ key_stats|safe }}</table>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Daily Breakdown</h2>
+      <div style="overflow-x:auto;max-height:300px;overflow-y:auto">
+        <table><thead><tr><th>Date</th><th>Event</th><th>Count</th></tr></thead><tbody>{{ daily_rows|safe }}</tbody></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ SUPPORT ═══ -->
+  <div id="tab-support" class="section">
+    <div class="kpi">
+      <div class="ki"><div class="kv w">{{ tickets_total }}</div><div class="kl">Total</div></div>
+      <div class="ki"><div class="kv r">{{ tickets_open }}</div><div class="kl">Open</div></div>
+      <div class="ki"><div class="kv g">{{ tickets_resolved }}</div><div class="kl">Resolved</div></div>
+    </div>
+    <div class="card">
+      <h2>Recent Tickets</h2>
+      {{ tickets|safe }}
+      <p style="text-align:center;margin-top:14px">
+        <a href="/admin/support" style="color:#00ff9d;font-size:0.82rem;font-weight:600;text-decoration:none">Open full support dashboard &rarr;</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- ═══ PAYMENTS ═══ -->
+  <div id="tab-payments" class="section">
+    <div class="kpi">
+      <div class="ki"><div class="kv g">{{ stripe_revenue }}</div><div class="kl">Stripe Revenue</div></div>
+      <div class="ki"><div class="kv a">{{ stripe_pending }}</div><div class="kl">Pending Sessions</div></div>
+      <div class="ki"><div class="kv r">{{ stripe_failed }}</div><div class="kl">Abandoned</div></div>
+      <div class="ki"><div class="kv w">{{ rev_total }}</div><div class="kl">Credits Spent</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Stripe Checkout Sessions</h2>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Status</th><th>Amount</th><th>Date</th></tr></thead>
+          <tbody>{{ stripe_sessions|safe }}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>API Keys</h2>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Key</th><th>Balance</th><th>Spent</th><th>Calls</th><th>Type</th></tr></thead>
+          <tbody>{{ recent_keys|safe }}</tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ HEALTH ═══ -->
+  <div id="tab-health" class="section">
+    <div class="kpi">
+      <div class="ki">
+        <div class="kv {% if health.api_status == 'healthy' %}g{% else %}r{% endif %}">{{ health.api_status|upper }}</div>
+        <div class="kl">API Status</div>
+      </div>
+      <div class="ki"><div class="kv w">{{ health.api_ms }}</div><div class="kl">Health Check</div></div>
+      <div class="ki"><div class="kv w">{{ health.uptime }}</div><div class="kl">Uptime</div></div>
+      <div class="ki">
+        <div class="kv {% if health.cpu_val < 70 %}g{% elif health.cpu_val < 90 %}a{% else %}r{% endif %}">{{ health.cpu }}</div>
+        <div class="kl">CPU Usage</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>System Resources</h2>
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px"><span style="color:#8b949e">Memory</span><span style="font-weight:600">{{ health.mem }}</span></div>
+        <div style="height:8px;background:#161b22;border-radius:4px;overflow:hidden"><div style="height:100%;width:{{ health.mem_val }}%;background:{% if health.mem_val < 70 %}#00ff9d{% elif health.mem_val < 85 %}#fbbf24{% else %}#ef4444{% endif %};border-radius:4px"></div></div>
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px"><span style="color:#8b949e">CPU</span><span style="font-weight:600">{{ health.cpu }}</span></div>
+        <div style="height:8px;background:#161b22;border-radius:4px;overflow:hidden"><div style="height:100%;width:{{ health.cpu_val }}%;background:{% if health.cpu_val < 70 %}#00ff9d{% elif health.cpu_val < 90 %}#fbbf24{% else %}#ef4444{% endif %};border-radius:4px"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px"><span style="color:#8b949e">Disk</span><span style="font-weight:600">{{ health.disk_free }} free ({{ health.disk_pct }}% used)</span></div>
+        <div style="height:8px;background:#161b22;border-radius:4px;overflow:hidden"><div style="height:100%;width:{{ health.disk_pct }}%;background:{% if health.disk_pct < 70 %}#00ff9d{% elif health.disk_pct < 85 %}#fbbf24{% else %}#ef4444{% endif %};border-radius:4px"></div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function showTab(name, el) {
+  document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
+  var target = document.getElementById('tab-' + name);
+  if (target) target.classList.add('active');
+  if (el) el.classList.add('active');
+  var url = new URL(location);
+  url.searchParams.set('tab', name);
+  history.replaceState(null, '', url);
+}
+
+// Restore tab from URL
+(function() {
+  var p = new URLSearchParams(location.search);
+  var t = p.get('tab');
+  if (t) {
+    var el = document.getElementById('tab-' + t);
+    if (el) {
+      document.querySelectorAll('.section').forEach(function(s) { s.classList.remove('active'); });
+      document.querySelectorAll('.tab').forEach(function(tb) { tb.classList.remove('active'); });
+      el.classList.add('active');
+      // Find matching tab button
+      document.querySelectorAll('.tab').forEach(function(tb) {
+        if (tb.getAttribute('onclick') && tb.getAttribute('onclick').indexOf("'" + t + "'") >= 0) tb.classList.add('active');
+      });
+    }
+  }
+})();
+
+// Auto-refresh every 5 minutes
+setTimeout(function() { location.reload(); }, 300000);
+</script>
+</body>
+</html>

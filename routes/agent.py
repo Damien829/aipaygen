@@ -2,7 +2,7 @@
 
 import json
 import re as _re
-from datetime import datetime
+from datetime import datetime, timezone
 
 from flask import Blueprint, request, jsonify, Response
 from model_router import call_model
@@ -136,7 +136,9 @@ def agent_challenge():
     """Step 1: Request a challenge to prove wallet ownership."""
     _ip = _get_client_ip()
     if not _check_identity_rate_limit(_ip):
-        return jsonify({"error": "rate_limited", "message": "Too many identity requests. Max 10/min."}), 429
+        resp = jsonify({"error": "rate_limited", "message": "Too many identity requests. Max 10/min."})
+        resp.headers["Retry-After"] = "60"
+        return resp, 429
     data = request.get_json() or {}
     wallet = data.get("wallet_address", "")
     if not wallet:
@@ -150,7 +152,9 @@ def agent_verify():
     """Step 2: Submit signed challenge to get JWT."""
     _ip = _get_client_ip()
     if not _check_identity_rate_limit(_ip):
-        return jsonify({"error": "rate_limited", "message": "Too many identity requests. Max 10/min."}), 429
+        resp = jsonify({"error": "rate_limited", "message": "Too many identity requests. Max 10/min."})
+        resp.headers["Retry-After"] = "60"
+        return resp, 429
     data = request.get_json() or {}
     nonce = data.get("nonce", "")
     signature = data.get("signature", "")
@@ -211,7 +215,7 @@ def agents_register():
 @agent_bp.route("/agents", methods=["GET"])
 def agents_list():
     agents = list_agents()
-    return jsonify({"agents": agents, "count": len(agents), "_meta": {"endpoint": "/agents", "ts": datetime.utcnow().isoformat() + "Z"}})
+    return jsonify({"agents": agents, "count": len(agents), "_meta": {"endpoint": "/agents", "ts": datetime.now(timezone.utc).isoformat() + "Z"}})
 
 
 @agent_bp.route("/agents/search", methods=["GET"])
@@ -476,3 +480,70 @@ def agent_stream_endpoint():
 
     return Response(generate(), mimetype="text/event-stream",
                     headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})
+
+
+# ── Specialist Agent Catch-All ────────────────────────────────────────────────
+
+_SPECIALIST_DOMAINS = {"finance", "legal", "marketing", "healthcare", "hr"}
+
+_SPECIALIST_CONTEXT = {
+    "finance": "You are a finance specialist agent. Focus on financial analysis, budgeting, investment, accounting, and economic topics.",
+    "legal": "You are a legal specialist agent. Focus on legal analysis, contract review, compliance, regulations, and policy topics.",
+    "marketing": "You are a marketing specialist agent. Focus on marketing strategy, branding, SEO, content marketing, social media, and growth topics.",
+    "healthcare": "You are a healthcare specialist agent. Focus on health information, medical research summaries, wellness, clinical workflows, and healthcare operations.",
+    "hr": "You are an HR specialist agent. Focus on human resources, recruitment, employee relations, compensation, training, and workplace policy topics.",
+}
+
+
+@agent_bp.route("/agent/<domain>/<action>", methods=["POST"])
+def specialist_agent(domain, action):
+    """Catch-all for specialist agent domains: finance, legal, marketing, healthcare, hr.
+
+    Delegates to the main ReAct agent with domain-specific context prepended to the task.
+    """
+    if domain not in _SPECIALIST_DOMAINS:
+        return jsonify({
+            "error": f"Unknown specialist domain '{domain}'",
+            "available_domains": sorted(_SPECIALIST_DOMAINS),
+        }), 404
+
+    from react_agent import ReActAgent, make_tool_handler
+    from agent_memory import memory_search, memory_set
+
+    data = request.get_json() or {}
+    task = data.get("task", "")
+    if not task:
+        return jsonify({"error": "task required", "hint": f'POST {{"task": "your {domain} question"}}'}), 400
+
+    # Prepend specialist context to the task
+    context = _SPECIALIST_CONTEXT[domain]
+    augmented_task = f"[{domain.upper()} SPECIALIST — {action}] {context}\n\nTask: {task}"
+
+    agent_id = data.get("agent_id", "")
+    max_cost = float(data.get("max_cost_usd", 1.0))
+    max_steps = min(int(data.get("max_steps", 10)), 20)
+    model = data.get("model", "auto")
+
+    tool_handler = make_tool_handler(
+        batch_handlers=BATCH_HANDLERS,
+        memory_search_fn=memory_search if agent_id else None,
+        memory_set_fn=memory_set if agent_id else None,
+        skills_db_path=_skills_db_path,
+        agent_id=agent_id,
+        skills_search_engine=_skills_engine,
+        call_model_fn=call_model,
+    )
+
+    memory_fns = {"search": memory_search, "set": memory_set} if agent_id else {}
+
+    agent = ReActAgent(
+        call_model_fn=call_model,
+        tool_handler_fn=tool_handler,
+        memory_fns=memory_fns,
+    )
+
+    result = agent.run(task=augmented_task, max_steps=max_steps, max_cost_usd=max_cost, model=model, agent_id=agent_id)
+    result["specialist_domain"] = domain
+    result["specialist_action"] = action
+    log_payment(f"/agent/{domain}/{action}", result.get("total_cost_usd", 0.05), request.remote_addr)
+    return jsonify(agent_response(result, f"/agent/{domain}/{action}"))

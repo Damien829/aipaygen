@@ -1,74 +1,20 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="canonical" href="https://aipaygen.com/pricing">
-<title>Pricing — AiPayGen</title>
-<meta name="description" content="AiPayGen pricing: 250 tools, 1 free call + 2 with ads/day, $0.25 trial credits. Pay-per-call from $0.01 or monthly plans from $9/mo. Save 40% with subscriptions.">
-<link rel="icon" href="/static/icon.png" type="image/png">
-<link rel="apple-touch-icon" href="/static/icon.png">
+{% extends "base.html" %}
+
+{% block title %}Pricing{% endblock %}
+{% block description %}Start free, upgrade when you need more. 250+ AI tools, 27 models. Free tier: 1 AI call per day, no account needed. Plans from $4.99/mo. Credit packs from $0.50.{% endblock %}
+{% block canonical %}/pricing{% endblock %}
+
+{% block head %}
 <meta property="og:type" content="website">
 <meta property="og:title" content="Pricing — AiPayGen">
-<meta property="og:description" content="Start free with 3 calls/day. $0.25 trial credits available. 250 tools from $0.01-$0.50/call. Pay-per-call, no subscription.">
+<meta property="og:description" content="Start free with 1 AI call per day. No account needed. 250+ tools, 27 AI models. Plans from $4.99/mo. Credit packs from $0.50.">
 <meta property="og:url" content="https://aipaygen.com/pricing">
 <meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Pricing — AiPayGen">
-<meta name="twitter:description" content="250 AI tools. $0.25 trial credits. 1 free call + 2 with ads/day. From $0.01-$0.50/call. No subscription.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<meta name="twitter:description" content="Start free, upgrade when you need more. 250+ AI tools. 27 models. Plans from $4.99/mo.">
 <style>
-  :root {
-    --bg: #020408;
-    --bg2: #070d14;
-    --green: #00ff9d;
-    --blue: #0088ff;
-    --cyan: #00d4ff;
-    --text: #c8d8e8;
-    --muted: #4a6070;
-    --border: #0d2030;
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'IBM Plex Mono', monospace;
-    overflow-x: hidden;
-    padding-top: 70px;
-  }
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(0,136,255,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,136,255,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
-  body::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
-    pointer-events: none;
-    z-index: 1;
-  }
-  .noise {
-    position: fixed; inset: -200%; width: 400%; height: 400%;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-    opacity: 0.4; pointer-events: none; z-index: 0;
-    animation: noise 0.5s steps(1) infinite;
-  }
-  @keyframes noise {
-    0%,100%{transform:translate(0,0)}10%{transform:translate(-2%,-2%)}20%{transform:translate(2%,2%)}30%{transform:translate(-1%,1%)}40%{transform:translate(1%,-1%)}50%{transform:translate(-2%,1%)}60%{transform:translate(2%,-1%)}70%{transform:translate(-1%,2%)}80%{transform:translate(1%,1%)}90%{transform:translate(-1%,-2%)}
-  }
-  .content { position: relative; z-index: 2; }
-
-  /* Hero */
+  /* Pricing Hero */
   .pricing-hero {
     text-align: center;
     padding: 80px 24px 40px;
@@ -82,12 +28,19 @@
     margin-bottom: 16px;
     letter-spacing: -0.02em;
   }
-  .pricing-hero h1 .accent { color: var(--green); }
+  .pricing-hero h1 .accent { color: var(--accent, #00ff9d); }
   .pricing-hero p {
     font-family: 'IBM Plex Sans', sans-serif;
     font-size: 1.1rem;
-    color: var(--muted);
+    color: var(--muted, #4a6070);
     line-height: 1.7;
+    font-weight: 300;
+  }
+  .pricing-hero .hero-sub {
+    font-size: 0.95rem;
+    margin-top: 8px;
+    color: var(--muted, #4a6070);
+    font-family: 'IBM Plex Sans', sans-serif;
     font-weight: 300;
   }
 
@@ -96,21 +49,21 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 1px;
-    background: var(--border);
-    border: 1px solid var(--border);
+    background: var(--border, #0d2030);
+    border: 1px solid var(--border, #0d2030);
     max-width: 1200px;
     margin: 40px auto 80px;
   }
   .tier {
-    background: var(--bg);
+    background: var(--bg, #020408);
     padding: 48px 28px;
     text-align: center;
     position: relative;
     transition: background 0.25s;
   }
-  .tier:hover { background: var(--bg2); }
+  .tier:hover { background: var(--bg2, #070d14); }
   .tier.featured {
-    border: 1px solid var(--green);
+    border: 1px solid var(--accent, #00ff9d);
     margin: -1px;
     z-index: 1;
   }
@@ -118,7 +71,7 @@
     position: absolute;
     top: 0; left: 50%;
     transform: translate(-50%, -50%);
-    background: var(--green);
+    background: var(--accent, #00ff9d);
     color: #000;
     font-size: 0.7rem;
     font-weight: 700;
@@ -129,10 +82,17 @@
   .tier-name {
     font-size: 0.85rem;
     font-weight: 600;
-    color: var(--muted);
+    color: var(--muted, #4a6070);
     text-transform: uppercase;
     letter-spacing: 0.15em;
     margin-bottom: 16px;
+  }
+  .tier-tagline {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.82rem;
+    color: var(--accent, #00ff9d);
+    margin-bottom: 12px;
+    font-weight: 400;
   }
   .tier-price {
     font-size: 3rem;
@@ -141,16 +101,16 @@
     line-height: 1;
     margin-bottom: 4px;
   }
-  .tier-price .currency { font-size: 1.4rem; vertical-align: super; color: var(--green); }
+  .tier-price .currency { font-size: 1.4rem; vertical-align: super; color: var(--accent, #00ff9d); }
   .tier-price .period {
     font-size: 0.85rem;
     font-weight: 300;
-    color: var(--muted);
+    color: var(--muted, #4a6070);
   }
   .tier-desc {
     font-family: 'IBM Plex Sans', sans-serif;
     font-size: 0.85rem;
-    color: var(--muted);
+    color: var(--muted, #4a6070);
     margin: 12px 0 24px;
     font-weight: 300;
   }
@@ -162,24 +122,24 @@
   .tier-features li {
     font-family: 'IBM Plex Sans', sans-serif;
     font-size: 0.85rem;
-    color: var(--text);
+    color: var(--text, #c8d8e8);
     padding: 8px 0;
     border-bottom: 1px solid rgba(13,32,48,0.6);
     font-weight: 300;
   }
   .tier-features li::before {
     content: '\2713';
-    color: var(--green);
+    color: var(--accent, #00ff9d);
     font-weight: 700;
     margin-right: 10px;
   }
   .tier-features li.disabled {
-    color: var(--muted);
+    color: var(--muted, #4a6070);
     opacity: 0.5;
   }
   .tier-features li.disabled::before {
     content: '\2014';
-    color: var(--muted);
+    color: var(--muted, #4a6070);
   }
   .btn-tier {
     display: inline-block;
@@ -193,7 +153,7 @@
     width: 100%;
   }
   .btn-tier.primary {
-    background: var(--green);
+    background: var(--accent, #00ff9d);
     color: #000;
   }
   .btn-tier.primary:hover {
@@ -203,8 +163,8 @@
   }
   .btn-tier.secondary {
     background: transparent;
-    color: var(--green);
-    border: 1px solid var(--green);
+    color: var(--accent, #00ff9d);
+    border: 1px solid var(--accent, #00ff9d);
   }
   .btn-tier.secondary:hover {
     background: rgba(0,255,157,0.08);
@@ -212,8 +172,8 @@
   }
   .btn-tier.outline {
     background: transparent;
-    color: var(--cyan);
-    border: 1px solid var(--cyan);
+    color: var(--cyan, #00d4ff);
+    border: 1px solid var(--cyan, #00d4ff);
   }
   .btn-tier.outline:hover {
     background: rgba(0,212,255,0.08);
@@ -236,17 +196,17 @@
     font-size: 0.7rem;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: var(--muted);
+    color: var(--muted, #4a6070);
   }
   .section-header-line {
     flex: 1;
     height: 1px;
-    background: var(--border);
+    background: var(--border, #0d2030);
   }
   .compare-table {
     width: 100%;
     border-collapse: collapse;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border, #0d2030);
   }
   .compare-table th,
   .compare-table td {
@@ -255,10 +215,10 @@
     font-family: 'IBM Plex Sans', sans-serif;
     font-size: 0.85rem;
     font-weight: 300;
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid var(--border, #0d2030);
   }
   .compare-table th {
-    background: var(--bg2);
+    background: var(--bg2, #070d14);
     color: #fff;
     font-family: 'IBM Plex Mono', monospace;
     font-weight: 600;
@@ -268,14 +228,14 @@
   }
   .compare-table td:first-child {
     text-align: left;
-    color: var(--text);
+    color: var(--text, #c8d8e8);
     font-weight: 400;
   }
   .compare-table tr:hover td {
-    background: var(--bg2);
+    background: var(--bg2, #070d14);
   }
-  .compare-table .check { color: var(--green); font-weight: 700; }
-  .compare-table .dash { color: var(--muted); opacity: 0.5; }
+  .compare-table .check { color: var(--accent, #00ff9d); font-weight: 700; }
+  .compare-table .dash { color: var(--muted, #4a6070); opacity: 0.5; }
 
   /* Payment methods */
   .methods-section {
@@ -287,15 +247,15 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 1px;
-    background: var(--border);
-    border: 1px solid var(--border);
+    background: var(--border, #0d2030);
+    border: 1px solid var(--border, #0d2030);
   }
   .method-card {
-    background: var(--bg);
+    background: var(--bg, #020408);
     padding: 32px 24px;
     transition: background 0.25s;
   }
-  .method-card:hover { background: var(--bg2); }
+  .method-card:hover { background: var(--bg2, #070d14); }
   .method-card h3 {
     font-size: 0.95rem;
     font-weight: 600;
@@ -306,14 +266,9 @@
   .method-card p {
     font-family: 'IBM Plex Sans', sans-serif;
     font-size: 0.85rem;
-    color: var(--muted);
+    color: var(--muted, #4a6070);
     line-height: 1.7;
     font-weight: 300;
-  }
-  .method-card code {
-    font-family: 'IBM Plex Mono', monospace;
-    color: var(--cyan);
-    font-size: 0.82rem;
   }
 
   /* FAQ */
@@ -323,12 +278,12 @@
     padding: 0 24px 100px;
   }
   .faq-item {
-    border: 1px solid var(--border);
+    border: 1px solid var(--border, #0d2030);
     margin-bottom: -1px;
-    background: var(--bg);
+    background: var(--bg, #020408);
     transition: background 0.2s;
   }
-  .faq-item:hover { background: var(--bg2); }
+  .faq-item:hover { background: var(--bg2, #070d14); }
   .faq-q {
     display: block;
     width: 100%;
@@ -347,7 +302,7 @@
   }
   .faq-q::after {
     content: '+';
-    color: var(--green);
+    color: var(--accent, #00ff9d);
     font-size: 1.2rem;
     font-weight: 700;
     transition: transform 0.2s;
@@ -360,12 +315,12 @@
     padding: 0 24px 20px;
     font-family: 'IBM Plex Sans', sans-serif;
     font-size: 0.88rem;
-    color: var(--muted);
+    color: var(--muted, #4a6070);
     line-height: 1.7;
     font-weight: 300;
   }
   .faq-a a {
-    color: var(--cyan);
+    color: var(--cyan, #00d4ff);
     text-decoration: none;
   }
   .faq-a a:hover { text-decoration: underline; }
@@ -375,7 +330,7 @@
   .bottom-cta {
     text-align: center;
     padding: 60px 24px 80px;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--border, #0d2030);
     max-width: 700px;
     margin: 0 auto;
   }
@@ -388,7 +343,7 @@
   .bottom-cta p {
     font-family: 'IBM Plex Sans', sans-serif;
     font-size: 0.95rem;
-    color: var(--muted);
+    color: var(--muted, #4a6070);
     margin-bottom: 28px;
     font-weight: 300;
   }
@@ -428,7 +383,7 @@
     .pricing-hero p { font-size: 0.95rem; }
     .tiers { grid-template-columns: 1fr; margin: 32px 16px 60px; }
     .tier { padding: 36px 24px; }
-    .tier.featured { margin: 0; border: 1px solid var(--green); }
+    .tier.featured { margin: 0; border: 1px solid var(--accent, #00ff9d); }
     .compare-table { font-size: 0.78rem; }
     .compare-table th, .compare-table td { padding: 10px 8px; }
     .compare-section { padding: 0 16px 60px; }
@@ -436,7 +391,6 @@
     .faq-section { padding: 0 16px 60px; }
     .bottom-cta { padding: 48px 16px 60px; }
     .bottom-cta .btn-group a { width: 100%; text-align: center; min-height: 48px; }
-    body > nav div[style*="display:flex;gap:24px"] { display: none !important; }
   }
   @media (max-width: 480px) {
     .pricing-hero h1 { font-size: clamp(1.5rem, 5vw, 2rem); }
@@ -444,98 +398,40 @@
     .compare-table { display: block; overflow-x: auto; }
   }
 </style>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4228277826827893" crossorigin="anonymous"></script>
-</head>
-<body>
-<div class="noise"></div>
-{{ nav|safe }}
-<div class="content">
+{% endblock %}
+
+{% block content %}
 
 <!-- Hero -->
 <section class="pricing-hero fade-up">
-  <h1>Simple, <span class="accent">transparent</span> pricing</h1>
-  <p>Start free. Pay only for what you use, or subscribe monthly and save 40%.</p>
+  <h1>Start <span class="accent">free</span>, upgrade when you need more</h1>
+  <p>250+ AI tools. 27 models. One simple price. Try everything free &mdash; no account needed.</p>
+  <p class="hero-sub">Write, research, translate, code, analyze, scrape &mdash; all from one place.</p>
 </section>
 
 <!-- Billing Toggle -->
 <div style="display:flex;justify-content:center;margin-bottom:24px;gap:0">
-  <button id="toggle-payperuse" onclick="showBilling('payperuse')" style="padding:12px 28px;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:600;background:var(--green);color:#000;border:1px solid var(--green);cursor:pointer;letter-spacing:0.05em;transition:all 0.2s">Pay per call</button>
-  <button id="toggle-monthly" onclick="showBilling('monthly')" style="padding:12px 28px;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:600;background:transparent;color:var(--green);border:1px solid var(--green);cursor:pointer;letter-spacing:0.05em;transition:all 0.2s;position:relative">Monthly plans <span style="position:absolute;top:-10px;right:-10px;background:#f59e0b;color:#000;font-size:0.6rem;padding:2px 6px;font-weight:700;letter-spacing:0.05em">SAVE 40%</span></button>
+  <button id="toggle-monthly" onclick="showBilling('monthly')" style="padding:12px 28px;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:600;background:var(--accent,#00ff9d);color:#000;border:1px solid var(--accent,#00ff9d);cursor:pointer;letter-spacing:0.05em;transition:all 0.2s">Monthly Plans</button>
+  <button id="toggle-credits" onclick="showBilling('credits')" style="padding:12px 28px;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:600;background:transparent;color:var(--accent,#00ff9d);border:1px solid var(--accent,#00ff9d);cursor:pointer;letter-spacing:0.05em;transition:all 0.2s">Credit Packs</button>
 </div>
 
 <!-- Monthly Plans -->
-<div id="billing-monthly" style="display:none">
-  <div class="tiers" style="grid-template-columns:repeat(3,1fr)">
-    <!-- Hobby -->
-    <div class="tier fade-up">
-      <div class="tier-name">Hobby</div>
-      <div class="tier-price"><span class="currency">$</span>9 <span class="period">/mo</span></div>
-      <div class="tier-desc">500 calls/month &middot; $0.018/call</div>
-      <ul class="tier-features">
-        <li>500 AI calls per month</li>
-        <li>All 250 tools unlocked</li>
-        <li>15 frontier models</li>
-        <li>Email support</li>
-        <li>MCP &amp; REST access</li>
-        <li class="disabled">Priority models</li>
-        <li class="disabled">Webhook alerts</li>
-      </ul>
-      <a href="/subscribe" class="btn-tier secondary">Start Hobby &rarr;</a>
-    </div>
-
-    <!-- Pro Monthly -->
-    <div class="tier featured fade-up delay-1">
-      <div class="tier-badge">Most Popular</div>
-      <div class="tier-name">Pro</div>
-      <div class="tier-price"><span class="currency">$</span>29 <span class="period">/mo</span></div>
-      <div class="tier-desc">2,000 calls/month &middot; $0.0145/call</div>
-      <ul class="tier-features">
-        <li>2,000 AI calls per month</li>
-        <li>All 250 tools unlocked</li>
-        <li>Priority models (Claude Sonnet)</li>
-        <li>Webhook alerts</li>
-        <li>API key rotation</li>
-        <li>Priority support</li>
-        <li>No daily spend limit</li>
-      </ul>
-      <a href="/subscribe" class="btn-tier primary">Start Pro &rarr;</a>
-    </div>
-
-    <!-- Business -->
-    <div class="tier fade-up delay-2">
-      <div class="tier-name">Business</div>
-      <div class="tier-price"><span class="currency">$</span>79 <span class="period">/mo</span></div>
-      <div class="tier-desc">10,000 calls/month &middot; $0.0079/call</div>
-      <ul class="tier-features">
-        <li>10,000 AI calls per month</li>
-        <li>All 250 tools unlocked</li>
-        <li>Premium models (Claude Opus)</li>
-        <li>Webhook alerts</li>
-        <li>Custom tool scoping</li>
-        <li>Dedicated support</li>
-        <li>No daily spend limit</li>
-      </ul>
-      <a href="/subscribe" class="btn-tier secondary">Start Business &rarr;</a>
-    </div>
-  </div>
-</div>
-
-<!-- Pay Per Call Tiers (existing) -->
-<div id="billing-payperuse">
+<div id="billing-monthly">
 <div class="tiers">
   <!-- Free -->
   <div class="tier fade-up">
     <div class="tier-name">Free</div>
+    <div class="tier-tagline">Try everything free</div>
     <div class="tier-price"><span class="currency">$</span>0</div>
-    <div class="tier-desc">3 calls/day &middot; no credit card</div>
+    <div class="tier-desc">Watch an ad, get a free call &middot; No account needed</div>
     <ul class="tier-features">
-      <li>3 API calls per day</li>
-      <li>Basic AI tools (ask, summarize, translate)</li>
-      <li>15 frontier models</li>
-      <li>No API key needed</li>
-      <li>MCP &amp; REST access</li>
-      <li class="disabled">Premium tools (research, scraping)</li>
-      <li class="disabled">Priority support</li>
+      <li>Watch ad = 1 free AI call</li>
+      <li>Access all 250+ tools</li>
+      <li>27 AI models (ChatGPT, Claude, Gemini&hellip;)</li>
+      <li>No sign-up or credit card</li>
+      <li>Use from any device</li>
+      <li class="disabled">Unlimited calls</li>
+      <li class="disabled">Priority speed</li>
     </ul>
     <a href="/try" class="btn-tier secondary">Try Free &mdash; No Sign Up</a>
   </div>
@@ -543,368 +439,362 @@
   <!-- Starter -->
   <div class="tier fade-up delay-1">
     <div class="tier-name">Starter</div>
-    <div class="tier-price"><span class="currency">$</span>1 <span class="period">prepaid</span></div>
-    <div class="tier-desc">~160 calls &middot; $0.006/call</div>
+    <div class="tier-tagline">For regular users</div>
+    <div class="tier-price"><span class="currency">$</span>4.99 <span class="period">/mo</span></div>
+    <div class="tier-desc">All 250+ tools &middot; All 27 AI models</div>
     <ul class="tier-features">
-      <li>~160 prepaid API calls</li>
-      <li>All 250 tools unlocked</li>
-      <li>15 frontier models</li>
-      <li>Personal API key</li>
-      <li>MCP &amp; REST access</li>
-      <li class="disabled">Priority support</li>
-      <li class="disabled">Higher rate limits</li>
+      <li>Unlimited AI calls</li>
+      <li>All 250+ tools unlocked</li>
+      <li>27 AI models to choose from</li>
+      <li>Save your history &amp; favorites</li>
+      <li>Email support</li>
+      <li class="disabled">Priority speed</li>
+      <li class="disabled">Workflow builder</li>
     </ul>
-    <a href="/buy-credits" class="btn-tier primary">$1 to Start &rarr;</a>
+    <a href="/subscribe" class="btn-tier primary">Get Starter &rarr;</a>
   </div>
 
   <!-- Pro -->
   <div class="tier featured fade-up delay-2">
     <div class="tier-badge">Most Popular</div>
     <div class="tier-name">Pro</div>
-    <div class="tier-price"><span class="currency">$</span>5 <span class="period">prepaid</span></div>
-    <div class="tier-desc">~830 calls &middot; $0.006/call</div>
+    <div class="tier-tagline">For power users</div>
+    <div class="tier-price"><span class="currency">$</span>19.99 <span class="period">/mo</span></div>
+    <div class="tier-desc">Pro tools &middot; Workflow builder &middot; Priority speed</div>
     <ul class="tier-features">
-      <li>~830 prepaid API calls</li>
-      <li>All 250 tools unlocked</li>
-      <li>15 frontier models</li>
-      <li>Personal API key</li>
-      <li>MCP &amp; REST access</li>
+      <li>Everything in Starter</li>
+      <li>Priority speed on all requests</li>
+      <li>Pro AI models (Claude Sonnet)</li>
+      <li>Workflow builder &mdash; chain tools together</li>
+      <li>Save &amp; reuse custom workflows</li>
       <li>Priority support</li>
-      <li>600 req/min rate limit</li>
+      <li>Higher usage limits</li>
     </ul>
-    <a href="/buy-credits" class="btn-tier primary">Buy Credits &rarr;</a>
+    <a href="/subscribe" class="btn-tier primary">Get Pro &rarr;</a>
   </div>
 
-  <!-- Team -->
+  <!-- Enterprise -->
   <div class="tier fade-up delay-3">
-    <div class="tier-badge" style="background:var(--cyan);color:#000">Best Value</div>
-    <div class="tier-name">Team</div>
-    <div class="tier-price"><span class="currency">$</span>20 <span class="period">prepaid</span></div>
-    <div class="tier-desc">~3,300 calls &middot; $0.006/call &middot; bulk discount</div>
+    <div class="tier-badge" style="background:var(--cyan,#00d4ff);color:#000">Best Value</div>
+    <div class="tier-name">Enterprise</div>
+    <div class="tier-tagline">For teams</div>
+    <div class="tier-price"><span class="currency">$</span>49.99 <span class="period">/mo</span></div>
+    <div class="tier-desc">Higher limits &middot; Batch processing &middot; Dedicated support</div>
     <ul class="tier-features">
-      <li>~3,300 prepaid API calls</li>
-      <li>All 250 tools unlocked</li>
-      <li>15 frontier models</li>
-      <li>Personal API key</li>
-      <li>MCP &amp; REST access</li>
-      <li>Premium support</li>
-      <li>600 req/min rate limit</li>
+      <li>Everything in Pro</li>
+      <li>Premium AI models (Claude Opus)</li>
+      <li>Batch processing &mdash; run 20 tasks at once</li>
+      <li>Custom tool configurations</li>
+      <li>Dedicated support</li>
+      <li>No daily usage limits</li>
+      <li>Team-ready features</li>
     </ul>
-    <a href="/buy-credits" class="btn-tier primary">Buy Credits &rarr;</a>
+    <a href="/subscribe" class="btn-tier primary">Get Enterprise &rarr;</a>
   </div>
 </div>
-</div><!-- end billing-payperuse -->
+</div>
 
-<!-- Feature comparison -->
+<!-- Credit Packs -->
+<div id="billing-credits" style="display:none">
+<div class="tiers">
+  <!-- $0.50 -->
+  <div class="tier fade-up">
+    <div class="tier-name">Micro</div>
+    <div class="tier-tagline">Just want to try it</div>
+    <div class="tier-price"><span class="currency">$</span>0.50</div>
+    <div class="tier-desc">~80 calls &middot; Perfect for trying out</div>
+    <ul class="tier-features">
+      <li>~80 AI calls</li>
+      <li>All 250+ tools unlocked</li>
+      <li>27 AI models</li>
+      <li>Credits never expire</li>
+      <li>Use anytime, at your pace</li>
+      <li class="disabled">Priority support</li>
+      <li class="disabled">Higher speed</li>
+    </ul>
+    <a href="/buy-credits" class="btn-tier secondary">Buy $0.50 &rarr;</a>
+  </div>
+
+  <!-- $5 -->
+  <div class="tier fade-up delay-1">
+    <div class="tier-name">Starter Pack</div>
+    <div class="tier-tagline">For regular use</div>
+    <div class="tier-price"><span class="currency">$</span>5</div>
+    <div class="tier-desc">~830 calls &middot; Great value</div>
+    <ul class="tier-features">
+      <li>~830 AI calls</li>
+      <li>All 250+ tools unlocked</li>
+      <li>27 AI models</li>
+      <li>Credits never expire</li>
+      <li>Use anytime, at your pace</li>
+      <li class="disabled">Priority support</li>
+      <li class="disabled">Higher speed</li>
+    </ul>
+    <a href="/buy-credits" class="btn-tier primary">Buy $5 &rarr;</a>
+  </div>
+
+  <!-- $20 -->
+  <div class="tier featured fade-up delay-2">
+    <div class="tier-badge">Most Popular</div>
+    <div class="tier-name">Pro Pack</div>
+    <div class="tier-tagline">For power users</div>
+    <div class="tier-price"><span class="currency">$</span>20</div>
+    <div class="tier-desc">~3,300 calls &middot; Bulk discount</div>
+    <ul class="tier-features">
+      <li>~3,300 AI calls</li>
+      <li>All 250+ tools unlocked</li>
+      <li>27 AI models</li>
+      <li>Credits never expire</li>
+      <li>Use anytime, at your pace</li>
+      <li>Priority support</li>
+      <li>Higher speed</li>
+    </ul>
+    <a href="/buy-credits" class="btn-tier primary">Buy $20 &rarr;</a>
+  </div>
+
+  <!-- $50 -->
+  <div class="tier fade-up delay-3">
+    <div class="tier-badge" style="background:var(--cyan,#00d4ff);color:#000">Best Value</div>
+    <div class="tier-name">Team Pack</div>
+    <div class="tier-tagline">Best rate per call</div>
+    <div class="tier-price"><span class="currency">$</span>50</div>
+    <div class="tier-desc">~8,300 calls &middot; Lowest price</div>
+    <ul class="tier-features">
+      <li>~8,300 AI calls</li>
+      <li>All 250+ tools unlocked</li>
+      <li>27 AI models</li>
+      <li>Credits never expire</li>
+      <li>Use anytime, at your pace</li>
+      <li>Premium support</li>
+      <li>Higher speed</li>
+    </ul>
+    <a href="/buy-credits" class="btn-tier primary">Buy $50 &rarr;</a>
+  </div>
+</div>
+</div><!-- end billing-credits -->
+
+<!-- Ad: Inline mid-page -->
+<div class="ad-slot ad-slot-inline" aria-label="Advertisement">
+  <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-4228277826827893" data-ad-slot="6374231109" data-ad-format="auto" data-full-width-responsive="true"></ins>
+  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+</div>
+
+<!-- What's Included -->
 <section class="compare-section">
   <div class="section-header">
-    <span>// Feature Comparison</span>
+    <span>// What You Get</span>
     <div class="section-header-line"></div>
   </div>
   <table class="compare-table">
     <thead>
       <tr>
-        <th style="text-align:left">Feature</th>
+        <th style="text-align:left">What's included</th>
         <th>Free</th>
-        <th>Starter ($1)</th>
-        <th>Pro ($5)</th>
-        <th>Team ($20)</th>
+        <th>Starter ($4.99)</th>
+        <th>Pro ($19.99)</th>
+        <th>Enterprise ($49.99)</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td>API calls</td>
-        <td>3/day</td>
-        <td>~160 prepaid</td>
-        <td>~830 prepaid</td>
-        <td>~3,300 prepaid</td>
+        <td>AI calls</td>
+        <td>1/day</td>
+        <td class="check">Unlimited</td>
+        <td class="check">Unlimited</td>
+        <td class="check">Unlimited</td>
       </tr>
       <tr>
-        <td>AI tools available</td>
-        <td>Basic set</td>
-        <td class="check">All 250</td>
-        <td class="check">All 250</td>
-        <td class="check">All 250</td>
+        <td>AI tools</td>
+        <td class="check">All 250+</td>
+        <td class="check">All 250+</td>
+        <td class="check">All 250+</td>
+        <td class="check">All 250+</td>
       </tr>
       <tr>
-        <td>Models (Claude, GPT-4o, Gemini, etc.)</td>
-        <td class="check">15 models</td>
-        <td class="check">15 models</td>
-        <td class="check">15 models</td>
-        <td class="check">15 models</td>
+        <td>AI models (ChatGPT, Claude, Gemini&hellip;)</td>
+        <td class="check">27 models</td>
+        <td class="check">27 models</td>
+        <td class="check">27 models</td>
+        <td class="check">27 models</td>
       </tr>
       <tr>
-        <td>MCP &amp; REST access</td>
-        <td class="check">&#10003;</td>
-        <td class="check">&#10003;</td>
+        <td>Workflow builder</td>
+        <td class="dash">&mdash;</td>
+        <td class="dash">&mdash;</td>
         <td class="check">&#10003;</td>
         <td class="check">&#10003;</td>
       </tr>
       <tr>
-        <td>Agent builder</td>
+        <td>Save history &amp; favorites</td>
         <td class="dash">&mdash;</td>
         <td class="check">&#10003;</td>
         <td class="check">&#10003;</td>
         <td class="check">&#10003;</td>
       </tr>
       <tr>
-        <td>Memory &amp; context</td>
-        <td class="dash">&mdash;</td>
-        <td class="check">&#10003;</td>
-        <td class="check">&#10003;</td>
-        <td class="check">&#10003;</td>
-      </tr>
-      <tr>
-        <td>Rate limit</td>
-        <td>60/min</td>
-        <td>120/min</td>
-        <td>600/min</td>
-        <td>600/min</td>
+        <td>Speed</td>
+        <td>Standard</td>
+        <td>Standard</td>
+        <td class="check">Priority</td>
+        <td class="check">Priority</td>
       </tr>
       <tr>
         <td>Support</td>
         <td>Community</td>
-        <td>Community</td>
+        <td>Email</td>
         <td>Priority</td>
-        <td>Premium</td>
+        <td>Dedicated</td>
       </tr>
       <tr>
-        <td>Cost per call</td>
-        <td class="check">Free</td>
-        <td>$0.006</td>
-        <td>$0.006</td>
-        <td>$0.006</td>
-      </tr>
-      <tr>
-        <td>Credits expire?</td>
-        <td class="check">N/A</td>
-        <td class="check">Never</td>
-        <td class="check">Never</td>
-        <td class="check">Never</td>
+        <td>Batch processing (run many at once)</td>
+        <td class="dash">&mdash;</td>
+        <td class="dash">&mdash;</td>
+        <td class="dash">&mdash;</td>
+        <td class="check">20 at once</td>
       </tr>
     </tbody>
   </table>
-  <p style="color:var(--muted);font-size:0.78rem;margin-top:12px;font-family:'IBM Plex Sans',sans-serif">Paid tiers use prepaid credits, not daily limits. Call counts are approximate &mdash; actual usage varies by tool (see per-tool pricing below).</p>
+  <p style="color:var(--muted,#4a6070);font-size:0.78rem;margin-top:12px;font-family:'IBM Plex Sans',sans-serif">Monthly plans include the subscription fee. Individual calls cost $0.01&ndash;$0.50 depending on the tool. Credit packs are also available for pay-as-you-go.</p>
 </section>
 
-<!-- Per-Tool Pricing -->
+<!-- What Things Cost -->
 <section class="compare-section">
   <div class="section-header">
-    <span>// Per-Tool Pricing</span>
+    <span>// What Things Cost</span>
     <div class="section-header-line"></div>
   </div>
   <table class="compare-table">
     <thead>
       <tr>
-        <th style="text-align:left">Tool</th>
-        <th>Cost / Call</th>
-        <th>Calls per $1</th>
+        <th style="text-align:left">What you want to do</th>
+        <th>Cost per use</th>
+        <th>Uses per $1</th>
         <th>Category</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td>sentiment</td>
+        <td>Ask AI a question</td>
         <td class="check">$0.01</td>
         <td>100</td>
+        <td>Chat</td>
+      </tr>
+      <tr>
+        <td>Analyze sentiment or keywords</td>
+        <td class="check">$0.006</td>
+        <td>166</td>
         <td>Analysis</td>
       </tr>
       <tr>
-        <td>summarize</td>
+        <td>Summarize text</td>
         <td>$0.02</td>
         <td>50</td>
         <td>Writing</td>
       </tr>
       <tr>
-        <td>translate</td>
+        <td>Translate to any language</td>
         <td>$0.02</td>
         <td>50</td>
         <td>Writing</td>
       </tr>
       <tr>
-        <td>scrape (any site)</td>
+        <td>Scrape a website</td>
         <td>$0.03</td>
         <td>33</td>
         <td>Data</td>
       </tr>
       <tr>
-        <td>code</td>
+        <td>Generate or fix code</td>
         <td>$0.05</td>
         <td>20</td>
-        <td>Dev</td>
+        <td>Coding</td>
       </tr>
       <tr>
-        <td>research</td>
+        <td>Deep research (multiple sources)</td>
         <td>$0.15</td>
         <td>6</td>
-        <td>Premium</td>
-      </tr>
-      <tr>
-        <td>ask / chat</td>
-        <td class="check">$0.01</td>
-        <td>250</td>
-        <td>General</td>
-      </tr>
-      <tr>
-        <td>classify / keywords</td>
-        <td class="check">$0.006</td>
-        <td>166</td>
-        <td>Analysis</td>
+        <td>Research</td>
       </tr>
     </tbody>
   </table>
-  <p style="color:var(--muted);font-size:0.78rem;margin-top:12px;font-family:'IBM Plex Sans',sans-serif">Most tools cost $0.01&ndash;$0.02 per call. Premium tools (research, vision, scraping) cost more because they use multiple model calls or external APIs.</p>
+  <p style="color:var(--muted,#4a6070);font-size:0.78rem;margin-top:12px;font-family:'IBM Plex Sans',sans-serif">Most things cost just 1&ndash;2 cents. Research and scraping cost more because they pull from multiple sources behind the scenes.</p>
 </section>
 
-<!-- vs Direct API Costs -->
+<!-- Save vs Doing It Yourself -->
 <section class="compare-section">
   <div class="section-header">
-    <span>// vs Direct API Costs &mdash; 5-10x Cheaper</span>
+    <span>// How Much You Save</span>
     <div class="section-header-line"></div>
   </div>
   <table class="compare-table">
     <thead>
       <tr>
         <th style="text-align:left">Task</th>
-        <th>AiPayGen Cost</th>
-        <th>Direct API Cost</th>
-        <th>Savings</th>
+        <th>AiPayGen</th>
+        <th>Paying AI Companies Directly</th>
+        <th>You Save</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td>Summarize a document (~1K tokens)</td>
+        <td>Summarize a document</td>
         <td class="check">$0.02</td>
         <td>$0.10&ndash;$0.15</td>
         <td class="check">5&ndash;7x cheaper</td>
       </tr>
       <tr>
-        <td>Sentiment analysis</td>
+        <td>Analyze sentiment</td>
         <td class="check">$0.01</td>
         <td>$0.05&ndash;$0.08</td>
         <td class="check">5&ndash;8x cheaper</td>
       </tr>
       <tr>
-        <td>Code generation</td>
+        <td>Generate code</td>
         <td class="check">$0.05</td>
         <td>$0.30&ndash;$0.50</td>
         <td class="check">6&ndash;10x cheaper</td>
       </tr>
       <tr>
-        <td>Translation</td>
+        <td>Translate text</td>
         <td class="check">$0.02</td>
         <td>$0.10&ndash;$0.15</td>
         <td class="check">5&ndash;7x cheaper</td>
       </tr>
       <tr>
-        <td>Deep research (multi-source)</td>
+        <td>Deep research</td>
         <td class="check">$0.15</td>
         <td>$1.00&ndash;$2.00</td>
         <td class="check">7&ndash;13x cheaper</td>
       </tr>
       <tr>
-        <td>Web scrape + extract</td>
+        <td>Scrape a website</td>
         <td class="check">$0.03</td>
         <td>$0.15&ndash;$0.30</td>
         <td class="check">5&ndash;10x cheaper</td>
       </tr>
     </tbody>
   </table>
-  <p style="color:var(--muted);font-size:0.78rem;margin-top:12px;font-family:'IBM Plex Sans',sans-serif">Direct API costs include OpenAI GPT-4o, Anthropic Claude, or Google Gemini at standard per-token rates for equivalent tasks. AiPayGen batches, caches, and routes to the most cost-effective model automatically.</p>
+  <p style="color:var(--muted,#4a6070);font-size:0.78rem;margin-top:12px;font-family:'IBM Plex Sans',sans-serif">AiPayGen automatically picks the best model for your task and caches results, so you pay less than going directly to OpenAI, Anthropic, or Google.</p>
 </section>
 
-<!-- Competitor Comparison -->
-<section class="compare-section">
-  <div class="section-header">
-    <span>// AiPayGen vs Alternatives</span>
-    <div class="section-header-line"></div>
-  </div>
-  <table class="compare-table">
-    <thead>
-      <tr>
-        <th style="text-align:left">Feature</th>
-        <th style="color:var(--green)">AiPayGen</th>
-        <th>OpenRouter</th>
-        <th>BlockRun</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Tools available</td>
-        <td class="check">250 tools</td>
-        <td>0 (models only)</td>
-        <td>600+</td>
-      </tr>
-      <tr>
-        <td>Pay-per-use</td>
-        <td class="check">Yes ($0.006/call)</td>
-        <td>Yes (per token)</td>
-        <td class="dash">Monthly plans</td>
-      </tr>
-      <tr>
-        <td>MCP support</td>
-        <td class="check">Native</td>
-        <td class="dash">No</td>
-        <td class="dash">No</td>
-      </tr>
-      <tr>
-        <td>Free tier</td>
-        <td class="check">3 calls/day</td>
-        <td class="dash">No</td>
-        <td class="dash">No</td>
-      </tr>
-      <tr>
-        <td>Tool chaining</td>
-        <td class="check">Yes ($prev.result)</td>
-        <td class="dash">No</td>
-        <td class="dash">No</td>
-      </tr>
-      <tr>
-        <td>Crypto payments</td>
-        <td class="check">x402 USDC</td>
-        <td class="dash">No</td>
-        <td>Crypto</td>
-      </tr>
-      <tr>
-        <td>Minimum purchase</td>
-        <td class="check">$1</td>
-        <td>Varies</td>
-        <td>$20/mo</td>
-      </tr>
-      <tr>
-        <td>Agent memory</td>
-        <td class="check">Built-in</td>
-        <td class="dash">No</td>
-        <td class="dash">No</td>
-      </tr>
-      <tr>
-        <td>Credits expire?</td>
-        <td class="check">Never</td>
-        <td>N/A</td>
-        <td>Monthly reset</td>
-      </tr>
-    </tbody>
-  </table>
-</section>
-
-<!-- Payment Methods -->
+<!-- How to Pay -->
 <section class="methods-section">
   <div class="section-header">
-    <span>// Three Ways to Pay</span>
+    <span>// Ways to Pay</span>
     <div class="section-header-line"></div>
   </div>
   <div class="methods-grid">
     <div class="method-card">
-      <h3>API Key (Stripe)</h3>
-      <p>Buy a prepaid key with a credit card. Use it in any request via <code>Authorization: Bearer apk_xxx</code>. Top up anytime. Instant activation.</p>
+      <h3>Credit Card (Stripe)</h3>
+      <p>Subscribe to a monthly plan or buy a credit pack with any major credit or debit card. Instant access. Cancel anytime.</p>
     </div>
     <div class="method-card">
-      <h3>x402 USDC (Crypto)</h3>
-      <p>Native HTTP 402 micropayments. Send USDC on Base, Solana, or Stellar. No account needed &mdash; pay per request via the <a href="https://x402.org" target="_blank" rel="noopener noreferrer">x402 V2 protocol</a>.</p>
+      <h3>Credit Packs</h3>
+      <p>Buy credits from $0.50 to $50. Use them whenever you want &mdash; credits never expire. No subscription required. Top up anytime.</p>
     </div>
     <div class="method-card">
       <h3>Free Tier</h3>
-      <p>No auth needed. 3 calls/day per IP. Just POST JSON to any endpoint. Perfect for testing and prototyping before committing.</p>
+      <p>No payment needed. Get 1 free AI call every day. No account, no credit card, no strings attached. Just use it.</p>
     </div>
   </div>
 </section>
@@ -917,82 +807,100 @@
   </div>
 
   <div class="faq-item open">
-    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What is x402?</button>
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Is it really free?</button>
     <div class="faq-a">
-      x402 V2 is an open payment protocol based on HTTP status code 402 (Payment Required). When you call an API endpoint, the server returns a 402 response with a <code>PAYMENT-REQUIRED</code> header containing payment instructions &mdash; wallet address, amount, and supported chains (Base, Solana, Stellar). Your agent signs a USDC payment and attaches it as a <code>PAYMENT-SIGNATURE</code> header. The server verifies via a facilitator and returns your result instantly. It enables truly autonomous, pay-per-use AI without subscriptions or API keys.
+      Yes. You get 1 free AI call every single day, forever. No sign-up, no credit card, no account needed. Just open the app and use it. When you need more, upgrade to a plan or buy a credit pack.
     </div>
   </div>
 
   <div class="faq-item">
-    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">How does billing work?</button>
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What can I do with the free trial?</button>
     <div class="faq-a">
-      AiPayGen uses prepaid credits, not subscriptions. Buy credits with a credit card via Stripe &mdash; you get an API key and each call deducts from your balance. No recurring charges, no surprise bills. You also get a 20% bulk discount when your balance is $2 or more. Alternatively, use x402 USDC micropayments to pay per call with crypto &mdash; no API key needed.
+      Anything! Your $0.25 trial credits give you ~40 full-powered calls to all 250+ tools and all 27 AI models. Summarize a document, translate text, generate code, research a topic, analyze data, scrape a website &mdash; whatever you need. Or watch an ad for 1 free call anytime.
     </div>
   </div>
 
   <div class="faq-item">
-    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Can I get a refund?</button>
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Do I need a credit card?</button>
     <div class="faq-a">
-      Prepaid API credits are non-refundable once purchased, as they are consumed per-call. If you experience billing issues or errors, contact us at hello@aipaygen.com and we will work with you to resolve it.
+      Not for the free tier. You can use 1 call per day without any payment info or account. If you want more calls, you can subscribe to a monthly plan or buy a credit pack starting at just $0.50 using any major credit or debit card.
     </div>
   </div>
 
   <div class="faq-item">
-    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What happens when my balance runs out?</button>
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">How do credits work?</button>
     <div class="faq-a">
-      Your API key still works, but calls return a 402 Payment Required response until you top up. You can fall back to the free tier (3 calls/day) without any key. No data is lost &mdash; your memory, skills, and configurations persist.
+      Credits are like a prepaid balance. Buy a credit pack ($0.50, $5, $20, or $50), and each time you use a tool, a small amount is deducted &mdash; most tools cost just 1&ndash;2 cents per use. Credits never expire, so you can use them at your own pace. No recurring charges, no surprise bills.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What happens when my credits run out?</button>
+    <div class="faq-a">
+      You can still use the free tier (1 call/day). Nothing is lost &mdash; your saved history, favorites, and settings all stay. Just top up with a new credit pack or subscribe to a plan whenever you're ready.
     </div>
   </div>
 
   <div class="faq-item">
     <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Do credits expire?</button>
     <div class="faq-a">
-      No. Prepaid credits never expire. Use them at your own pace.
+      No. Credits never expire. Use them whenever you want, at your own pace.
     </div>
   </div>
 
   <div class="faq-item">
-    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What models are available?</button>
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What AI models can I use?</button>
     <div class="faq-a">
-      15 frontier models across 7 providers: Claude (Anthropic), GPT-4o &amp; GPT-4o-mini (OpenAI), Gemini 2.0 &amp; 1.5 (Google), DeepSeek V3 &amp; R1, Llama 3, Mistral, and more. Pass a <code>model</code> parameter to choose, or let AiPayGen route automatically for best results.
+      All 27 models from 7 providers: ChatGPT (GPT-4o, GPT-4o-mini), Claude (Anthropic), Gemini (Google), DeepSeek, Llama, Mistral, and more. AiPayGen automatically picks the best model for your task, or you can choose yourself.
     </div>
   </div>
 
   <div class="faq-item">
-    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Is there a subscription?</button>
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What's the difference between a plan and credits?</button>
     <div class="faq-a">
-      Yes! We now offer monthly plans starting at $9/mo (Hobby), $29/mo (Pro), and $79/mo (Business). Subscribers save up to 40% vs pay-per-call and get priority models, webhook alerts, and higher limits. You can also still use prepaid credits if you prefer &mdash; buy once, use whenever, no recurring charges. <a href="/subscribe">View monthly plans</a>.
+      Monthly plans ($4.99&ndash;$49.99/mo) give you a subscription with extra features like priority speed, workflow builder, and dedicated support. Credit packs ($0.50&ndash;$50) are one-time purchases with no commitment &mdash; just prepaid balance that never expires. Both give you access to all 250+ tools and 27 models.
     </div>
   </div>
 
   <div class="faq-item">
-    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Can I sell my own API on AiPayGen?</button>
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Can I cancel anytime?</button>
     <div class="faq-a">
-      Yes. AiPayGen has a <a href="/sell">seller marketplace</a> where you can list your own API endpoints. You set the price, we handle payments and distribution. Sellers receive 85% of revenue, paid out in USDC.
+      Yes. Monthly plans can be canceled anytime &mdash; no contracts, no cancellation fees. Credit packs are one-time purchases and never expire, so there's nothing to cancel.
     </div>
   </div>
 
   <div class="faq-item">
-    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">How do I get started?</button>
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">I'm a developer &mdash; do you have an API?</button>
     <div class="faq-a">
-      The fastest way: <code>pip install aipaygen-mcp</code> and add it to your MCP client (Claude Code, Cursor, Windsurf). You get 1 free call + 2 with ads per day with no sign-up. For higher volume, <a href="/buy-credits">buy credits</a> to get an API key.
+      Yes! AiPayGen has a full REST API and supports MCP (Model Context Protocol) for integration with AI coding tools. Check out our <a href="/docs">API documentation</a> or install the Python package with <code>pip install aipaygen-mcp</code>. The same pricing applies &mdash; free tier, credit packs, and monthly plans all work with the API.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">How is AiPayGen different from OpenRouter?</button>
+    <div class="faq-a">
+      OpenRouter gives you raw access to LLMs &mdash; you send prompts, you get completions. AiPayGen gives you <strong>250+ pre-built tools</strong> with structured output. Call <code>/research</code>, <code>/scrape_website</code>, <code>/sentiment</code>, <code>/translate</code> and get structured JSON results back &mdash; no prompt engineering needed. AiPayGen also has MCP support (works natively in Claude Code, Cursor, and Windsurf), agent-to-agent messaging, persistent memory, a 500+ API catalog, and x402 crypto micropayments for autonomous agents. Think of it as: OpenRouter = model access. AiPayGen = pre-built AI tools with smart model routing under the hood.
+    </div>
+  </div>
+
+  <div class="faq-item">
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Can I choose which AI model to use?</button>
+    <div class="faq-a">
+      Yes. Every tool accepts an optional <code>model</code> parameter. If you don't specify one, AiPayGen's router automatically picks the best model for the task (e.g., Haiku for simple summarization, Sonnet for research synthesis). You can override this anytime: <code>"model": "gpt-4o"</code> or <code>"model": "claude-sonnet"</code>.
     </div>
   </div>
 </section>
 
 <!-- Bottom CTA -->
 <section class="bottom-cta">
-  <h2>Ready to build?</h2>
-  <p>Start with 1 free call + 2 with ads today. No credit card required.</p>
+  <h2>Ready to try it?</h2>
+  <p>Get $0.25 free trial credits (~40 calls). No credit card needed. Upgrade whenever you want.</p>
   <div class="btn-group">
-    <a href="/try" style="background:transparent;color:var(--green);border:1px solid var(--green)">Try Free</a>
-    <a href="/buy-credits" style="background:var(--green);color:#000">Buy Credits &rarr;</a>
-    <a href="/subscribe" style="background:transparent;color:var(--cyan);border:1px solid var(--cyan)">Monthly Plans &rarr;</a>
+    <a href="/try" style="background:transparent;color:var(--accent,#00ff9d);border:1px solid var(--accent,#00ff9d)">Try Free</a>
+    <a href="/buy-credits" style="background:var(--accent,#00ff9d);color:#000">Buy Credits &rarr;</a>
+    <a href="/subscribe" style="background:transparent;color:var(--cyan,#00d4ff);border:1px solid var(--cyan,#00d4ff)">Monthly Plans &rarr;</a>
   </div>
 </section>
-
-</div>
-{{ footer|safe }}
 
 <!-- FAQ Schema for SEO -->
 <script type="application/ld+json">
@@ -1000,37 +908,42 @@
   "@context": "https://schema.org",
   "@type": "FAQPage",
   "mainEntity": [
-    {"@type": "Question", "name": "What is x402?", "acceptedAnswer": {"@type": "Answer", "text": "x402 V2 is an open payment protocol based on HTTP status code 402 (Payment Required). It enables autonomous pay-per-use AI without subscriptions or API keys using USDC on Base, Solana, or Stellar."}},
-    {"@type": "Question", "name": "How does billing work?", "acceptedAnswer": {"@type": "Answer", "text": "AiPayGen uses prepaid credits, not subscriptions. Buy credits with a credit card via Stripe. Each call deducts from your balance. No recurring charges. You also get a 20% bulk discount when your balance is $2 or more."}},
-    {"@type": "Question", "name": "Do credits expire?", "acceptedAnswer": {"@type": "Answer", "text": "No. Prepaid credits never expire. Use them at your own pace."}},
-    {"@type": "Question", "name": "What models are available?", "acceptedAnswer": {"@type": "Answer", "text": "15 frontier models across 7 providers: Claude (Anthropic), GPT-4o (OpenAI), Gemini 2.0 (Google), DeepSeek V3, Llama 3, Mistral, and more."}},
-    {"@type": "Question", "name": "Is there a subscription?", "acceptedAnswer": {"@type": "Answer", "text": "Yes! Monthly plans from $9/mo (Hobby), $29/mo (Pro), $79/mo (Business). Save up to 40% vs pay-per-call. You can also use prepaid credits with no recurring charges."}},
-    {"@type": "Question", "name": "How do I get started?", "acceptedAnswer": {"@type": "Answer", "text": "Install with pip install aipaygen-mcp and add to your MCP client. You get 1 free call + 2 with ads per day with no sign-up. For higher volume, buy credits to get an API key."}}
+    {"@type": "Question", "name": "Is it really free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. You get 1 free AI call every day, forever. No sign-up, no credit card, no account needed."}},
+    {"@type": "Question", "name": "What can I do with the free trial?", "acceptedAnswer": {"@type": "Answer", "text": "Anything. Your $0.25 trial credits give you ~40 calls to all 250+ tools and 27 AI models. Summarize, translate, code, research, scrape — full-powered calls. Or watch an ad for 1 free call anytime."}},
+    {"@type": "Question", "name": "Do I need a credit card?", "acceptedAnswer": {"@type": "Answer", "text": "Not for the free tier. You can use 1 call per day with no payment info. For more, plans start at $4.99/mo or credit packs from $0.50."}},
+    {"@type": "Question", "name": "How do credits work?", "acceptedAnswer": {"@type": "Answer", "text": "Credits are prepaid balance. Buy a pack ($0.50–$50), each tool use deducts 1–2 cents. Credits never expire. No recurring charges."}},
+    {"@type": "Question", "name": "Do credits expire?", "acceptedAnswer": {"@type": "Answer", "text": "No. Credits never expire. Use them at your own pace."}},
+    {"@type": "Question", "name": "What AI models can I use?", "acceptedAnswer": {"@type": "Answer", "text": "27 models from 7 providers: ChatGPT, Claude, Gemini, DeepSeek, Llama, Mistral, and more."}},
+    {"@type": "Question", "name": "Can I cancel anytime?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Monthly plans can be canceled anytime. Credit packs are one-time purchases that never expire."}},
+    {"@type": "Question", "name": "How is AiPayGen different from OpenRouter?", "acceptedAnswer": {"@type": "Answer", "text": "OpenRouter gives you raw LLM access. AiPayGen gives you 250+ pre-built tools with structured output — call /research, /scrape_website, /sentiment and get JSON back. Plus MCP support, agent messaging, persistent memory, and x402 crypto payments."}},
+    {"@type": "Question", "name": "Can I choose which AI model to use?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Every tool accepts an optional model parameter. The router auto-picks the best model for each task, or you can override with any of the 27 available models."}}
   ]
 }
 </script>
+{% endblock %}
+
+{% block scripts %}
 <script>
 function showBilling(mode) {
-  var payperuse = document.getElementById('billing-payperuse');
   var monthly = document.getElementById('billing-monthly');
-  var btnPay = document.getElementById('toggle-payperuse');
+  var credits = document.getElementById('billing-credits');
   var btnMon = document.getElementById('toggle-monthly');
-  if (mode === 'monthly') {
-    payperuse.style.display = 'none';
-    monthly.style.display = 'block';
-    btnMon.style.background = 'var(--green)';
-    btnMon.style.color = '#000';
-    btnPay.style.background = 'transparent';
-    btnPay.style.color = 'var(--green)';
-  } else {
-    payperuse.style.display = 'block';
+  var btnCred = document.getElementById('toggle-credits');
+  if (mode === 'credits') {
     monthly.style.display = 'none';
-    btnPay.style.background = 'var(--green)';
-    btnPay.style.color = '#000';
+    credits.style.display = 'block';
+    btnCred.style.background = 'var(--accent,#00ff9d)';
+    btnCred.style.color = '#000';
     btnMon.style.background = 'transparent';
-    btnMon.style.color = 'var(--green)';
+    btnMon.style.color = 'var(--accent,#00ff9d)';
+  } else {
+    monthly.style.display = 'block';
+    credits.style.display = 'none';
+    btnMon.style.background = 'var(--accent,#00ff9d)';
+    btnMon.style.color = '#000';
+    btnCred.style.background = 'transparent';
+    btnCred.style.color = 'var(--accent,#00ff9d)';
   }
 }
 </script>
-</body>
-</html>
+{% endblock %}

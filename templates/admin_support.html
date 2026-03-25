@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Support Tickets — Admin</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+    background: #020408;
+    color: #c8d8e8;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #0d2030;
+  }
+  .top-bar h1 {
+    font-size: 1.4rem;
+    color: #fff;
+    font-weight: 700;
+  }
+  .top-bar h1 span { color: #00ff9d; }
+  .stats {
+    display: flex;
+    gap: 16px;
+    font-size: 0.85rem;
+  }
+  .stats .stat {
+    padding: 6px 14px;
+    border-radius: 6px;
+    background: #070d14;
+    border: 1px solid #0d2030;
+  }
+  .stats .stat b { color: #00ff9d; }
+  .nav-links {
+    font-size: 0.75rem;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .nav-links a {
+    color: #4a6070;
+    text-decoration: none;
+  }
+  .nav-links a:hover { color: #00ff9d; }
+  .filters {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .filters button {
+    padding: 6px 16px;
+    border-radius: 6px;
+    border: 1px solid #0d2030;
+    background: #070d14;
+    color: #c8d8e8;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .filters button:hover,
+  .filters button.active {
+    border-color: #00ff9d;
+    color: #00ff9d;
+  }
+  .ticket {
+    background: #070d14;
+    border: 1px solid #0d2030;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    transition: border-color 0.15s;
+  }
+  .ticket:hover { border-color: #1c3040; }
+  .ticket-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    cursor: pointer;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .ticket-header:hover { background: rgba(0,255,157,0.02); }
+  .ticket-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 4px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+  }
+  .badge-open { background: rgba(210,153,34,0.15); color: #d29922; border: 1px solid rgba(210,153,34,0.3); }
+  .badge-replied { background: rgba(0,255,157,0.1); color: #00ff9d; border: 1px solid rgba(0,255,157,0.25); }
+  .badge-closed { background: rgba(74,96,112,0.2); color: #4a6070; border: 1px solid rgba(74,96,112,0.3); }
+  .ticket-name {
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ticket-email {
+    color: #4a6070;
+    font-size: 0.8rem;
+  }
+  .ticket-preview {
+    color: #8b949e;
+    font-size: 0.82rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 400px;
+  }
+  .ticket-time {
+    color: #4a6070;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .ticket-body {
+    display: none;
+    padding: 0 18px 18px;
+    border-top: 1px solid #0d2030;
+  }
+  .ticket.expanded .ticket-body { display: block; }
+  .meta-row {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    padding: 12px 0;
+    font-size: 0.8rem;
+    color: #4a6070;
+    border-bottom: 1px solid #0a1520;
+  }
+  .meta-row span b { color: #8b949e; }
+  .message-block {
+    padding: 14px 0;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #c8d8e8;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .existing-reply {
+    margin-top: 12px;
+    padding: 14px;
+    background: rgba(0,255,157,0.04);
+    border: 1px solid rgba(0,255,157,0.15);
+    border-radius: 6px;
+  }
+  .existing-reply h4 {
+    color: #00ff9d;
+    font-size: 0.8rem;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .existing-reply p {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: #c8d8e8;
+    white-space: pre-wrap;
+  }
+  .reply-form {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .reply-form textarea {
+    width: 100%;
+    background: #020408;
+    border: 1px solid #0d2030;
+    border-radius: 6px;
+    padding: 12px;
+    color: #c8d8e8;
+    font-family: inherit;
+    font-size: 0.85rem;
+    resize: vertical;
+    min-height: 80px;
+  }
+  .reply-form textarea:focus {
+    outline: none;
+    border-color: #00ff9d;
+  }
+  .reply-form input[type="text"] {
+    width: 100%;
+    background: #020408;
+    border: 1px solid #0d2030;
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: #c8d8e8;
+    font-family: inherit;
+    font-size: 0.82rem;
+  }
+  .reply-form input[type="text"]:focus {
+    outline: none;
+    border-color: #0088ff;
+  }
+  .reply-form label {
+    font-size: 0.78rem;
+    color: #4a6070;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .btn-reply {
+    align-self: flex-start;
+    padding: 8px 24px;
+    background: #00ff9d;
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-reply:hover {
+    background: #fff;
+    transform: translateY(-1px);
+  }
+  .btn-reply:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+  .btn-close-ticket {
+    padding: 8px 18px;
+    background: transparent;
+    color: #4a6070;
+    border: 1px solid #0d2030;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    margin-left: 8px;
+  }
+  .btn-close-ticket:hover { border-color: #4a6070; color: #c8d8e8; }
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #00ff9d;
+    color: #000;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.3s;
+    z-index: 999;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: #4a6070;
+    font-size: 0.9rem;
+  }
+  .refresh-note {
+    text-align: center;
+    font-size: 0.7rem;
+    color: #2a3a48;
+    margin-top: 24px;
+    padding-bottom: 40px;
+  }
+
+  @media (max-width: 768px) {
+    body { padding: 12px; }
+    .ticket-preview { display: none; }
+    .ticket-header { padding: 12px 14px; }
+    .ticket-body { padding: 0 14px 14px; }
+    .meta-row { gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <h1><span>Support</span> Tickets</h1>
+  <div class="stats">
+    <div class="stat">Total: <b id="stat-total">0</b></div>
+    <div class="stat">Open: <b id="stat-open">0</b></div>
+  </div>
+  <div class="nav-links">
+    <a href="/admin/funnel">Funnel</a>
+    <a href="/admin/showcase">Showcase</a>
+    <a href="/admin/changelog">Changelog</a>
+    <a href="/status">Status</a>
+  </div>
+</div>
+
+<div class="filters">
+  <button class="active" data-filter="all">All</button>
+  <button data-filter="open">Open</button>
+  <button data-filter="replied">Replied</button>
+  <button data-filter="closed">Closed</button>
+</div>
+
+<div id="tickets-list"></div>
+<div class="refresh-note">Auto-refreshes every 30 seconds</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  var allTickets = [];
+  var currentFilter = 'all';
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    var div = document.createElement('div');
+    div.appendChild(document.createTextNode(str));
+    return div.textContent;
+  }
+
+  function getAdminKey() {
+    return localStorage.getItem('admin_key') || '';
+  }
+
+  function showToast(msg) {
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function() { t.classList.remove('show'); }, 2500);
+  }
+
+  function createTextEl(tag, text, className, styles) {
+    var el = document.createElement(tag);
+    el.textContent = text;
+    if (className) el.className = className;
+    if (styles) Object.assign(el.style, styles);
+    return el;
+  }
+
+  function createTicketEl(t) {
+    var ticket = document.createElement('div');
+    ticket.className = 'ticket';
+    ticket.id = 'ticket-' + t.id;
+
+    // Header
+    var header = document.createElement('div');
+    header.className = 'ticket-header';
+    header.addEventListener('click', function() { ticket.classList.toggle('expanded'); });
+
+    var info = document.createElement('div');
+    info.className = 'ticket-info';
+
+    var badgeClass = t.status === 'open' ? 'badge-open' : t.status === 'replied' ? 'badge-replied' : 'badge-closed';
+    info.appendChild(createTextEl('span', t.status, 'badge ' + badgeClass));
+    info.appendChild(createTextEl('span', t.name || 'Anonymous', 'ticket-name'));
+    info.appendChild(createTextEl('span', t.email, 'ticket-email'));
+
+    var preview = (t.message || '').substring(0, 80) + ((t.message || '').length > 80 ? '...' : '');
+    info.appendChild(createTextEl('span', preview, 'ticket-preview'));
+
+    header.appendChild(info);
+
+    var timeStr = '#' + t.id + ' \u00B7 ' + new Date(t.created_at + 'Z').toLocaleString();
+    header.appendChild(createTextEl('span', timeStr, 'ticket-time'));
+
+    ticket.appendChild(header);
+
+    // Body
+    var body = document.createElement('div');
+    body.className = 'ticket-body';
+
+    // Meta row
+    var meta = document.createElement('div');
+    meta.className = 'meta-row';
+    var emailMeta = document.createElement('span');
+    emailMeta.appendChild(createTextEl('b', 'Email: '));
+    emailMeta.appendChild(document.createTextNode(t.email));
+    meta.appendChild(emailMeta);
+
+    var ipMeta = document.createElement('span');
+    ipMeta.appendChild(createTextEl('b', 'IP: '));
+    ipMeta.appendChild(document.createTextNode(t.ip || 'N/A'));
+    meta.appendChild(ipMeta);
+
+    var uaMeta = document.createElement('span');
+    uaMeta.appendChild(createTextEl('b', 'UA: '));
+    uaMeta.appendChild(document.createTextNode((t.user_agent || '').substring(0, 60)));
+    meta.appendChild(uaMeta);
+
+    body.appendChild(meta);
+
+    // Message
+    body.appendChild(createTextEl('div', t.message, 'message-block'));
+
+    // Existing reply
+    if (t.reply) {
+      var replyDiv = document.createElement('div');
+      replyDiv.className = 'existing-reply';
+      var replyTime = t.replied_at ? new Date(t.replied_at + 'Z').toLocaleString() : 'N/A';
+      replyDiv.appendChild(createTextEl('h4', 'Admin Reply (' + replyTime + ')'));
+      replyDiv.appendChild(createTextEl('p', t.reply));
+      if (t.admin_notes) {
+        replyDiv.appendChild(createTextEl('p', 'Notes: ' + t.admin_notes, '', {
+          marginTop: '8px', color: '#4a6070', fontSize: '0.78rem'
+        }));
+      }
+      body.appendChild(replyDiv);
+    }
+
+    // Reply form
+    var form = document.createElement('div');
+    form.className = 'reply-form';
+
+    form.appendChild(createTextEl('label', 'Reply'));
+
+    var textarea = document.createElement('textarea');
+    textarea.placeholder = 'Type your reply...';
+    textarea.value = t.reply || '';
+    form.appendChild(textarea);
+
+    form.appendChild(createTextEl('label', 'Admin Notes (internal)'));
+
+    var notesInput = document.createElement('input');
+    notesInput.type = 'text';
+    notesInput.placeholder = 'Internal notes...';
+    notesInput.value = t.admin_notes || '';
+    form.appendChild(notesInput);
+
+    var btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:8px;align-items:center;margin-top:4px';
+
+    var replyBtn = document.createElement('button');
+    replyBtn.className = 'btn-reply';
+    replyBtn.textContent = 'Send Reply';
+    replyBtn.addEventListener('click', function() {
+      sendReply(t.id, textarea, notesInput, replyBtn);
+    });
+    btnRow.appendChild(replyBtn);
+
+    if (t.status !== 'closed') {
+      var closeBtn = document.createElement('button');
+      closeBtn.className = 'btn-close-ticket';
+      closeBtn.textContent = 'Close';
+      closeBtn.addEventListener('click', function() {
+        closeTicket(t.id, textarea);
+      });
+      btnRow.appendChild(closeBtn);
+    }
+
+    form.appendChild(btnRow);
+    body.appendChild(form);
+    ticket.appendChild(body);
+
+    return ticket;
+  }
+
+  function renderTickets() {
+    var container = document.getElementById('tickets-list');
+    container.textContent = '';
+
+    var filtered = currentFilter === 'all'
+      ? allTickets
+      : allTickets.filter(function(t) { return t.status === currentFilter; });
+
+    if (filtered.length === 0) {
+      var label = currentFilter === 'all' ? '' : currentFilter + ' ';
+      container.appendChild(createTextEl('div', 'No ' + label + 'tickets', 'empty-state'));
+      return;
+    }
+
+    filtered.forEach(function(t) {
+      container.appendChild(createTicketEl(t));
+    });
+  }
+
+  function loadTickets() {
+    fetch('/support/tickets', {
+      headers: { 'X-Admin-Key': getAdminKey() }
+    })
+    .then(function(res) {
+      if (!res.ok) throw new Error('Unauthorized');
+      return res.json();
+    })
+    .then(function(data) {
+      allTickets = data.tickets || [];
+      document.getElementById('stat-total').textContent = data.total || 0;
+      document.getElementById('stat-open').textContent = data.open || 0;
+      renderTickets();
+    })
+    .catch(function() {
+      var container = document.getElementById('tickets-list');
+      container.textContent = '';
+      container.appendChild(createTextEl('div', 'Failed to load tickets. Check admin auth.', 'empty-state'));
+    });
+  }
+
+  function sendReply(id, textarea, notesInput, btn) {
+    var reply = textarea.value.trim();
+    var notes = notesInput.value.trim();
+    if (!reply) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+
+    fetch('/support/tickets/' + id + '/reply', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': getAdminKey()
+      },
+      body: JSON.stringify({ reply: reply, admin_notes: notes })
+    })
+    .then(function(res) {
+      if (!res.ok) throw new Error('Failed');
+      showToast('Reply sent!');
+      loadTickets();
+    })
+    .catch(function() {
+      showToast('Error sending reply');
+      btn.disabled = false;
+      btn.textContent = 'Send Reply';
+    });
+  }
+
+  function closeTicket(id, textarea) {
+    fetch('/support/tickets/' + id + '/reply', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Admin-Key': getAdminKey()
+      },
+      body: JSON.stringify({ reply: textarea.value || '(closed)', admin_notes: 'Closed by admin' })
+    })
+    .then(function() {
+      showToast('Ticket closed');
+      loadTickets();
+    })
+    .catch(function() {
+      showToast('Error closing ticket');
+    });
+  }
+
+  // Filter buttons
+  document.querySelectorAll('.filters button').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      currentFilter = btn.getAttribute('data-filter');
+      document.querySelectorAll('.filters button').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+      renderTickets();
+    });
+  });
+
+  // Initial load + auto-refresh
+  loadTickets();
+  setInterval(loadTickets, 30000);
+})();
+</script>
+<div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:24px;padding:16px;background:#0d1117;border:1px solid #1c2333;border-radius:12px">
+  <a href="/admin/analytics" style="color:#a5b4fc;font-size:0.85rem;text-decoration:none">Analytics</a>
+  <a href="/admin/funnel" style="color:#a5b4fc;font-size:0.85rem;text-decoration:none">Funnel</a>
+  <a href="/admin/support" style="color:#00ff9d;font-weight:600;font-size:0.85rem;text-decoration:none">Support Tickets</a>
+  <a href="/admin/showcase" style="color:#a5b4fc;font-size:0.85rem;text-decoration:none">Showcase</a>
+  <a href="/admin/export" style="color:#a5b4fc;font-size:0.85rem;text-decoration:none">Export CSV</a>
+  <a href="/status" style="color:#a5b4fc;font-size:0.85rem;text-decoration:none">Status</a>
+</div>
+</body>
+</html>

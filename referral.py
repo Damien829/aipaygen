@@ -3,13 +3,17 @@ import sqlite3
 import uuid
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "referral.db")
 
 
 def _conn():
     c = sqlite3.connect(DB_PATH)
+    c.execute("PRAGMA journal_mode=WAL")
+    c.execute("PRAGMA synchronous=NORMAL")
+    c.execute("PRAGMA cache_size=-8000")
+    c.execute("PRAGMA temp_store=MEMORY")
     c.row_factory = sqlite3.Row
     return c
 
@@ -56,7 +60,7 @@ COMMISSION_RATE = 0.10  # 10% of referred purchase
 
 
 def register_referral_agent(agent_id: str, label: str = None, api_key: str = None) -> dict:
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         existing = c.execute("SELECT * FROM ref_agents WHERE agent_id=?", (agent_id,)).fetchone()
         if existing:
@@ -77,7 +81,7 @@ def register_referral_agent(agent_id: str, label: str = None, api_key: str = Non
 
 def record_click(agent_id: str, ip: str, path: str, user_agent: str = "") -> str:
     click_id = str(uuid.uuid4())
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         # Ensure agent exists
         c.execute(
@@ -99,7 +103,7 @@ def record_conversion(agent_id: str, event_type: str, amount_usd: float = 0.0,
     """Record a conversion (purchase, signup). Credits commission to referring agent's API key."""
     commission = round(amount_usd * COMMISSION_RATE, 4)
     conv_id = str(uuid.uuid4())
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         c.execute(
             "INSERT INTO ref_conversions (conv_id, agent_id, event_type, amount_usd, commission_usd, meta, created_at) "

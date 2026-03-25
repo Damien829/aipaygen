@@ -3,8 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Support — AiPayGen</title>
-<meta name="description" content="Get help with AiPayGen. Contact support, browse FAQs, or report a bug.">
+<link rel="canonical" href="https://aipaygen.com/support">
+<title>Help & Support — AiPayGen</title>
+<meta name="description" content="Need help with AiPayGen? Browse common questions, contact our team, or report an issue. We're here to help.">
+<meta property="og:title" content="Help & Support — AiPayGen">
+<meta property="og:description" content="Need help with AiPayGen? Browse common questions, contact our team, or report an issue.">
+<meta property="og:image" content="https://aipaygen.com/og-image.png">
+<meta property="og:url" content="https://aipaygen.com/support">
+<meta property="og:site_name" content="AiPayGen">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/static/icon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
@@ -69,7 +76,7 @@
   }
   h2:first-of-type { margin-top: 0; }
 
-  /* Contact */
+  /* Contact Form */
   .contact-card {
     background: var(--bg2);
     border: 1px solid var(--border);
@@ -82,28 +89,96 @@
     color: var(--text);
     line-height: 1.7;
     font-weight: 300;
+    margin-bottom: 20px;
   }
-  .contact-card a {
-    color: var(--cyan);
-    text-decoration: none;
+  .form-group {
+    margin-bottom: 16px;
   }
-  .contact-card a:hover { text-decoration: underline; }
-  .email-link {
+  .form-group label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .form-group input,
+  .form-group textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 12px 14px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 0.88rem;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--green);
+  }
+  .form-group textarea {
+    min-height: 120px;
+    resize: vertical;
+  }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .submit-btn {
     display: inline-block;
-    margin-top: 12px;
-    padding: 10px 24px;
+    padding: 12px 32px;
     background: var(--green);
     color: #000;
     font-weight: 700;
-    font-size: 0.85rem;
-    text-decoration: none;
+    font-size: 0.88rem;
+    font-family: 'IBM Plex Mono', monospace;
+    border: none;
+    cursor: pointer;
     letter-spacing: 0.03em;
     transition: all 0.2s;
   }
-  .email-link:hover {
+  .submit-btn:hover {
     background: #fff;
     transform: translateY(-2px);
     box-shadow: 0 8px 30px rgba(0,255,157,0.3);
+  }
+  .submit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  .form-success {
+    display: none;
+    padding: 20px;
+    background: rgba(0,255,157,0.06);
+    border: 1px solid rgba(0,255,157,0.2);
+    text-align: center;
+  }
+  .form-success h3 {
+    color: var(--green);
+    font-size: 1rem;
+    margin-bottom: 8px;
+  }
+  .form-success p {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.88rem;
+    color: var(--text);
+    font-weight: 300;
+    margin-bottom: 0;
+  }
+  .form-error {
+    display: none;
+    padding: 10px 14px;
+    background: rgba(248,81,73,0.08);
+    border: 1px solid rgba(248,81,73,0.2);
+    color: #f85149;
+    font-size: 0.82rem;
+    margin-bottom: 16px;
   }
 
   /* FAQ */
@@ -164,14 +239,6 @@
     line-height: 1.7;
     font-weight: 300;
   }
-  .bug-card code {
-    font-family: 'IBM Plex Mono', monospace;
-    color: var(--cyan);
-    font-size: 0.82rem;
-    background: rgba(0,212,255,0.08);
-    padding: 2px 6px;
-    border-radius: 4px;
-  }
 
   /* Links row */
   .links-row {
@@ -198,86 +265,182 @@
 
   @media (max-width: 768px) {
     .content { padding: 40px 16px 60px; }
+    .form-row { grid-template-columns: 1fr; }
   }
 </style>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4228277826827893" crossorigin="anonymous"></script>
 </head>
 <body>
 <div class="noise"></div>
 {{ nav|safe }}
 <div class="content">
 
-<h1>Get <span class="accent">Support</span></h1>
-<p class="subtitle">Questions, issues, or feature requests — we are here to help.</p>
+<h1>We're Here to <span class="accent">Help</span></h1>
+<p class="subtitle">Got a question? Something not working? We'll get you sorted out.</p>
 
-<!-- Contact -->
+<!-- Contact Form -->
 <h2>Contact Us</h2>
 <div class="contact-card">
-  <p>For questions, billing issues, or partnership inquiries, reach out via email. We typically respond within 24 hours.</p>
-  <a href="mailto:support@aipaygen.com" class="email-link">support@aipaygen.com</a>
+  <p>Send us a message and we'll get back to you within 24 hours.</p>
+  <div id="contact-form">
+    <div class="form-error" id="form-error"></div>
+    <div class="form-row">
+      <div class="form-group">
+        <label for="cf-name">Name</label>
+        <input type="text" id="cf-name" placeholder="Your name">
+      </div>
+      <div class="form-group">
+        <label for="cf-email">Email *</label>
+        <input type="email" id="cf-email" placeholder="you@example.com" required>
+      </div>
+    </div>
+    <div class="form-group">
+      <label for="cf-message">Message *</label>
+      <textarea id="cf-message" placeholder="How can we help?"></textarea>
+    </div>
+    <button class="submit-btn" id="cf-submit" onclick="submitTicket()">Send Message</button>
+  </div>
+  <div class="form-success" id="form-success">
+    <h3>Message Sent!</h3>
+    <p>Thanks for reaching out. We'll respond within 24 hours to the email you provided.</p>
+  </div>
 </div>
 
 <!-- FAQ -->
-<h2>Frequently Asked Questions</h2>
+<h2>Common Questions</h2>
 
 <div class="faq-item open">
+  <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Is AiPayGen free to use?</button>
+  <div class="faq-a">
+    Yes! You can <a href="/try">try any tool for free</a> with no sign-up. You also get free daily uses in the <a href="/playground">Playground</a>. For unlimited access, plans start at just $0.50.
+  </div>
+</div>
+
+<div class="faq-item">
+  <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">How do I get started?</button>
+  <div class="faq-a">
+    The easiest way is to open <a href="/try">the app</a> and start using tools right away. You can also <a href="/try">try tools on the website</a> or visit <a href="/get-key">get a key</a> to create a free account with $0.25 in credits — no credit card needed.
+  </div>
+</div>
+
+<div class="faq-item">
+  <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">How does billing work?</button>
+  <div class="faq-a">
+    AiPayGen uses simple prepaid credits — no subscriptions or surprise charges. Buy credits when you need them, and each tool use deducts a small amount from your balance. Credits never expire. See full details on the <a href="/pricing">pricing page</a>.
+  </div>
+</div>
+
+<div class="faq-item">
+  <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Something is not working. What should I do?</button>
+  <div class="faq-a">
+    First, check that you have credits remaining by visiting the <a href="/try">app</a>. If your balance is zero, you can <a href="/buy-credits">add more credits</a>. Still having trouble? Use the contact form above or email us at <a href="mailto:support@aipaygen.com">support@aipaygen.com</a>.
+  </div>
+</div>
+
+<div class="faq-item">
+  <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What AI tools are available?</button>
+  <div class="faq-a">
+    Over 250 tools including: text summarization, translation, writing, code generation, research, image analysis, web scraping, and much more. Browse the full list at <a href="/discover">the tool catalog</a>.
+  </div>
+</div>
+
+<div class="faq-item">
+  <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Can I use AiPayGen with other apps like Claude Code or Cursor?</button>
+  <div class="faq-a">
+    Yes! AiPayGen works with many popular AI tools. See the <a href="/docs">setup guide</a> for step-by-step instructions for your favorite app.
+  </div>
+</div>
+
+<div class="faq-item">
   <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">How do I get an API key?</button>
   <div class="faq-a">
-    Visit <a href="/get-key">/get-key</a> and enter your email address. You will receive a free API key with $0.25 trial credits instantly. No credit card required.
+    Visit the <a href="/get-key">Get Key</a> page to generate a free API key instantly. No credit card required — you get $0.25 in free credits to start.
   </div>
 </div>
 
 <div class="faq-item">
-  <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">My API key is not working. What do I do?</button>
+  <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What payment methods do you accept?</button>
   <div class="faq-a">
-    First, check your balance at <a href="/auth/status">/auth/status</a> by passing your key in the <code>X-API-Key</code> header. If your balance is zero, top up at <a href="/buy-credits">/buy-credits</a>. If you are still getting errors, email us with your <code>request_id</code> from the error response.
+    We accept crypto payments on Base (USDC) through the x402 protocol. You can add credits directly from the <a href="/try">app</a> or the <a href="/buy-credits">buy credits</a> page. See <a href="/pricing">pricing</a> for details.
   </div>
 </div>
 
-<div class="faq-item">
-  <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">How does billing and pricing work?</button>
-  <div class="faq-a">
-    AiPayGen uses prepaid credits, not subscriptions. Buy credits via Stripe and each call deducts from your balance. See full details on the <a href="/pricing">pricing page</a>. You can also pay per call with USDC via the x402 protocol.
-  </div>
-</div>
-
-<div class="faq-item">
-  <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What are the rate limits?</button>
-  <div class="faq-a">
-    Free tier: 3 calls/day, 60 requests/minute. Paid tier: unlimited calls (until balance runs out), 120-600 requests/minute depending on your tier. See the <a href="/pricing">pricing page</a> for details.
-  </div>
-</div>
-
-<div class="faq-item">
-  <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Can I use AiPayGen with Claude Code, Cursor, or other MCP clients?</button>
-  <div class="faq-a">
-    Yes. Install via <code>pip install aipaygen-mcp</code> or connect to the remote MCP server at <code>https://mcp.aipaygen.com/mcp</code>. See the <a href="/docs">documentation</a> for setup instructions for each client.
-  </div>
-</div>
-
-<!-- Report a Bug -->
-<h2>Report a Bug</h2>
+<!-- Report a Problem -->
+<h2>Report a Problem</h2>
 <div class="bug-card">
-  <p>Found something broken? Please email <a href="mailto:support@aipaygen.com" style="color:var(--cyan)">support@aipaygen.com</a> with:</p>
+  <p>Something not working right? We want to know! Use the contact form above or email <a href="mailto:support@aipaygen.com" style="color:var(--cyan)">support@aipaygen.com</a> and include:</p>
   <ul style="margin:12px 0 0 20px;font-family:'IBM Plex Sans',sans-serif;font-size:0.88rem;color:var(--text);line-height:2">
-    <li>The endpoint you called (e.g. <code>/research</code>)</li>
-    <li>The <code>request_id</code> from the error response</li>
-    <li>Your request body (redact sensitive data)</li>
-    <li>The error message you received</li>
+    <li>Which tool you were using</li>
+    <li>What you expected to happen</li>
+    <li>What actually happened (screenshots help!)</li>
+    <li>Any error message you saw</li>
   </ul>
-  <p style="margin-top:12px">Including the <code>request_id</code> helps us find your request in our logs and resolve issues faster.</p>
+  <p style="margin-top:12px">The more detail you can share, the faster we can fix it for you.</p>
 </div>
 
 <!-- Quick Links -->
-<h2>Useful Links</h2>
+<h2>Helpful Links</h2>
 <div class="links-row">
-  <a href="/docs">Documentation</a>
-  <a href="/status">System Status</a>
-  <a href="/playground">API Playground</a>
+  <a href="/try">Open the App</a>
+  <a href="/try">Try Tools Free</a>
+  <a href="/playground">AI Playground</a>
   <a href="/pricing">Pricing</a>
-  <a href="/blog">Developer Blog</a>
+  <a href="/get-key">Get API Key</a>
+  <a href="/docs">Documentation</a>
+  <a href="/status">Service Status</a>
 </div>
 
 </div>
 {{ footer|safe }}
+
+<script>
+function submitTicket() {
+  var name = document.getElementById('cf-name').value.trim();
+  var email = document.getElementById('cf-email').value.trim();
+  var message = document.getElementById('cf-message').value.trim();
+  var errorEl = document.getElementById('form-error');
+  var btn = document.getElementById('cf-submit');
+
+  errorEl.style.display = 'none';
+
+  if (!email || email.indexOf('@') === -1) {
+    errorEl.textContent = 'Please enter a valid email address.';
+    errorEl.style.display = 'block';
+    return;
+  }
+  if (!message) {
+    errorEl.textContent = 'Please enter a message.';
+    errorEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  fetch('/support/ticket', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: name, email: email, message: message })
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    if (data.error) {
+      errorEl.textContent = data.error;
+      errorEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = 'Send Message';
+    } else {
+      document.getElementById('contact-form').style.display = 'none';
+      document.getElementById('form-success').style.display = 'block';
+    }
+  })
+  .catch(function() {
+    errorEl.textContent = 'Something went wrong. Please try again or email support@aipaygen.com.';
+    errorEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Send Message';
+  });
+}
+</script>
 </body>
 </html>

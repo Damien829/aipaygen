@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% block title %}Terms of Service — AiPayGen{% endblock %}
+{% block description %}Terms of Service for AiPayGen — the AI tools API and app platform. Read our terms covering usage, payments, API access, and more.{% endblock %}
+{% block canonical %}/terms{% endblock %}
+
+{% block head %}
+<style>
+  .terms-hero {
+    text-align: center;
+    padding: 80px 24px 40px;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .terms-hero h1 {
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
+  }
+  .terms-hero h1 .accent { color: var(--accent, #00ff9d); }
+  .terms-hero .effective {
+    font-family: var(--font-sans, 'IBM Plex Sans', sans-serif);
+    font-size: 0.95rem;
+    color: var(--text-secondary, #8b949e);
+    font-weight: 400;
+  }
+
+  .terms {
+    max-width: 800px;
+    margin: 0 auto 100px;
+    padding: 0 24px;
+  }
+  .terms section {
+    background: var(--surface, rgba(13,17,23,0.8));
+    border: 1px solid var(--border, rgba(0,255,157,0.1));
+    border-radius: var(--radius-md, 10px);
+    padding: 32px;
+    margin-bottom: 16px;
+    transition: border-color var(--transition, 0.3s);
+  }
+  .terms section:hover {
+    border-color: var(--border-hover, rgba(0,255,157,0.25));
+  }
+  .terms h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .terms h2 .num {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--accent, #00ff9d);
+    background: var(--accent-dim, rgba(0,255,157,0.15));
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-family: var(--font-mono, monospace);
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+  }
+  .terms p,
+  .terms li {
+    font-family: var(--font-sans, 'IBM Plex Sans', sans-serif);
+    font-size: 0.95rem;
+    color: var(--text-secondary, #8b949e);
+    line-height: 1.75;
+    font-weight: 400;
+  }
+  .terms p + p { margin-top: 12px; }
+  .terms ul {
+    list-style: none;
+    padding: 0;
+    margin: 12px 0 0;
+  }
+  .terms ul li {
+    position: relative;
+    padding-left: 20px;
+    margin-bottom: 8px;
+  }
+  .terms ul li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 10px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent, #00ff9d);
+    opacity: 0.6;
+  }
+  .terms a {
+    color: var(--accent, #00ff9d);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color var(--transition, 0.3s);
+  }
+  .terms a:hover {
+    border-bottom-color: var(--accent, #00ff9d);
+  }
+  .terms strong {
+    color: var(--text, #e6edf3);
+    font-weight: 600;
+  }
+  .terms .highlight {
+    background: var(--accent-dim, rgba(0,255,157,0.15));
+    border-left: 3px solid var(--accent, #00ff9d);
+    padding: 16px 20px;
+    border-radius: 0 var(--radius-sm, 6px) var(--radius-sm, 6px) 0;
+    margin: 16px 0;
+  }
+  .terms .highlight p {
+    color: var(--text, #e6edf3);
+    margin: 0;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="terms-hero">
+  <h1>Terms of <span class="accent">Service</span></h1>
+  <p class="effective">Effective Date: March 22, 2026</p>
+</div>
+
+<div class="terms">
+
+  <!-- 1 -->
+  <section>
+    <h2><span class="num">01</span> Acceptance of Terms</h2>
+    <p>By accessing or using AiPayGen ("we," "our," or "us") at <a href="https://aipaygen.com">aipaygen.com</a>, including our website, mobile applications, API endpoints, and any related services (collectively, the "Service"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to all of these Terms, do not use the Service.</p>
+    <p>These Terms constitute a legally binding agreement between you ("User," "you," or "your") and AiPayGen. Your continued use of the Service after any changes to these Terms constitutes acceptance of the revised Terms.</p>
+  </section>
+
+  <!-- 2 -->
+  <section>
+    <h2><span class="num">02</span> Description of Service</h2>
+    <p>AiPayGen is an AI tools platform providing access to <strong>250+ AI-powered tools</strong> through a web application, mobile app, and RESTful API. Our tools include but are not limited to:</p>
+    <ul>
+      <li>Text summarization, translation, and rewriting</li>
+      <li>Content analysis, classification, and sentiment detection</li>
+      <li>Code generation, debugging, and documentation</li>
+      <li>Research, web scraping, and data extraction</li>
+      <li>Image analysis (vision), creative writing, and brainstorming</li>
+      <li>Workflow automation and tool chaining</li>
+    </ul>
+    <p>We reserve the right to modify, suspend, or discontinue any part of the Service at any time without prior notice.</p>
+  </section>
+
+  <!-- 3 -->
+  <section>
+    <h2><span class="num">03</span> Account &amp; API Keys</h2>
+    <p>Certain features of the Service require an account or API key. When you create an account or generate an API key, you agree to:</p>
+    <ul>
+      <li>Provide accurate and complete information</li>
+      <li>Maintain the security and confidentiality of your API keys and credentials</li>
+      <li>Immediately notify us of any unauthorized use of your account</li>
+      <li>Accept full responsibility for all activity that occurs under your account or API key</li>
+    </ul>
+    <div class="highlight">
+      <p><strong>Your API keys are secrets.</strong> Do not share, publish, or embed them in client-side code. You are liable for all usage billed to your key.</p>
+    </div>
+    <p>We reserve the right to suspend or revoke API keys that are compromised, abused, or in violation of these Terms.</p>
+  </section>
+
+  <!-- 4 -->
+  <section>
+    <h2><span class="num">04</span> Payment Terms</h2>
+    <p>AiPayGen offers multiple tiers of access:</p>
+    <ul>
+      <li><strong>Free Tier:</strong> Ad-supported access. Users receive 1 API call per watched advertisement. No purchase required.</li>
+      <li><strong>Prepaid Credits:</strong> One-time credit packs ranging from <strong>$0.50 to $79.00</strong>. Credits do not expire and are non-refundable once used.</li>
+      <li><strong>Monthly Subscriptions:</strong> Plans ranging from <strong>$4.99/mo to $49.99/mo</strong>, billed on a recurring monthly basis. You may cancel at any time; access continues until the end of the current billing period.</li>
+    </ul>
+    <p>All prices are in <strong>US Dollars (USD)</strong>. Payments are processed by our third-party payment processor. We do not store your full payment card details.</p>
+    <p>We reserve the right to change pricing with 30 days' notice. Price changes do not apply retroactively to existing prepaid credits.</p>
+  </section>
+
+  <!-- 5 -->
+  <section>
+    <h2><span class="num">05</span> Acceptable Use Policy</h2>
+    <p>You agree <strong>not</strong> to use the Service to:</p>
+    <ul>
+      <li>Violate any applicable law, regulation, or third-party right</li>
+      <li>Generate, distribute, or store illegal content, including child exploitation material</li>
+      <li>Engage in spam, phishing, social engineering, or any form of unsolicited communication</li>
+      <li>Attempt to reverse-engineer, decompile, or extract our models or underlying systems</li>
+      <li>Abuse, overload, or disrupt the Service through automated or manual means</li>
+      <li>Circumvent rate limits, authentication, or any security mechanism</li>
+      <li>Resell or redistribute API access without our written authorization</li>
+      <li>Impersonate any person or entity, or misrepresent your affiliation</li>
+      <li>Generate content intended to harass, threaten, defame, or harm others</li>
+    </ul>
+    <p><strong>Rate limits</strong> are enforced on all tiers. Exceeding your tier's limits may result in temporary throttling or suspension. Persistent abuse may result in permanent termination.</p>
+  </section>
+
+  <!-- 6 -->
+  <section>
+    <h2><span class="num">06</span> Intellectual Property</h2>
+    <p>The Service, including its design, branding, logos, API structure, documentation, and underlying technology, is the intellectual property of AiPayGen and is protected by applicable intellectual property laws.</p>
+    <p><strong>Your content:</strong> You retain ownership of any input you submit to the Service. By submitting content, you grant AiPayGen a limited, non-exclusive license to process your input solely for the purpose of providing the Service.</p>
+    <p><strong>AI-generated output:</strong> Output generated by the Service in response to your input is provided to you for your use, subject to these Terms. You are responsible for ensuring your use of AI-generated output complies with applicable law and does not infringe third-party rights.</p>
+    <p>You may not use the AiPayGen name, logo, or trademarks without prior written consent.</p>
+  </section>
+
+  <!-- 7 -->
+  <section>
+    <h2><span class="num">07</span> AI Output Disclaimer</h2>
+    <div class="highlight">
+      <p><strong>AI outputs are provided "as is" without any guarantee of accuracy, completeness, or fitness for a particular purpose.</strong></p>
+    </div>
+    <p>AiPayGen uses third-party AI models to generate responses. While we strive to provide useful and relevant output, you acknowledge and agree that:</p>
+    <ul>
+      <li>AI-generated content may be inaccurate, incomplete, outdated, or misleading</li>
+      <li>Outputs should not be relied upon as professional, legal, medical, financial, or safety-critical advice</li>
+      <li>You are solely responsible for reviewing, verifying, and validating any output before relying on it</li>
+      <li>We do not guarantee that outputs will be free from bias, errors, or harmful content</li>
+      <li>The same input may produce different outputs at different times</li>
+    </ul>
+    <p>AiPayGen shall not be held liable for any decisions made or actions taken based on AI-generated output.</p>
+  </section>
+
+  <!-- 8 -->
+  <section>
+    <h2><span class="num">08</span> Limitation of Liability</h2>
+    <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, AIPAYGEN AND ITS OFFICERS, DIRECTORS, EMPLOYEES, AND AGENTS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, DATA, USE, OR GOODWILL, ARISING OUT OF OR RELATED TO YOUR USE OF THE SERVICE.</p>
+    <p>OUR TOTAL AGGREGATE LIABILITY FOR ALL CLAIMS RELATED TO THE SERVICE SHALL NOT EXCEED THE GREATER OF (A) THE AMOUNT YOU PAID TO AIPAYGEN IN THE TWELVE (12) MONTHS PRECEDING THE CLAIM, OR (B) FIFTY US DOLLARS ($50.00).</p>
+    <p>THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.</p>
+  </section>
+
+  <!-- 9 -->
+  <section>
+    <h2><span class="num">09</span> Termination</h2>
+    <p>We may suspend or terminate your access to the Service at any time, with or without cause, and with or without notice. Grounds for termination include, but are not limited to:</p>
+    <ul>
+      <li>Violation of these Terms or the Acceptable Use Policy</li>
+      <li>Fraudulent, abusive, or illegal activity</li>
+      <li>Non-payment of applicable fees</li>
+      <li>Extended inactivity (accounts inactive for more than 12 months may be deleted)</li>
+    </ul>
+    <p>You may terminate your account at any time by contacting <a href="mailto:support@aipaygen.com">support@aipaygen.com</a>. Upon termination, your right to use the Service ceases immediately. Unused prepaid credits are non-refundable unless required by applicable law.</p>
+    <p>Sections relating to intellectual property, limitation of liability, disclaimers, and governing law survive termination.</p>
+  </section>
+
+  <!-- 10 -->
+  <section>
+    <h2><span class="num">10</span> Governing Law</h2>
+    <p>These Terms shall be governed by and construed in accordance with the laws of the United States. Any disputes arising out of or relating to these Terms or the Service shall be resolved through binding arbitration in accordance with the rules of the American Arbitration Association, except where prohibited by law.</p>
+    <p>You agree to waive any right to a jury trial or to participate in a class action lawsuit against AiPayGen. If any provision of these Terms is found to be unenforceable, the remaining provisions shall remain in full force and effect.</p>
+  </section>
+
+  <!-- 11 -->
+  <section>
+    <h2><span class="num">11</span> Changes to Terms</h2>
+    <p>We reserve the right to update or modify these Terms at any time. When we make material changes, we will:</p>
+    <ul>
+      <li>Update the "Effective Date" at the top of this page</li>
+      <li>Post a notice on the Service or notify you via email if you have an account</li>
+    </ul>
+    <p>Your continued use of the Service after changes are posted constitutes your acceptance of the revised Terms. We encourage you to review these Terms periodically.</p>
+  </section>
+
+  <!-- 12 -->
+  <section>
+    <h2><span class="num">12</span> Contact</h2>
+    <p>If you have questions about these Terms, need to report a violation, or wish to exercise any rights described herein, contact us at:</p>
+    <ul>
+      <li><strong>Email:</strong> <a href="mailto:support@aipaygen.com">support@aipaygen.com</a></li>
+      <li><strong>Website:</strong> <a href="https://aipaygen.com/support">aipaygen.com/support</a></li>
+    </ul>
+    <p>We aim to respond to all inquiries within 48 hours.</p>
+  </section>
+
+</div>
+{% endblock %}

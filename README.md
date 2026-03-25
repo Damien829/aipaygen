@@ -38,10 +38,10 @@ Or connect to the remote server: `https://mcp.aipaygen.com/mcp`
 
 ## Pricing
 
-- **Free tier:** 3 calls/day, no key needed
-- **API key:** from $1 via credit card (Stripe). ~166 AI calls per dollar.
-- **x402 USDC:** pay per call on Base, Solana, or Stellar — no signup needed
-- **Trial credits:** generate a key via the MCP `generate_api_key` tool and get $0.25 free
+- **Free trial:** Generate a key with the `generate_api_key` tool → get $0.25 free credits (~40 calls)
+- **API key:** From $1 via credit card (Stripe). ~166 AI calls per dollar.
+- **x402 USDC:** Pay per call on Base, Solana, or Stellar — no signup needed
+- **Free data tools:** Weather, crypto, time, jokes, quotes — always free, no key needed
 
 | Tier | Price | Examples |
 |------|-------|---------|
@@ -52,16 +52,46 @@ Or connect to the remote server: `https://mcp.aipaygen.com/mcp`
 | Premium | $0.05/call | vision, Google Maps |
 | Enterprise | $0.15/call | deep research |
 
-## Try it
+## Quick Start (2 minutes)
+
+**Step 1:** Install and connect
+```bash
+pip install aipaygen-mcp
+claude mcp add aipaygen -- aipaygen-mcp
+```
+
+**Step 2:** Get your free API key (inside Claude Code)
+```
+> Use the generate_api_key tool
+```
+This gives you a key with **$0.25 free credits** (~40 AI calls).
+
+**Step 3:** Set your key
+```bash
+export AIPAYGEN_API_KEY=apk_your_key_here
+```
+
+**Step 4:** Use any tool
+```
+> Use the research tool to find info about x402 payment protocol
+> Use the summarize tool on this article: [paste URL]
+> Use the translate tool to convert "hello world" to Spanish
+```
+
+## Try without installing
 
 ```bash
-# Free — no key needed
+# Free data tools — no key needed
 curl "https://api.aipaygen.com/free/time"
 curl "https://api.aipaygen.com/data/weather?city=London"
 curl "https://api.aipaygen.com/data/crypto?symbols=bitcoin"
 
-# AI (uses free tier, 10/day)
-curl -X POST "https://api.aipaygen.com/summarize" \
+# AI tools — get a free key first
+curl -s -X POST https://api.aipaygen.com/auth/generate-key \
+  -H "Content-Type: application/json" -d '{"label":"my-key"}'
+# Then use it:
+curl -X POST https://api.aipaygen.com/summarize \
+  -H "Authorization: Bearer apk_YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{"text": "Your text here", "length": "short"}'
 ```

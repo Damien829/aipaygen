@@ -2,7 +2,7 @@ import json
 import uuid
 import threading
 import requests as _requests
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 
 from agent_memory import (
@@ -60,7 +60,7 @@ def catalog():
         "page": page,
         "per_page": per_page,
         "pages": (total + per_page - 1) // per_page,
-        "_meta": {"endpoint": "/catalog", "ts": datetime.utcnow().isoformat() + "Z",
+        "_meta": {"endpoint": "/catalog", "ts": datetime.now(timezone.utc).isoformat() + "Z",
                   "hint": "Use POST /api-call with api_id to call any API"},
     })
 
@@ -77,7 +77,7 @@ def catalog_item(api_id):
 @require_admin
 def run_discovery():
     job_id = str(uuid.uuid4())[:8]
-    _discovery_jobs[job_id] = {"status": "running", "started_at": datetime.utcnow().isoformat()}
+    _discovery_jobs[job_id] = {"status": "running", "started_at": datetime.now(timezone.utc).isoformat()}
 
     def _run():
         try:

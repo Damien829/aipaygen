@@ -2,7 +2,7 @@
 import sqlite3
 import os
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "billing_audit.db")
 
@@ -10,6 +10,9 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "billing_audit.db")
 def _conn():
     c = sqlite3.connect(DB_PATH)
     c.execute("PRAGMA journal_mode=WAL")
+    c.execute("PRAGMA synchronous=NORMAL")
+    c.execute("PRAGMA cache_size=-8000")
+    c.execute("PRAGMA temp_store=MEMORY")
     c.row_factory = sqlite3.Row
     return c
 
@@ -32,6 +35,7 @@ def init_audit_db():
         c.execute("CREATE INDEX IF NOT EXISTS idx_audit_key ON billing_audit(api_key_masked)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_audit_type ON billing_audit(event_type)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_audit_ts ON billing_audit(created_at)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_audit_key_type ON billing_audit(api_key_masked, event_type)")
 
 
 def _mask_key(key: str) -> str:
@@ -50,7 +54,7 @@ def log_audit(event_type: str, api_key: str = "", amount_usd: float = 0.0,
               metadata: str = ""):
     """Log a billing event. Event types: deduction, topup, key_generated,
     key_rotated, key_deactivated, trial_credits, stripe_payment, x402_payment."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     try:
         with _conn() as c:
             c.execute(

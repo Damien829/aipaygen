@@ -5,9 +5,9 @@ import os
 import psutil as _psutil
 import requests as _requests
 import time as _time
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify, Response, render_template, make_response
-from helpers import require_admin, agent_response, get_client_ip, call_llm as _call_llm, cache_get as _cache_get, cache_set as _cache_set
+from helpers import APP_VERSION, require_admin, agent_response, get_client_ip, call_llm as _call_llm, cache_get as _cache_get, cache_set as _cache_set
 from model_router import call_model, list_models, get_all_perf
 from discovery_engine import get_blog_post, list_blog_posts, get_health_history, get_daily_cost
 from uptime_tracker import record_check as _record_uptime, get_uptime_stats as _get_uptime_stats, get_recent_checks as _get_recent_checks
@@ -39,8 +39,22 @@ def _log_tool_usage(tool_name: str, api_key: str = "free"):
         pass
 
 
+_CURATED_POPULAR = [
+    {"tool": "research", "calls": 0, "description": "Deep research on any topic with sources"},
+    {"tool": "summarize", "calls": 0, "description": "Summarize articles, docs, or any text"},
+    {"tool": "write", "calls": 0, "description": "Generate content for any purpose"},
+    {"tool": "code", "calls": 0, "description": "Write code in any language"},
+    {"tool": "translate", "calls": 0, "description": "Translate text between 100+ languages"},
+    {"tool": "analyze", "calls": 0, "description": "AI analysis of any content"},
+    {"tool": "sentiment", "calls": 0, "description": "Detect sentiment in text"},
+    {"tool": "extract", "calls": 0, "description": "Extract structured data from text"},
+    {"tool": "compare", "calls": 0, "description": "Compare anything side by side"},
+    {"tool": "explain", "calls": 0, "description": "Get simple explanations of complex topics"},
+]
+
+
 def _get_popular_tools(limit=10):
-    """Return top tools by total call count from tool_usage.db."""
+    """Return top tools by total call count from tool_usage.db, with curated fallback."""
     try:
         with _sqlite3.connect(_tool_usage_db) as conn:
             conn.row_factory = _sqlite3.Row
@@ -49,9 +63,11 @@ def _get_popular_tools(limit=10):
                    FROM tool_usage GROUP BY tool_name ORDER BY total_calls DESC LIMIT ?""",
                 (limit,),
             ).fetchall()
-        return [{"tool": r["tool_name"], "calls": r["total_calls"], "last_used": r["last_used"]} for r in rows]
+        if rows:
+            return [{"tool": r["tool_name"], "calls": r["total_calls"], "last_used": r["last_used"]} for r in rows]
     except Exception:
-        return []
+        pass
+    return _CURATED_POPULAR[:limit]
 
 WALLET_ADDRESS = os.getenv("WALLET_ADDRESS", "0x366D488a48de1B2773F3a21F1A6972715056Cb30")
 EVM_NETWORK = os.getenv("EVM_NETWORK", "eip155:8453")
@@ -146,8 +162,28 @@ def _price_to_tier(price_usd: float) -> str:
     return "Enterprise"
 
 
+def _get_x402_price_map():
+    """Build endpoint -> price_usd lookup from the x402 route config in app.py."""
+    try:
+        from app import routes as _x402_routes
+        price_map = {}
+        for key, rc in _x402_routes.items():
+            # key format: "POST /research"
+            parts = key.split(" ", 1)
+            if len(parts) == 2:
+                endpoint = parts[1]
+                price_str = rc.accepts[0].price  # e.g. "$0.05"
+                price_map[endpoint] = float(price_str.replace("$", ""))
+        return price_map
+    except Exception:
+        return {}
+
+
 def _build_discover_services():
     """Return services organized by category for the /discover endpoint."""
+    # Pull prices from the x402 route config (source of truth)
+    _x402_prices = _get_x402_price_map()
+
     _all_services = [
         # --- Web Intelligence ---
         {"endpoint": "/scrape", "method": "POST", "price_usd": 0.01, "input": {"url": "string"}, "output": {"url": "string", "text": "string", "word_count": "int"}, "description": "Fetch any URL, return clean markdown text"},
@@ -238,7 +274,7 @@ def _build_discover_services():
         {"endpoint": "/free/random", "method": "GET", "price_usd": 0.00, "input": {"n": 5, "min": 1, "max": 100}, "description": "Random integers, floats, booleans, and strings — completely free"},
         {"endpoint": "/free/joke", "method": "GET", "price_usd": 0.00, "description": "Random joke with setup and punchline — completely free"},
         {"endpoint": "/free/quote", "method": "GET", "price_usd": 0.00, "input": {"category": "optional"}, "description": "Random inspirational quote with author — completely free"},
-        {"endpoint": "/free-tier/status", "method": "GET", "price_usd": 0.01, "description": "Check how many free AI calls remain today for your IP. 3 free calls/day, resets midnight UTC."},
+        {"endpoint": "/free-tier/status", "method": "GET", "price_usd": 0.01, "description": "Check how many free AI calls remain today for your IP. $0.25 free trial credits with API key, resets midnight UTC."},
         {"endpoint": "/sdk/code", "method": "GET", "price_usd": 0.01, "input": {"lang": "python|javascript|curl", "endpoint": "optional"}, "description": "Get copy-paste SDK code in Python, JavaScript, or cURL"},
         {"endpoint": "/sitemap.xml", "method": "GET", "price_usd": 0.01, "description": "XML sitemap of all public endpoints for crawlers and agents"},
         {"endpoint": "/catalog", "method": "GET", "price_usd": 0.01, "input": {"category": "optional", "min_score": 0, "free_only": False, "page": 1}, "description": "Browse 4100+ discovered APIs — the largest autonomous API catalog. Filter by category, quality score, auth requirement"},
@@ -297,6 +333,13 @@ def _build_discover_services():
         {"endpoint": "/stream/analyze", "method": "POST", "price_usd": 0.02, "input": {"content": "string", "question": "optional"}, "description": "Streaming analysis — same as /analyze but streams as SSE"},
     ]
 
+    # Override discover prices with x402 source-of-truth prices
+    if _x402_prices:
+        for svc in _all_services:
+            ep = svc["endpoint"]
+            if ep in _x402_prices:
+                svc["price_usd"] = _x402_prices[ep]
+
     # Categorize services by endpoint prefix / type
     categories = {
         "Web Intelligence": [],
@@ -332,6 +375,53 @@ def _build_discover_services():
     return categories
 
 
+@meta_bp.route("/sw.js")
+def service_worker():
+    """Serve PWA service worker from root scope."""
+    from flask import send_from_directory
+    return send_from_directory(
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "static"),
+        "sw.js",
+        mimetype="application/javascript",
+    )
+
+
+@meta_bp.route("/manifest.json")
+def root_manifest():
+    """Serve PWA manifest at root URL for tools that expect /manifest.json."""
+    return jsonify({
+        "name": "AiPayGen",
+        "short_name": "AiPayGen",
+        "description": "250+ AI tools in one app. Chat, research, write, translate, code, and more.",
+        "start_url": "/try",
+        "display": "standalone",
+        "background_color": "#0a0a0a",
+        "theme_color": "#00ff9d",
+        "icons": [
+            {"src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png"},
+            {"src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png"},
+            {"src": "/static/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+        ],
+    })
+
+
+@meta_bp.route("/app/manifest.json")
+def app_manifest():
+    """Serve PWA manifest for the Expo web app at app.aipaygen.com."""
+    return jsonify({
+        "name": "AiPayGen",
+        "short_name": "AiPayGen",
+        "description": "250+ AI tools in one app. Chat, research, write, translate, code, and more.",
+        "start_url": "/app/",
+        "display": "standalone",
+        "background_color": "#020408",
+        "theme_color": "#00ff9d",
+        "icons": [
+            {"src": "/static/icon.png", "sizes": "192x192", "type": "image/png"}
+        ],
+    })
+
+
 @meta_bp.route("/")
 def landing():
     # A/B test: landing_hero_v1
@@ -348,9 +438,11 @@ def landing():
         # Fallback to legacy inline landing template
         resp = make_response(render_template("landing.html", nav=NAV_HTML, footer=FOOTER_HTML))
     resp.headers["Link"] = '</llms.txt>; rel="llms-txt"'
+    resp.headers["Cache-Control"] = "public, max-age=300"  # 5 min cache
     ref = request.args.get("ref", "")
     if ref:
         resp.set_cookie("aipaygen_ref", ref, max_age=30*86400, secure=True, httponly=True, samesite="Lax")
+        resp.headers["Cache-Control"] = "private, no-cache"  # Don't cache referral landing
     return resp
 
 
@@ -381,6 +473,15 @@ def discover():
         pass
     categories = _build_discover_services()
     base_url = "https://api.aipaygen.com"
+
+    # Filter out internal endpoints and path-parameter endpoints from public display
+    _HIDDEN_PREFIXES = ("/auth/", "/free-tier/", "/admin/", "/stripe/", "/credits/")
+    for cat_name in list(categories.keys()):
+        categories[cat_name] = [
+            s for s in categories[cat_name]
+            if "<" not in s["endpoint"]
+            and not any(s["endpoint"].startswith(p) for p in _HIDDEN_PREFIXES)
+        ]
 
     all_services = [s for cat_services in categories.values() for s in cat_services]
     free_count = sum(1 for s in all_services if s.get("price_usd", 0) == 0)
@@ -426,12 +527,6 @@ def discover():
             "description": f"AI agent API marketplace with {len(all_services)} tools. Research, write, code, scrape, and more. Pay per call with USDC or API key.",
             "url": "https://aipaygen.com/discover",
             "offers": offers,
-            "aggregateRating": {
-                "@type": "AggregateRating",
-                "ratingValue": "4.8",
-                "ratingCount": "292",
-                "bestRating": "5",
-            },
         }, ensure_ascii=False)
 
         resp = make_response(render_template(
@@ -460,7 +555,7 @@ def discover():
     return jsonify({
         "meta": {
             "name": "AiPayGen",
-            "description": "AI agent API marketplace with 250 tools (v1.9.0) and 2400+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (3 free/day). $0.25 trial credits available.",
+            "description": "AI agent API marketplace with 250 tools (v" + APP_VERSION + ") and 2400+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (free API key ($0.25 credits)). $0.25 trial credits available.",
             "categories": list(categories.keys()),
         },
         "payment": {
@@ -479,7 +574,7 @@ def discover():
                 "usdc_contract": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
             },
             "mcp": {
-                "description": "3 free calls/day via MCP, unlimited with API key.",
+                "description": "$0.25 free trial credits with API key via MCP, unlimited with API key.",
                 "install": "pip install aipaygen-mcp",
                 "sse": f"https://mcp.aipaygen.com/mcp",
             },
@@ -820,7 +915,7 @@ def status_page():
     try:
         _project_root = os.path.dirname(os.path.dirname(__file__))
         fdb = os.path.join(_project_root, "funnel.db")
-        cutoff = (datetime.utcnow() - timedelta(days=1)).isoformat()
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
         c = _sq.connect(fdb, timeout=2)
         c.row_factory = _sq.Row
         total_requests = c.execute(
@@ -840,7 +935,8 @@ def status_page():
     try:
         from app import get_response_time_stats, get_endpoint_response_times
         rt_stats = get_response_time_stats(3600)
-        rt_endpoints = get_endpoint_response_times(3600, top_n=10)
+        rt_endpoints = [e for e in get_endpoint_response_times(3600, top_n=15)
+                        if not e["endpoint"].startswith(("/admin", "/health", "/status", "/stats"))][:10]
     except Exception:
         rt_stats = {"avg_ms": 0, "p50_ms": 0, "p95_ms": 0, "p99_ms": 0, "count": 0}
         rt_endpoints = []
@@ -961,6 +1057,7 @@ def status_page():
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta http-equiv="refresh" content="60">
   <title>AiPayGen Status</title>
+  <meta name="description" content="AiPayGen API status — real-time health monitoring, uptime history, and system status for all endpoints.">
   <meta property="og:type" content="website">
   <meta property="og:title" content="System Status — AiPayGen">
   <meta property="og:description" content="Live system health, uptime, response times, and model provider status for AiPayGen API.">
@@ -1072,7 +1169,7 @@ def status_page():
     {_build_alerts_html(recent_alerts)}
   </div>
 
-  <p class="updated">Auto-refreshes every 60 seconds &middot; Last checked: {datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")} UTC</p>
+  <p class="updated">Auto-refreshes every 60 seconds &middot; Last checked: {datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")} UTC</p>
 </div>
 {FOOTER_HTML}
 </body>
@@ -1126,7 +1223,7 @@ def live_stats():
             ("apis", "SELECT COUNT(*) FROM catalog_db.discovered_apis"),
             ("agents", "SELECT COUNT(*) FROM agents_db.agent_registry"),
             ("api_keys", "SELECT COUNT(*) FROM keys_db.api_keys"),
-            ("total_calls", "SELECT COALESCE(SUM(call_count), 0) FROM keys_db.api_keys"),
+            ("total_calls", "SELECT COALESCE(SUM(call_count), 0) FROM keys_db.api_keys WHERE is_active = 1"),
         ]
         for key, sql in queries:
             try:
@@ -1135,6 +1232,15 @@ def live_stats():
                 stats[key] = 0
         # Apply baseline offset for api_keys
         stats["api_keys"] = _API_KEY_BASELINE + stats.get("api_keys", 0)
+        # Add billing audit calls as a more complete total
+        try:
+            import sqlite3 as _bsq
+            _bdb = _bsq.connect(os.path.join(_root, "billing_audit.db"), timeout=2)
+            audit_calls = _bdb.execute("SELECT COUNT(*) FROM billing_audit WHERE event_type='deduction'").fetchone()[0]
+            _bdb.close()
+            stats["total_calls"] = max(stats.get("total_calls", 0), audit_calls)
+        except Exception:
+            pass
         c.close()
     except Exception:
         stats.setdefault("skills", 0)
@@ -1251,7 +1357,7 @@ _preview_ips = {}  # ip -> (count, window_start)
 
 @meta_bp.route("/preview", methods=["GET", "POST"])
 def preview():
-    """Free demo endpoint — no payment required. Returns a short Claude response to prove the service works."""
+    """Demo endpoint — returns cached responses for free, LLM calls count against free tier."""
     ip = get_client_ip()
     now = _time.time()
     cnt, start = _preview_ips.get(ip, (0, now))
@@ -1259,8 +1365,8 @@ def preview():
         cnt, start = 0, now
     cnt += 1
     _preview_ips[ip] = (cnt, start)
-    if cnt > 5:
-        return jsonify({"error": "rate_limited", "message": "Preview limited to 5/min. Get an API key for unlimited access.", "buy": "https://aipaygen.com/buy-credits"}), 429
+    if cnt > 3:
+        return jsonify({"error": "rate_limited", "message": "Preview limited to 3/min. Get an API key for unlimited access.", "buy": "https://aipaygen.com/buy-credits"}), 429
     data = request.get_json(silent=True) or {}
     topic = data.get("topic", request.args.get("topic", "x402 payment protocol for AI agents"))
     topic = topic[:200]  # cap input length
@@ -1268,16 +1374,30 @@ def preview():
     cached = _cache_get(ck)
     if cached:
         return jsonify(cached)
+    # Preview LLM calls count against free tier — no free rides
+    from agent_network import check_and_use_free_tier, get_free_tier_remaining
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer apk_"):
+        if not check_and_use_free_tier(ip):
+            return jsonify({
+                "error": "free_tier_exhausted",
+                "message": "Free preview calls exhausted for today. Get an API key to continue.",
+                "upgrade": {
+                    "free_key": "POST https://aipaygen.com/auth/generate-key (includes $0.25 trial credits)",
+                    "buy_credits": "https://aipaygen.com/buy-credits",
+                },
+            }), 402
     llm_result, err = _call_llm(
         [{"role": "user", "content": f"In 2-3 sentences, briefly explain: {topic}"}],
         max_tokens=120, endpoint="/preview",
     )
     if err:
         return jsonify({"error": err}), 400
+    remaining = get_free_tier_remaining(ip)
     result = {
         "result": llm_result["text"],
         "model": llm_result["model"],
-        "free": True,
+        "free_calls_remaining": remaining,
         "note": "This preview is capped at 120 tokens. Full /research returns structured summary + key points + sources for $0.01 USDC.",
         "full_api": "https://api.aipaygen.com/discover",
         "openapi": "https://api.aipaygen.com/openapi.json",
@@ -1304,6 +1424,11 @@ def robots_txt():
         "Allow: /sdk\n"
         "Allow: /blog\n"
         "Allow: /llms.txt\n"
+        "Allow: /privacy\n"
+        "Allow: /terms\n"
+        "Allow: /subscribe\n"
+        "Allow: /get-key\n"
+        "Allow: /support\n"
         "Allow: /security\n"
         "Allow: /openapi.json\n"
         "Allow: /.well-known/\n"
@@ -1316,7 +1441,7 @@ def robots_txt():
         "Disallow: /discovery/\n"
         "Disallow: /outbound/\n"
         "Disallow: /harvest/\n"
-        "Disallow: /agent\n"
+        "Disallow: /agent/inbox\n"
         "Disallow: /credits/\n"
         "Disallow: /free-tier/\n"
         "\n"
@@ -1330,10 +1455,144 @@ def robots_txt():
     return Response(body, mimetype="text/plain")
 
 
+@meta_bp.route("/ads.txt")
+def ads_txt():
+    from flask import send_from_directory
+    import os
+    return send_from_directory(
+        os.path.join(os.path.dirname(os.path.dirname(__file__)), "static"),
+        "ads.txt",
+        mimetype="text/plain",
+    )
+
+
+@meta_bp.route("/aipaygen2026indexnow.txt")
+def indexnow_key():
+    return Response("aipaygen2026indexnow", mimetype="text/plain")
+
+
+
+@meta_bp.route("/login")
+def login_redirect():
+    from flask import redirect
+    return redirect("/auth/login", code=301)
+
 
 @meta_bp.route("/pricing")
 def pricing_page():
     return render_template("pricing.html", nav=NAV_HTML, footer=FOOTER_HTML)
+
+
+@meta_bp.route("/privacy")
+def privacy_page():
+    return render_template("privacy.html")
+
+
+@meta_bp.route("/terms")
+def terms_page():
+    return render_template("terms.html")
+
+
+# ── Web App (Expo SPA) ────────────────────────────────────────────────────────
+
+_WEB_APP_INJECT = '''<link rel="stylesheet" href="/app/web-custom.css">
+<script>if(location.pathname.startsWith('/app')){var c=location.pathname.replace(/^\\/app\\/?/,'/')||'/';history.replaceState(null,'',c+location.search+location.hash)}</script>'''
+
+
+@meta_bp.route("/app/")
+@meta_bp.route("/app/<path:path>")
+def serve_app(path=""):
+    """Serve the Expo web app as a SPA — all routes fall through to index.html."""
+    import os
+    from flask import send_from_directory, make_response
+    static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "app")
+    # Serve actual files (JS, CSS, images)
+    full_path = os.path.join(static_dir, path)
+    if path and os.path.isfile(full_path):
+        return send_from_directory(static_dir, path)
+    # SPA fallback — serve index.html with custom CSS/JS injected before </head>
+    html_path = os.path.join(static_dir, "index.html")
+    with open(html_path, "r") as f:
+        html = f.read()
+    html = html.replace("</head>", _WEB_APP_INJECT + "\n</head>", 1)
+    resp = make_response(html)
+    resp.headers["Content-Type"] = "text/html; charset=utf-8"
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
+
+@meta_bp.route("/app")
+def app_redirect():
+    """Redirect /app to /app/ so <base href="/app/"> resolves correctly."""
+    from flask import redirect
+    return redirect("/app/", code=301)
+
+
+# SPA deep-link routes — serve index.html so browser refresh works on /explore, /wallet, etc.
+@meta_bp.route("/explore")
+@meta_bp.route("/wallet")
+@meta_bp.route("/profile")
+@meta_bp.route("/workflows")
+@meta_bp.route("/notifications")
+@meta_bp.route("/onboarding")
+@meta_bp.route("/pricing")
+@meta_bp.route("/analytics")
+@meta_bp.route("/tool/<path:slug>")
+@meta_bp.route("/chat/<path:chat_id>")
+def spa_deep_link(slug=None, chat_id=None):
+    """Serve Expo SPA index.html for deep links so page refresh works."""
+    import os
+    from flask import make_response
+    static_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "app")
+    html_path = os.path.join(static_dir, "index.html")
+    with open(html_path, "r") as f:
+        html = f.read()
+    html = html.replace("</head>", _WEB_APP_INJECT + "\n</head>", 1)
+    resp = make_response(html)
+    resp.headers["Content-Type"] = "text/html; charset=utf-8"
+    resp.headers["Cache-Control"] = "no-cache"
+    return resp
+
+
+@meta_bp.route("/_expo/<path:path>")
+def serve_expo_bundles(path):
+    """Serve Expo JS/CSS bundles at root /_expo/ (referenced by absolute paths in index.html)."""
+    import os
+    from flask import send_from_directory, abort, make_response
+    expo_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static", "app", "_expo")
+    full_path = os.path.join(expo_dir, path)
+    if os.path.isfile(full_path):
+        resp = make_response(send_from_directory(expo_dir, path))
+        # Content-hashed filenames are immutable — cache aggressively
+        resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        # Ensure correct MIME types for CSS/JS (browser rejects without)
+        if path.endswith(".css"):
+            resp.headers["Content-Type"] = "text/css; charset=utf-8"
+        elif path.endswith(".js"):
+            resp.headers["Content-Type"] = "application/javascript; charset=utf-8"
+        return resp
+    abort(404)
+
+
+@meta_bp.route("/assets/<path:path>")
+def serve_app_assets(path):
+    """Serve Expo app assets — fonts go through /static/fonts/ to avoid @ in Cloudflare paths."""
+    import os
+    from flask import send_from_directory, abort
+    base_dir = os.path.dirname(os.path.dirname(__file__))
+    # Font files: serve from clean /static/fonts/ dir (Cloudflare blocks @ in URL paths)
+    if path.endswith(".ttf") or path.endswith(".woff") or path.endswith(".woff2"):
+        font_name = os.path.basename(path)
+        fonts_dir = os.path.join(base_dir, "static", "fonts")
+        font_path = os.path.join(fonts_dir, font_name)
+        if os.path.isfile(font_path):
+            return send_from_directory(fonts_dir, font_name)
+    # Other assets: serve from static/app/assets/
+    assets_dir = os.path.join(base_dir, "static", "app", "assets")
+    full_path = os.path.join(assets_dir, path)
+    if os.path.isfile(full_path):
+        return send_from_directory(assets_dir, path)
+    abort(404)
 
 
 @meta_bp.route("/premium")
@@ -1381,7 +1640,7 @@ def docs_api():
   <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
   <script>
     SwaggerUIBundle({
-      url: "/static/openapi.yaml",
+      url: "/openapi.json",
       dom_id: "#swagger-ui",
       presets: [SwaggerUIBundle.presets.apis, SwaggerUIBundle.SwaggerUIStandalonePreset],
       layout: "BaseLayout",
@@ -1398,7 +1657,7 @@ def _build_llms_txt():
     lines = []
     lines.append("# AiPayGen")
     lines.append("")
-    lines.append("> 250 AI tools in one API (v1.9.0). Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (3 free/day). $0.25 trial credits via buy_credits / generate_api_key MCP tools.")
+    lines.append("> 250 AI tools in one API (v" + APP_VERSION + "). Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (free API key ($0.25 credits)). $0.25 trial credits via buy_credits / generate_api_key MCP tools.")
     lines.append("")
     lines.append("## What This Service Does")
     lines.append("")
@@ -1422,7 +1681,7 @@ def _build_llms_txt():
     lines.append("## Authentication (3 Paths)")
     lines.append("")
     lines.append("### 1. Free Tier (No Auth)")
-    lines.append("- 3 calls/day per IP, no key needed")
+    lines.append("- 1 call/day per IP, no key needed")
     lines.append("- Just POST JSON to any endpoint")
     lines.append("")
     lines.append("### 2. API Key (Recommended)")
@@ -1504,7 +1763,7 @@ def _build_llms_txt():
 
     lines.append("## MCP (Model Context Protocol)")
     lines.append("")
-    lines.append("- 3 free calls/day, no payment needed")
+    lines.append("- $0.25 free trial credits with API key, no payment needed")
     lines.append("- Unlimited with `AIPAYGEN_API_KEY` env var")
     lines.append("- **New**: Use the `buy_credits` or `generate_api_key` MCP tools to get $0.25 trial credits instantly")
     lines.append("- Install: `pip install aipaygen-mcp && claude mcp add aipaygen -- python -m aipaygen_mcp`")
@@ -1620,12 +1879,12 @@ def ai_plugin():
         "schema_version": "v1",
         "name_for_human": "AiPayGen",
         "name_for_model": "aipaygen",
-        "description_for_human": "250 AI tools (v1.9.0) — research, write, code, translate, scrape, and more. $0.25 trial credits. 3 free calls/day.",
+        "description_for_human": "250 AI tools (v" + APP_VERSION + ") — research, write, code, translate, scrape, and more. $0.25 trial credits. $0.25 free trial credits with API key.",
         "description_for_model": (
-            "AiPayGen provides 250 AI-powered tools accessible via a single API (v1.9.0). "
+            "AiPayGen provides 250 AI-powered tools accessible via a single API (v" + APP_VERSION + "). "
             "Use for research, writing, code generation, translation, sentiment analysis, "
             "web scraping, data extraction, content comparison, fact-checking, and more. "
-            "Free tier: 3 calls/day per IP. Paid: prepaid API key (Bearer apk_xxx) or "
+            "Free tier: 1 call/day per IP. Paid: prepaid API key (Bearer apk_xxx) or "
             "x402 USDC micropayment. New: $0.25 trial credits via buy_credits or generate_api_key. "
             "All tools accept JSON POST requests."
         ),
@@ -1658,6 +1917,13 @@ def ai_plugin_json_alias():
     return ai_plugin()
 
 
+@meta_bp.route("/.well-known/pricing.json")
+def well_known_pricing():
+    """Machine-readable pricing manifest for agent discovery."""
+    from routes.discovery import discover_pricing
+    return discover_pricing()
+
+
 
 
 @meta_bp.route("/.well-known/agent.json")
@@ -1667,14 +1933,14 @@ def agent_manifest():
     return jsonify({
         "name": "AiPayGen",
         "description": (
-            "AI agent API marketplace with 250 tools (v1.9.0) and 2400+ searchable skills. "
+            "AI agent API marketplace with 250 tools (v" + APP_VERSION + ") and 2400+ searchable skills. "
             "Research, writing, coding, analysis, web scraping, real-time data, agent memory, "
             "and multi-model AI (Claude, GPT-4o, DeepSeek, Gemini). "
-            "Three payment paths: API key (recommended), x402 USDC, or MCP (3 free/day). "
+            "Three payment paths: API key (recommended), x402 USDC, or MCP (free API key ($0.25 credits)). "
             "$0.25 trial credits available via buy_credits/generate_api_key."
         ),
         "url": base,
-        "version": "1.9.0",
+        "version": APP_VERSION,
         "documentationUrl": f"{base}/llms.txt",
         "capabilities": {
             "streaming": True,
@@ -1688,7 +1954,7 @@ def agent_manifest():
                 "then use 'Authorization: Bearer apk_xxx'. "
                 "New: $0.25 trial credits via buy_credits or generate_api_key MCP tools. "
                 "Alternative: Pay per call with USDC on Base via x402. "
-                "MCP: 3 free calls/day, unlimited with API key."
+                "MCP: $0.25 free trial credits with API key, unlimited with API key."
             ),
             "buyCredits": f"{base}/credits/buy",
         },
@@ -1836,7 +2102,7 @@ def agents_json():
                 "Also available as MCP tools: mcp install aipaygen-mcp"
             ),
             "url": base,
-            "version": "2.0.0",
+            "version": APP_VERSION,
             "capabilities": [
                 "research", "writing", "code-generation", "translation",
                 "analysis", "summarization", "social-media", "data-extraction",
@@ -1905,7 +2171,7 @@ def x402_manifest():
         "version": "2.0",
         "name": "AiPayGen",
         "description": (
-            "250 AI tools (v1.9.0), 2400+ skills, web scrapers, agent memory, file storage, "
+            "250 AI tools (v" + APP_VERSION + "), 2400+ skills, web scrapers, agent memory, file storage, "
             "webhook relay, async jobs, and an API catalog of 4100+ discovered APIs. "
             "No API key required — pay per call in USDC via x402 protocol."
         ),
@@ -2015,12 +2281,12 @@ def smithery_server_card():
     return jsonify({
         "serverInfo": {
             "name": "AiPayGen",
-            "version": "1.9.0"
+            "version": APP_VERSION
         },
         "authentication": {
             "required": False,
             "schemes": ["bearer"],
-            "note": "Optional API key for metered access. 3 free calls/day without key."
+            "note": "Optional API key for metered access. $0.25 free trial credits with API key without key."
         },
         "tools": [
             {"name": "research", "description": "Research any topic with web sources and AI synthesis"},
@@ -2074,6 +2340,7 @@ def security_page():
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Security & Privacy — AiPayGen</title>
 <meta name="description" content="AiPayGen security practices: encryption, data handling, sandboxing, refund policy, and privacy guarantees.">
+<meta property="og:title" content="Security — AiPayGen">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e8e8e8; padding: 32px 16px; line-height: 1.7; }
@@ -2209,6 +2476,8 @@ def sdk():
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AiPayGen SDK & Integration</title>
+<meta name="description" content="AiPayGen SDK examples — Python, JavaScript, curl, and more. Code samples for all 250+ AI tools.">
+<meta property="og:title" content="SDK & Code Examples — AiPayGen">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #0d1117; color: #e6edf3; line-height: 1.6; }
@@ -2926,7 +3195,7 @@ def referrals_page():
 def sitemap():
     """XML sitemap — includes static pages AND all blog posts for Google/Bing."""
     base_url = "https://aipaygen.com"
-    now = datetime.utcnow().strftime("%Y-%m-%d")
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     static_pages = [
         ("/", "daily", "1.0"),
         ("/discover", "weekly", "0.9"),
@@ -2938,10 +3207,14 @@ def sitemap():
         ("/pricing", "weekly", "0.8"),
         ("/docs/api", "weekly", "0.8"),
         ("/blog", "daily", "0.8"),
+        ("/privacy", "monthly", "0.5"),
+        ("/terms", "monthly", "0.5"),
         ("/security", "monthly", "0.7"),
+        ("/subscribe", "weekly", "0.8"),
+        ("/get-key", "weekly", "0.8"),
+        ("/support", "weekly", "0.6"),
         ("/changelog", "weekly", "0.8"),
         ("/buy-credits", "weekly", "0.8"),
-        ("/preview", "weekly", "0.7"),
         ("/openapi.json", "weekly", "0.6"),
         ("/llms.txt", "weekly", "0.6"),
         ("/.well-known/agent.json", "weekly", "0.6"),
@@ -2956,6 +3229,10 @@ def sitemap():
         ("/health", "hourly", "0.3"),
         ("/status", "hourly", "0.4"),
         ("/referrals", "weekly", "0.6"),
+        ("/premium", "weekly", "0.7"),
+        ("/contact", "monthly", "0.5"),
+        ("/links", "monthly", "0.4"),
+        ("/app/", "weekly", "0.7"),
     ]
     # Add top 30 tool pages for programmatic SEO
     for t_slug in _SITEMAP_TOOLS:
@@ -2991,26 +3268,42 @@ def try_page():
     return resp
 
 
-# Per-IP demo rate limiter (10 per 10 minutes) with periodic cleanup
+# Per-IP demo rate limiter (5 per 10 minutes, 500 global/day) with periodic cleanup
 _demo_usage = {}
 _demo_last_cleanup = 0
+_demo_global_count = 0
+_demo_global_date = ""
+_demo_cache = {}  # {(tool, input_hash): (result, timestamp)}
 
 def _check_demo_limit(ip):
-    global _demo_last_cleanup
+    global _demo_last_cleanup, _demo_global_count, _demo_global_date
     now = _time.time()
+    today = _time.strftime("%Y-%m-%d")
+    # Reset global counter daily
+    if today != _demo_global_date:
+        _demo_global_count = 0
+        _demo_global_date = today
+    # Global daily cap: 500 demo calls/day to control LLM costs
+    if _demo_global_count >= 500:
+        return False
     # Periodic cleanup: every 5 minutes, purge expired entries
     if now - _demo_last_cleanup > 300:
         _demo_last_cleanup = now
         stale = [k for k, v in _demo_usage.items() if not v or now - v[-1] > 600]
         for k in stale:
             del _demo_usage[k]
+        # Purge old cache entries (>1hr)
+        stale_cache = [k for k, v in _demo_cache.items() if now - v[1] > 3600]
+        for k in stale_cache:
+            del _demo_cache[k]
     key = f"demo:{ip}"
     entries = _demo_usage.get(key, [])
     entries = [t for t in entries if now - t < 600]
-    if len(entries) >= 10:
+    if len(entries) >= 5:
         return False
     entries.append(now)
     _demo_usage[key] = entries
+    _demo_global_count += 1
     return True
 
 
@@ -3025,9 +3318,14 @@ def try_tool(tool):
     )
     ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "unknown")
     if not _check_demo_limit(ip):
-        return jsonify({"error": "Demo limit reached (10 per 10 minutes)", "upgrade": "/buy-credits"}), 429
+        return jsonify({"error": "Demo limit reached. Get a free API key with $0.25 credits for unlimited access.", "upgrade": "/get-key", "buy": "/buy-credits"}), 429
 
     data = request.get_json() or {}
+    # Check cache first to avoid duplicate LLM costs
+    _cache_key = (tool, _hashlib.md5(json.dumps(data, sort_keys=True).encode()).hexdigest()[:16])
+    _cached = _demo_cache.get(_cache_key)
+    if _cached:
+        return jsonify(_cached[0])
     try:
         if tool == "sentiment":
             result = sentiment_inner(data.get("text", "")[:500])
@@ -3088,6 +3386,8 @@ def try_tool(tool):
             return jsonify({"error": f"Unknown demo tool: {tool}"}), 400
         funnel_log_event("demo_used", endpoint=f"/try/{tool}", ip=ip, user_agent=request.headers.get("User-Agent", ""))
         _log_tool_usage(tool, api_key="demo")
+        # Cache result to avoid paying for identical inputs
+        _demo_cache[_cache_key] = ({"result": result, "tool": tool, "_meta": {"free_demo": True, "upgrade": "/buy-credits"}}, _time.time())
         return jsonify({"result": result, "tool": tool, "_meta": {"free_demo": True, "upgrade": "/buy-credits"}})
     except Exception as e:
         logger.error("Demo tool '%s' failed: %s", tool, e)
@@ -3098,7 +3398,7 @@ def try_tool(tool):
 
 CHANGELOG = [
     {
-        "version": "1.9.0",
+        "version": APP_VERSION,
         "date": "2026-03-15",
         "title": "229 Tools — Massive Expansion",
         "changes": [
@@ -3255,3 +3555,93 @@ def showcase_submit():
         model=data.get("model", ""),
     )
     return jsonify({"status": "captured"}), 201
+
+
+# ── Support Ticket System ─────────────────────────────────────────────────────
+
+_support_db = os.path.join(os.path.dirname(os.path.dirname(__file__)), "support.db")
+
+
+def _init_support_db():
+    """Create support tickets table if it doesn't exist."""
+    with _sqlite3.connect(_support_db) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS tickets (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                email TEXT,
+                name TEXT,
+                message TEXT,
+                status TEXT DEFAULT 'open',
+                ip TEXT,
+                user_agent TEXT,
+                created_at TEXT DEFAULT (datetime('now')),
+                replied_at TEXT,
+                reply TEXT,
+                admin_notes TEXT
+            )
+        """)
+
+
+_init_support_db()
+
+
+@meta_bp.route("/support/ticket", methods=["POST"])
+def support_create_ticket():
+    """Public endpoint — create a support ticket."""
+    data = request.get_json(silent=True) or {}
+    email = (data.get("email") or "").strip()
+    name = (data.get("name") or "").strip()
+    message = (data.get("message") or "").strip()
+
+    if not email or "@" not in email:
+        return jsonify({"error": "A valid email is required."}), 400
+    if not message:
+        return jsonify({"error": "Message is required."}), 400
+
+    ip = get_client_ip()
+    ua = request.headers.get("User-Agent", "")[:500]
+
+    with _sqlite3.connect(_support_db) as conn:
+        cur = conn.execute(
+            "INSERT INTO tickets (email, name, message, ip, user_agent) VALUES (?, ?, ?, ?, ?)",
+            (email, name or "Anonymous", message, ip, ua),
+        )
+        ticket_id = cur.lastrowid
+
+    return jsonify({"ticket_id": ticket_id, "message": "We'll respond within 24 hours."}), 201
+
+
+@meta_bp.route("/support/tickets", methods=["GET"])
+@require_admin
+def support_list_tickets():
+    """Admin — list all support tickets."""
+    with _sqlite3.connect(_support_db) as conn:
+        conn.row_factory = _sqlite3.Row
+        rows = conn.execute("SELECT * FROM tickets ORDER BY created_at DESC").fetchall()
+        total = len(rows)
+        open_count = sum(1 for r in rows if r["status"] == "open")
+    tickets = [dict(r) for r in rows]
+    return jsonify({"tickets": tickets, "total": total, "open": open_count})
+
+
+@meta_bp.route("/support/tickets/<int:ticket_id>/reply", methods=["POST"])
+@require_admin
+def support_reply_ticket(ticket_id):
+    """Admin — reply to a support ticket."""
+    data = request.get_json(silent=True) or {}
+    reply = (data.get("reply") or "").strip()
+    admin_notes = (data.get("admin_notes") or "").strip()
+
+    if not reply:
+        return jsonify({"error": "Reply text is required."}), 400
+
+    with _sqlite3.connect(_support_db) as conn:
+        row = conn.execute("SELECT id FROM tickets WHERE id = ?", (ticket_id,)).fetchone()
+        if not row:
+            return jsonify({"error": "Ticket not found."}), 404
+        conn.execute(
+            "UPDATE tickets SET status = 'replied', reply = ?, admin_notes = ?, replied_at = datetime('now') WHERE id = ?",
+            (reply, admin_notes, ticket_id),
+        )
+
+    return jsonify({"status": "replied", "ticket_id": ticket_id})

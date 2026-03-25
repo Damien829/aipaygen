@@ -3,6 +3,7 @@
 {% block description %}Connect AiPayGen to LangChain, CrewAI, AutoGen, Claude Code, Cursor, n8n, and Zapier. Copy-paste integration guides.{% endblock %}
 
 {% block head %}
+<meta property="og:title" content="Integrations — AiPayGen">
 <style>
   .integ-hero {
     text-align: center;
@@ -123,7 +124,7 @@
 {% block content %}
 <section class="integ-hero">
   <h1>Plug into <span class="accent">anything</span></h1>
-  <p>Connect AiPayGen's 250 tools to your favorite AI framework in minutes. Each guide includes a working code example you can copy and run.</p>
+  <p>Connect AiPayGen's 250+ tools to your favorite AI framework in minutes. Each guide includes a working code example you can copy and run.</p>
 </section>
 
 <div class="guides">
@@ -255,7 +256,7 @@ user_proxy.initiate_chat(assistant, message="Research AI agents and analyze the 
   <!-- Claude Code (MCP) -->
   <div class="guide" id="claude-code">
     <h2>Claude Code <span class="tag">MCP</span></h2>
-    <p>Add AiPayGen as an MCP server in Claude Code to give Claude access to 250 tools directly in your terminal. Supports both remote (hosted) and local (PyPI) installation modes.</p>
+    <p>Add AiPayGen as an MCP server in Claude Code to give Claude access to 250+ tools directly in your terminal. Supports both remote (hosted) and local (PyPI) installation modes.</p>
     <div class="install-cmd"><span class="prompt">$</span> pip install aipaygen-mcp</div>
     <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code># Option 1: Remote MCP (no install needed)
 claude mcp add aipaygen --transport http https://mcp.aipaygen.com/mcp
@@ -284,7 +285,7 @@ claude mcp add aipaygen -- aipaygen-mcp --http
   <!-- Cursor -->
   <div class="guide" id="cursor">
     <h2>Cursor <span class="tag">MCP</span></h2>
-    <p>Connect AiPayGen to Cursor IDE via MCP so the AI assistant can research, scrape, analyze, and code using 250 tools directly from your editor.</p>
+    <p>Connect AiPayGen to Cursor IDE via MCP so the AI assistant can research, scrape, analyze, and code using 250+ tools directly from your editor.</p>
     <div class="install-cmd"><span class="prompt">$</span> pip install aipaygen-mcp</div>
     <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>// Add to .cursor/mcp.json in your project root:
 {

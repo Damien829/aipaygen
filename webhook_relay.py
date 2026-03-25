@@ -3,7 +3,7 @@ import sqlite3
 import uuid
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "webhook_relay.db")
 MAX_EVENTS_PER_WEBHOOK = 500
@@ -11,6 +11,10 @@ MAX_EVENTS_PER_WEBHOOK = 500
 
 def _conn():
     c = sqlite3.connect(DB_PATH)
+    c.execute("PRAGMA journal_mode=WAL")
+    c.execute("PRAGMA synchronous=NORMAL")
+    c.execute("PRAGMA cache_size=-8000")
+    c.execute("PRAGMA temp_store=MEMORY")
     c.row_factory = sqlite3.Row
     return c
 
@@ -45,7 +49,7 @@ def init_webhooks_db():
 
 def create_webhook(agent_id: str, label: str = None) -> dict:
     webhook_id = str(uuid.uuid4()).replace("-", "")[:16]
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         c.execute(
             "INSERT INTO webhooks (webhook_id, agent_id, label, created_at) VALUES (?, ?, ?, ?)",
@@ -69,7 +73,7 @@ def receive_webhook_event(webhook_id: str, method: str, headers: dict,
     if not hook:
         return None
     event_id = str(uuid.uuid4())
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     # Keep only safe headers (strip auth headers)
     safe_headers = {k: v for k, v in headers.items()
                     if k.lower() not in ("authorization", "cookie", "x-api-key")}

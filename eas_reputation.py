@@ -3,7 +3,7 @@
 import os
 import json
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Base Mainnet EAS contract
 EAS_CONTRACT = "0x4200000000000000000000000000000000000021"
@@ -19,6 +19,10 @@ _DB_PATH = os.path.join(os.path.dirname(__file__), "eas_reputation.db")
 
 def _conn():
     c = sqlite3.connect(_DB_PATH)
+    c.execute("PRAGMA journal_mode=WAL")
+    c.execute("PRAGMA synchronous=NORMAL")
+    c.execute("PRAGMA cache_size=-8000")
+    c.execute("PRAGMA temp_store=MEMORY")
     c.row_factory = sqlite3.Row
     return c
 
@@ -56,7 +60,7 @@ def create_reputation_attestation(
     if not agent_wallet or attestation_type not in ("task_completed", "upvote", "service_rating"):
         return None
     score = max(1, min(5, score))
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         c.execute(
             "INSERT INTO attestation_queue (agent_wallet, attestation_type, score, details, created_at) "
@@ -112,7 +116,7 @@ def get_pending_attestations(limit: int = 50) -> list[dict]:
 
 def mark_submitted(attestation_ids: list[int], tx_hash: str):
     """Mark attestations as submitted with tx hash."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         placeholders = ",".join("?" * len(attestation_ids))
         c.execute(

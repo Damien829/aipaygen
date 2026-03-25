@@ -1,7 +1,7 @@
 """In-app notification system. SQLite-backed, per API key."""
 import sqlite3
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "notifications.db")
 
@@ -9,6 +9,9 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "notifications.db")
 def _conn():
     c = sqlite3.connect(DB_PATH)
     c.execute("PRAGMA journal_mode=WAL")
+    c.execute("PRAGMA synchronous=NORMAL")
+    c.execute("PRAGMA cache_size=-8000")
+    c.execute("PRAGMA temp_store=MEMORY")
     c.row_factory = sqlite3.Row
     return c
 
@@ -33,7 +36,7 @@ def create_notification(api_key: str, event_type: str, message: str):
     """Insert a notification for the given API key."""
     if not api_key:
         return
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     try:
         with _conn() as c:
             c.execute(

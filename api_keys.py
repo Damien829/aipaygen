@@ -4,14 +4,20 @@ import json
 import sqlite3
 import os
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "api_keys.db")
+
+_key_cache = {}
+_KEY_CACHE_TTL = 30
 
 
 def _conn():
     c = sqlite3.connect(DB_PATH)
     c.execute("PRAGMA journal_mode=WAL")
+    c.execute("PRAGMA synchronous=NORMAL")
+    c.execute("PRAGMA cache_size=-8000")
+    c.execute("PRAGMA temp_store=MEMORY")
     c.row_factory = sqlite3.Row
     return c
 
@@ -73,6 +79,10 @@ def init_keys_db():
         except sqlite3.OperationalError:
             pass
         c.execute("CREATE INDEX IF NOT EXISTS idx_apikey_referral ON api_keys(referral_code)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_apikey_tier ON api_keys(subscription_tier)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_apikey_active ON api_keys(is_active)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_apikey_source ON api_keys(source)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_apikey_created ON api_keys(created_at)")
 
         # Daily spend tracking table
         c.execute("""
@@ -116,7 +126,7 @@ def init_keys_db():
 def generate_key(initial_balance: float = 0.0, label: str = "", source: str = "unknown") -> dict:
     key = "apk_" + secrets.token_urlsafe(32)
     referral_code = hashlib.sha256(key.encode()).hexdigest()[:8]
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         c.execute(
             "INSERT INTO api_keys (key, label, balance_usd, created_at, source, referral_code) VALUES (?, ?, ?, ?, ?, ?)",
@@ -146,7 +156,7 @@ def get_key_by_referral_code(code: str) -> dict | None:
 
 
 def topup_key(key: str, amount: float) -> dict:
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         c.execute(
             "UPDATE api_keys SET balance_usd = balance_usd + ?, last_used_at = ? WHERE key = ? AND is_active = 1",
@@ -155,6 +165,7 @@ def topup_key(key: str, amount: float) -> dict:
         row = c.execute("SELECT balance_usd FROM api_keys WHERE key = ?", (key,)).fetchone()
     if not row:
         return {"error": "key_not_found"}
+    _key_cache.pop(key, None)
     # Audit log
     try:
         from billing_audit import log_audit
@@ -167,34 +178,39 @@ def topup_key(key: str, amount: float) -> dict:
 def get_key_status(key: str) -> dict | None:
     with _conn() as c:
         row = c.execute(
-            "SELECT key, label, balance_usd, total_spent, call_count, is_active, created_at, "
-            "last_used_at, source, first_used_at, referral_code, daily_spend_limit, allowed_tools, "
-            "subscription_tier, subscription_id, monthly_calls_remaining, subscription_reset_date "
-            "FROM api_keys WHERE key = ?",
+            "SELECT k.key, k.label, k.balance_usd, k.total_spent, k.call_count, k.is_active, "
+            "k.created_at, k.last_used_at, k.source, k.first_used_at, k.referral_code, "
+            "k.daily_spend_limit, k.allowed_tools, k.subscription_tier, k.subscription_id, "
+            "k.monthly_calls_remaining, k.subscription_reset_date, "
+            "d.amount_usd as daily_spend_today "
+            "FROM api_keys k "
+            "LEFT JOIN daily_spend d ON d.api_key = k.key AND d.date = date('now') "
+            "WHERE k.key = ?",
             (key,),
         ).fetchone()
     if not row:
         return None
     result = dict(row)
-    # Include today's spend
-    today = datetime.utcnow().strftime("%Y-%m-%d")
-    with _conn() as c:
-        ds = c.execute(
-            "SELECT amount_usd FROM daily_spend WHERE api_key = ? AND date = ?",
-            (key, today),
-        ).fetchone()
-    result["daily_spend_today"] = ds["amount_usd"] if ds else 0.0
+    result["daily_spend_today"] = result.get("daily_spend_today") or 0.0
     return result
 
 
 def validate_key(key: str) -> dict | None:
     """Lightweight check — returns key record if active, None otherwise."""
+    import time
+    now = time.time()
+    cached = _key_cache.get(key)
+    if cached and now - cached[0] < _KEY_CACHE_TTL:
+        return cached[1].copy() if cached[1] else None
+
     with _conn() as c:
         row = c.execute(
             "SELECT key, balance_usd, is_active, daily_spend_limit, allowed_tools FROM api_keys WHERE key = ? AND is_active = 1",
             (key,),
         ).fetchone()
-    return dict(row) if row else None
+    result = dict(row) if row else None
+    _key_cache[key] = (now, result)
+    return result.copy() if result else None
 
 
 def get_allowed_tools(key: str) -> list[str] | None:
@@ -234,7 +250,7 @@ def set_daily_spend_limit(key: str, limit: float) -> bool:
 def check_daily_spend(key: str, amount: float) -> tuple[bool, float]:
     """Check if adding `amount` would exceed daily spend limit.
     Returns (allowed, remaining_today)."""
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     with _conn() as c:
         row = c.execute(
             "SELECT daily_spend_limit FROM api_keys WHERE key = ? AND is_active = 1",
@@ -256,7 +272,7 @@ def check_daily_spend(key: str, amount: float) -> tuple[bool, float]:
 
 def _record_daily_spend(key: str, amount: float):
     """Record spending for daily limit tracking."""
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     c = sqlite3.connect(DB_PATH, isolation_level=None)
     c.execute("PRAGMA journal_mode=WAL")
     try:
@@ -284,7 +300,7 @@ def deduct(key: str, amount: float, endpoint: str = "", ip: str = "") -> bool:
     allowed, _remaining = check_daily_spend(key, amount)
     if not allowed:
         return False
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     c = sqlite3.connect(DB_PATH, isolation_level=None)
     c.execute("PRAGMA journal_mode=WAL")
     try:
@@ -300,6 +316,7 @@ def deduct(key: str, amount: float, endpoint: str = "", ip: str = "") -> bool:
             # Get new balance for audit
             new_bal = c.execute("SELECT balance_usd FROM api_keys WHERE key = ?", (key,)).fetchone()
             c.execute("COMMIT")
+            _key_cache.pop(key, None)
             # Record daily spend
             _record_daily_spend(key, amount)
             # Audit log
@@ -310,6 +327,16 @@ def deduct(key: str, amount: float, endpoint: str = "", ip: str = "") -> bool:
                           endpoint=endpoint, ip=ip)
             except Exception:
                 pass
+            # Trigger low-balance email when credits nearly exhausted
+            if new_bal and new_bal[0] < 0.02:
+                try:
+                    from accounts import get_account_by_key
+                    acct = get_account_by_key(key)
+                    if acct and acct.get("email"):
+                        from routes.auth import _schedule_email
+                        _schedule_email(acct["email"], key, "low_balance", delay_seconds=60)
+                except Exception:
+                    pass
             return True
         else:
             c.execute("COMMIT")
@@ -336,7 +363,7 @@ def deduct_metered(key: str, input_tokens: int, output_tokens: int,
     allowed, _remaining = check_daily_spend(key, cost)
     if not allowed:
         return None
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     c = sqlite3.connect(DB_PATH, isolation_level=None)
     c.execute("PRAGMA journal_mode=WAL")
     c.row_factory = sqlite3.Row
@@ -356,6 +383,7 @@ def deduct_metered(key: str, input_tokens: int, output_tokens: int,
             "SELECT balance_usd FROM api_keys WHERE key = ?", (key,),
         ).fetchone()["balance_usd"]
         c.execute("COMMIT")
+        _key_cache.pop(key, None)
         # Record daily spend
         _record_daily_spend(key, cost)
         # Audit log
@@ -391,7 +419,7 @@ def rotate_key(old_key: str) -> dict | None:
 
         new_key = "apk_" + secrets.token_urlsafe(32)
         new_referral = hashlib.sha256(new_key.encode()).hexdigest()[:8]
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         balance = row["balance_usd"]
 
         # Deactivate old key
@@ -434,7 +462,7 @@ def rotate_key(old_key: str) -> dict | None:
 
 def deactivate_key(key: str) -> bool:
     """Deactivate an API key."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         cur = c.execute(
             "UPDATE api_keys SET is_active = 0, last_used_at = ? WHERE key = ? AND is_active = 1",
@@ -464,7 +492,7 @@ def is_stripe_event_processed(event_id: str) -> bool:
 
 def mark_stripe_event_processed(event_id: str):
     """Mark a Stripe event as processed."""
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         c.execute(
             "INSERT OR IGNORE INTO processed_stripe_events (event_id, processed_at) VALUES (?, ?)",
@@ -488,7 +516,7 @@ def has_received_trial_credits(ip: str) -> bool:
 def mark_trial_credits_used(ip: str):
     """Mark that an IP has received trial credits."""
     ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:32]
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         c.execute(
             "INSERT OR IGNORE INTO trial_credits_used (ip_hash, created_at) VALUES (?, ?)",
@@ -501,7 +529,7 @@ def mark_trial_credits_used(ip: str):
 def check_key_gen_rate(ip: str, max_per_day: int = 5) -> bool:
     """Check if IP can generate another key today. Returns True if allowed."""
     ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:32]
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     with _conn() as c:
         row = c.execute(
             "SELECT count FROM key_gen_rate WHERE ip_hash = ? AND date = ?",
@@ -515,7 +543,7 @@ def check_key_gen_rate(ip: str, max_per_day: int = 5) -> bool:
 def record_key_gen(ip: str):
     """Record a key generation for rate limiting."""
     ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:32]
-    today = datetime.utcnow().strftime("%Y-%m-%d")
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     with _conn() as c:
         c.execute(
             """INSERT INTO key_gen_rate (ip_hash, date, count)
@@ -529,19 +557,25 @@ def record_key_gen(ip: str):
 # ── Tier Detection ─────────────────────────────────────────────────────────
 
 def get_key_tier(key: str) -> str:
-    """Determine rate limit tier based on balance.
+    """Determine rate limit tier based on balance or subscription tier.
     Free (no key): 20 req/min
     Starter ($0-$2): 60 req/min
     Pro ($2-$10): 120 req/min
     Enterprise ($10+): 300 req/min
+    Subscription hobby: 60 req/min
+    Subscription pro: 120 req/min
+    Subscription business: 300 req/min
     """
     with _conn() as c:
         row = c.execute(
-            "SELECT balance_usd FROM api_keys WHERE key = ? AND is_active = 1",
+            "SELECT balance_usd, subscription_tier FROM api_keys WHERE key = ? AND is_active = 1",
             (key,),
         ).fetchone()
     if not row:
         return "free"
+    sub_tier = row["subscription_tier"] if row["subscription_tier"] else None
+    if sub_tier:
+        return {"hobby": "starter", "starter": "starter", "pro": "pro", "business": "enterprise", "enterprise": "enterprise"}.get(sub_tier, "starter")
     bal = row["balance_usd"]
     if bal >= 10.0:
         return "enterprise"
@@ -563,9 +597,9 @@ def get_tier_rate_limit(tier: str) -> int:
 # ── Subscription Management ──────────────────────────────────────────────
 
 SUBSCRIPTION_TIERS = {
-    "hobby": {"price_usd": 9, "monthly_calls": 500, "model_tier": "standard"},
-    "pro": {"price_usd": 29, "monthly_calls": 2000, "model_tier": "priority"},
-    "business": {"price_usd": 79, "monthly_calls": 10000, "model_tier": "premium"},
+    "starter": {"price_usd": 4.99, "monthly_calls": 500, "model_tier": "standard"},
+    "pro": {"price_usd": 19.99, "monthly_calls": 2000, "model_tier": "priority"},
+    "enterprise": {"price_usd": 49.99, "monthly_calls": 10000, "model_tier": "premium"},
 }
 
 
@@ -630,7 +664,7 @@ def reset_subscription_calls(key: str) -> bool:
         return False
     tier = row["subscription_tier"]
     monthly_calls = SUBSCRIPTION_TIERS.get(tier, {}).get("monthly_calls", 0)
-    next_reset = (datetime.utcnow().replace(day=1) + __import__("datetime").timedelta(days=32)).replace(day=1).isoformat()[:10]
+    next_reset = (datetime.now(timezone.utc).replace(day=1) + __import__("datetime").timedelta(days=32)).replace(day=1).isoformat()[:10]
     with _conn() as c:
         c.execute(
             "UPDATE api_keys SET monthly_calls_remaining = ?, subscription_reset_date = ? WHERE key = ?",

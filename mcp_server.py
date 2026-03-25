@@ -2,7 +2,7 @@
 AiPayGen MCP Server — 250 tools (metered + free)
 
 Exposes all AiPayGen capabilities as MCP tools with usage metering.
-3 free calls/day without an API key. Unlimited with a prepaid key.
+Get a free API key with $0.25 trial credits (~40 calls). Unlimited with prepaid credits.
 
 Usage:
   stdio (Claude Code / Cursor / Cline):
@@ -37,7 +37,9 @@ def main():
         starlette_app = mcp.streamable_http_app()
 
         async def health(request):
-            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": 250, "version": "1.9.0"})
+            from helpers import APP_VERSION
+            tool_count = len(mcp._tool_manager._tools) if hasattr(mcp, '_tool_manager') and hasattr(mcp._tool_manager, '_tools') else 250
+            return JSONResponse({"status": "ok", "server": "AiPayGen MCP", "tools": tool_count, "version": APP_VERSION})
 
         _tracked_sessions = set()
 
@@ -62,8 +64,13 @@ def main():
                     pass
             return response
 
+        # Mount SSE app for legacy clients at /sse
+        sse_app = mcp.sse_app()
+        from starlette.routing import Mount
         starlette_app.routes.insert(0, Route("/health", health))
-        uvicorn.run(starlette_app, host="0.0.0.0", port=5002)
+        starlette_app.routes.append(Mount("/sse", app=sse_app))
+
+        uvicorn.run(starlette_app, host="127.0.0.1", port=5002)
     else:
         mcp.run(transport="stdio")
 

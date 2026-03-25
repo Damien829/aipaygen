@@ -1,7 +1,7 @@
 """SQLite catalog for discovered APIs."""
 import sqlite3
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "api_catalog.db")
 
@@ -9,6 +9,9 @@ DB_PATH = os.path.join(os.path.dirname(__file__), "api_catalog.db")
 def _conn():
     c = sqlite3.connect(DB_PATH)
     c.execute("PRAGMA journal_mode=WAL")
+    c.execute("PRAGMA synchronous=NORMAL")
+    c.execute("PRAGMA cache_size=-8000")
+    c.execute("PRAGMA temp_store=MEMORY")
     c.row_factory = sqlite3.Row
     return c
 
@@ -45,6 +48,7 @@ def init_db():
                 error TEXT
             )
         """)
+        c.execute("CREATE INDEX IF NOT EXISTS idx_apis_score ON discovered_apis(quality_score, is_active)")
     _migrate_schema()
 
 
@@ -91,7 +95,7 @@ _UPSERT_ALLOWED_COLS = {
 
 def upsert_api(**kwargs) -> int:
     kwargs = {k: v for k, v in kwargs.items() if k in _UPSERT_ALLOWED_COLS}
-    now = datetime.utcnow().isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         existing = c.execute(
             "SELECT id FROM discovered_apis WHERE base_url = ?", (kwargs.get("base_url"),)
@@ -155,7 +159,7 @@ def log_run_start(agent_name: str) -> int:
     with _conn() as c:
         cur = c.execute(
             "INSERT INTO discovery_runs (agent_name, started_at, status) VALUES (?, ?, 'running')",
-            (agent_name, datetime.utcnow().isoformat()),
+            (agent_name, datetime.now(timezone.utc).isoformat()),
         )
         return cur.lastrowid
 
@@ -164,7 +168,7 @@ def log_run_end(run_id: int, found: int, status: str, error: str = None):
     with _conn() as c:
         c.execute(
             "UPDATE discovery_runs SET completed_at=?, apis_found=?, status=?, error=? WHERE id=?",
-            (datetime.utcnow().isoformat(), found, status, error, run_id),
+            (datetime.now(timezone.utc).isoformat(), found, status, error, run_id),
         )
 
 

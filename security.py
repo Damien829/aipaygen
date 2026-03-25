@@ -53,6 +53,13 @@ BLOCKED_ATTRS = frozenset({
     "system", "popen", "exec", "spawn",
 })
 
+# Dunder attributes that are safe and commonly needed
+ALLOWED_DUNDERS = frozenset({
+    "__init__", "__str__", "__repr__", "__len__",
+    "__iter__", "__next__", "__getitem__", "__setitem__",
+    "__contains__",
+})
+
 
 class SandboxViolation(Exception):
     pass
@@ -78,11 +85,19 @@ def validate_code_safety(code: str) -> None:
                 if name in BLOCKED_IMPORTS or True:  # Block ALL imports in sandbox
                     raise SandboxViolation(f"Import '{name}' is not allowed")
 
+        # Block BLOCKED_BUILTINS referenced in ANY context (not just calls)
+        if isinstance(node, ast.Name) and node.id in BLOCKED_BUILTINS:
+            raise SandboxViolation(f"Reference to blocked builtin '{node.id}' is not allowed")
+
+        # Block assignment to BLOCKED_BUILTINS names (prevents aliasing)
+        if isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Name) and target.id in BLOCKED_BUILTINS:
+                    raise SandboxViolation(f"Cannot assign to blocked builtin: {target.id}")
+
         # Block dangerous builtin calls
         if isinstance(node, ast.Call):
             func = node.func
-            if isinstance(func, ast.Name) and func.id in BLOCKED_BUILTINS:
-                raise SandboxViolation(f"Builtin '{func.id}()' is not allowed")
             if isinstance(func, ast.Attribute) and func.attr in BLOCKED_BUILTINS:
                 raise SandboxViolation(f"Call to '.{func.attr}()' is not allowed")
 
@@ -90,6 +105,10 @@ def validate_code_safety(code: str) -> None:
         if isinstance(node, ast.Attribute):
             if node.attr in BLOCKED_ATTRS:
                 raise SandboxViolation(f"Access to '.{node.attr}' is not allowed")
+            # Block all dunder attributes except explicitly allowed ones
+            if node.attr.startswith('__') and node.attr.endswith('__'):
+                if node.attr not in ALLOWED_DUNDERS:
+                    raise SandboxViolation(f"Blocked dunder attribute: {node.attr}")
 
         # Block string-based code execution patterns
         if isinstance(node, ast.Constant) and isinstance(node.value, str):

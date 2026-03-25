@@ -13,6 +13,9 @@ def _get_conn():
     if _conn is None:
         _conn = sqlite3.connect(_DB_PATH, check_same_thread=False)
         _conn.execute("PRAGMA journal_mode=WAL")
+        _conn.execute("PRAGMA synchronous=NORMAL")
+        _conn.execute("PRAGMA cache_size=-8000")
+        _conn.execute("PRAGMA temp_store=MEMORY")
         _conn.row_factory = sqlite3.Row
     return _conn
 
@@ -35,6 +38,13 @@ def init_accounts_db():
             FOREIGN KEY (account_id) REFERENCES accounts(id)
         );
     """)
+    conn.commit()
+    # OAuth columns migration
+    for col, default in [("password_hash", ""), ("salt", ""), ("oauth_provider", ""), ("oauth_id", ""), ("display_name", ""), ("avatar_url", "")]:
+        try:
+            conn.execute(f"ALTER TABLE accounts ADD COLUMN {col} TEXT DEFAULT '{default}'")
+        except sqlite3.OperationalError:
+            pass
     conn.commit()
 
 
@@ -84,3 +94,37 @@ def set_digest_opt_out(account_id: int, opt_out: bool = True):
     conn = _get_conn()
     conn.execute("UPDATE accounts SET digest_opt_out = ? WHERE id = ?", (1 if opt_out else 0, account_id))
     conn.commit()
+
+
+def create_or_get_oauth_account(email: str, provider: str, oauth_id: str,
+                                 display_name: str = "", avatar_url: str = "") -> dict:
+    """Create or retrieve account via OAuth provider. Links OAuth identity."""
+    conn = _get_conn()
+    now = datetime.now(timezone.utc).isoformat()
+    # Check if account exists by email
+    row = conn.execute("SELECT * FROM accounts WHERE email = ?", (email,)).fetchone()
+    if row:
+        # Update OAuth info if not already set
+        if not row["oauth_provider"]:
+            conn.execute(
+                "UPDATE accounts SET oauth_provider = ?, oauth_id = ?, display_name = ?, avatar_url = ? WHERE id = ?",
+                (provider, oauth_id, display_name, avatar_url, row["id"]),
+            )
+            conn.commit()
+        update_last_login(row["id"])
+        return dict(conn.execute("SELECT * FROM accounts WHERE id = ?", (row["id"],)).fetchone())
+    # Create new account
+    conn.execute(
+        "INSERT INTO accounts (email, created_at, last_login, oauth_provider, oauth_id, display_name, avatar_url) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (email, now, now, provider, oauth_id, display_name, avatar_url),
+    )
+    conn.commit()
+    return dict(conn.execute("SELECT * FROM accounts WHERE email = ?", (email,)).fetchone())
+
+
+def get_account_by_oauth(provider: str, oauth_id: str) -> dict | None:
+    """Find account by OAuth provider and ID."""
+    conn = _get_conn()
+    row = conn.execute("SELECT * FROM accounts WHERE oauth_provider = ? AND oauth_id = ?",
+                       (provider, oauth_id)).fetchone()
+    return dict(row) if row else None
