@@ -1994,7 +1994,7 @@ def inject_free_tier_upsell(response):
             return response
         data["_free_tier"] = {
             "calls_remaining": remaining_int,
-            "total_daily": 3,
+            "total_daily": 1,
         }
         if remaining_int <= 5:
             data["_free_tier"]["upgrade"] = {
