@@ -2211,6 +2211,9 @@ def serve_web_app():
     if host != "app.aipaygen.com":
         return None
     path = request.path.lstrip("/")
+    # Strip /app/ prefix — on app.aipaygen.com, /app/manifest.json should serve manifest.json
+    if path.startswith("app/"):
+        path = path[4:]
     # Let admin, API, and health routes pass through to Flask — don't serve as SPA
     _passthrough = ("admin", "auth", "health", "support/ticket", "api/", "stream/", "status", "blog")
     if any(path.startswith(p) for p in _passthrough):
@@ -2233,7 +2236,7 @@ def serve_web_app():
     html_path = os.path.join(static_dir, "index.html")
     with open(html_path, "r") as f:
         html = f.read()
-    inject = '<link rel="stylesheet" href="/web-custom.css">'
+    inject = f'<link rel="stylesheet" href="/web-custom.css?v={APP_VERSION}">'
     html = html.replace("</head>", inject + "\n</head>", 1)
     resp = make_response(html)
     resp.headers["Content-Type"] = "text/html; charset=utf-8"
