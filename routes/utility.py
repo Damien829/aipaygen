@@ -1450,3 +1450,227 @@ def crypto_trending():
     except Exception:
         _log.exception("Request failed")
         return jsonify({"error": "Request failed"}), 502
+
+
+# ── MCP-parity REST routes ────────────────────────────────────────────────────
+# These mirror MCP tools so they're accessible via the REST API too.
+
+
+@utility_bp.route("/get-weather", methods=["POST"])
+def get_weather_route():
+    """Get current weather for any city (free, no key needed)."""
+    data = request.get_json() or {}
+    city = data.get("location", data.get("city", ""))
+    if not city:
+        return jsonify({"error": "location/city required"}), 400
+    try:
+        geo = _requests.get(
+            "https://geocoding-api.open-meteo.com/v1/search",
+            params={"name": city, "count": 1}, timeout=8,
+        ).json()
+        results = geo.get("results", [])
+        if not results:
+            return jsonify({"error": "city_not_found", "city": city}), 404
+        loc = results[0]
+        weather = _requests.get(
+            "https://api.open-meteo.com/v1/forecast",
+            params={"latitude": loc["latitude"], "longitude": loc["longitude"], "current_weather": "true"},
+            timeout=8,
+        ).json()
+        cw = weather.get("current_weather", {})
+        return jsonify({
+            "city": loc.get("name"), "country": loc.get("country"),
+            "temperature_c": cw.get("temperature"), "windspeed_kmh": cw.get("windspeed"),
+            "weather_code": cw.get("weathercode"), "is_day": cw.get("is_day"),
+        })
+    except Exception:
+        return jsonify({"error": "Failed to fetch weather"}), 502
+
+
+@utility_bp.route("/get-crypto-prices", methods=["POST"])
+def get_crypto_prices_route():
+    """Get real-time crypto prices from CoinGecko."""
+    data = request.get_json() or {}
+    symbols = data.get("coins", data.get("symbols", "bitcoin,ethereum"))
+    try:
+        r = _requests.get(
+            "https://api.coingecko.com/api/v3/simple/price",
+            params={"ids": symbols, "vs_currencies": "usd,eur,gbp", "include_24hr_change": "true"},
+            timeout=8,
+        )
+        return jsonify({"prices": r.json(), "symbols": symbols.split(",")})
+    except Exception:
+        return jsonify({"error": "Failed to fetch crypto prices"}), 502
+
+
+@utility_bp.route("/get-exchange-rates", methods=["POST"])
+def get_exchange_rates_route():
+    """Get live exchange rates for 160+ currencies."""
+    data = request.get_json() or {}
+    base = data.get("base", data.get("base_currency", "USD"))
+    try:
+        r = _requests.get(f"https://api.exchangerate-api.com/v4/latest/{base.upper()}", timeout=8)
+        d = r.json()
+        return jsonify({"base": base.upper(), "date": d.get("date"), "rates": d.get("rates", {})})
+    except Exception:
+        return jsonify({"error": "Failed to fetch exchange rates"}), 502
+
+
+@utility_bp.route("/get-holidays", methods=["POST"])
+def get_holidays_route():
+    """Get public holidays for any country."""
+    data = request.get_json() or {}
+    country = data.get("country", "US")
+    yr = data.get("year", "") or str(time.localtime().tm_year)
+    try:
+        r = _requests.get(f"https://date.nager.at/api/v3/PublicHolidays/{yr}/{country.upper()}", timeout=8)
+        holidays = [{"date": h["date"], "name": h["localName"], "name_en": h["name"]} for h in r.json()[:20]]
+        return jsonify({"country": country.upper(), "year": yr, "holidays": holidays})
+    except Exception:
+        return jsonify({"error": "Failed to fetch holidays"}), 502
+
+
+@utility_bp.route("/get-current-time", methods=["POST"])
+def get_current_time_route():
+    """Get current UTC time and timestamps."""
+    import datetime
+    now = datetime.datetime.now(datetime.timezone.utc)
+    return jsonify({
+        "utc": now.isoformat(),
+        "unix": int(now.timestamp()),
+        "date": now.strftime("%Y-%m-%d"),
+        "time": now.strftime("%H:%M:%S"),
+    })
+
+
+@utility_bp.route("/get-joke", methods=["POST"])
+def get_joke_route():
+    """Get a random programming joke."""
+    try:
+        r = _requests.get("https://official-joke-api.appspot.com/random_joke", timeout=5)
+        j = r.json()
+        return jsonify({"setup": j.get("setup"), "punchline": j.get("punchline"), "type": j.get("type")})
+    except Exception:
+        return jsonify({"joke": "Why do programmers prefer dark mode? Because light attracts bugs."})
+
+
+@utility_bp.route("/get-quote", methods=["POST"])
+def get_quote_route():
+    """Get an inspirational quote."""
+    try:
+        r = _requests.get("https://zenquotes.io/api/random", timeout=5)
+        q = r.json()[0]
+        return jsonify({"quote": q.get("q"), "author": q.get("a")})
+    except Exception:
+        return jsonify({"quote": "The best way to predict the future is to invent it.", "author": "Alan Kay"})
+
+
+@utility_bp.route("/generate-uuid", methods=["POST"])
+def generate_uuid_route():
+    """Generate one or more UUIDs."""
+    import uuid
+    data = request.get_json() or {}
+    count = min(int(data.get("count", 1)), 50)
+    return jsonify({"uuids": [str(uuid.uuid4()) for _ in range(count)]})
+
+
+@utility_bp.route("/web-search", methods=["POST"])
+def web_search_route():
+    """Search the web via DuckDuckGo."""
+    data = request.get_json() or {}
+    query = data.get("query", data.get("q", ""))
+    if not query:
+        return jsonify({"error": "query required"}), 400
+    n = min(int(data.get("n_results", 10)), 25)
+    try:
+        resp = _requests.get(
+            "https://api.duckduckgo.com/",
+            params={"q": query, "format": "json", "no_redirect": 1, "no_html": 1},
+            timeout=10,
+        )
+        d = resp.json()
+        results = []
+        for r in (d.get("RelatedTopics") or [])[:n]:
+            if isinstance(r, dict) and r.get("Text"):
+                results.append({"text": r["Text"], "url": r.get("FirstURL", "")})
+        return jsonify({
+            "query": query,
+            "abstract": d.get("Abstract", ""),
+            "abstract_url": d.get("AbstractURL", ""),
+            "results": results,
+        })
+    except Exception:
+        return jsonify({"error": "Search failed"}), 502
+
+
+@utility_bp.route("/scrape-website", methods=["POST"])
+def scrape_website_route():
+    """Scrape a website and extract text content."""
+    data = request.get_json() or {}
+    url = data.get("url", "")
+    if not url:
+        return jsonify({"error": "url required"}), 400
+    try:
+        resp = _requests.get(url, timeout=15, headers={"User-Agent": "AiPayGen/1.0"}, verify=False)
+        import re as _re
+        text = _re.sub(r'<script[^>]*>.*?</script>', '', resp.text, flags=_re.DOTALL)
+        text = _re.sub(r'<style[^>]*>.*?</style>', '', text, flags=_re.DOTALL)
+        text = _re.sub(r'<[^>]+>', ' ', text)
+        text = _re.sub(r'\s+', ' ', text).strip()[:5000]
+        title = ""
+        title_match = _re.search(r'<title[^>]*>(.*?)</title>', resp.text, _re.IGNORECASE | _re.DOTALL)
+        if title_match:
+            title = title_match.group(1).strip()
+        return jsonify({"url": url, "title": title, "text": text, "status_code": resp.status_code})
+    except Exception as e:
+        return jsonify({"error": f"Scrape failed: {str(e)[:100]}"}), 502
+
+
+@utility_bp.route("/list-models", methods=["POST", "GET"])
+def list_models_route():
+    """List available AI models."""
+    try:
+        resp = _requests.get("http://localhost:5001/models", timeout=5)
+        return jsonify(resp.json())
+    except Exception:
+        return jsonify({"error": "Failed to fetch models"}), 502
+
+
+@utility_bp.route("/memory-store", methods=["POST"])
+def memory_store_route():
+    """Store a persistent memory key-value pair."""
+    from agent_memory import memory_set
+    data = request.get_json() or {}
+    key = data.get("key", "")
+    value = data.get("value", "")
+    if not key or not value:
+        return jsonify({"error": "key and value required"}), 400
+    agent_id = data.get("agent_id", "default")
+    tags = [t.strip() for t in data.get("tags", "").split(",") if t.strip()] if data.get("tags") else []
+    result = memory_set(agent_id, key, value, tags)
+    return jsonify(result)
+
+
+@utility_bp.route("/memory-recall", methods=["POST"])
+def memory_recall_route():
+    """Recall a stored memory by key."""
+    from agent_memory import memory_get
+    data = request.get_json() or {}
+    key = data.get("key", "")
+    if not key:
+        return jsonify({"error": "key required"}), 400
+    agent_id = data.get("agent_id", "default")
+    result = memory_get(agent_id, key)
+    if result is None:
+        return jsonify({"error": "key_not_found", "key": key}), 404
+    return jsonify(result)
+
+
+@utility_bp.route("/memory-keys", methods=["POST"])
+def memory_keys_route():
+    """List all memory keys for an agent."""
+    from agent_memory import memory_list
+    data = request.get_json() or {}
+    agent_id = data.get("agent_id", "default")
+    result = memory_list(agent_id)
+    return jsonify({"agent_id": agent_id, "keys": result})

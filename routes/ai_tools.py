@@ -1509,6 +1509,48 @@ def test_cases_route():
     return jsonify(agent_response(result, "/test-cases"))
 
 
+@ai_tools_bp.route("/chain-operations", methods=["POST"])
+@rate_limit(10, bucket="chain")
+def chain_operations_route():
+    data = request.get_json() or {}
+    steps = data.get("steps", [])
+    if not steps:
+        return jsonify({"error": "steps array required"}), 400
+    results = []
+    context = ""
+    for step in steps:
+        tool = step.get("tool", "ask")
+        inp = step.get("input", "") or context
+        r, err = call_llm([{"role": "user", "content": inp}], system=f"You are a {tool} tool.", endpoint="/chain-operations", model_override=data.get("model"))
+        if err:
+            return jsonify({"error": err}), 500
+        context = r.get("text", "")
+        results.append({"tool": tool, "output": context})
+    log_payment("/chain-operations", 0.05, request.remote_addr)
+    return jsonify(agent_response({"steps": results, "final_output": context}, "/chain-operations"))
+
+
+@ai_tools_bp.route("/enrich-entity", methods=["POST"])
+@rate_limit(10, bucket="enrich")
+def enrich_entity_route():
+    data = request.get_json() or {}
+    entity = data.get("entity", data.get("name", ""))
+    entity_type = data.get("type", "company")
+    if not entity:
+        return jsonify({"error": "entity name required"}), 400
+    r, err = call_llm(
+        [{"role": "user", "content": f"Enrich this {entity_type} entity: {entity}"}],
+        system="Return JSON with: name, description, industry, founded, headquarters, key_people, products, competitors, website. Use your knowledge. Return valid JSON only.",
+        endpoint="/enrich-entity",
+        model_override=data.get("model"),
+    )
+    if err:
+        return jsonify({"error": err}), 500
+    parsed = parse_json_from_claude(r["text"]) or {"entity": entity, "enrichment": r["text"]}
+    log_payment("/enrich-entity", 0.03, request.remote_addr)
+    return jsonify(agent_response(parsed, "/enrich-entity"))
+
+
 @ai_tools_bp.route("/workflow", methods=["POST"])
 @rate_limit(10, bucket="workflow")
 def workflow_route():
