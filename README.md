@@ -1,79 +1,56 @@
-# AiPayGen
+# aipaygen-mcp
 
-<!-- mcp-name: io.github.Damien829/aipaygen -->
+[![PyPI version](https://img.shields.io/pypi/v/aipaygen-mcp.svg)](https://pypi.org/project/aipaygen-mcp/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![MCP Compatible](https://img.shields.io/badge/MCP-compatible-green.svg)](https://modelcontextprotocol.io/)
 
-**Pay-per-use Claude AI API for autonomous agents.** 155 tools and 140+ endpoints, USDC micropayments on Base via [x402](https://www.x402.org/), no API keys or signups required. Crypto deposits (Base + Solana), seller marketplace, and agent builder included.
+An open-source [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server that gives AI agents access to 100+ tools across research, code generation, web scraping, data transforms, NLP, and more.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![PyPI - MCP](https://img.shields.io/pypi/v/aipaygen-mcp)](https://pypi.org/project/aipaygen-mcp/)
-[![PyPI - langchain](https://img.shields.io/pypi/v/aipaygen-langchain)](https://pypi.org/project/aipaygen-langchain/)
-[![PyPI - llamaindex](https://img.shields.io/pypi/v/aipaygen-llamaindex)](https://pypi.org/project/aipaygen-llamaindex/)
-[![npm](https://img.shields.io/npm/v/aipaygen)](https://www.npmjs.com/package/aipaygen)
+Works with **Claude Code**, **Claude Desktop**, **Cursor**, **Windsurf**, **Cline**, and any MCP-compatible client.
 
 ## How it works
 
-1. Agent calls any endpoint (e.g. `POST /research`)
-2. First 10 calls/day are **free** — no payment needed
-3. After that, the server returns **HTTP 402** with payment instructions
-4. Agent signs a USDC transaction on Base and retries with an `X-Payment` header
-5. Server verifies payment via [CDP x402](https://docs.cdp.coinbase.com/x402/docs/overview) and returns the result
-
 ```
-Agent ──POST /research──▶ AiPayGen ──402 + payment info──▶ Agent
-Agent ──POST /research + X-Payment──▶ AiPayGen ──200 + result──▶ Agent
-```
-
-## Quick start
-
-### Try free (no setup)
-
-```bash
-curl -X POST https://api.aipaygen.com/preview \
-  -H "Content-Type: application/json" \
-  -d '{"query": "What is x402?"}'
+Your AI Agent (Claude, Cursor, etc.)
+        |
+    MCP protocol (stdio or streamable-http)
+        |
+aipaygen-mcp (this package — open source client)
+        |
+    HTTPS requests
+        |
+Backend API (hosted or self-hosted)
 ```
 
-### Python
+`aipaygen-mcp` is a thin MCP server that translates tool calls from your AI agent into API requests. The client itself is fully open source and MIT-licensed. You can point it at the hosted API or run your own backend.
 
-```bash
-pip install aipaygen-langchain
-```
-
-```python
-from aipaygen_langchain import AiPayGenToolkit
-
-tools = AiPayGenToolkit(x402_token="your_token").get_tools()
-# Use with LangChain agents, CrewAI, etc.
-```
-
-### JavaScript / TypeScript
-
-```bash
-npm install aipaygen
-```
-
-```javascript
-import { AiPayGen } from "aipaygen";
-const client = new AiPayGen({ token: "your_token" });
-const result = await client.research("quantum computing trends");
-```
-
-### MCP Server (Claude Desktop, Cursor, etc.)
-
-Connect as a remote MCP server — no local install:
-
-```
-https://mcp.aipaygen.com/mcp
-```
-
-Or run locally:
+## Installation
 
 ```bash
 pip install aipaygen-mcp
-aipaygen-mcp
 ```
 
-Claude Desktop config:
+Requires Python 3.10+. The only dependency is `mcp>=1.0.0`.
+
+### Verify it works
+
+```bash
+aipaygen-mcp --test
+```
+
+## Setup
+
+### Claude Code
+
+```bash
+claude mcp add aipaygen -- aipaygen-mcp
+```
+
+### Claude Desktop
+
+Add to your `claude_desktop_config.json`:
+
 ```json
 {
   "mcpServers": {
@@ -84,81 +61,141 @@ Claude Desktop config:
 }
 ```
 
-## Endpoints
+### Cursor / Windsurf / Cline
 
-### AI / NLP
+Add to your MCP config file:
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/research` | POST | Deep research on any topic |
-| `/summarize` | POST | Compress text (bullets, paragraph, TLDR) |
-| `/analyze` | POST | Structured analysis with findings |
-| `/translate` | POST | Translate to any language |
-| `/sentiment` | POST | Polarity, score, emotions |
-| `/keywords` | POST | Extract keywords and topics |
-| `/classify` | POST | Classify into custom categories |
-| `/rewrite` | POST | Rewrite for audience or voice |
-| `/extract` | POST | Pull structured JSON from text |
-| `/qa` | POST | Q&A over a document |
-| `/code` | POST | Generate code in any language |
-| `/diagram` | POST | Generate Mermaid diagrams |
-| `/chain` | POST | Multi-step AI pipelines |
+```json
+{
+  "aipaygen": {
+    "command": "aipaygen-mcp"
+  }
+}
+```
 
-### Web Intelligence
+## Configuration
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/scrape` | POST | Scrape any webpage |
-| `/search` | POST | Web search with AI summary |
-| `/research` | POST | Deep multi-source research |
-| `/extract/{url}` | GET | Extract structured data from URL |
-| `/scrape/tweets` | POST | Search and scrape tweets |
-| `/scrape/google-maps` | POST | Google Maps business data |
+### Environment variables
 
-### Agent Memory
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `AIPAYGEN_API_KEY` | No | API key for authenticated access. Without a key, the free tier applies (10 calls/day). |
+| `AIPAYGEN_BASE_URL` | No | Override the backend URL. Defaults to `https://api.aipaygen.com`. Set this to point at a self-hosted instance. |
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/memory/set` | POST | Store persistent key-value data |
-| `/memory/get` | POST | Retrieve stored data |
-| `/memory/search` | POST | Search memories by keyword |
+```bash
+# Example: use with an API key
+export AIPAYGEN_API_KEY="apk_your_key_here"
+aipaygen-mcp
 
-### Discovery
+# Example: point at a local backend
+AIPAYGEN_BASE_URL=http://localhost:5001 aipaygen-mcp
+```
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/discover` | GET | Full endpoint catalog |
-| `/catalog` | GET | Browse discovered APIs |
-| `/openapi.json` | GET | OpenAPI 3.0 spec |
-| `/llms.txt` | GET | LLMs.txt for AI agents |
-| `/.well-known/agent.json` | GET | Agent discovery manifest |
-| `/preview` | POST | Free 120-token Claude demo |
+### Transport modes
 
-Full list: [api.aipaygen.com/discover](https://api.aipaygen.com/discover)
+```bash
+aipaygen-mcp          # stdio (default, for Claude Desktop / Cursor / etc.)
+aipaygen-mcp --http   # streamable-http (for remote MCP clients)
+aipaygen-mcp --test   # connectivity self-test
+```
+
+## Available tools
+
+The server exposes tools organized into categories:
+
+| Category | Examples | Count |
+|----------|----------|-------|
+| AI Writing | `research`, `write`, `summarize`, `translate`, `rewrite`, `proofread` | 10 |
+| AI Analysis | `analyze`, `sentiment`, `classify`, `compare`, `extract`, `score` | 10 |
+| AI Code | `code`, `sql`, `regex`, `test_cases`, `json_schema`, `review_code` | 10 |
+| AI Reasoning | `plan`, `decide`, `explain`, `debate`, `think`, `outline` | 9 |
+| Advanced AI | `vision`, `rag`, `diagram`, `workflow`, `pipeline`, `batch` | 8 |
+| Web Scraping | `scrape_website`, `scrape_tweets`, `scrape_youtube` | 6 |
+| Data Feeds | `get_weather`, `get_crypto_prices`, `web_search`, `stock_history` | 7 |
+| Agent Memory | `memory_store`, `memory_recall`, `memory_find`, `memory_keys` | 4 |
+| Agent Network | `register_my_agent`, `send_agent_message`, `browse_agent_tasks` | 10 |
+| API Catalog | `browse_catalog`, `get_catalog_api`, `invoke_catalog_api` | 3 |
+| Location & Domain | `geocode`, `whois_lookup`, `domain_profile`, `company_search` | 5 |
+| Web Analysis | `url_meta`, `ssl_info`, `security_headers_audit`, `techstack_detect` | 9 |
+| NLP & Transforms | `entity_extraction`, `text_similarity`, `json_to_csv`, `xml_to_json` | 10 |
+| Finance & Math | `currency_convert`, `math_evaluate`, `unit_convert`, `math_stats` | 7 |
+| Date & Time | `datetime_between`, `business_days`, `unix_timestamp` | 3 |
+
+Each tool has full docstrings — your AI agent will see descriptions and parameter types automatically via MCP.
 
 ## Architecture
 
-- **Runtime**: Flask + Gunicorn on Raspberry Pi 5
-- **AI**: Claude Haiku 4.5 via Anthropic API
-- **Payments**: x402 protocol, USDC on Base Mainnet, verified via CDP
-- **Tunnel**: Cloudflare Tunnel → `api.aipaygen.com`
-- **Storage**: SQLite (memory, usage tracking, API keys)
-- **Discovery**: OpenAPI, LLMs.txt, MCP, agents.json, ai-plugin.json
+The codebase is intentionally simple:
 
-## Links
+```
+src/aipaygen_mcp/
+    __init__.py      # Package version
+    server.py        # MCP server — tool definitions and API client
+```
 
-| Resource | URL |
-|----------|-----|
-| Live API | https://api.aipaygen.com |
-| Discover endpoints | https://api.aipaygen.com/discover |
-| OpenAPI spec | https://api.aipaygen.com/openapi.json |
-| LLMs.txt | https://api.aipaygen.com/llms.txt |
-| MCP server | https://mcp.aipaygen.com/mcp |
-| Blog | https://api.aipaygen.com/blog |
-| npm SDK | https://www.npmjs.com/package/aipaygen |
-| PyPI (LangChain) | https://pypi.org/project/aipaygen-langchain/ |
-| PyPI (LlamaIndex) | https://pypi.org/project/aipaygen-llamaindex/ |
+`server.py` does two things:
+1. Registers MCP tools using `FastMCP` from the official `mcp` SDK
+2. Proxies tool calls to a backend API via `urllib` (no extra HTTP dependencies)
+
+Each tool is a thin wrapper:
+
+```python
+@mcp.tool()
+def research(topic: str) -> dict:
+    """Research any topic. Returns structured summary, key points, and sources."""
+    return _call("research", {"question": topic})
+```
+
+The `_call()` and `_get()` helpers handle HTTP requests, auth headers, and error formatting. That's it.
+
+## Development
+
+### Clone and install in development mode
+
+```bash
+git clone https://github.com/Damien829/aipaygen.git
+cd aipaygen
+pip install -e ".[dev]"
+```
+
+### Run tests
+
+```bash
+pytest tests/
+```
+
+### Run the server locally
+
+```bash
+python -m aipaygen_mcp.server
+```
+
+### Adding a new tool
+
+1. Add a function in `src/aipaygen_mcp/server.py` with the `@mcp.tool()` decorator
+2. Use `_call()` for POST endpoints or `_get()` for GET endpoints
+3. Write a clear docstring (this is what the AI agent sees)
+4. Add a test in `tests/`
+5. Open a PR
+
+## Self-hosting the backend
+
+The MCP client can point at any compatible backend. Set `AIPAYGEN_BASE_URL` to your own server:
+
+```bash
+AIPAYGEN_BASE_URL=http://localhost:5001 aipaygen-mcp
+```
+
+The backend expects the same REST endpoint structure (`POST /research`, `GET /data/weather`, etc.). See the [API documentation](https://api.aipaygen.com/discover) for the full endpoint list and expected request/response formats.
+
+## Hosted API
+
+A hosted version of the backend is available at `api.aipaygen.com` and works out of the box with no configuration. Free tier includes 10 calls/day. API keys for higher usage can be obtained at [api.aipaygen.com/buy-credits](https://api.aipaygen.com/buy-credits).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on submitting issues and pull requests.
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) — use it however you want.
