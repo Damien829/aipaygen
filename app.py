@@ -984,6 +984,82 @@ routes: dict[str, RouteConfig] = {
         mime_type="application/json",
         description="Ask a question — AI routes to the best tool ($0.02)",
     ),
+    # ── New utility endpoints ────────────────────────────────────────────────
+    "POST /chain-operations": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.05", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Chain multiple AI operations together ($0.05)",
+    ),
+    "POST /enrich-entity": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.03", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Enrich entity data — company, person, domain ($0.03)",
+    ),
+    "POST /get-weather": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.001", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Get current weather for any city ($0.001)",
+    ),
+    "POST /get-crypto-prices": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.001", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Real-time crypto prices from CoinGecko ($0.001)",
+    ),
+    "POST /get-exchange-rates": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.001", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Live exchange rates for 160+ currencies ($0.001)",
+    ),
+    "POST /get-holidays": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.001", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Public holidays by country and year ($0.001)",
+    ),
+    "POST /get-current-time": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.001", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Current UTC time and timestamps ($0.001)",
+    ),
+    "POST /get-joke": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.001", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Random programming joke ($0.001)",
+    ),
+    "POST /get-quote": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.001", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Inspirational quote ($0.001)",
+    ),
+    "POST /generate-uuid": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.001", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Generate one or more UUIDs ($0.001)",
+    ),
+    "POST /web-search": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Web search via DuckDuckGo ($0.01)",
+    ),
+    "POST /scrape-website": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.01", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Scrape website and extract text content ($0.01)",
+    ),
+    "POST /memory-store": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.001", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Store persistent agent memory ($0.001)",
+    ),
+    "POST /memory-recall": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.001", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="Recall stored agent memory ($0.001)",
+    ),
+    "POST /memory-keys": RouteConfig(
+        accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.001", network=EVM_NETWORK)],
+        mime_type="application/json",
+        description="List all agent memory keys ($0.001)",
+    ),
     # ── Agent endpoints ───────────────────────────────────────────────────────
     "POST /agent": RouteConfig(
         accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.10", network=EVM_NETWORK)],
