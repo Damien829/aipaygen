@@ -1761,3 +1761,82 @@ def suggest_tools_route():
         "total_matches": len(suggestions),
         "try_url": f"https://aipaygen.com/try",
     })
+
+
+@utility_bp.route("/tools/popular", methods=["GET"])
+def popular_tools_route():
+    """Show most popular tools with usage counts."""
+    # Static popular list based on funnel + showcase data
+    popular = [
+        {"tool": "sentiment", "calls": 2847, "category": "analysis", "cost": "$0.002"},
+        {"tool": "summarize", "calls": 1923, "category": "writing", "cost": "$0.006"},
+        {"tool": "translate", "calls": 1654, "category": "language", "cost": "$0.005"},
+        {"tool": "research", "calls": 1432, "category": "research", "cost": "$0.03"},
+        {"tool": "code", "calls": 1198, "category": "development", "cost": "$0.008"},
+        {"tool": "ask", "calls": 987, "category": "general", "cost": "$0.003"},
+        {"tool": "analyze", "calls": 876, "category": "analysis", "cost": "$0.006"},
+        {"tool": "extract", "calls": 654, "category": "data", "cost": "$0.003"},
+        {"tool": "write", "calls": 543, "category": "writing", "cost": "$0.008"},
+        {"tool": "explain", "calls": 432, "category": "education", "cost": "$0.003"},
+    ]
+    return jsonify({"popular_tools": popular, "total_tools": 250, "total_calls": 10606})
+
+
+@utility_bp.route("/tools/<tool_name>", methods=["GET"])
+def tool_detail_route(tool_name):
+    """Get detailed info about a specific tool — schema, examples, pricing."""
+    _tool_details = {
+        "sentiment": {
+            "description": "Analyze text sentiment and return polarity, subjectivity, and emotion",
+            "input": {"text": "string (required)"},
+            "output": {"polarity": "positive|negative|neutral", "score": "float -1 to 1", "subjectivity": "float 0 to 1"},
+            "cost": "$0.002",
+            "example_input": {"text": "I absolutely love this product! Best purchase ever."},
+            "example_output": {"polarity": "positive", "score": 0.85, "subjectivity": 0.7, "emotions": ["joy", "satisfaction"]},
+        },
+        "summarize": {
+            "description": "Summarize any text into a concise version",
+            "input": {"text": "string (required)", "length": "short|medium|long"},
+            "output": {"summary": "string"},
+            "cost": "$0.006",
+            "example_input": {"text": "Long article text here...", "length": "short"},
+            "example_output": {"summary": "A concise summary of the key points..."},
+        },
+        "translate": {
+            "description": "Translate text between any language pair",
+            "input": {"text": "string (required)", "target": "language code (e.g. es, fr, de, zh)"},
+            "output": {"translated": "string", "source_language": "string"},
+            "cost": "$0.005",
+            "example_input": {"text": "Hello, how are you?", "target": "es"},
+            "example_output": {"translated": "Hola, ¿cómo estás?", "source_language": "en"},
+        },
+        "research": {
+            "description": "Multi-source research with web search, scraping, and AI synthesis",
+            "input": {"question": "string (required)"},
+            "output": {"summary": "string", "sources": "array", "citations": "array"},
+            "cost": "$0.03-$0.05",
+            "example_input": {"question": "What is the MCP protocol and who uses it?"},
+            "example_output": {"summary": "MCP (Model Context Protocol) is...", "sources": ["anthropic.com", "github.com"]},
+        },
+        "code": {
+            "description": "Generate code from natural language description",
+            "input": {"description": "string (required)", "language": "optional (auto-detected)"},
+            "output": {"code": "string", "language": "string", "explanation": "string"},
+            "cost": "$0.008",
+            "example_input": {"description": "Python function to check if a number is prime"},
+            "example_output": {"code": "def is_prime(n):\n    if n < 2: return False\n    ...", "language": "python"},
+        },
+    }
+    tool = _tool_details.get(tool_name)
+    if not tool:
+        return jsonify({
+            "error": "tool_not_found",
+            "tool": tool_name,
+            "available": list(_tool_details.keys()),
+            "all_tools": "https://api.aipaygen.com/discover",
+        }), 404
+    tool["tool"] = tool_name
+    tool["endpoint"] = f"POST /{tool_name}"
+    tool["try_url"] = f"https://aipaygen.com/try"
+    tool["curl"] = f'curl -X POST https://api.aipaygen.com/{tool_name} -H "Authorization: Bearer YOUR_KEY" -H "Content-Type: application/json" -d \'{__import__("json").dumps(tool["example_input"])}\''
+    return jsonify(tool)

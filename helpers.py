@@ -280,9 +280,18 @@ def call_llm(messages, system="", max_tokens=1024, endpoint="unknown", model_ove
     from model_router import call_model, get_model_config, ModelNotFoundError
     from api_keys import deduct_metered
     from discovery_engine import track_cost
+    import hashlib
 
     _llm_start = _time.time()
     model_name = model_override or (request.get_json(silent=True) or {}).get("model", "claude-haiku")
+
+    # ── Response cache: same prompt → same result within 60s ──────────────
+    cache_input = f"{model_name}:{system}:{str(messages)}"
+    cache_key = f"llm:{hashlib.md5(cache_input.encode()).hexdigest()}"
+    cached = cache_get(cache_key)
+    if cached is not None:
+        cached["_cached"] = True
+        return cached, None
     # Force free local model for free tier calls — zero provider cost
     is_free = request.environ.get("X_FREE_TIER") == "1"
     if is_free:
@@ -359,6 +368,8 @@ def call_llm(messages, system="", max_tokens=1024, endpoint="unknown", model_ove
                 log_showcase(tool, inp, out, elapsed_ms, model_name)
         except Exception:
             pass
+    # Cache successful result for 60s
+    cache_set(cache_key, result, ttl=60)
     return result, None
 
 
