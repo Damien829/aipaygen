@@ -3,7 +3,7 @@ import hmac
 import json
 import os
 
-APP_VERSION = "1.9.4"
+APP_VERSION = "1.9.5"
 import time as _time
 import hashlib as _hashlib
 import threading

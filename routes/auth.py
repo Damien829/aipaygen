@@ -1565,3 +1565,37 @@ def usage_dashboard():
     if not data:
         return render_template("dashboard.html", error="API key not found.", data=None)
     return render_template("dashboard.html", error=None, data=data)
+
+
+@auth_bp.route("/usage/export", methods=["GET"])
+def usage_export_csv():
+    """Export API usage as CSV. Requires ?key=apk_xxx."""
+    import csv, io
+    api_key = request.args.get("key", "")
+    if not api_key or not api_key.startswith("apk_"):
+        return jsonify({"error": "API key required (?key=apk_xxx)"}), 400
+    data = _get_usage_data(api_key)
+    if not data:
+        return jsonify({"error": "API key not found"}), 404
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["metric", "value"])
+    writer.writerow(["api_key", api_key[:12] + "..."])
+    writer.writerow(["balance_usd", data.get("balance", 0)])
+    writer.writerow(["total_calls", data.get("call_count", 0)])
+    writer.writerow(["total_spent", data.get("total_spent", 0)])
+    writer.writerow(["spent_today", data.get("spent_today", 0)])
+    writer.writerow(["spent_week", data.get("spent_week", 0)])
+    writer.writerow(["spent_month", data.get("spent_month", 0)])
+    writer.writerow(["streak_days", data.get("streak_days", 0)])
+    writer.writerow(["created_at", data.get("created_at", "")])
+    writer.writerow([])
+    writer.writerow(["tool", "calls"])
+    for tool in data.get("top_tools", []):
+        writer.writerow([tool.get("tool", ""), tool.get("count", 0)])
+
+    resp = make_response(output.getvalue())
+    resp.headers["Content-Type"] = "text/csv"
+    resp.headers["Content-Disposition"] = f"attachment; filename=aipaygen-usage-{api_key[:12]}.csv"
+    return resp

@@ -3398,6 +3398,30 @@ def try_tool(tool):
 
 CHANGELOG = [
     {
+        "version": "1.9.5",
+        "date": "2026-03-25",
+        "title": "128 REST Endpoints, Security Hardening, Mobile App Fix",
+        "changes": [
+            "128 REST API endpoints (was 113) — 16 new utility routes",
+            "New endpoints: chain-operations, enrich-entity, web-search, scrape-website",
+            "New data endpoints: get-weather, get-crypto-prices, get-exchange-rates, get-holidays",
+            "New utility endpoints: get-current-time, get-joke, get-quote, generate-uuid",
+            "Agent memory REST API: memory-store, memory-recall, memory-keys",
+            "MCP server: SSE transport added alongside Streamable HTTP",
+            "MCP server: systemd service — survives reboots",
+            "Model router: switched to Anthropic SDK (was broken CLI)",
+            "7 security fixes: OAuth redirect, XSS, SSRF, brute-force, card-testing",
+            "Mobile app blank page fix — manifest.json was returning HTML",
+            "Twitter/X card meta tags on all pages for rich social sharing",
+            "X-Response-Time header on every API response",
+            "Landing page stats now show live data (keys, calls)",
+            "Comparison table on buy-credits page vs ChatGPT/Anthropic",
+            "OpenAPI spec updated with all 128 endpoints",
+            "PWA: service worker, safe-area CSS, apple-mobile-web-app",
+            "9 database indexes for faster queries",
+        ],
+    },
+    {
         "version": APP_VERSION,
         "date": "2026-03-15",
         "title": "229 Tools — Massive Expansion",

@@ -1910,6 +1910,12 @@ def add_cors(response):
         req_id = request.headers["X-Idempotency-Key"]
     response.headers["X-Request-Id"] = req_id
 
+    # ── Response Time ────────────────────────────────────────────────────────
+    start = getattr(request, '_start_time', None)
+    if start:
+        elapsed_ms = int((_time.time() - start) * 1000)
+        response.headers["X-Response-Time"] = f"{elapsed_ms}ms"
+
     # ── API Version + Powered-By ───────────────────────────────────────────────
     response.headers["X-API-Version"] = APP_VERSION
     response.headers["X-Powered-By"] = "AiPayGen"

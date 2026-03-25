@@ -1674,3 +1674,90 @@ def memory_keys_route():
     agent_id = data.get("agent_id", "default")
     result = memory_list(agent_id)
     return jsonify({"agent_id": agent_id, "keys": result})
+
+
+@utility_bp.route("/estimate-cost", methods=["POST"])
+def estimate_cost_route():
+    """Estimate cost for a batch of API calls."""
+    data = request.get_json() or {}
+    calls = data.get("calls", [])
+    if not calls:
+        # Single tool estimate
+        tool = data.get("tool", "sentiment")
+        count = min(int(data.get("count", 1)), 10000)
+        _prices = {
+            "sentiment": 0.002, "summarize": 0.006, "translate": 0.005,
+            "research": 0.03, "code": 0.008, "analyze": 0.006,
+            "ask": 0.003, "write": 0.008, "explain": 0.003,
+            "rewrite": 0.004, "proofread": 0.003, "keywords": 0.002,
+            "extract": 0.003, "compare": 0.004, "classify": 0.002,
+            "diagram": 0.01, "vision": 0.02, "scrape-website": 0.01,
+            "web-search": 0.01, "chain-operations": 0.05,
+            "enrich-entity": 0.03, "get-weather": 0.001,
+        }
+        unit = _prices.get(tool, 0.005)
+        total = round(unit * count, 4)
+        return jsonify({
+            "tool": tool, "count": count,
+            "cost_per_call": unit, "total_cost": total,
+            "currency": "USD",
+            "note": f"${total:.2f} for {count} calls — cheaper than a coffee" if total < 5 else f"${total:.2f} for {count} calls",
+        })
+    # Batch estimate
+    total = 0
+    breakdown = []
+    _prices = {"sentiment": 0.002, "summarize": 0.006, "translate": 0.005, "research": 0.03, "code": 0.008}
+    for c in calls[:50]:
+        tool = c.get("tool", "ask")
+        n = min(int(c.get("count", 1)), 10000)
+        unit = _prices.get(tool, 0.005)
+        cost = round(unit * n, 4)
+        total += cost
+        breakdown.append({"tool": tool, "count": n, "cost": cost})
+    return jsonify({"total_cost": round(total, 4), "currency": "USD", "breakdown": breakdown})
+
+
+@utility_bp.route("/suggest-tools", methods=["POST"])
+def suggest_tools_route():
+    """Suggest the best AI tools for a task description."""
+    data = request.get_json() or {}
+    task = data.get("task", data.get("description", ""))
+    if not task:
+        return jsonify({"error": "task description required"}), 400
+
+    # Rule-based matching — instant, no AI cost
+    task_lower = task.lower()
+    suggestions = []
+    _tool_map = [
+        (["research", "find", "search", "look up", "discover"], "research", "Deep multi-source research with citations"),
+        (["translate", "spanish", "french", "german", "chinese", "language"], "translate", "Translate to any language"),
+        (["summarize", "summary", "tldr", "shorten", "condense"], "summarize", "Summarize any text or article"),
+        (["code", "program", "function", "script", "python", "javascript"], "code", "Generate code from description"),
+        (["sentiment", "feeling", "opinion", "review", "positive", "negative"], "sentiment", "Analyze sentiment polarity"),
+        (["write", "blog", "article", "essay", "content", "copy"], "write", "Generate written content"),
+        (["analyze", "data", "insight", "trend", "pattern"], "analyze", "Analyze content for insights"),
+        (["extract", "entity", "name", "email", "phone", "address"], "extract", "Extract structured data from text"),
+        (["compare", "versus", "vs", "difference", "better"], "compare", "Compare two texts or concepts"),
+        (["email", "outreach", "newsletter", "message"], "email", "Generate professional emails"),
+        (["diagram", "flowchart", "chart", "visual", "mermaid"], "diagram", "Create diagrams from descriptions"),
+        (["scrape", "website", "crawl", "web page", "html"], "scrape-website", "Extract text from any URL"),
+        (["weather", "temperature", "forecast"], "get-weather", "Get current weather for any city"),
+        (["crypto", "bitcoin", "ethereum", "price"], "get-crypto-prices", "Real-time crypto prices"),
+        (["mock", "fake", "test data", "sample", "dummy"], "mock", "Generate realistic mock data"),
+        (["regex", "pattern", "match", "regular expression"], "regex", "Generate regex patterns"),
+        (["proofread", "grammar", "spelling", "typo", "correct"], "proofread", "Fix grammar and spelling"),
+        (["classify", "categorize", "label", "sort"], "classify", "Classify text into categories"),
+        (["qa", "answer", "question", "knowledge"], "qa", "Answer questions from context"),
+        (["vision", "image", "picture", "photo", "describe"], "vision", "Analyze and describe images"),
+    ]
+    for keywords, tool, desc in _tool_map:
+        score = sum(1 for kw in keywords if kw in task_lower)
+        if score > 0:
+            suggestions.append({"tool": tool, "description": desc, "relevance": score})
+    suggestions.sort(key=lambda x: x["relevance"], reverse=True)
+    return jsonify({
+        "task": task,
+        "suggestions": suggestions[:5],
+        "total_matches": len(suggestions),
+        "try_url": f"https://aipaygen.com/try",
+    })
