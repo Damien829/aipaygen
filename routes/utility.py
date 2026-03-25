@@ -1840,3 +1840,40 @@ def tool_detail_route(tool_name):
     tool["try_url"] = f"https://aipaygen.com/try"
     tool["curl"] = f'curl -X POST https://api.aipaygen.com/{tool_name} -H "Authorization: Bearer YOUR_KEY" -H "Content-Type: application/json" -d \'{__import__("json").dumps(tool["example_input"])}\''
     return jsonify(tool)
+
+
+@utility_bp.route("/tools/random", methods=["GET"])
+def random_tool_route():
+    """Discover a random AI tool — surprise yourself!"""
+    import random
+    _all_tools = [
+        {"tool": "sentiment", "desc": "Analyze text sentiment", "cost": "$0.002"},
+        {"tool": "summarize", "desc": "Summarize any text", "cost": "$0.006"},
+        {"tool": "translate", "desc": "Translate to any language", "cost": "$0.005"},
+        {"tool": "research", "desc": "Multi-source AI research", "cost": "$0.03"},
+        {"tool": "code", "desc": "Generate code from description", "cost": "$0.008"},
+        {"tool": "ask", "desc": "Ask any question", "cost": "$0.003"},
+        {"tool": "analyze", "desc": "Analyze content for insights", "cost": "$0.006"},
+        {"tool": "extract", "desc": "Extract entities from text", "cost": "$0.003"},
+        {"tool": "diagram", "desc": "Create diagrams from descriptions", "cost": "$0.01"},
+        {"tool": "explain", "desc": "Explain any concept simply", "cost": "$0.003"},
+        {"tool": "write", "desc": "Generate written content", "cost": "$0.008"},
+        {"tool": "rewrite", "desc": "Rewrite text in different style", "cost": "$0.004"},
+        {"tool": "debate", "desc": "See both sides of any argument", "cost": "$0.006"},
+        {"tool": "pitch", "desc": "Generate product pitches", "cost": "$0.008"},
+        {"tool": "mock", "desc": "Generate realistic test data", "cost": "$0.005"},
+        {"tool": "timeline", "desc": "Create event timelines", "cost": "$0.006"},
+        {"tool": "qa", "desc": "Answer questions from context", "cost": "$0.003"},
+        {"tool": "outline", "desc": "Create structured outlines", "cost": "$0.004"},
+        {"tool": "email", "desc": "Generate professional emails", "cost": "$0.004"},
+        {"tool": "fact", "desc": "Fact-check any claim", "cost": "$0.003"},
+        {"tool": "enrich-entity", "desc": "Enrich company/person data", "cost": "$0.03"},
+        {"tool": "web-search", "desc": "Search the web", "cost": "$0.01"},
+        {"tool": "scrape-website", "desc": "Extract text from URLs", "cost": "$0.01"},
+        {"tool": "get-weather", "desc": "Current weather anywhere", "cost": "$0.001"},
+        {"tool": "get-crypto-prices", "desc": "Real-time crypto prices", "cost": "$0.001"},
+    ]
+    pick = random.choice(_all_tools)
+    pick["try_url"] = f"https://aipaygen.com/tools/{pick['tool']}"
+    pick["api_url"] = f"POST https://api.aipaygen.com/{pick['tool']}"
+    return jsonify(pick)

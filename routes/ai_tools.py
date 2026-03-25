@@ -1761,3 +1761,42 @@ BATCH_HANDLERS = {
     "name_generator": lambda d: name_generator_inner(d.get("description", ""), int(d.get("count", 10)), d.get("style", "startup"), model=d.get("model", "claude-haiku")),
     "privacy_check": lambda d: privacy_check_inner(d.get("text", ""), model=d.get("model", "claude-haiku")),
 }
+
+
+@ai_tools_bp.route("/compare-models", methods=["POST"])
+@rate_limit(5, bucket="compare_models")
+def compare_models_route():
+    """Run the same prompt on multiple AI models and compare results."""
+    data = request.get_json() or {}
+    prompt = data.get("prompt", data.get("text", ""))
+    if not prompt:
+        return jsonify({"error": "prompt required"}), 400
+    models = data.get("models", ["claude-haiku", "gpt-4o-mini", "gemini-flash"])[:3]
+    
+    import concurrent.futures
+    results = {}
+    
+    def _call_model(model_name):
+        try:
+            r, err = call_llm(
+                [{"role": "user", "content": prompt}],
+                endpoint="/compare-models",
+                model_override=model_name,
+            )
+            if err:
+                return model_name, {"error": err}
+            return model_name, {"text": r.get("text", ""), "tokens": r.get("input_tokens", 0) + r.get("output_tokens", 0)}
+        except Exception as e:
+            return model_name, {"error": str(e)[:100]}
+    
+    with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
+        futures = [executor.submit(_call_model, m) for m in models]
+        for f in concurrent.futures.as_completed(futures):
+            name, result = f.result()
+            results[name] = result
+    
+    return jsonify(agent_response({
+        "prompt": prompt[:200],
+        "models": results,
+        "models_compared": len(results),
+    }, "/compare-models"))
