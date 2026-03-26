@@ -485,3 +485,38 @@ def chain_operations(steps: Annotated[list, Field(description="List of {action, 
         else:
             last_result = str(out)
     return {"steps_completed": len(results), "chain": results, "final_result": results[-1]["result"] if results else None}
+
+
+@metered_tool("premium")
+async def compare_models(prompt: str, models: str = "claude-haiku,gpt-4o-mini") -> str:
+    """Run the same prompt on multiple AI models and compare results side-by-side.
+    
+    Args:
+        prompt: The prompt to send to each model
+        models: Comma-separated model names (max 3)
+    """
+    r = _post("/compare-models", {"prompt": prompt, "models": models.split(",")[:3]})
+    return _json.dumps(r, indent=2)
+
+
+@metered_tool("free")
+async def estimate_cost(tool: str, count: int = 1) -> str:
+    """Estimate the cost of API calls before making them.
+    
+    Args:
+        tool: Tool name (e.g. research, sentiment, translate)
+        count: Number of calls to estimate
+    """
+    r = _post("/estimate-cost", {"tool": tool, "count": count})
+    return _json.dumps(r, indent=2)
+
+
+@metered_tool("free")
+async def suggest_tools(task: str) -> str:
+    """Describe what you need and get AI tool recommendations.
+    
+    Args:
+        task: Description of what you want to accomplish
+    """
+    r = _post("/suggest-tools", {"task": task})
+    return _json.dumps(r, indent=2)
