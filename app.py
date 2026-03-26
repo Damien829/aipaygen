@@ -1916,6 +1916,14 @@ def add_cors(response):
         elapsed_ms = int((_time.time() - start) * 1000)
         response.headers["X-Response-Time"] = f"{elapsed_ms}ms"
 
+    # ── CORS ──────────────────────────────────────────────────────────────────
+    origin = request.headers.get("Origin", "")
+    if origin:
+        response.headers["Access-Control-Allow-Origin"] = origin
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-API-Key"
+        response.headers["Access-Control-Max-Age"] = "86400"
+
     # ── API Version + Powered-By ───────────────────────────────────────────────
     response.headers["X-API-Version"] = APP_VERSION
     response.headers["X-Powered-By"] = "AiPayGen"
