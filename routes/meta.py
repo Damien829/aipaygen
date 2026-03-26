@@ -2978,6 +2978,11 @@ _SITEMAP_TOOLS = [
     "questions", "decide", "plan", "social", "email",
     "qa", "rag", "vision", "enrich", "scrape",
     "outline", "diagram", "mock", "sql", "chat",
+    "compare-models", "estimate-cost", "suggest-tools",
+    "get-weather", "get-crypto-prices", "get-exchange-rates",
+    "web-search", "scrape-website", "chain-operations",
+    "enrich-entity", "memory-store", "get-joke",
+    "generate-uuid", "get-holidays", "get-current-time",
 ]
 
 
