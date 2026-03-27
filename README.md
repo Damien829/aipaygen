@@ -38,7 +38,7 @@ Or connect to the remote server: `https://mcp.aipaygen.com/mcp`
 
 ## Pricing
 
-- **Free trial:** Generate a key with the `generate_api_key` tool → get $0.25 free credits (~40 calls)
+- **Free trial:** Generate a key with the `generate_api_key` tool → get $0.10 free credits (~16 calls)
 - **API key:** From $1 via credit card (Stripe). ~166 AI calls per dollar.
 - **x402 USDC:** Pay per call on Base, Solana, or Stellar — no signup needed
 - **Free data tools:** Weather, crypto, time, jokes, quotes — always free, no key needed
@@ -64,7 +64,7 @@ claude mcp add aipaygen -- aipaygen-mcp
 ```
 > Use the generate_api_key tool
 ```
-This gives you a key with **$0.25 free credits** (~40 AI calls).
+This gives you a key with **$0.10 free credits** (~16 AI calls).
 
 **Step 3:** Set your key
 ```bash
