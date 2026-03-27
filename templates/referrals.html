@@ -14,41 +14,41 @@
 {% block content %}
 <section style="max-width:820px;margin:2rem auto;padding:0 1.5rem">
 
-  <h1 style="font-family:'IBM Plex Mono',monospace;font-size:2rem;margin-bottom:0.5rem">Refer &amp; Earn</h1>
+  <h1 style="font-family:'SF Mono','Fira Code',monospace;font-size:2rem;margin-bottom:0.5rem">Refer &amp; Earn</h1>
   <p style="color:var(--text-muted);margin-bottom:2rem">Invite friends to AiPayGen. You both get $0.10 in API credits.</p>
 
   {% if error %}
-  <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:2rem;text-align:center;margin-bottom:2rem">
+  <div style="background:var(--bg-alt,rgba(28,28,30,0.72));border:1px solid var(--border,#48484a);border-radius:12px;padding:2rem;text-align:center;margin-bottom:2rem">
     <p style="color:var(--text-muted);margin-bottom:1.5rem">{{ error }}</p>
     <form method="get" action="/referrals" style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap">
       <input type="text" name="key" placeholder="apk_..."
-             style="background:#0d1a2a;border:1px solid #1a2a3a;color:#c8d8e8;padding:0.6rem 1rem;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.9rem;width:320px">
-      <button type="submit" style="background:var(--green,#00ff9d);color:#020408;border:none;padding:0.6rem 1.5rem;border-radius:8px;font-weight:600;cursor:pointer">View Referrals</button>
+             style="background:#1c1c1e;border:1px solid #48484a;color:#c8d8e8;padding:0.6rem 1rem;border-radius:8px;font-family:'SF Mono','Fira Code',monospace;font-size:0.9rem;width:320px">
+      <button type="submit" style="background:var(--green,#2997ff);color:#fff;border:none;padding:0.6rem 1.5rem;border-radius:8px;font-weight:600;cursor:pointer">View Referrals</button>
     </form>
-    <p style="color:var(--text-muted);margin-top:1rem;font-size:0.85rem">Don't have a key? <a href="/buy-credits" style="color:var(--green,#00ff9d)">Get one here</a></p>
+    <p style="color:var(--text-muted);margin-top:1rem;font-size:0.85rem">Don't have a key? <a href="/buy-credits" style="color:var(--green,#2997ff)">Get one here</a></p>
   </div>
   {% endif %}
 
   {% if data %}
   <!-- Your Referral Link -->
-  <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--green,#00ff9d);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
-    <h2 style="font-family:'IBM Plex Mono',monospace;font-size:1.1rem;margin-bottom:1rem;color:var(--green,#00ff9d)">Your Referral Link</h2>
+  <div style="background:var(--bg-alt,rgba(28,28,30,0.72));border:1px solid var(--green,#2997ff);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
+    <h2 style="font-family:'SF Mono','Fira Code',monospace;font-size:1.1rem;margin-bottom:1rem;color:var(--green,#2997ff)">Your Referral Link</h2>
     <div style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:center">
       <input type="text" id="ref-link" value="{{ data.referral_link }}" readonly
-             style="flex:1;min-width:250px;background:#070e18;border:1px solid #1a2a3a;color:#c8d8e8;padding:0.6rem 1rem;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:0.85rem">
+             style="flex:1;min-width:250px;background:#1c1c1e;border:1px solid #48484a;color:#c8d8e8;padding:0.6rem 1rem;border-radius:8px;font-family:'SF Mono','Fira Code',monospace;font-size:0.85rem">
       <button onclick="copyRefLink()" id="copy-btn"
-              style="background:var(--green,#00ff9d);color:#020408;border:none;padding:0.6rem 1.5rem;border-radius:8px;font-weight:600;cursor:pointer;white-space:nowrap">Copy Link</button>
+              style="background:var(--green,#2997ff);color:#fff;border:none;padding:0.6rem 1.5rem;border-radius:8px;font-weight:600;cursor:pointer;white-space:nowrap">Copy Link</button>
     </div>
 
     <!-- Share Buttons -->
     <div style="display:flex;gap:0.75rem;margin-top:1rem;flex-wrap:wrap">
       <a href="https://twitter.com/intent/tweet?text=I%20use%20AiPayGen%20for%20AI%20APIs%20%E2%80%94%20250%20tools%2C%20pay%20per%20call.%20Get%20%240.10%20free%20credits%3A%20{{ data.referral_link | urlencode }}"
          target="_blank" rel="noopener"
-         style="display:inline-flex;align-items:center;gap:0.4rem;background:#1a2a3a;border:1px solid #2a3a4a;padding:0.5rem 1rem;border-radius:8px;color:#c8d8e8;text-decoration:none;font-size:0.85rem">
+         style="display:inline-flex;align-items:center;gap:0.4rem;background:#48484a;border:1px solid #636366;padding:0.5rem 1rem;border-radius:8px;color:#c8d8e8;text-decoration:none;font-size:0.85rem">
         Share on X
       </a>
       <a href="mailto:?subject=Try%20AiPayGen%20%E2%80%94%20250%20AI%20Tools&body=Hey%2C%20I%20use%20AiPayGen%20for%20AI%20APIs.%20Use%20my%20link%20and%20we%20both%20get%20%240.10%3A%20{{ data.referral_link | urlencode }}"
-         style="display:inline-flex;align-items:center;gap:0.4rem;background:#1a2a3a;border:1px solid #2a3a4a;padding:0.5rem 1rem;border-radius:8px;color:#c8d8e8;text-decoration:none;font-size:0.85rem">
+         style="display:inline-flex;align-items:center;gap:0.4rem;background:#48484a;border:1px solid #636366;padding:0.5rem 1rem;border-radius:8px;color:#c8d8e8;text-decoration:none;font-size:0.85rem">
         Email
       </a>
     </div>
@@ -56,37 +56,37 @@
 
   <!-- Stats -->
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:2rem">
-    <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem">
+    <div style="background:var(--bg-alt,rgba(28,28,30,0.72));border:1px solid var(--border,#48484a);border-radius:12px;padding:1.5rem">
       <div style="color:var(--text-muted);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Referrals</div>
-      <div style="font-size:2rem;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--cyan,#00d4ff)">{{ data.total_referrals }}</div>
+      <div style="font-size:2rem;font-weight:700;font-family:'SF Mono','Fira Code',monospace;color:var(--cyan,#bf5af2)">{{ data.total_referrals }}</div>
     </div>
-    <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem">
+    <div style="background:var(--bg-alt,rgba(28,28,30,0.72));border:1px solid var(--border,#48484a);border-radius:12px;padding:1.5rem">
       <div style="color:var(--text-muted);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Credits Earned</div>
-      <div style="font-size:2rem;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--green,#00ff9d)">${{ "%.2f"|format(data.credits_earned) }}</div>
+      <div style="font-size:2rem;font-weight:700;font-family:'SF Mono','Fira Code',monospace;color:var(--green,#2997ff)">${{ "%.2f"|format(data.credits_earned) }}</div>
     </div>
-    <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem">
+    <div style="background:var(--bg-alt,rgba(28,28,30,0.72));border:1px solid var(--border,#48484a);border-radius:12px;padding:1.5rem">
       <div style="color:var(--text-muted);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Referral Code</div>
-      <div style="font-size:1.2rem;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--text,#c8d8e8)">{{ data.referral_code }}</div>
+      <div style="font-size:1.2rem;font-weight:700;font-family:'SF Mono','Fira Code',monospace;color:var(--text,#c8d8e8)">{{ data.referral_code }}</div>
     </div>
   </div>
   {% endif %}
 
   <!-- How It Works -->
-  <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
-    <h2 style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem;margin-bottom:1.5rem">How It Works</h2>
+  <div style="background:var(--bg-alt,rgba(28,28,30,0.72));border:1px solid var(--border,#48484a);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
+    <h2 style="font-family:'SF Mono','Fira Code',monospace;font-size:1.2rem;margin-bottom:1.5rem">How It Works</h2>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.5rem">
       <div>
-        <div style="font-size:1.5rem;font-weight:700;color:var(--green,#00ff9d);margin-bottom:0.5rem">1</div>
+        <div style="font-size:1.5rem;font-weight:700;color:var(--green,#2997ff);margin-bottom:0.5rem">1</div>
         <div style="font-weight:600;margin-bottom:0.3rem">Share your link</div>
         <div style="color:var(--text-muted);font-size:0.85rem">Send your referral link to friends, colleagues, or your audience.</div>
       </div>
       <div>
-        <div style="font-size:1.5rem;font-weight:700;color:var(--green,#00ff9d);margin-bottom:0.5rem">2</div>
+        <div style="font-size:1.5rem;font-weight:700;color:var(--green,#2997ff);margin-bottom:0.5rem">2</div>
         <div style="font-weight:600;margin-bottom:0.3rem">They sign up</div>
         <div style="color:var(--text-muted);font-size:0.85rem">When they generate an API key using your link, you both get credited.</div>
       </div>
       <div>
-        <div style="font-size:1.5rem;font-weight:700;color:var(--green,#00ff9d);margin-bottom:0.5rem">3</div>
+        <div style="font-size:1.5rem;font-weight:700;color:var(--green,#2997ff);margin-bottom:0.5rem">3</div>
         <div style="font-weight:600;margin-bottom:0.3rem">You both earn</div>
         <div style="color:var(--text-muted);font-size:0.85rem">$0.10 added to your balance, $0.10 added to theirs. Instant credit.</div>
       </div>
@@ -95,10 +95,10 @@
 
   {% if not data %}
   <!-- CTA for non-logged-in users -->
-  <div style="background:linear-gradient(135deg,#0a1628 0%,#0d2040 100%);border:1px solid var(--green,#00ff9d);border-radius:12px;padding:2rem;text-align:center">
-    <h2 style="font-family:'IBM Plex Mono',monospace;font-size:1.3rem;margin-bottom:0.5rem">Start Referring Today</h2>
+  <div style="background:linear-gradient(135deg,rgba(28,28,30,0.72) 0%,rgba(28,28,30,0.72) 100%);border:1px solid var(--green,#2997ff);border-radius:12px;padding:2rem;text-align:center">
+    <h2 style="font-family:'SF Mono','Fira Code',monospace;font-size:1.3rem;margin-bottom:0.5rem">Start Referring Today</h2>
     <p style="color:var(--text-muted);margin-bottom:1.5rem">Get an API key and start sharing. No limits on referrals.</p>
-    <a href="/buy-credits" style="display:inline-block;background:var(--green,#00ff9d);color:#020408;padding:0.75rem 2rem;border-radius:8px;font-weight:700;text-decoration:none;font-size:1rem">Get API Key</a>
+    <a href="/buy-credits" style="display:inline-block;background:var(--green,#2997ff);color:#fff;padding:0.75rem 2rem;border-radius:8px;font-weight:700;text-decoration:none;font-size:1rem">Get API Key</a>
   </div>
   {% endif %}
 

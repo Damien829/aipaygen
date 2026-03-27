@@ -13,43 +13,43 @@
 <meta name="twitter:description" content="Copy-paste code examples for Python, JavaScript, curl, LangChain, and Claude Code MCP.">
 <style>
 .ex-wrap{max-width:900px;margin:0 auto;padding:24px 24px 60px}
-.ex-title{font-family:'IBM Plex Mono',monospace;font-size:1.8rem;font-weight:700;margin-bottom:6px}
-.ex-sub{color:#8b949e;font-size:0.95rem;margin-bottom:32px}
-.ex-sub a{color:#00d4ff}
+.ex-title{font-family:'SF Mono','Fira Code',monospace;font-size:1.8rem;font-weight:700;margin-bottom:6px}
+.ex-sub{color:#86868b;font-size:0.95rem;margin-bottom:32px}
+.ex-sub a{color:#bf5af2}
 
 /* Language tabs */
 .lang-tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:0;flex-wrap:wrap}
-.lang-tab{padding:12px 20px;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;font-weight:600;color:#8b949e;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;background:none;border-top:none;border-left:none;border-right:none}
+.lang-tab{padding:12px 20px;font-family:'SF Mono','Fira Code',monospace;font-size:0.85rem;font-weight:600;color:#86868b;cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;background:none;border-top:none;border-left:none;border-right:none}
 .lang-tab:hover{color:#e6edf3}
-.lang-tab.active{color:#00ff9d;border-bottom-color:#00ff9d}
+.lang-tab.active{color:#2997ff;border-bottom-color:#2997ff}
 .lang-content{display:none;padding-top:24px}
 .lang-content.active{display:block}
 
 /* Code blocks */
 .ex-block{background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.06);border-radius:10px;margin-bottom:24px;overflow:hidden}
 .ex-block-head{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.06)}
-.ex-block-title{font-family:'IBM Plex Mono',monospace;font-size:0.82rem;color:#00d4ff;font-weight:600}
-.ex-block-desc{font-size:0.78rem;color:#8b949e;margin-left:12px}
-.ex-copy{background:rgba(0,255,157,0.1);border:1px solid rgba(0,255,157,0.2);border-radius:4px;padding:4px 12px;color:#00ff9d;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;cursor:pointer;transition:all .2s;white-space:nowrap}
-.ex-copy:hover{background:rgba(0,255,157,0.2);border-color:#00ff9d}
-.ex-copy.copied{background:rgba(0,255,157,0.3);color:#fff}
+.ex-block-title{font-family:'SF Mono','Fira Code',monospace;font-size:0.82rem;color:#bf5af2;font-weight:600}
+.ex-block-desc{font-size:0.78rem;color:#86868b;margin-left:12px}
+.ex-copy{background:rgba(41,151,255,0.1);border:1px solid rgba(41,151,255,0.2);border-radius:4px;padding:4px 12px;color:#2997ff;font-family:'SF Mono','Fira Code',monospace;font-size:0.72rem;cursor:pointer;transition:all .2s;white-space:nowrap}
+.ex-copy:hover{background:rgba(41,151,255,0.2);border-color:#2997ff}
+.ex-copy.copied{background:rgba(41,151,255,0.3);color:#fff}
 .ex-block pre{margin:0;padding:16px;overflow-x:auto;font-size:0.82rem;line-height:1.6}
-.ex-block code{font-family:'IBM Plex Mono','Fira Code',monospace;font-size:0.82rem}
+.ex-block code{font-family:'SF Mono','Fira Code',monospace;font-size:0.82rem}
 
 /* Section headers */
 .ex-section{margin-top:32px;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.06)}
-.ex-section h3{font-family:'IBM Plex Mono',monospace;font-size:1rem;color:#e6edf3;font-weight:600}
-.ex-section p{color:#8b949e;font-size:0.85rem;margin-top:4px}
+.ex-section h3{font-family:'SF Mono','Fira Code',monospace;font-size:1rem;color:#e6edf3;font-weight:600}
+.ex-section p{color:#86868b;font-size:0.85rem;margin-top:4px}
 
 /* Install badge */
-.ex-install{background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.15);border-radius:8px;padding:12px 20px;margin-bottom:24px;font-family:'IBM Plex Mono',monospace;font-size:0.88rem;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.ex-install code{background:rgba(0,0,0,0.3);padding:4px 10px;border-radius:4px;color:#00ff9d}
+.ex-install{background:rgba(191,90,242,0.06);border:1px solid rgba(191,90,242,0.15);border-radius:8px;padding:12px 20px;margin-bottom:24px;font-family:'SF Mono','Fira Code',monospace;font-size:0.88rem;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.ex-install code{background:rgba(0,0,0,0.3);padding:4px 10px;border-radius:4px;color:#2997ff}
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="ex-wrap">
-  <h1 class="ex-title"><span style="display:inline-block;width:6px;height:6px;background:#00ff9d;border-radius:50%;margin-right:8px"></span>SDK Examples</h1>
+  <h1 class="ex-title"><span style="display:inline-block;width:6px;height:6px;background:#2997ff;border-radius:50%;margin-right:8px"></span>SDK Examples</h1>
   <p class="ex-sub">Copy-paste examples to get started in seconds. All endpoints work with the <a href="/buy-credits">free tier</a> (1 call/day) -- no API key needed to try.</p>
 
   <div class="lang-tabs">
@@ -141,7 +141,7 @@ print()  # Final newline</code></pre>
   <div class="lang-content" id="lang-sdk">
     <div class="ex-install">Install: <code>pip install aipaygen-mcp</code></div>
 
-    <div class="ex-section"><h3>1. Quick Start</h3><p>The SDK wraps all 250 tools as Python methods.</p></div>
+    <div class="ex-section"><h3>1. Quick Start</h3><p>The SDK wraps all 65+ tools as Python methods.</p></div>
     <div class="ex-block">
       <div class="ex-block-head">
         <div><span class="ex-block-title">quickstart.py</span><span class="ex-block-desc">SDK basics</span></div>

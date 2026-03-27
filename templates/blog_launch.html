@@ -1,23 +1,23 @@
 {% extends "base.html" %}
 
-{% block title %}Why I Built AiPayGen: 250 AI Tools for the Price of One API Call{% endblock %}
-{% block description %}The problem with AI APIs: every provider needs a separate key, a separate billing account, and charges $20/month whether you use it or not. I built a single API with 250 tools that charges per call.{% endblock %}
+{% block title %}Why I Built AiPayGen: 65+ AI Tools for the Price of One API Call{% endblock %}
+{% block description %}The problem with AI APIs: every provider needs a separate key, a separate billing account, and charges $20/month whether you use it or not. I built a single API with 65+ tools that charges per call.{% endblock %}
 {% block canonical %}/blog/launch{% endblock %}
 
 {% block head %}
 <meta property="og:type" content="article">
-<meta property="og:title" content="Why I Built AiPayGen: 250 AI Tools for the Price of One API Call">
-<meta property="og:description" content="One API, 250+ tools, 27 models. Pay $0.006 per call instead of $20/month per provider.">
+<meta property="og:title" content="Why I Built AiPayGen: 65+ AI Tools for the Price of One API Call">
+<meta property="og:description" content="One API, 65+ tools, 15 models. Pay $0.006 per call instead of $20/month per provider.">
 <meta property="og:url" content="https://aipaygen.com/blog/launch">
 <meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Why I Built AiPayGen: 250 AI Tools for the Price of One API Call">
-<meta name="twitter:description" content="One API, 250+ tools, 27 models. Pay $0.006 per call instead of $20/month per provider.">
+<meta name="twitter:title" content="Why I Built AiPayGen: 65+ AI Tools for the Price of One API Call">
+<meta name="twitter:description" content="One API, 65+ tools, 15 models. Pay $0.006 per call instead of $20/month per provider.">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
-  "headline": "Why I Built AiPayGen: 250 AI Tools for the Price of One API Call",
+  "headline": "Why I Built AiPayGen: 65+ AI Tools for the Price of One API Call",
   "description": "The problem with AI APIs and how pay-per-call changes everything.",
   "url": "https://aipaygen.com/blog/launch",
   "datePublished": "2026-03-15",
@@ -27,33 +27,33 @@
 </script>
 <style>
   .blog-post { max-width: 740px; margin: 0 auto; padding: 3rem 1.5rem; }
-  .blog-post h1 { font-family: 'IBM Plex Sans', sans-serif; font-size: 2.2rem; font-weight: 700; color: #fff; line-height: 1.25; margin-bottom: 0.5rem; }
+  .blog-post h1 { font-family: var(--font-sans), sans-serif; font-size: 2.2rem; font-weight: 700; color: #fff; line-height: 1.25; margin-bottom: 0.5rem; }
   .blog-meta { color: var(--text-muted, #4a6070); font-size: 0.85rem; margin-bottom: 2.5rem; }
-  .blog-post h2 { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.4rem; color: #fff; margin: 2.5rem 0 1rem; }
-  .blog-post h3 { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.1rem; color: var(--green, #00ff9d); margin: 2rem 0 0.75rem; }
+  .blog-post h2 { font-family: var(--font-sans), sans-serif; font-size: 1.4rem; color: #fff; margin: 2.5rem 0 1rem; }
+  .blog-post h3 { font-family: var(--font-sans), sans-serif; font-size: 1.1rem; color: var(--green, #2997ff); margin: 2rem 0 0.75rem; }
   .blog-post p { line-height: 1.75; margin-bottom: 1.25rem; color: var(--text, #c8d8e8); }
   .blog-post ul, .blog-post ol { margin: 1rem 0 1.5rem 1.5rem; line-height: 1.75; color: var(--text, #c8d8e8); }
   .blog-post li { margin-bottom: 0.5rem; }
-  .blog-post a { color: var(--green, #00ff9d); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
-  .blog-post a:hover { border-bottom-color: var(--green, #00ff9d); }
+  .blog-post a { color: var(--green, #2997ff); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+  .blog-post a:hover { border-bottom-color: var(--green, #2997ff); }
   .blog-post code { background: rgba(0,136,255,0.1); padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
-  .blog-post pre { background: var(--bg2, #070d14); border: 1px solid var(--border, #0d2030); border-radius: 8px; padding: 1.25rem; overflow-x: auto; margin: 1.25rem 0; }
+  .blog-post pre { background: var(--bg2, #1c1c1e); border: 1px solid var(--border, rgba(28,28,30,0.72)); border-radius: 12px; padding: 1.25rem; overflow-x: auto; margin: 1.25rem 0; }
   .blog-post pre code { background: none; padding: 0; }
-  .blog-callout { background: rgba(0,255,157,0.05); border: 1px solid rgba(0,255,157,0.15); border-radius: 8px; padding: 1.25rem 1.5rem; margin: 2rem 0; }
-  .blog-callout strong { color: var(--green, #00ff9d); }
-  .blog-cta { display: inline-block; background: var(--green, #00ff9d); color: #020408; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; border: none; margin: 0.5rem 0.5rem 0.5rem 0; transition: opacity 0.2s; }
+  .blog-callout { background: rgba(41,151,255,0.05); border: 1px solid rgba(41,151,255,0.15); border-radius: 12px; padding: 1.25rem 1.5rem; margin: 2rem 0; }
+  .blog-callout strong { color: var(--green, #2997ff); }
+  .blog-cta { display: inline-block; background: var(--green, #2997ff); color: #fff; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 980px; text-decoration: none; border: none; margin: 0.5rem 0.5rem 0.5rem 0; transition: opacity 0.2s; }
   .blog-cta:hover { opacity: 0.85; border-bottom: none; }
-  .blog-cta-secondary { display: inline-block; border: 1px solid var(--green, #00ff9d); color: var(--green, #00ff9d); font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; margin: 0.5rem 0.5rem 0.5rem 0; transition: background 0.2s; }
-  .blog-cta-secondary:hover { background: rgba(0,255,157,0.1); border-bottom: none; }
+  .blog-cta-secondary { display: inline-block; border: 1px solid var(--green, #2997ff); color: var(--green, #2997ff); font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 980px; text-decoration: none; margin: 0.5rem 0.5rem 0.5rem 0; transition: background 0.2s; }
+  .blog-cta-secondary:hover { background: rgba(41,151,255,0.1); border-bottom: none; }
   .blog-nav { color: var(--text-muted, #4a6070); font-size: 0.9rem; margin-bottom: 2rem; }
   .blog-nav a { color: var(--text-muted, #4a6070); }
-  .blog-nav a:hover { color: var(--green, #00ff9d); }
+  .blog-nav a:hover { color: var(--green, #2997ff); }
   .price-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.5rem 0; }
-  .price-compare div { background: var(--bg2, #070d14); border: 1px solid var(--border, #0d2030); border-radius: 8px; padding: 1rem 1.25rem; }
+  .price-compare div { background: var(--bg2, #1c1c1e); border: 1px solid var(--border, rgba(28,28,30,0.72)); border-radius: 12px; padding: 1rem 1.25rem; }
   .price-compare .label { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted, #4a6070); margin-bottom: 0.25rem; }
   .price-compare .amount { font-size: 1.5rem; font-weight: 700; }
   .price-compare .old .amount { color: #ff4444; }
-  .price-compare .new .amount { color: var(--green, #00ff9d); }
+  .price-compare .new .amount { color: var(--green, #2997ff); }
   @media (max-width: 600px) {
     .blog-post h1 { font-size: 1.6rem; }
     .price-compare { grid-template-columns: 1fr; }
@@ -67,7 +67,7 @@
     <a href="/blog">&larr; All posts</a> &middot; <a href="/">AiPayGen</a>
   </div>
 
-  <h1>Why I Built AiPayGen: 250 AI Tools for the Price of One API Call</h1>
+  <h1>Why I Built AiPayGen: 65+ AI Tools for the Price of One API Call</h1>
   <p class="blog-meta">March 15, 2026 &middot; 5 min read</p>
 
   <h2>The problem nobody talks about</h2>
@@ -80,7 +80,7 @@
 
   <h2>What if you could pay per call?</h2>
 
-  <p>That's the core idea behind AiPayGen. One API endpoint, 250 tools, 27 AI models from 7 providers. You pay only when you make a call. No monthly fees. No unused quotas expiring at the end of the month.</p>
+  <p>That's the core idea behind AiPayGen. One API endpoint, 65+ tools, 15 AI models from 7 providers. You pay only when you make a call. No monthly fees. No unused quotas expiring at the end of the month.</p>
 
   <div class="price-compare">
     <div class="old">
@@ -97,9 +97,9 @@
 
   <p>The cost savings come from model routing. Not every request needs GPT-4o. A simple summarization task works fine with a smaller model. AiPayGen automatically picks the best model for the job — and passes the savings to you.</p>
 
-  <h2>250 tools, not 250 model proxies</h2>
+  <h2>65+ tools, not model proxies</h2>
 
-  <p>This isn't another OpenRouter. AiPayGen doesn't just forward your prompt to a model. Each of the 250 tools is purpose-built:</p>
+  <p>This isn't another OpenRouter. AiPayGen doesn't just forward your prompt to a model. Each of the 65+ tools is purpose-built:</p>
 
   <ul>
     <li><strong>AI tools</strong> (40+) — research, write, summarize, translate, code, analyze, sentiment, classify, compare, debate, proofread, rewrite, vision, RAG, diagrams</li>
@@ -121,7 +121,7 @@
     <li><strong>SQLite in WAL mode</strong> for all persistence — agents, skills, API catalog, usage tracking. No Postgres, no Redis, no external dependencies.</li>
     <li><strong>Cloudflare tunnel</strong> for TLS termination and DDoS protection</li>
     <li><strong>Oracle Cloud</strong> for hosting (started on a Raspberry Pi 5, migrated for uptime)</li>
-    <li><strong>27 AI models</strong> from 7 providers, auto-routed by task type and complexity</li>
+    <li><strong>15 AI models</strong> from 7 providers, auto-routed by task type and complexity</li>
     <li><strong>x402 protocol</strong> for crypto payments — USDC on Base, Solana, or Stellar. The payment travels with the HTTP request, so AI agents can pay for API calls autonomously.</li>
   </ul>
 
@@ -154,7 +154,7 @@ curl -X POST "https://api.aipaygen.com/research" \
   <pre><code class="language-bash">pip install aipaygen-mcp
 claude mcp add aipaygen -- aipaygen-mcp</code></pre>
 
-  <p>That's it. All 250 tools are now available in your AI coding assistant.</p>
+  <p>That's it. All 65+ tools are now available in your AI coding assistant.</p>
 
   <div class="blog-callout">
     <strong>Free tier:</strong> 1 call per day, no API key needed, no credit card required.<br>

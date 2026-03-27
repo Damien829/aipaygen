@@ -6,7 +6,7 @@ startCommand:
       AIPAYGEN_API_KEY:
         type: string
         title: API Key
-        description: "API key for unlimited access (optional — 1 free call/day without key). Get one at https://api.aipaygen.com/buy-credits"
+        description: "API key for unlimited access (optional — 3 free calls/day without key). Get one at https://api.aipaygen.com/buy-credits"
     required: []
   commandFunction: |-
     (config) => ({

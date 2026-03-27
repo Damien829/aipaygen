@@ -277,13 +277,13 @@ def auth_register():
     finally:
         conn.close()
 
-    # Generate API key with $0.25 trial balance
+    # Generate API key with $0.10 trial balance
     from api_keys import generate_key
     from accounts import link_key_to_account
     if has_received_trial_credits(ip):
         trial_balance = 0.0
     else:
-        trial_balance = 0.25
+        trial_balance = 0.10
         mark_trial_credits_used(ip)
     key_data = generate_key(initial_balance=trial_balance)
     link_key_to_account(account_id, key_data["key"])
@@ -364,7 +364,8 @@ def auth_login():
 
 # ── Ad Reward (server-side bonus) ─────────────────────────────────────────────
 
-_ad_reward_cache = {}  # {ip: date_str} — simple once-per-day rate limit
+_ad_reward_cache = {}  # {ip: date_str -> count} — rate limit + cooldown
+_ad_reward_timestamps = {}  # {ip -> last_reward_time} — minimum interval
 
 
 @auth_bp.route("/auth/ad-reward", methods=["POST"])
@@ -372,16 +373,23 @@ def auth_ad_reward():
     ip = request.headers.get("CF-Connecting-IP", request.remote_addr)
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    # Rate limit: max 10 ad rewards per IP per day (1 per ad watched)
+    # Rate limit: max 3 ad rewards per IP per day (reduced from 10 to limit abuse)
     cache_key = f"{ip}:{today}"
     count = _ad_reward_cache.get(cache_key, 0)
-    if count >= 10:
+    if count >= 3:
         return jsonify({"error": "Maximum ad rewards reached today. Get an API key for unlimited access.", "get_key": "/get-key"}), 429
+
+    # Cooldown: minimum 30 seconds between rewards (prevents rapid-fire abuse)
+    now = _time.time()
+    last = _ad_reward_timestamps.get(ip, 0)
+    if now - last < 30:
+        return jsonify({"error": "Please wait before claiming another reward."}), 429
+    _ad_reward_timestamps[ip] = now
 
     from agent_network import grant_ad_bonus
     result = grant_ad_bonus(ip)
     _ad_reward_cache[cache_key] = count + 1
-    return jsonify({"ok": True, "bonus_calls": 1, "calls_used": result["calls_used"], "calls_available": result.get("calls_available", 0), "rewards_remaining": 10 - count - 1})
+    return jsonify({"ok": True, "bonus_calls": 1, "calls_used": result["calls_used"], "calls_available": result.get("calls_available", 0), "rewards_remaining": 3 - count - 1})
 
 
 # ── Quick Key (zero-click key generation page) ────────────────────────────────
@@ -395,14 +403,14 @@ def quick_key_page():
     if has_received_trial_credits(ip):
         trial_balance = 0.0
     else:
-        trial_balance = 0.25
+        trial_balance = 0.10
         mark_trial_credits_used(ip)
     record_key_gen(ip)
     key_data = generate_key(initial_balance=trial_balance, label="quick-key", source="quick_key_page")
     funnel_log_event("key_generated", endpoint="/quick-key", ip=ip, user_agent=request.headers.get("User-Agent", ""), metadata=json.dumps({"source": "quick_key_page", "balance": trial_balance}))
     html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Your Free API Key — AiPayGen</title>
-<meta name="description" content="Get a free AiPayGen API key instantly with $0.25 trial credits. No sign-up needed. Start using 250+ AI tools in seconds.">
+<meta name="description" content="Get a free AiPayGen API key instantly with $0.10 trial credits. No sign-up needed. Start using 65+ AI tools in seconds.">
 <meta property="og:title" content="Get Free API Key — AiPayGen">
 <style>*{{box-sizing:border-box;margin:0;padding:0}}body{{font-family:-apple-system,sans-serif;background:#0a0c10;color:#e0e0e0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}}
 .card{{background:#141820;border:1px solid #1e2530;border-radius:16px;padding:40px;max-width:520px;width:100%;text-align:center}}
@@ -452,11 +460,11 @@ def auth_generate_key():
     source = data.get("source", request.cookies.get("aipaygen_ref", "api-direct"))
     email = (data.get("email") or "").strip().lower()
     ref_code = data.get("ref", "") or request.args.get("ref", "") or request.cookies.get("aipaygen_ref", "")
-    # Trial credits: $0.25 only for first key per IP, $0 for subsequent
+    # Trial credits: $0.10 only for first key per IP, $0 for subsequent
     if has_received_trial_credits(ip):
         trial_balance = 0.0
     else:
-        trial_balance = 0.25
+        trial_balance = 0.10
         mark_trial_credits_used(ip)
     record_key_gen(ip)
     key_data = generate_key(initial_balance=trial_balance, label=label, source=source)
@@ -616,7 +624,7 @@ def buy_credits():
                     mode="payment",
                     success_url=f"{BASE_URL}/buy-credits/success?session_id={{CHECKOUT_SESSION_ID}}",
                     cancel_url=f"{BASE_URL}/buy-credits",
-                    metadata={"amount_usd": str(amount), "label": label},
+                    metadata={"amount": str(amount), "action": "new", "label": label},
                 )
                 _ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "")
                 if _ip not in ("127.0.0.1", "::1"):
@@ -894,6 +902,10 @@ def stripe_create_checkout():
                        **({"customer_email": email} if email else {})},
             success_url=f"{BASE_URL}/buy-credits/success?session_id={{CHECKOUT_SESSION_ID}}",
             cancel_url=f"{BASE_URL}/buy-credits?abandoned=1",
+            # Anti-fraud: require billing address to deter card testers
+            billing_address_collection="required",
+            # Expire checkout quickly to reduce abuse window
+            expires_at=int(_time.time()) + 1800,  # 30 minutes
         )
         # Pre-fill email in Stripe checkout if we have it
         if email:
@@ -953,6 +965,8 @@ def stripe_webhook():
                     logger.info("Subscription renewed for key %s...", row["key"][:12])
             except Exception as e:
                 logger.error("Subscription renewal processing failed: %s", e)
+        if event_id:
+            mark_stripe_event_processed(event_id)
         return jsonify({"received": True})
 
     # Handle subscription canceled
@@ -975,6 +989,8 @@ def stripe_webhook():
                     logger.info("Subscription canceled for key %s...", row["key"][:12])
             except Exception as e:
                 logger.error("Subscription cancellation processing failed: %s", e)
+        if event_id:
+            mark_stripe_event_processed(event_id)
         return jsonify({"received": True})
 
     if event["type"] == "checkout.session.completed":
@@ -1177,7 +1193,7 @@ def _get_or_create_stripe_price(tier: str) -> str:
     # Create product + price
     product = _stripe.Product.create(
         name=f"AiPayGen {tier.title()} Plan",
-        description=f"{tier_info['monthly_calls']} AI calls/month, all 250 tools",
+        description=f"{tier_info['monthly_calls']} AI calls/month, all 65+ tools",
         metadata={"aipaygen_sub_tier": tier},
     )
     price = _stripe.Price.create(

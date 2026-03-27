@@ -5,87 +5,86 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="canonical" href="https://aipaygen.com/docs">
 <title>AiPayGen — Documentation</title>
-<meta name="description" content="Complete API documentation for AiPayGen — 250+ AI tools, 27 models, authentication, pricing, code examples, and integration guides.">
+<meta name="description" content="Complete API documentation for AiPayGen — 65+ AI tools, 15 models, authentication, pricing, code examples, and integration guides.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="AiPayGen Documentation — 250+ AI Tools API">
-<meta property="og:description" content="Complete API documentation for AiPayGen — 250+ AI tools, 27 models, authentication, pricing, code examples, and integration guides.">
+<meta property="og:title" content="AiPayGen Documentation — 65+ AI Tools API">
+<meta property="og:description" content="Complete API documentation for AiPayGen — 65+ AI tools, 15 models, authentication, pricing, code examples, and integration guides.">
 <meta property="og:url" content="https://aipaygen.com/docs">
 <meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="AiPayGen Documentation">
-<meta name="twitter:description" content="Complete API docs for 250+ AI tools, 27 models. Authentication, pricing, code examples, and integration guides.">
+<meta name="twitter:description" content="Complete API docs for 65+ AI tools, 15 models. Authentication, pricing, code examples, and integration guides.">
 <link rel="icon" href="/static/icon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#020408;--bg2:#070d14;--bg3:#0d1a24;--green:#00ff9d;--cyan:#00d4ff;--dim:#8b949e;--border:#1a2332}
+:root{--bg:#000;--bg-elevated:#1c1c1e;--surface:rgba(28,28,30,0.72);--accent:#2997ff;--accent2:#bf5af2;--text:#f5f5f7;--text-secondary:#86868b;--text-muted:#48484a;--border:rgba(255,255,255,0.08);--success:#30d158;--font-sans:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif;--font-mono:'SF Mono','Fira Code',ui-monospace,monospace}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:#e1e4e8;font-family:'IBM Plex Sans',sans-serif;line-height:1.7;padding-top:70px}
+body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-height:1.7;padding-top:70px}
 .layout{display:flex;max-width:1200px;margin:0 auto;min-height:calc(100vh - 70px)}
 .sidebar{width:240px;position:sticky;top:70px;height:calc(100vh - 70px);overflow-y:auto;padding:32px 16px;border-right:1px solid var(--border);flex-shrink:0}
-.sidebar a{display:block;color:var(--dim);text-decoration:none;padding:6px 12px;font-size:0.85rem;border-radius:6px;margin-bottom:2px;transition:all .15s}
-.sidebar a:hover,.sidebar a.active{color:#fff;background:var(--bg3)}
-.sidebar .section-title{color:#4a5568;font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;padding:16px 12px 4px;font-weight:600}
+.sidebar a{display:block;color:var(--text-secondary);text-decoration:none;padding:6px 12px;font-size:0.85rem;border-radius:12px;margin-bottom:2px;transition:all .15s}
+.sidebar a:hover,.sidebar a.active{color:#fff;background:var(--surface)}
+.sidebar .section-title{color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;padding:16px 12px 4px;font-weight:600}
 .content{flex:1;padding:40px 48px 80px;max-width:860px}
-h1{font-family:'IBM Plex Mono',monospace;font-size:2rem;color:#fff;margin-bottom:8px}
-.subtitle{color:var(--dim);font-size:1.05rem;margin-bottom:40px}
-h2{font-family:'IBM Plex Mono',monospace;font-size:1.3rem;color:var(--green);margin:48px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+h1{font-family:var(--font-sans);font-size:2rem;font-weight:700;color:#fff;margin-bottom:8px;letter-spacing:-0.02em}
+.subtitle{color:var(--text-secondary);font-size:1.05rem;margin-bottom:40px}
+h2{font-family:var(--font-sans);font-size:1.3rem;font-weight:600;color:var(--accent);margin:48px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border);letter-spacing:-0.01em}
 h3{font-size:1rem;color:#fff;margin:24px 0 8px}
-p{color:var(--dim);margin-bottom:16px}
-code{font-family:'IBM Plex Mono',monospace;background:var(--bg3);padding:2px 6px;border-radius:4px;font-size:0.85em;color:var(--green)}
-pre{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:20px;overflow-x:auto;margin:16px 0;font-size:0.85rem;line-height:1.5}
-pre code{background:none;padding:0;color:#e1e4e8}
-ol,ul{margin:0 0 16px 24px;color:var(--dim)}
+p{color:var(--text-secondary);margin-bottom:16px}
+code{font-family:var(--font-mono);background:var(--surface);padding:2px 6px;border-radius:4px;font-size:0.85em;color:var(--accent)}
+pre{background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px;padding:20px;overflow-x:auto;margin:16px 0;font-size:0.85rem;line-height:1.5}
+pre code{background:none;padding:0;color:var(--text)}
+ol,ul{margin:0 0 16px 24px;color:var(--text-secondary)}
 li{margin-bottom:8px}
-a{color:var(--green);text-decoration:none}
+a{color:var(--accent);text-decoration:none}
 a:hover{text-decoration:underline}
-.step{display:flex;gap:16px;margin:16px 0;padding:16px;background:var(--bg2);border:1px solid var(--border);border-radius:8px}
-.step-num{font-family:'IBM Plex Mono',monospace;font-size:1.5rem;font-weight:700;color:var(--green);min-width:40px}
+.step{display:flex;gap:16px;margin:16px 0;padding:16px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px}
+.step-num{font-family:var(--font-mono);font-size:1.5rem;font-weight:700;color:var(--accent);min-width:40px}
 .step-content{flex:1}
 .step-content strong{color:#fff}
-.endpoint{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:16px 20px;margin:12px 0}
-.endpoint .method{font-family:'IBM Plex Mono',monospace;font-size:0.8rem;font-weight:600;padding:3px 8px;border-radius:4px;margin-right:8px}
-.endpoint .method.post{background:rgba(0,255,157,0.15);color:var(--green)}
-.endpoint .method.get{background:rgba(0,212,255,0.15);color:var(--cyan)}
+.endpoint{background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin:12px 0}
+.endpoint .method{font-family:var(--font-mono);font-size:0.8rem;font-weight:600;padding:3px 8px;border-radius:4px;margin-right:8px}
+.endpoint .method.post{background:rgba(41,151,255,0.15);color:var(--accent)}
+.endpoint .method.get{background:rgba(191,90,242,0.15);color:var(--accent2)}
 .endpoint .method.put{background:rgba(255,165,0,0.15);color:#ffa500}
 .endpoint .method.delete{background:rgba(255,80,80,0.15);color:#ff5050}
-.endpoint .path{font-family:'IBM Plex Mono',monospace;font-size:0.9rem;color:#fff}
-.endpoint .desc{color:var(--dim);font-size:0.85rem;margin-top:6px}
+.endpoint .path{font-family:var(--font-mono);font-size:0.9rem;color:#fff}
+.endpoint .desc{color:var(--text-secondary);font-size:0.85rem;margin-top:6px}
 .pricing-table{width:100%;border-collapse:collapse;margin:16px 0}
-.pricing-table th{text-align:left;color:var(--green);font-family:'IBM Plex Mono',monospace;font-size:0.8rem;padding:8px 12px;border-bottom:1px solid var(--border)}
-.pricing-table td{padding:8px 12px;color:var(--dim);font-size:0.85rem;border-bottom:1px solid rgba(26,35,50,0.5)}
-.pricing-table td:first-child{font-family:'IBM Plex Mono',monospace;color:#fff}
+.pricing-table th{text-align:left;color:var(--accent);font-family:var(--font-mono);font-size:0.8rem;padding:8px 12px;border-bottom:1px solid var(--border)}
+.pricing-table td{padding:8px 12px;color:var(--text-secondary);font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.04)}
+.pricing-table td:first-child{font-family:var(--font-mono);color:#fff}
 .badge{display:inline-block;font-size:0.7rem;padding:2px 8px;border-radius:10px;font-weight:600;margin-left:8px}
-.badge-new{background:rgba(0,212,255,0.2);color:var(--cyan)}
-.badge-free{background:rgba(0,255,157,0.2);color:var(--green)}
-.cta-box{background:linear-gradient(135deg,rgba(0,255,157,0.08),rgba(0,212,255,0.08));border:1px solid rgba(0,255,157,0.2);border-radius:12px;padding:24px;margin:24px 0;text-align:center}
-.cta-box a{display:inline-block;background:linear-gradient(135deg,#00ff9d,#00d4ff);color:#000;font-weight:700;padding:10px 24px;border-radius:6px;margin-top:12px;text-decoration:none;font-family:'IBM Plex Mono',monospace}
+.badge-new{background:rgba(191,90,242,0.2);color:var(--accent2)}
+.badge-free{background:rgba(48,209,88,0.2);color:var(--success)}
+.cta-box{background:linear-gradient(135deg,rgba(41,151,255,0.08),rgba(191,90,242,0.08));border:1px solid rgba(41,151,255,0.2);border-radius:12px;padding:24px;margin:24px 0;text-align:center}
+.cta-box a{display:inline-block;background:linear-gradient(135deg,#2997ff,#bf5af2);color:#fff;font-weight:700;padding:10px 24px;border-radius:980px;margin-top:12px;text-decoration:none;font-family:var(--font-sans)}
 @media(max-width:768px){.sidebar{display:none}.content{padding:24px 16px}}
 </style>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4228277826827893" crossorigin="anonymous"></script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"TechArticle","name":"AiPayGen API Documentation","description":"Complete API documentation for AiPayGen — 250+ AI tools, authentication, pricing, and integration guides.","url":"https://aipaygen.com/docs","publisher":{"@type":"Organization","name":"AiPayGen","url":"https://aipaygen.com"}}
+{"@context":"https://schema.org","@type":"TechArticle","name":"AiPayGen API Documentation","description":"Complete API documentation for AiPayGen — 65+ AI tools, authentication, pricing, and integration guides.","url":"https://aipaygen.com/docs","publisher":{"@type":"Organization","name":"AiPayGen","url":"https://aipaygen.com"}}
 </script>
 </head>
 <body>
-<nav style="position:fixed;top:0;width:100%;z-index:100;background:rgba(2,4,8,0.95);backdrop-filter:blur(16px) saturate(180%);border-bottom:1px solid rgba(0,255,157,0.1);padding:14px 0">
+<nav style="position:fixed;top:0;width:100%;z-index:100;background:rgba(0,0,0,0.88);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid rgba(255,255,255,0.08);padding:14px 0">
   <div style="max-width:1200px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between">
-    <a href="/" style="font-family:'IBM Plex Mono',monospace;font-size:1.3rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px">
-      <span style="display:inline-block;width:8px;height:8px;background:#00ff9d;border-radius:50%;box-shadow:0 0 8px #00ff9d,0 0 16px rgba(0,255,157,0.4);animation:pulse-dot 2s ease-in-out infinite"></span>
-      Ai<span style="color:#00ff9d">Pay</span>Gen
+    <a href="/" style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif;font-size:1.3rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px">
+      <span style="display:inline-block;width:8px;height:8px;background:#2997ff;border-radius:50%;box-shadow:0 0 8px #2997ff,0 0 16px rgba(41,151,255,0.4);animation:pulse-dot 2s ease-in-out infinite"></span>
+      Ai<span style="color:#2997ff">Pay</span>Gen
     </a>
     <div style="display:flex;gap:24px;align-items:center">
-      <a href="/try" style="color:#00ff9d;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600">Try Free</a>
-      <a href="/docs" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Docs</a>
-      <a href="/pricing" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Pricing</a>
-      <a href="/playground" style="color:#00d4ff;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600">Playground</a>
-      <a href="/status" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Status</a>
-      <a href="/buy-credits" style="color:#000;text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:700;background:linear-gradient(135deg,#00ff9d,#00d4ff);padding:7px 16px;border-radius:4px;margin-left:8px;letter-spacing:0.03em;transition:all .2s;box-shadow:0 0 12px rgba(0,255,157,0.2)">GET API KEY</a>
+      <a href="/try" style="color:#2997ff;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif;font-size:0.9rem;font-weight:600">Try Free</a>
+      <a href="/docs" style="color:#86868b;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif;font-size:0.9rem;transition:color .2s">Docs</a>
+      <a href="/pricing" style="color:#86868b;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif;font-size:0.9rem;transition:color .2s">Pricing</a>
+      <a href="/playground" style="color:#bf5af2;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif;font-size:0.9rem;font-weight:600">Playground</a>
+      <a href="/status" style="color:#86868b;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif;font-size:0.9rem;transition:color .2s">Status</a>
+      <a href="/buy-credits" style="color:#fff;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif;font-size:0.82rem;font-weight:700;background:linear-gradient(135deg,#2997ff,#bf5af2);padding:7px 16px;border-radius:980px;margin-left:8px;letter-spacing:0.03em;transition:all .2s;box-shadow:0 0 12px rgba(41,151,255,0.2)">GET API KEY</a>
     </div>
   </div>
 </nav>
 <style>
-@keyframes pulse-dot{0%,100%{opacity:1;box-shadow:0 0 8px #00ff9d,0 0 16px rgba(0,255,157,0.4)}50%{opacity:0.6;box-shadow:0 0 4px #00ff9d,0 0 8px rgba(0,255,157,0.2)}}
+@keyframes pulse-dot{0%,100%{opacity:1;box-shadow:0 0 8px #2997ff,0 0 16px rgba(41,151,255,0.4)}50%{opacity:0.6;box-shadow:0 0 4px #2997ff,0 0 8px rgba(41,151,255,0.2)}}
 </style>
 <div class="layout">
 <nav class="sidebar">
@@ -98,7 +97,7 @@ a:hover{text-decoration:underline}
   <a href="#templates">Templates</a>
   <a href="#scheduling">Scheduling</a>
   <div class="section-title">API Reference</div>
-  <a href="#ai-tools">AI Tools (250+)</a>
+  <a href="#ai-tools">AI Tools (65+)</a>
   <a href="#data">Data Lookups</a>
   <a href="#scraping">Web Scraping</a>
   <a href="#agents">Agent System</a>
@@ -117,21 +116,21 @@ a:hover{text-decoration:underline}
 <div class="content">
 
 <h1>Documentation</h1>
-<p class="subtitle">250+ AI tools, custom agent builder, scheduling, and 27 AI models — all in one API.</p>
+<p class="subtitle">65+ AI tools, custom agent builder, scheduling, and 15 AI models — all in one API.</p>
 
 <h2 id="overview">Overview</h2>
-<p>AiPayGen is the most comprehensive AI toolkit for developers and agents. Build custom AI agents, access 250+ tools, 27 models, 2200+ skills, and 4100+ APIs — all through a single API key or MCP connection.</p>
+<p>AiPayGen is the most comprehensive AI toolkit for developers and agents. Build custom AI agents, access 65+ tools, 15 models, 2200+ skills, and 4100+ APIs — all through a single API key or MCP connection.</p>
 
 <div style="display:flex;gap:12px;flex-wrap:wrap;margin:16px 0">
-  <a href="/openapi.json" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:0.85rem;color:var(--cyan);text-decoration:none">OpenAPI Spec</a>
-  <a href="/health" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:0.85rem;color:var(--green);text-decoration:none">Service Status</a>
-  <a href="/try" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:0.85rem;color:var(--green);text-decoration:none">Interactive Playground</a>
-  <a href="/llms.txt" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:0.85rem;color:var(--dim);text-decoration:none">llms.txt</a>
+  <a href="/openapi.json" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:0.85rem;color:var(--accent2);text-decoration:none">OpenAPI Spec</a>
+  <a href="/health" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:0.85rem;color:var(--success);text-decoration:none">Service Status</a>
+  <a href="/try" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:0.85rem;color:var(--accent);text-decoration:none">Interactive Playground</a>
+  <a href="/llms.txt" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:0.85rem;color:var(--text-secondary);text-decoration:none">llms.txt</a>
 </div>
 
 <div class="cta-box">
   <strong style="color:#fff">Start building in 30 seconds</strong><br>
-  <span style="color:var(--dim)">Get an API key and start making calls immediately.</span>
+  <span style="color:var(--text-secondary)">Get an API key and start making calls immediately.</span>
   <br><a href="/buy-credits">Get API Key ($1)</a>
 </div>
 
@@ -174,7 +173,7 @@ curl -X POST https://api.aipaygen.com/preview \
 <tr><th>Method</th><th>How</th><th>Best For</th></tr>
 <tr><td>API Key</td><td>POST /credits/buy with Stripe</td><td>Most users — simple, prepaid credits</td></tr>
 <tr><td>x402 USDC</td><td>HTTP 402 + X-Payment header</td><td>Crypto-native agents, no accounts</td></tr>
-<tr><td>MCP</td><td>pip install aipaygen-mcp</td><td>Claude/Cursor — free key with $0.25 trial credits</td></tr>
+<tr><td>MCP</td><td>pip install aipaygen-mcp</td><td>Claude/Cursor — free key with $0.10 trial credits</td></tr>
 </table>
 
 <h2 id="builder">Build Your Own Agent <span class="badge badge-new">NEW</span></h2>
@@ -265,7 +264,7 @@ result = httpx.post(f"{BASE}/agents/custom/{agent_id}/run",
 </div>
 
 <h2 id="ai-tools">AI Tools</h2>
-<p>40+ AI-powered endpoints. All accept an optional <code>model</code> parameter.</p>
+<p>65+ AI-powered endpoints. All accept an optional <code>model</code> parameter.</p>
 <div class="endpoint"><span class="method post">POST</span><span class="path">/research</span><div class="desc">Deep research on any topic with web sources.</div></div>
 <div class="endpoint"><span class="method post">POST</span><span class="path">/summarize</span><div class="desc">Summarize text into bullets, paragraph, or TL;DR.</div></div>
 <div class="endpoint"><span class="method post">POST</span><span class="path">/analyze</span><div class="desc">Analyze text with a specific question.</div></div>
@@ -321,7 +320,7 @@ result = httpx.post(f"{BASE}/agents/custom/{agent_id}/run",
 <div class="endpoint"><span class="method post">POST</span><span class="path">/catalog/{id}/invoke</span><div class="desc">Invoke a cataloged API through AiPayGen.</div></div>
 
 <h2 id="mcp">MCP Integration</h2>
-<p>All 250+ tools are available as MCP tools. Three ways to connect:</p>
+<p>All 65+ tools are available as MCP tools. Three ways to connect:</p>
 
 <h3>1. PyPI Package (Recommended)</h3>
 <pre><code># Install
@@ -349,7 +348,7 @@ URL: https://mcp.aipaygen.com/mcp</code></pre>
 # ID: io.github.Damien829/aipaygen</code></pre>
 
 <h2 id="models">Available Models</h2>
-<p>27 models across 7 providers. Pass a <code>model</code> parameter to choose, or let AiPayGen auto-route.</p>
+<p>15 models across 7 providers. Pass a <code>model</code> parameter to choose, or let AiPayGen auto-route.</p>
 <table class="pricing-table">
 <tr><th>Model</th><th>Provider</th><th>Best For</th></tr>
 <tr><td>auto</td><td>AiPayGen</td><td>Automatic — picks best model for the task</td></tr>
@@ -574,16 +573,16 @@ translated = httpx.post(f"{BASE}/translate", json={"text": summary["summary"], "
 
 </div>
 </div>
-<footer style="border-top:1px solid rgba(0,255,157,0.08);padding:40px 24px;text-align:center;background:#020408">
+<footer style="border-top:1px solid rgba(255,255,255,0.08);padding:40px 24px;text-align:center;background:#000">
   <div style="max-width:1200px;margin:0 auto">
     <div style="margin-bottom:16px">
-      <a href="/discover" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Discover</a>
-      <a href="/docs" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Docs</a>
-      <a href="/llms.txt" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">llms.txt</a>
-      <a href="/.well-known/agent.json" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">agent.json</a>
-      <a href="/health" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Health</a>
+      <a href="/discover" style="color:#86868b;text-decoration:none;margin:0 16px;font-size:0.85rem">Discover</a>
+      <a href="/docs" style="color:#86868b;text-decoration:none;margin:0 16px;font-size:0.85rem">Docs</a>
+      <a href="/llms.txt" style="color:#86868b;text-decoration:none;margin:0 16px;font-size:0.85rem">llms.txt</a>
+      <a href="/.well-known/agent.json" style="color:#86868b;text-decoration:none;margin:0 16px;font-size:0.85rem">agent.json</a>
+      <a href="/health" style="color:#86868b;text-decoration:none;margin:0 16px;font-size:0.85rem">Health</a>
     </div>
-    <div style="color:#4a5568;font-size:0.8rem;font-family:'IBM Plex Mono',monospace">
+    <div style="color:#48484a;font-size:0.8rem;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif">
       Powered by x402 &middot; USDC on Base &middot; Built for autonomous agents
     </div>
   </div>

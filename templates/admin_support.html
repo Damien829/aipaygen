@@ -8,7 +8,7 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
-    background: #020408;
+    background: #000;
     color: #c8d8e8;
     min-height: 100vh;
     padding: 20px;
@@ -28,7 +28,7 @@
     color: #fff;
     font-weight: 700;
   }
-  .top-bar h1 span { color: #00ff9d; }
+  .top-bar h1 span { color: #2997ff; }
   .stats {
     display: flex;
     gap: 16px;
@@ -37,10 +37,10 @@
   .stats .stat {
     padding: 6px 14px;
     border-radius: 6px;
-    background: #070d14;
+    background: #1c1c1e;
     border: 1px solid #0d2030;
   }
-  .stats .stat b { color: #00ff9d; }
+  .stats .stat b { color: #2997ff; }
   .nav-links {
     font-size: 0.75rem;
     display: flex;
@@ -51,7 +51,7 @@
     color: #4a6070;
     text-decoration: none;
   }
-  .nav-links a:hover { color: #00ff9d; }
+  .nav-links a:hover { color: #2997ff; }
   .filters {
     display: flex;
     gap: 8px;
@@ -62,7 +62,7 @@
     padding: 6px 16px;
     border-radius: 6px;
     border: 1px solid #0d2030;
-    background: #070d14;
+    background: #1c1c1e;
     color: #c8d8e8;
     font-size: 0.82rem;
     cursor: pointer;
@@ -70,11 +70,11 @@
   }
   .filters button:hover,
   .filters button.active {
-    border-color: #00ff9d;
-    color: #00ff9d;
+    border-color: #2997ff;
+    color: #2997ff;
   }
   .ticket {
-    background: #070d14;
+    background: #1c1c1e;
     border: 1px solid #0d2030;
     border-radius: 8px;
     margin-bottom: 8px;
@@ -90,7 +90,7 @@
     gap: 12px;
     flex-wrap: wrap;
   }
-  .ticket-header:hover { background: rgba(0,255,157,0.02); }
+  .ticket-header:hover { background: rgba(41,151,255,0.02); }
   .ticket-info {
     display: flex;
     align-items: center;
@@ -110,7 +110,7 @@
     flex-shrink: 0;
   }
   .badge-open { background: rgba(210,153,34,0.15); color: #d29922; border: 1px solid rgba(210,153,34,0.3); }
-  .badge-replied { background: rgba(0,255,157,0.1); color: #00ff9d; border: 1px solid rgba(0,255,157,0.25); }
+  .badge-replied { background: rgba(41,151,255,0.1); color: #2997ff; border: 1px solid rgba(41,151,255,0.25); }
   .badge-closed { background: rgba(74,96,112,0.2); color: #4a6070; border: 1px solid rgba(74,96,112,0.3); }
   .ticket-name {
     color: #fff;
@@ -165,12 +165,12 @@
   .existing-reply {
     margin-top: 12px;
     padding: 14px;
-    background: rgba(0,255,157,0.04);
-    border: 1px solid rgba(0,255,157,0.15);
+    background: rgba(41,151,255,0.04);
+    border: 1px solid rgba(41,151,255,0.15);
     border-radius: 6px;
   }
   .existing-reply h4 {
-    color: #00ff9d;
+    color: #2997ff;
     font-size: 0.8rem;
     margin-bottom: 8px;
     font-weight: 600;
@@ -189,7 +189,7 @@
   }
   .reply-form textarea {
     width: 100%;
-    background: #020408;
+    background: #000;
     border: 1px solid #0d2030;
     border-radius: 6px;
     padding: 12px;
@@ -201,11 +201,11 @@
   }
   .reply-form textarea:focus {
     outline: none;
-    border-color: #00ff9d;
+    border-color: #2997ff;
   }
   .reply-form input[type="text"] {
     width: 100%;
-    background: #020408;
+    background: #000;
     border: 1px solid #0d2030;
     border-radius: 6px;
     padding: 10px 12px;
@@ -227,8 +227,8 @@
   .btn-reply {
     align-self: flex-start;
     padding: 8px 24px;
-    background: #00ff9d;
-    color: #000;
+    background: #2997ff;
+    color: #fff;
     border: none;
     border-radius: 6px;
     font-weight: 700;
@@ -260,8 +260,8 @@
     position: fixed;
     bottom: 24px;
     right: 24px;
-    background: #00ff9d;
-    color: #000;
+    background: #2997ff;
+    color: #fff;
     padding: 12px 24px;
     border-radius: 8px;
     font-weight: 700;
@@ -573,10 +573,10 @@
   setInterval(loadTickets, 30000);
 })();
 </script>
-<div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:24px;padding:16px;background:#0d1117;border:1px solid #1c2333;border-radius:12px">
+<div style="display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:24px;padding:16px;background:#1c1c1e;border:1px solid #1c2333;border-radius:12px">
   <a href="/admin/analytics" style="color:#a5b4fc;font-size:0.85rem;text-decoration:none">Analytics</a>
   <a href="/admin/funnel" style="color:#a5b4fc;font-size:0.85rem;text-decoration:none">Funnel</a>
-  <a href="/admin/support" style="color:#00ff9d;font-weight:600;font-size:0.85rem;text-decoration:none">Support Tickets</a>
+  <a href="/admin/support" style="color:#2997ff;font-weight:600;font-size:0.85rem;text-decoration:none">Support Tickets</a>
   <a href="/admin/showcase" style="color:#a5b4fc;font-size:0.85rem;text-decoration:none">Showcase</a>
   <a href="/admin/export" style="color:#a5b4fc;font-size:0.85rem;text-decoration:none">Export CSV</a>
   <a href="/status" style="color:#a5b4fc;font-size:0.85rem;text-decoration:none">Status</a>

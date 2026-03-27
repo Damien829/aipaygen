@@ -1,7 +1,7 @@
 {
   "name": "aipaygen",
   "version": "1.9.0",
-  "description": "Official JavaScript/TypeScript SDK for AiPayGen — 250 AI tools in one API. Pay per call via x402 (USDC on Base) or prepaid API key.",
+  "description": "Official JavaScript/TypeScript SDK for AiPayGen — 65+ AI tools in one API. Pay per call via x402 (USDC on Base) or prepaid API key.",
   "main": "index.js",
   "types": "index.d.ts",
   "scripts": {

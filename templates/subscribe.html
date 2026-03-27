@@ -5,26 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="canonical" href="https://aipaygen.com/subscribe">
 <title>Subscribe — AiPayGen Monthly Plans</title>
-<meta name="description" content="AiPayGen monthly plans: Starter $4.99/mo, Pro $19.99/mo, Enterprise $49.99/mo. 250+ AI tools, 27 models, priority features.">
+<meta name="description" content="AiPayGen monthly plans: Starter $4.99/mo, Pro $19.99/mo, Enterprise $49.99/mo. 65+ AI tools, 15 models, priority features.">
 <link rel="icon" href="/static/icon.png" type="image/png">
 <meta property="og:type" content="website">
 <meta property="og:title" content="Subscribe — AiPayGen Monthly Plans">
-<meta property="og:description" content="Monthly AI tool subscriptions from $4.99/mo. 250+ tools, 27 models, priority features.">
+<meta property="og:description" content="Monthly AI tool subscriptions from $4.99/mo. 65+ tools, 15 models, priority features.">
 <meta property="og:url" content="https://aipaygen.com/subscribe">
 <meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #020408; --bg2: #070d14; --green: #00ff9d; --blue: #0088ff;
-    --cyan: #00d4ff; --text: #c8d8e8; --muted: #4a6070; --border: #0d2030;
+    --bg: #000; --bg2: #1c1c1e; --green: #2997ff; --blue: #0088ff;
+    --cyan: #bf5af2; --text: #c8d8e8; --muted: #86868b; --border: rgba(28,28,30,0.72);
     --purple: #a78bfa; --amber: #f59e0b;
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     background: var(--bg); color: var(--text);
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'SF Mono', 'Fira Code', monospace;
     overflow-x: hidden; padding: 70px 24px 60px;
   }
   body::before {
@@ -42,11 +40,11 @@
   .hero { text-align: center; margin-bottom: 48px; }
   .hero h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 700; color: #fff; margin-bottom: 12px; }
   .hero h1 .accent { color: var(--green); }
-  .hero p { font-family: 'IBM Plex Sans', sans-serif; font-size: 1rem; color: var(--muted); font-weight: 300; }
+  .hero p { font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; font-size: 1rem; color: var(--muted); font-weight: 300; }
   .savings-badge {
-    display: inline-block; background: rgba(0,255,157,0.12); color: var(--green);
+    display: inline-block; background: rgba(41,151,255,0.12); color: var(--green);
     padding: 6px 16px; border-radius: 20px; font-size: 0.78rem; font-weight: 600;
-    margin-top: 12px; border: 1px solid rgba(0,255,157,0.25);
+    margin-top: 12px; border: 1px solid rgba(41,151,255,0.25);
   }
 
   .tiers {
@@ -62,7 +60,7 @@
   .tier.featured { border: 1px solid var(--green); margin: -1px; z-index: 1; }
   .tier-badge {
     position: absolute; top: 0; left: 50%; transform: translate(-50%, -50%);
-    background: var(--green); color: #000; font-size: 0.7rem; font-weight: 700;
+    background: var(--green); color: #fff; font-size: 0.7rem; font-weight: 700;
     padding: 4px 16px; letter-spacing: 0.1em; text-transform: uppercase;
   }
   .tier-name {
@@ -75,16 +73,16 @@
   .tier-price .currency { font-size: 1.4rem; vertical-align: super; color: var(--green); }
   .tier-price .period { font-size: 0.85rem; font-weight: 300; color: var(--muted); }
   .tier-equiv {
-    font-family: 'IBM Plex Sans', sans-serif; font-size: 0.78rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; font-size: 0.78rem;
     color: var(--green); margin: 8px 0 4px; font-weight: 400;
   }
   .tier-desc {
-    font-family: 'IBM Plex Sans', sans-serif; font-size: 0.85rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; font-size: 0.85rem;
     color: var(--muted); margin: 8px 0 24px; font-weight: 300;
   }
   .tier-features { list-style: none; text-align: left; margin-bottom: 32px; }
   .tier-features li {
-    font-family: 'IBM Plex Sans', sans-serif; font-size: 0.85rem;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; font-size: 0.85rem;
     color: var(--text); padding: 8px 0; border-bottom: 1px solid rgba(13,32,48,0.6); font-weight: 300;
   }
   .tier-features li::before { content: '\2713'; color: var(--green); font-weight: 700; margin-right: 10px; }
@@ -94,14 +92,14 @@
 
   .btn-tier {
     display: inline-block; padding: 14px 32px;
-    font-family: 'IBM Plex Mono', monospace; font-size: 0.85rem;
+    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.85rem;
     font-weight: 700; text-decoration: none; letter-spacing: 0.05em;
     transition: all 0.2s; width: 100%; cursor: pointer; border: none;
   }
-  .btn-tier.primary { background: var(--green); color: #000; }
-  .btn-tier.primary:hover { background: #fff; transform: translateY(-2px); box-shadow: 0 8px 30px rgba(0,255,157,0.3); }
+  .btn-tier.primary { background: var(--green); color: #fff; }
+  .btn-tier.primary:hover { background: #fff; transform: translateY(-2px); box-shadow: 0 8px 30px rgba(41,151,255,0.3); }
   .btn-tier.secondary { background: transparent; color: var(--green); border: 1px solid var(--green); }
-  .btn-tier.secondary:hover { background: rgba(0,255,157,0.08); transform: translateY(-2px); }
+  .btn-tier.secondary:hover { background: rgba(41,151,255,0.08); transform: translateY(-2px); }
   .btn-tier:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
 
   /* Feature comparison */
@@ -112,11 +110,11 @@
   .compare-table { width: 100%; border-collapse: collapse; border: 1px solid var(--border); }
   .compare-table th, .compare-table td {
     padding: 12px 16px; text-align: center;
-    font-family: 'IBM Plex Sans', sans-serif; font-size: 0.85rem; font-weight: 300;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; font-size: 0.85rem; font-weight: 300;
     border-bottom: 1px solid var(--border);
   }
   .compare-table th {
-    background: var(--bg2); color: #fff; font-family: 'IBM Plex Mono', monospace;
+    background: var(--bg2); color: #fff; font-family: 'SF Mono', 'Fira Code', monospace;
     font-weight: 600; font-size: 0.8rem; letter-spacing: 0.05em; text-transform: uppercase;
   }
   .compare-table td:first-child { text-align: left; color: var(--text); font-weight: 400; }
@@ -132,14 +130,14 @@
   .key-section label { font-size: 0.82rem; color: var(--muted); display: block; margin-bottom: 8px; }
   .key-section input {
     width: 100%; background: var(--bg); border: 1px solid var(--border);
-    padding: 10px 14px; color: var(--text); font-family: 'IBM Plex Mono', monospace;
+    padding: 10px 14px; color: var(--text); font-family: 'SF Mono', 'Fira Code', monospace;
     font-size: 0.85rem; outline: none;
   }
   .key-section input:focus { border-color: var(--green); }
   .key-section input::placeholder { color: var(--muted); }
 
   .payperuse-link {
-    text-align: center; margin: 32px 0; font-family: 'IBM Plex Sans', sans-serif;
+    text-align: center; margin: 32px 0; font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     font-size: 0.88rem; color: var(--muted);
   }
   .payperuse-link a { color: var(--cyan); text-decoration: none; }
@@ -153,7 +151,6 @@
     body { padding: 40px 16px; }
   }
 </style>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4228277826827893" crossorigin="anonymous"></script>
 </head>
 <body>
 <div class="content">
@@ -167,7 +164,7 @@
 
   <section class="hero">
     <h1>Pick the plan that <span class="accent">fits you</span></h1>
-    <p>Instant access to 250+ AI tools. Cancel anytime, no questions asked.</p>
+    <p>Instant access to 65+ AI tools. Cancel anytime, no questions asked.</p>
     <div class="savings-badge">Save up to 40% vs pay-per-call</div>
   </section>
 
@@ -184,8 +181,8 @@
       <div class="tier-equiv">Everything you need to get started</div>
       <div class="tier-desc">Great for personal projects and everyday AI tasks</div>
       <ul class="tier-features">
-        <li>All 250+ AI tools</li>
-        <li>27 top AI models</li>
+        <li>All 65+ AI tools</li>
+        <li>15 top AI models</li>
         <li>Your own personal key</li>
         <li>Use anywhere &mdash; app, API, or integrations</li>
         <li>Email support</li>
@@ -203,7 +200,7 @@
       <div class="tier-equiv">Smarter models + automation tools</div>
       <div class="tier-desc">For power users who want the best results</div>
       <ul class="tier-features">
-        <li>All 250+ AI tools</li>
+        <li>All 65+ AI tools</li>
         <li class="highlight">Best AI models (Claude Sonnet)</li>
         <li>Build custom AI agents</li>
         <li>Chain tasks together automatically</li>
@@ -221,7 +218,7 @@
       <div class="tier-equiv">Maximum power + dedicated support</div>
       <div class="tier-desc">For teams and businesses that need it all</div>
       <ul class="tier-features">
-        <li>All 250+ AI tools</li>
+        <li>All 65+ AI tools</li>
         <li class="highlight">Premium AI models (Claude Opus)</li>
         <li>Real-time webhook notifications</li>
         <li>Bulk processing (20 tasks at once)</li>
@@ -254,7 +251,7 @@
       <tbody>
         <tr>
           <td>Usage</td>
-          <td>Watch ad = 1 call</td>
+          <td>1 call/day</td>
           <td class="check">Unlimited</td>
           <td class="check">Unlimited</td>
           <td class="check">Unlimited</td>
@@ -275,10 +272,10 @@
         </tr>
         <tr>
           <td>AI tools</td>
-          <td class="check">All 250+</td>
-          <td class="check">All 250+</td>
-          <td class="check">All 250+</td>
-          <td class="check">All 250+</td>
+          <td class="check">All 65+</td>
+          <td class="check">All 65+</td>
+          <td class="check">All 65+</td>
+          <td class="check">All 65+</td>
         </tr>
         <tr>
           <td>Spending limits</td>

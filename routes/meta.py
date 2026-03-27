@@ -73,7 +73,7 @@ WALLET_ADDRESS = os.getenv("WALLET_ADDRESS", "0x366D488a48de1B2773F3a21F1A697271
 EVM_NETWORK = os.getenv("EVM_NETWORK", "eip155:8453")
 
 # Pre-compute MCP tool count at import time (avoid reading file on every /api/stats call)
-_MCP_TOOL_COUNT = 250  # fallback
+_MCP_TOOL_COUNT = 65  # fallback
 try:
     import glob as _glob
     _mcp_tools_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "mcp_tools")
@@ -110,13 +110,10 @@ NAV_HTML = '''
       Ai<span style="color:#00ff9d">Pay</span>Gen
     </a>
     <div style="display:flex;gap:24px;align-items:center">
-      <a href="/try" style="color:#00ff9d;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600">Try Free</a>
       <a href="/docs" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Docs</a>
       <a href="/pricing" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Pricing</a>
-      <a href="/playground" style="color:#00d4ff;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600">Playground</a>
-      <a href="/examples" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Examples</a>
-      <a href="/status" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Status</a>
-      <a href="/get-key" style="color:#000;text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:700;background:linear-gradient(135deg,#00ff9d,#00d4ff);padding:7px 16px;border-radius:4px;margin-left:8px;letter-spacing:0.03em;transition:all .2s;box-shadow:0 0 12px rgba(0,255,157,0.2)">GET API KEY</a>
+      <a href="/try" style="color:#00d4ff;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600">Try Free</a>
+      <a href="/quick-key" style="color:#000;text-decoration:none;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:700;background:linear-gradient(135deg,#00ff9d,#00d4ff);padding:7px 16px;border-radius:4px;margin-left:8px;letter-spacing:0.03em;transition:all .2s;box-shadow:0 0 12px rgba(0,255,157,0.2)">Get API Key</a>
     </div>
   </div>
 </nav>
@@ -274,7 +271,7 @@ def _build_discover_services():
         {"endpoint": "/free/random", "method": "GET", "price_usd": 0.00, "input": {"n": 5, "min": 1, "max": 100}, "description": "Random integers, floats, booleans, and strings — completely free"},
         {"endpoint": "/free/joke", "method": "GET", "price_usd": 0.00, "description": "Random joke with setup and punchline — completely free"},
         {"endpoint": "/free/quote", "method": "GET", "price_usd": 0.00, "input": {"category": "optional"}, "description": "Random inspirational quote with author — completely free"},
-        {"endpoint": "/free-tier/status", "method": "GET", "price_usd": 0.01, "description": "Check how many free AI calls remain today for your IP. $0.25 free trial credits with API key, resets midnight UTC."},
+        {"endpoint": "/free-tier/status", "method": "GET", "price_usd": 0.01, "description": "Check how many free AI calls remain today for your IP. $0.10 free trial credits with API key, resets midnight UTC."},
         {"endpoint": "/sdk/code", "method": "GET", "price_usd": 0.01, "input": {"lang": "python|javascript|curl", "endpoint": "optional"}, "description": "Get copy-paste SDK code in Python, JavaScript, or cURL"},
         {"endpoint": "/sitemap.xml", "method": "GET", "price_usd": 0.01, "description": "XML sitemap of all public endpoints for crawlers and agents"},
         {"endpoint": "/catalog", "method": "GET", "price_usd": 0.01, "input": {"category": "optional", "min_score": 0, "free_only": False, "page": 1}, "description": "Browse 4100+ discovered APIs — the largest autonomous API catalog. Filter by category, quality score, auth requirement"},
@@ -410,7 +407,7 @@ def root_manifest():
     return jsonify({
         "name": "AiPayGen",
         "short_name": "AiPayGen",
-        "description": "250+ AI tools in one app. Chat, research, write, translate, code, and more.",
+        "description": "65+ AI tools as an MCP server & API. Research, write, code, scrape, translate, analyze.",
         "start_url": "/try",
         "display": "standalone",
         "background_color": "#0a0a0a",
@@ -429,7 +426,7 @@ def app_manifest():
     return jsonify({
         "name": "AiPayGen",
         "short_name": "AiPayGen",
-        "description": "250+ AI tools in one app. Chat, research, write, translate, code, and more.",
+        "description": "65+ AI tools as an MCP server & API. Research, write, code, scrape, translate, analyze.",
         "start_url": "/app/",
         "display": "standalone",
         "background_color": "#020408",
@@ -573,7 +570,7 @@ def discover():
     return jsonify({
         "meta": {
             "name": "AiPayGen",
-            "description": "AI agent API marketplace with 250 tools (v" + APP_VERSION + ") and 2400+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (free API key ($0.25 credits)). $0.25 trial credits available.",
+            "description": "AI agent API marketplace with 65+ tools (v" + APP_VERSION + ") and 2400+ skills. Three payment paths: API key (recommended), x402 USDC, or MCP (free API key ($0.10 credits)). $0.10 trial credits available.",
             "categories": list(categories.keys()),
         },
         "payment": {
@@ -592,7 +589,7 @@ def discover():
                 "usdc_contract": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
             },
             "mcp": {
-                "description": "$0.25 free trial credits with API key via MCP, unlimited with API key.",
+                "description": "$0.10 free trial credits with API key via MCP, unlimited with API key.",
                 "install": "pip install aipaygen-mcp",
                 "sse": f"https://mcp.aipaygen.com/mcp",
             },
@@ -1401,7 +1398,7 @@ def preview():
                 "error": "free_tier_exhausted",
                 "message": "Free preview calls exhausted for today. Get an API key to continue.",
                 "upgrade": {
-                    "free_key": "POST https://aipaygen.com/auth/generate-key (includes $0.25 trial credits)",
+                    "free_key": "POST https://aipaygen.com/auth/generate-key (includes $0.10 trial credits)",
                     "buy_credits": "https://aipaygen.com/buy-credits",
                 },
             }), 402
@@ -1530,6 +1527,8 @@ def serve_app(path=""):
         return send_from_directory(static_dir, path)
     # SPA fallback — serve index.html with custom CSS/JS injected before </head>
     html_path = os.path.join(static_dir, "index.html")
+    if not os.path.isfile(html_path):
+        return make_response("App unavailable — index.html not found. <a href='/try'>Try web version</a>", 503)
     with open(html_path, "r") as f:
         html = f.read()
     html = html.replace("</head>", _WEB_APP_INJECT + "\n</head>", 1)
@@ -1620,8 +1619,16 @@ def premium_page():
 
 
 @meta_bp.route("/get-key")
+@meta_bp.route("/quick-key")
 def get_key_page():
-    return render_template("get_key.html", nav=NAV_HTML, footer=FOOTER_HTML)
+    """Serve key generation from meta_bp — reliable fallback for /quick-key."""
+    from flask import redirect
+    # Forward to auth_bp's quick_key_page if it resolves, otherwise redirect to buy-credits
+    try:
+        from routes.auth import quick_key_page
+        return quick_key_page()
+    except Exception:
+        return redirect("/buy-credits", code=302)
 
 
 @meta_bp.route("/support")
@@ -1675,7 +1682,7 @@ def _build_llms_txt():
     lines = []
     lines.append("# AiPayGen")
     lines.append("")
-    lines.append("> 250 AI tools in one API (v" + APP_VERSION + "). Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (free API key ($0.25 credits)). $0.25 trial credits via buy_credits / generate_api_key MCP tools.")
+    lines.append("> 65+ AI tools in one API (v" + APP_VERSION + "). Multi-model (Claude, GPT-4o, DeepSeek, Gemini, Grok, Mistral, Llama). Three payment paths: API key (from $1), x402 USDC, or MCP (free API key ($0.10 credits)). $0.10 trial credits via buy_credits / generate_api_key MCP tools.")
     lines.append("")
     lines.append("## What This Service Does")
     lines.append("")
@@ -1726,7 +1733,7 @@ def _build_llms_txt():
     lines.append("")
 
     # Full tool catalog
-    lines.append("## All 250 Tools")
+    lines.append("## All 65+ Tools")
     lines.append("")
     for cat_name, services in categories.items():
         lines.append(f"### {cat_name}")
@@ -1781,9 +1788,9 @@ def _build_llms_txt():
 
     lines.append("## MCP (Model Context Protocol)")
     lines.append("")
-    lines.append("- $0.25 free trial credits with API key, no payment needed")
+    lines.append("- $0.10 free trial credits with API key, no payment needed")
     lines.append("- Unlimited with `AIPAYGEN_API_KEY` env var")
-    lines.append("- **New**: Use the `buy_credits` or `generate_api_key` MCP tools to get $0.25 trial credits instantly")
+    lines.append("- **New**: Use the `buy_credits` or `generate_api_key` MCP tools to get $0.10 trial credits instantly")
     lines.append("- Install: `pip install aipaygen-mcp && claude mcp add aipaygen -- python -m aipaygen_mcp`")
     lines.append("- Remote SSE: https://mcp.aipaygen.com/mcp")
     lines.append("")
@@ -1854,7 +1861,7 @@ def _build_llms_txt():
     lines.append("- USDC precision: 6 decimals. Network: Base Mainnet (eip155:8453).")
     lines.append("- Agent memory persists indefinitely — use a stable `agent_id`.")
     lines.append("- API key is the fastest path — one POST and you're running.")
-    lines.append("- MCP users: call `buy_credits` or `generate_api_key` to get $0.25 trial credits and an API key.")
+    lines.append("- MCP users: call `buy_credits` or `generate_api_key` to get $0.10 trial credits and an API key.")
     lines.append("- 402 responses include `Link` headers pointing to /openapi.json and /.well-known/ai-plugin.json.")
     lines.append("- Use `/chain` with `$prev.result` syntax to build multi-step pipelines in a single call.")
     lines.append("")
@@ -1897,13 +1904,13 @@ def ai_plugin():
         "schema_version": "v1",
         "name_for_human": "AiPayGen",
         "name_for_model": "aipaygen",
-        "description_for_human": "250 AI tools (v" + APP_VERSION + ") — research, write, code, translate, scrape, and more. $0.25 trial credits. $0.25 free trial credits with API key.",
+        "description_for_human": "65+ AI tools (v" + APP_VERSION + ") — research, write, code, translate, scrape, and more. $0.10 trial credits. $0.10 free trial credits with API key.",
         "description_for_model": (
-            "AiPayGen provides 250 AI-powered tools accessible via a single API (v" + APP_VERSION + "). "
+            "AiPayGen provides 65+ AI-powered tools accessible via a single API (v" + APP_VERSION + "). "
             "Use for research, writing, code generation, translation, sentiment analysis, "
             "web scraping, data extraction, content comparison, fact-checking, and more. "
-            "Free tier: 1 call/day per IP. Paid: prepaid API key (Bearer apk_xxx) or "
-            "x402 USDC micropayment. New: $0.25 trial credits via buy_credits or generate_api_key. "
+            "Free tier: 1 call/day per IP, no signup needed. Paid: prepaid API key (Bearer apk_xxx) or "
+            "x402 USDC micropayment. New: $0.10 trial credits via buy_credits or generate_api_key. "
             "All tools accept JSON POST requests."
         ),
         "auth": {"type": "service_http", "authorization_type": "bearer"},
@@ -1951,11 +1958,11 @@ def agent_manifest():
     return jsonify({
         "name": "AiPayGen",
         "description": (
-            "AI agent API marketplace with 250 tools (v" + APP_VERSION + ") and 2400+ searchable skills. "
+            "AI agent API marketplace with 65+ tools (v" + APP_VERSION + ") and 2400+ searchable skills. "
             "Research, writing, coding, analysis, web scraping, real-time data, agent memory, "
             "and multi-model AI (Claude, GPT-4o, DeepSeek, Gemini). "
-            "Three payment paths: API key (recommended), x402 USDC, or MCP (free API key ($0.25 credits)). "
-            "$0.25 trial credits available via buy_credits/generate_api_key."
+            "Three payment paths: API key (recommended), x402 USDC, or MCP (free API key ($0.10 credits)). "
+            "$0.10 trial credits available via buy_credits/generate_api_key."
         ),
         "url": base,
         "version": APP_VERSION,
@@ -1970,9 +1977,9 @@ def agent_manifest():
             "description": (
                 "Recommended: Buy API key via POST /credits/buy or /stripe/create-checkout, "
                 "then use 'Authorization: Bearer apk_xxx'. "
-                "New: $0.25 trial credits via buy_credits or generate_api_key MCP tools. "
+                "New: $0.10 trial credits via buy_credits or generate_api_key MCP tools. "
                 "Alternative: Pay per call with USDC on Base via x402. "
-                "MCP: $0.25 free trial credits with API key, unlimited with API key."
+                "MCP: $0.10 free trial credits with API key, unlimited with API key."
             ),
             "buyCredits": f"{base}/credits/buy",
         },
@@ -2111,7 +2118,7 @@ def agents_json():
         "agents": [{
             "name": "AiPayGen",
             "description": (
-                "Multi-model AI platform (15 LLMs, 7 providers) with 250 tools and 140+ endpoints + web scrapers + agent memory + "
+                "Multi-model AI platform (15 LLMs, 7 providers) with 65+ tools and 140+ endpoints + web scrapers + agent memory + "
                 "wallet-based identity + metered token pricing + agent economy. "
                 "Research, write, code, analyze, vision, RAG, diagrams, test-cases, workflows, "
                 "web scraping (Google Maps, Twitter, LinkedIn, TikTok, YouTube), persistent agent memory, "
@@ -2189,7 +2196,7 @@ def x402_manifest():
         "version": "2.0",
         "name": "AiPayGen",
         "description": (
-            "250 AI tools (v" + APP_VERSION + "), 2400+ skills, web scrapers, agent memory, file storage, "
+            "65+ AI tools (v" + APP_VERSION + "), 2400+ skills, web scrapers, agent memory, file storage, "
             "webhook relay, async jobs, and an API catalog of 4100+ discovered APIs. "
             "No API key required — pay per call in USDC via x402 protocol."
         ),
@@ -2304,7 +2311,7 @@ def smithery_server_card():
         "authentication": {
             "required": False,
             "schemes": ["bearer"],
-            "note": "Optional API key for metered access. $0.25 free trial credits with API key without key."
+            "note": "Optional API key for metered access. $0.10 free trial credits with API key without key."
         },
         "tools": [
             {"name": "research", "description": "Research any topic with web sources and AI synthesis"},
@@ -2494,7 +2501,7 @@ def sdk():
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>AiPayGen SDK & Integration</title>
-<meta name="description" content="AiPayGen SDK examples — Python, JavaScript, curl, and more. Code samples for all 250+ AI tools.">
+<meta name="description" content="AiPayGen SDK examples — Python, JavaScript, curl, and more. Code samples for all 65+ AI tools.">
 <meta property="og:title" content="SDK & Code Examples — AiPayGen">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -3245,6 +3252,10 @@ def sitemap():
         ("/playground", "weekly", "0.8"),
         ("/examples", "weekly", "0.8"),
         ("/integrations", "weekly", "0.85"),
+        ("/compare", "weekly", "0.85"),
+        ("/compare/openrouter", "weekly", "0.8"),
+        ("/compare/openai", "weekly", "0.8"),
+        ("/quick-key", "weekly", "0.8"),
         ("/dashboard", "weekly", "0.6"),
         ("/blog/launch", "monthly", "0.8"),
         ("/blog/5-things-you-can-build", "monthly", "0.8"),
@@ -3291,7 +3302,7 @@ def try_page():
     return resp
 
 
-# Per-IP demo rate limiter (5 per 10 minutes, 500 global/day) with periodic cleanup
+# Per-IP demo rate limiter (10 per 10 minutes, 500 global/day) with periodic cleanup
 _demo_usage = {}
 _demo_last_cleanup = 0
 _demo_global_count = 0
@@ -3322,7 +3333,7 @@ def _check_demo_limit(ip):
     key = f"demo:{ip}"
     entries = _demo_usage.get(key, [])
     entries = [t for t in entries if now - t < 600]
-    if len(entries) >= 5:
+    if len(entries) >= 10:
         return False
     entries.append(now)
     _demo_usage[key] = entries
@@ -3341,7 +3352,7 @@ def try_tool(tool):
     )
     ip = request.headers.get("CF-Connecting-IP", request.remote_addr or "unknown")
     if not _check_demo_limit(ip):
-        return jsonify({"error": "Demo limit reached. Get a free API key with $0.25 credits for unlimited access.", "upgrade": "/get-key", "buy": "/buy-credits"}), 429
+        return jsonify({"error": "Demo limit reached. Get a free API key with $0.10 credits for unlimited access.", "upgrade": "/get-key", "buy": "/buy-credits"}), 429
 
     data = request.get_json() or {}
     # Check cache first to avoid duplicate LLM costs
@@ -3480,7 +3491,7 @@ CHANGELOG = [
         "title": "Monetization + Security Overhaul",
         "changes": [
             "165 MCP tools (was 162) — added buy_credits, check_usage, generate_api_key",
-            "$0.25 free trial credits on first API key",
+            "$0.10 free trial credits on first API key",
             "Premium tools (research, vision, scraping) now require API key",
             "Result previews on free tier with upgrade prompts",
             "100+ error message leaks fixed — generic errors to clients",
@@ -3573,6 +3584,26 @@ def integrations():
 def link_tree():
     """Link-in-bio page for social media profiles."""
     return render_template("links.html")
+
+
+# ── SEO Comparison Pages ─────────────────────────────────────────────────────
+
+@meta_bp.route("/compare", methods=["GET"])
+def compare_all():
+    """AI API pricing comparison — AiPayGen vs OpenAI vs Anthropic vs OpenRouter vs Together AI vs Groq."""
+    return render_template("compare.html")
+
+
+@meta_bp.route("/compare/openrouter", methods=["GET"])
+def compare_openrouter():
+    """AiPayGen vs OpenRouter — detailed feature and pricing comparison."""
+    return render_template("compare_openrouter.html")
+
+
+@meta_bp.route("/compare/openai", methods=["GET"])
+def compare_openai():
+    """AiPayGen vs OpenAI API — detailed feature and pricing comparison."""
+    return render_template("compare_openai.html")
 
 
 # ── Showcase API ─────────────────────────────────────────────────────────────

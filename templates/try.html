@@ -37,9 +37,9 @@
   .sub { color: #888; font-size: 0.88rem; margin-bottom: 24px; }
   .sub a { color: #818cf8; }
 
-  .demo-card { background: #141414; border: 1px solid #2a2a2a; border-radius: 14px; padding: 28px; margin-bottom: 16px; }
+  .demo-card { background: #141414; border: 1px solid #2a2a2a; border-radius: 20px; padding: 28px; margin-bottom: 16px; }
   .tool-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
-  .tool-btn { background: #1e1e1e; border: 1px solid #333; border-radius: 8px; padding: 8px 14px; color: #aaa; font-size: 0.82rem; cursor: pointer; transition: all 0.15s; }
+  .tool-btn { background: #1e1e1e; border: 1px solid #333; border-radius: 980px; padding: 8px 14px; color: #aaa; font-size: 0.82rem; cursor: pointer; transition: all 0.15s; }
   .tool-btn:hover, .tool-btn.active { background: #1a1a3e; border-color: #6366f1; color: #c4b5fd; }
   .tool-desc { font-size: 0.8rem; color: #666; margin-bottom: 14px; min-height: 20px; }
 
@@ -47,11 +47,11 @@
   textarea:focus { border-color: #6366f1; }
   textarea::placeholder { color: #444; }
 
-  .run-btn { margin-top: 14px; background: #059669; color: #fff; border: none; border-radius: 10px; padding: 12px 28px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  .run-btn { margin-top: 14px; background: #059669; color: #fff; border: none; border-radius: 980px; padding: 12px 28px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
   .run-btn:hover { background: #047857; }
   .run-btn:disabled { background: #333; color: #666; cursor: wait; }
 
-  .result-box { margin-top: 16px; background: #0d0d0d; border: 1px solid #222; border-radius: 10px; padding: 16px; font-size: 0.85rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; display: none; max-height: 400px; overflow-y: auto; }
+  .result-box { margin-top: 16px; background: #0d0d0d; border: 1px solid #222; border-radius: 12px; padding: 16px; font-size: 0.85rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; display: none; max-height: 400px; overflow-y: auto; }
   .result-box.show { display: block; }
 
   .cost-hint { margin-top: 10px; font-size: 0.75rem; color: #555; line-height: 1.5; display: none; }
@@ -60,12 +60,12 @@
 
   .curl-wrap { margin-top: 12px; display: none; }
   .curl-wrap.show { display: block; }
-  .curl-box { background: #111; border: 1px solid #2a2a2a; border-radius: 8px; padding: 12px; font-size: 0.75rem; font-family: 'SF Mono', 'Fira Code', monospace; color: #8b8; white-space: pre-wrap; word-break: break-all; max-height: 160px; overflow-y: auto; }
+  .curl-box { background: #111; border: 1px solid #2a2a2a; border-radius: 12px; padding: 12px; font-size: 0.75rem; font-family: 'SF Mono', 'Fira Code', monospace; color: #8b8; white-space: pre-wrap; word-break: break-all; max-height: 160px; overflow-y: auto; }
   .copy-curl-btn { margin-top: 6px; background: #1e1e1e; border: 1px solid #333; border-radius: 6px; padding: 6px 14px; color: #aaa; font-size: 0.75rem; cursor: pointer; transition: all 0.15s; }
   .copy-curl-btn:hover { background: #1a1a3e; border-color: #6366f1; color: #c4b5fd; }
 
   .cta { text-align: center; margin-top: 24px; }
-  .cta a { display: inline-block; background: #6366f1; color: #fff; text-decoration: none; padding: 12px 28px; border-radius: 10px; font-weight: 600; font-size: 0.95rem; }
+  .cta a { display: inline-block; background: #6366f1; color: #fff; text-decoration: none; padding: 12px 28px; border-radius: 980px; font-weight: 600; font-size: 0.95rem; }
   .cta p { color: #555; font-size: 0.78rem; margin-top: 8px; }
 
   .free-note { text-align: center; color: #555; font-size: 0.75rem; margin-top: 12px; }
@@ -77,7 +77,7 @@
   .demo-progress-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease, background 0.4s ease; width: 0%; background: #059669; }
 
   /* Nudge banner */
-  .nudge-banner { display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a1a2e; border: 1px solid #6366f1; border-radius: 12px; padding: 16px 24px; z-index: 90; max-width: 480px; width: calc(100% - 32px); box-shadow: 0 8px 32px rgba(99,102,241,0.3); }
+  .nudge-banner { display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1a1a2e; border: 1px solid #6366f1; border-radius: 20px; padding: 16px 24px; z-index: 90; max-width: 480px; width: calc(100% - 32px); box-shadow: 0 8px 32px rgba(99,102,241,0.3); }
   .nudge-banner a { color: #818cf8; font-weight: 600; text-decoration: none; }
   .nudge-banner a:hover { text-decoration: underline; }
   .nudge-banner.warn { border-color: #3d3d6e; color: #a0a0c0; }
@@ -85,9 +85,9 @@
   .nudge-banner.show { display: block; }
 
   /* Email capture */
-  .email-capture { display: none; background: #141414; border: 1px solid #6366f1; border-radius: 14px; padding: 24px; margin-top: 16px; text-align: center; }
+  .email-capture { display: none; background: #141414; border: 1px solid #6366f1; border-radius: 20px; padding: 24px; margin-top: 16px; text-align: center; }
   .email-capture input { flex: 1; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 10px 14px; color: #e8e8e8; font-size: 0.9rem; outline: none; }
-  .email-capture button { background: #6366f1; color: #fff; border: none; border-radius: 8px; padding: 10px 18px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .email-capture button { background: #6366f1; color: #fff; border: none; border-radius: 980px; padding: 10px 18px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 
   /* Email gate (inline before first demo) */
   .email-gate { display: none; background: #111118; border: 1px solid #2a2a3e; border-radius: 10px; padding: 16px 18px; margin-top: 12px; }
@@ -96,7 +96,7 @@
   .email-gate-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
   .email-gate-form input { flex: 1; min-width: 180px; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 9px 12px; color: #e8e8e8; font-size: 0.85rem; outline: none; }
   .email-gate-form input:focus { border-color: #6366f1; }
-  .email-gate-form button { background: #059669; color: #fff; border: none; border-radius: 8px; padding: 9px 18px; font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+  .email-gate-form button { background: #059669; color: #fff; border: none; border-radius: 980px; padding: 9px 18px; font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
   .email-gate-form button:hover { background: #047857; }
   .email-gate-form button:disabled { background: #333; color: #666; cursor: wait; }
   .email-gate-skip { font-size: 0.72rem; color: #555; margin-top: 8px; text-align: right; }
@@ -107,13 +107,13 @@
   /* Upsell modal */
   .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
   .modal-overlay.show { display: flex; }
-  .modal { background: #141414; border: 1px solid #2a2a2a; border-radius: 16px; padding: 32px; max-width: 480px; width: 100%; position: relative; }
+  .modal { background: #141414; border: 1px solid #2a2a2a; border-radius: 20px; padding: 32px; max-width: 480px; width: 100%; position: relative; }
   .modal-close { position: absolute; top: 12px; right: 16px; background: none; border: none; color: #666; font-size: 1.4rem; cursor: pointer; }
   .modal-close:hover { color: #fff; }
   .modal h2 { font-size: 1.3rem; margin-bottom: 6px; }
   .modal .modal-sub { color: #888; font-size: 0.85rem; margin-bottom: 20px; }
   .modal-plans { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
-  .modal-plan { display: flex; align-items: center; justify-content: space-between; background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 10px; padding: 14px 16px; cursor: pointer; transition: all 0.15s; }
+  .modal-plan { display: flex; align-items: center; justify-content: space-between; background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 20px; padding: 14px 16px; cursor: pointer; transition: all 0.15s; }
   .modal-plan:hover, .modal-plan.selected { border-color: #6366f1; background: #1a1a2e; }
   .modal-plan .mp-left { display: flex; align-items: center; gap: 12px; }
   .modal-plan .mp-amount { font-size: 1.3rem; font-weight: 800; color: #fff; min-width: 40px; }
@@ -121,23 +121,22 @@
   .modal-plan .mp-tag { font-size: 0.7rem; background: #6366f1; color: #fff; padding: 2px 8px; border-radius: 12px; }
   .modal-plan .mp-tag.gold { background: #f59e0b; }
   .modal-plan .mp-tag.green { background: #059669; }
-  .modal-btn { width: 100%; background: #6366f1; color: #fff; border: none; border-radius: 10px; padding: 14px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  .modal-btn { width: 100%; background: #6366f1; color: #fff; border: none; border-radius: 980px; padding: 14px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
   .modal-btn:hover { background: #4f52d0; }
   .modal-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
   .modal-or { text-align: center; color: #555; font-size: 0.78rem; margin-top: 12px; }
   .modal-or a { color: #818cf8; }
   @media (max-width: 500px) { .modal { padding: 24px 18px; } }
 </style>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4228277826827893" crossorigin="anonymous"></script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"AiPayGen Free AI Tools","description":"Try 250+ AI tools for free — summarize, translate, analyze, write, code, and more. No sign-up needed.","url":"https://aipaygen.com/try","applicationCategory":"DeveloperApplication","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"AiPayGen Free AI Tools","description":"Try 65+ AI tools for free — summarize, translate, analyze, write, code, and more. No sign-up needed.","url":"https://aipaygen.com/try","applicationCategory":"DeveloperApplication","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
 </script>
 </head>
 <body>
 <div class="wrap">
   <div style="display:flex;gap:16px;margin-bottom:20px;font-size:0.85rem;align-items:center"><a href="/" style="color:#888;text-decoration:none">Home</a><a href="/try" style="color:#818cf8;text-decoration:none;font-weight:600">Try Free</a><a href="/pricing" style="color:#888;text-decoration:none">Pricing</a><a href="/playground" style="color:#888;text-decoration:none">Playground</a><a href="/status" style="color:#888;text-decoration:none">Status</a></div>
   <h1>Try Any AI Tool Right Now</h1>
-  <p class="sub">No sign-up needed. Just pick a tool, type something, and see the magic. <a href="/discover">Browse all 250+ tools &rarr;</a></p>
+  <p class="sub">No sign-up needed. Just pick a tool, type something, and see the magic. <a href="/discover">Browse all 65+ tools &rarr;</a></p>
 
   <!-- Popular Tools -->
   <div class="demo-card" id="popular-section" style="display:none;margin-bottom:16px">
@@ -148,12 +147,12 @@
     <div class="tool-row" id="popular-row"></div>
   </div>
 
-  <div class="nudge-banner warn" id="nudge-warn">Out of free tries — <a href="/get-key">Get a free API key ($0.25 credits)</a> or watch an ad for 1 more</div>
-  <div class="nudge-banner urgent" id="nudge-urgent">No tries left — <a href="/get-key">Get free API key</a> for ~40 more calls</div>
+  <div class="nudge-banner warn" id="nudge-warn">Out of free tries — <a href="/get-key">Get a free API key with $0.10 trial credits (~16 calls)</a></div>
+  <div class="nudge-banner urgent" id="nudge-urgent">No tries left — <a href="/get-key">Get free API key</a> for ~16 more calls</div>
   <div class="demo-card">
     <div class="demo-progress" id="demo-progress">
-      <div class="demo-progress-label"><span id="demo-progress-text">0 / 3 demo tries used</span><span id="demo-progress-pct">0%</span></div>
-      <div class="demo-progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="3" aria-label="Demo usage"><div class="demo-progress-fill" id="demo-progress-fill"></div></div>
+      <div class="demo-progress-label"><span id="demo-progress-text">0 / 10 demo tries used</span><span id="demo-progress-pct">0%</span></div>
+      <div class="demo-progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="10" aria-label="Demo usage"><div class="demo-progress-fill" id="demo-progress-fill"></div></div>
     </div>
     <div class="tool-row">
       <div class="tool-btn active" data-tool="sentiment" data-placeholder="Type anything — a review, a tweet, a message..." data-desc="Find out if text sounds positive, negative, or neutral">Sentiment</div>
@@ -183,17 +182,8 @@
     </div>
     <p class="tool-desc" id="desc">Find out if text sounds positive, negative, or neutral</p>
     <label for="input" class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0">Tool input</label>
-    <textarea id="input" placeholder="Type anything — a review, a tweet, a message..." aria-label="Enter text for the selected tool"></textarea>
-    <!-- Email gate: shown before first demo if no email captured -->
-    <div class="email-gate" id="email-gate">
-      <p>Enter your email to try free &mdash; we'll also send you an API key with $0.25 credits</p>
-      <div class="email-gate-form">
-        <input type="email" id="gate-email" placeholder="you@example.com" aria-label="Email for free trial" required>
-        <button type="button" id="gate-submit" onclick="submitEmailGate()">&#9654; Try It</button>
-      </div>
-      <div class="email-gate-error" id="gate-error"></div>
-      <div class="email-gate-skip"><a onclick="skipEmailGate()">Skip</a></div>
-    </div>
+    <textarea id="input" placeholder="Type anything — a review, a tweet, a message..." aria-label="Enter text for the selected tool">Artificial intelligence is transforming how we build software. From code generation to automated testing, AI tools are becoming essential for modern developers. The challenge isn't whether to adopt AI, but how to integrate it effectively without sacrificing code quality or security.</textarea>
+    <!-- Email gate removed for better UX -->
     <button class="run-btn" id="run" onclick="runTool()" aria-label="Try this tool">&#9654; Try It</button>
     <div class="result-box" id="result" aria-live="polite" role="status"></div>
     <div class="cost-hint" id="cost-hint">Want unlimited access? <a href="/get-key">Get a free API key</a> or <a href="/buy-credits">buy credits from $0.50</a></div>
@@ -204,7 +194,7 @@
   </div>
 
   <!-- Inline conversion banner (shown after 5 demos) -->
-  <div id="inline-convert" style="display:none;background:#141414;border:1px solid #6366f1;border-radius:14px;padding:24px;margin-top:16px;margin-bottom:16px;">
+  <div id="inline-convert" style="display:none;background:#141414;border:1px solid #6366f1;border-radius:20px;padding:24px;margin-top:16px;margin-bottom:16px;">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
       <span style="font-size:0.95rem;font-weight:600;">You've used <span id="inline-convert-count">5</span> demos</span>
       <span style="font-size:0.75rem;color:#888;">Want more? Open the app or grab a plan from $1</span>
@@ -212,7 +202,7 @@
     <form id="inlineKeyForm" onsubmit="return inlineGenKey(event)" style="display:flex;gap:8px;flex-wrap:wrap;">
       <input type="email" id="inlineEmail" required placeholder="you@example.com" aria-label="Email for API key"
         style="flex:1;min-width:180px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:8px;padding:10px 14px;color:#e8e8e8;font-size:0.9rem;outline:none;">
-      <button type="submit" id="inlineKeyBtn" style="background:#6366f1;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-weight:600;cursor:pointer;white-space:nowrap;">Get Free Key</button>
+      <button type="submit" id="inlineKeyBtn" style="background:#6366f1;color:#fff;border:none;border-radius:980px;padding:10px 20px;font-weight:600;cursor:pointer;white-space:nowrap;">Get Free Key</button>
     </form>
     <div id="inlineKeyResult" style="display:none;margin-top:12px;background:#0d0d0d;border:1px solid #6366f1;border-radius:8px;padding:12px;">
       <div style="font-size:0.7rem;color:#666;margin-bottom:4px;">YOUR API KEY</div>
@@ -220,16 +210,16 @@
         <code id="inlineKeyValue" style="flex:1;font-size:0.85rem;color:#a78bfa;word-break:break-all;"></code>
         <button type="button" onclick="copyInlineKey()" id="inlineKeyCopy" style="background:#6366f1;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:0.72rem;cursor:pointer;">Copy</button>
       </div>
-      <div style="font-size:0.7rem;color:#555;margin-top:6px;">$0.25 free credits loaded. <a href="/get-key" style="color:#818cf8;">Open App</a> | <a href="/playground" style="color:#818cf8;">Playground</a></div>
+      <div style="font-size:0.7rem;color:#555;margin-top:6px;">$0.10 free credits loaded. <a href="/get-key" style="color:#818cf8;">Open App</a> | <a href="/playground" style="color:#818cf8;">Playground</a></div>
     </div>
     <div id="inlineKeyError" style="display:none;margin-top:8px;font-size:0.75rem;color:#ef4444;"></div>
   </div>
 
   <div class="cta">
-    <a href="/get-key" style="font-size:1.1rem;padding:16px 36px;border-radius:12px;">Open the App</a>
-    <p>250+ AI tools &middot; No limits &middot; Start free</p>
+    <a href="/get-key" style="font-size:1.1rem;padding:16px 36px;border-radius:980px;">Open the App</a>
+    <p>65+ AI tools &middot; No limits &middot; Start free</p>
   </div>
-  <p class="free-note">This demo uses the same AI as the full app. Limited to 3 tries per session.</p>
+  <p class="free-note">This demo uses the same AI as the full app. Limited to 10 tries per session.</p>
 </div>
 
 <!-- Upsell modal -->
@@ -237,7 +227,7 @@
   <div class="modal">
     <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
     <h2>You've used your free tries</h2>
-    <p class="modal-sub">Unlock unlimited access to all 250+ AI tools — plans start at just $0.50.</p>
+    <p class="modal-sub">Unlock unlimited access to all 65+ AI tools — plans start at just $0.50.</p>
     <div class="modal-plans">
       <div class="modal-plan" data-amt="0.50" onclick="selectModalPlan(this)">
         <div class="mp-left"><span class="mp-amount">$0.50</span><span class="mp-detail">~80 calls</span></div>
@@ -256,42 +246,17 @@
       </div>
     </div>
     <button class="modal-btn" id="modal-buy" onclick="modalCheckout()">Get Started</button>
-    <button class="modal-btn" id="modal-ad" onclick="watchAdForCall()" style="background:transparent;border:1px solid #6366f1;color:#a78bfa;margin-top:8px;font-size:0.85rem;">Watch Ad for 1 Free Call</button>
-    <p class="modal-or">or <a href="/get-key">get a free API key ($0.25 credits)</a> &middot; <a href="/pricing">see all plans</a></p>
+    <p class="modal-or">or <a href="/get-key">get a free API key with $0.10 trial credits (~16 calls)</a> &middot; <a href="/pricing">see all plans</a></p>
   </div>
 </div>
 <script>
 let currentTool = 'sentiment';
 let demoCount = 0;
-const MAX_DEMOS = 3;
+const MAX_DEMOS = 10;
 let lastCurl = '';
-let emailGatePassed = !!(localStorage.getItem('aipaygen_email') || localStorage.getItem('aipaygen_key') || localStorage.getItem('email_gate_skipped'));
+let emailGatePassed = true;
 let pendingRunAfterGate = false;
 
-async function watchAdForCall() {
-  const btn = document.getElementById('modal-ad');
-  btn.disabled = true; btn.textContent = 'Loading ad...';
-  try {
-    // Trigger AdSense interstitial then claim reward
-    if (window.adsbygoogle) { try { (adsbygoogle = window.adsbygoogle || []).push({}); } catch(e) {} }
-    const res = await fetch('/auth/ad-reward', {method:'POST'});
-    const d = await res.json();
-    if (d.ok) {
-      demoCount = Math.max(0, demoCount - 1);
-      updateNudge();
-      closeModal();
-      btn.textContent = 'Watch Ad for 1 Free Call'; btn.disabled = false;
-      const box = document.getElementById('result');
-      box.textContent = '+1 free call earned! Try a tool now.';
-      box.className = 'result-box show';
-    } else {
-      btn.textContent = d.error || 'No more ad rewards today';
-      setTimeout(() => { btn.textContent = 'Watch Ad for 1 Free Call'; btn.disabled = false; }, 3000);
-    }
-  } catch(e) {
-    btn.textContent = 'Error'; btn.disabled = false;
-  }
-}
 
 // Fetch and render popular tools
 (function loadPopular() {
@@ -382,13 +347,7 @@ async function runTool() {
     showModal();
     return;
   }
-  // Email gate: show before first demo if not passed
-  if (!emailGatePassed && demoCount === 0) {
-    pendingRunAfterGate = true;
-    document.getElementById('email-gate').classList.add('show');
-    document.getElementById('gate-email').focus();
-    return;
-  }
+  // Email gate removed
   const btn = document.getElementById('run');
   btn.disabled = true; btn.textContent = 'Working...';
   box.className = 'result-box'; box.textContent = '';

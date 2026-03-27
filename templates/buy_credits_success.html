@@ -14,36 +14,35 @@
 <meta name="twitter:card" content="summary_large_image">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0a0a0a; color: #e8e8e8; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
-  .card { background: #141414; border: 1px solid #2a2a2a; border-radius: 16px; padding: 40px; max-width: 600px; width: 100%; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; background: #000; color: #e8e8e8; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .card { background: #1c1c1e; border: 1px solid #48484a; border-radius: 20px; padding: 40px; max-width: 600px; width: 100%; }
   .icon { font-size: 3rem; margin-bottom: 16px; text-align: center; }
   h1 { font-size: 1.6rem; margin-bottom: 8px; text-align: center; }
-  .sub { color: #888; margin-bottom: 28px; text-align: center; }
-  .key-box { background: #1e1e1e; border: 2px solid #6366f1; border-radius: 10px; padding: 20px; margin-bottom: 24px; }
-  .key-label { font-size: 0.8rem; color: #888; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .key-val { font-family: monospace; font-size: 1.05rem; color: #a78bfa; word-break: break-all; cursor: pointer; padding: 8px; background: #0a0a0a; border-radius: 6px; }
-  .key-val:hover { color: #c4b5fd; }
+  .sub { color: #86868b; margin-bottom: 28px; text-align: center; }
+  .key-box { background: #000; border: 2px solid #2997ff; border-radius: 12px; padding: 20px; margin-bottom: 24px; }
+  .key-label { font-size: 0.8rem; color: #86868b; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .key-val { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 1.05rem; color: #bf5af2; word-break: break-all; cursor: pointer; padding: 8px; background: #1c1c1e; border-radius: 8px; }
+  .key-val:hover { color: #d4a0ff; }
   .balance { font-size: 1.1rem; margin-bottom: 24px; text-align: center; }
   .balance span { color: #34d399; font-weight: 700; }
-  .copy-btn { display: inline-block; background: #6366f1; color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-top: 8px; }
-  .copy-btn:hover { background: #4f52d0; }
+  .copy-btn { display: inline-block; background: #2997ff; color: #fff; border: none; border-radius: 980px; padding: 8px 16px; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-top: 8px; }
+  .copy-btn:hover { background: #0077ed; }
   .next-steps { margin-top: 28px; }
   .next-steps h2 { font-size: 1.1rem; margin-bottom: 16px; color: #e8e8e8; }
-  .step { background: #1a1a1a; border: 1px solid #222; border-radius: 10px; padding: 16px; margin-bottom: 12px; }
-  .step-num { display: inline-block; background: #6366f1; color: #fff; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 0.8rem; font-weight: 700; margin-right: 8px; }
+  .step { background: rgba(28,28,30,0.72); border: 1px solid #48484a; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+  .step-num { display: inline-block; background: #2997ff; color: #fff; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 0.8rem; font-weight: 700; margin-right: 8px; }
   .step-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; }
-  .step pre { background: #0a0a0a; border-radius: 6px; padding: 12px; font-size: 0.78rem; color: #888; overflow-x: auto; margin-top: 8px; white-space: pre-wrap; word-break: break-all; position: relative; }
-  .step pre .copy-pre { position: absolute; top: 6px; right: 6px; background: #2a2a2a; color: #888; border: none; border-radius: 4px; padding: 3px 8px; font-size: 0.7rem; cursor: pointer; }
+  .step pre { background: #000; border-radius: 12px; padding: 12px; font-size: 0.78rem; color: #86868b; overflow-x: auto; margin-top: 8px; white-space: pre-wrap; word-break: break-all; position: relative; }
+  .step pre .copy-pre { position: absolute; top: 6px; right: 6px; background: #48484a; color: #86868b; border: none; border-radius: 4px; padding: 3px 8px; font-size: 0.7rem; cursor: pointer; }
   .step pre .copy-pre:hover { color: #e8e8e8; }
   .actions { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
-  .btn { display: inline-block; text-decoration: none; border-radius: 10px; padding: 12px 24px; font-weight: 600; text-align: center; flex: 1; min-width: 140px; }
-  .btn-primary { background: #6366f1; color: #fff; }
-  .btn-secondary { background: #1a1a2e; border: 1px solid #3d3d6e; color: #a0a0ff; }
-  .guarantee { margin-top: 20px; padding: 12px; background: #1a1a1a; border-radius: 8px; font-size: 0.78rem; color: #666; text-align: center; }
+  .btn { display: inline-block; text-decoration: none; border-radius: 980px; padding: 12px 24px; font-weight: 600; text-align: center; flex: 1; min-width: 140px; }
+  .btn-primary { background: #2997ff; color: #fff; }
+  .btn-secondary { background: rgba(28,28,30,0.72); border: 1px solid #48484a; color: #bf5af2; }
+  .guarantee { margin-top: 20px; padding: 12px; background: rgba(28,28,30,0.72); border-radius: 12px; font-size: 0.78rem; color: #636366; text-align: center; }
   .guarantee strong { color: #34d399; }
-  #loading { color: #888; margin-bottom: 24px; text-align: center; }
+  #loading { color: #86868b; margin-bottom: 24px; text-align: center; }
 </style>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4228277826827893" crossorigin="anonymous"></script>
 </head>
 <body>
 <div class="card">

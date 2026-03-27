@@ -129,17 +129,17 @@ AWESOME_LIST_TARGETS = [
     (
         "public-apis/public-apis",
         "Machine Learning",
-        "| AiPayGen | Claude-powered AI API — research, write, code, analyze, 250 tools and 140+ endpoints. 1 call/day free. | No | Yes | Yes |",
+        "| AiPayGen | Claude-powered AI API — research, write, code, analyze, 65+ tools and 140+ endpoints. 1 call/day free. | No | Yes | Yes |",
     ),
     (
         "humanloop/awesome-ai-agents",
         "APIs",
-        "- [AiPayGen](https://api.aipaygen.com) - Pay-per-use Claude AI API with 250 tools and 140+ endpoints. Agent messaging, task board, file storage, webhook relay. $0.25 free trial credits.",
+        "- [AiPayGen](https://api.aipaygen.com) - Pay-per-use Claude AI API with 65+ tools and 140+ endpoints. Agent messaging, task board, file storage, webhook relay. $0.10 free trial credits.",
     ),
     (
         "e2b-dev/awesome-ai-agents",
         "Tools",
-        "- [AiPayGen](https://api.aipaygen.com) — Claude-powered pay-per-use API. 250 tools and 140+ endpoints: AI, scraping, real-time data, file storage, webhook relay. Free tier included.",
+        "- [AiPayGen](https://api.aipaygen.com) — Claude-powered pay-per-use API. 65+ tools and 140+ endpoints: AI, scraping, real-time data, file storage, webhook relay. Free tier included.",
     ),
     (
         "punkpeye/awesome-mcp-servers",
@@ -298,12 +298,12 @@ def _try_pr_awesome_list(repo: str, section: str, entry: str) -> dict:
                 "title": "Add AiPayGen — Claude-powered pay-per-use AI API",
                 "body": (
                     "## Add AiPayGen\n\n"
-                    "AiPayGen is a pay-per-use Claude AI API with 250 tools and 140+ endpoints:\n\n"
+                    "AiPayGen is a pay-per-use Claude AI API with 65+ tools and 140+ endpoints:\n\n"
                     "- **AI**: research, write, code, analyze, translate, classify, RAG, vision, diagrams\n"
                     "- **Data**: weather, crypto, stocks, Wikipedia, arXiv, GitHub trending, YouTube transcripts\n"
                     "- **Agent infra**: messaging, task board, file storage, webhook relay, async jobs\n"
                     "- **Scraping**: Google Maps, Twitter, LinkedIn, YouTube, TikTok\n\n"
-                    "**1 call/day free** — no API key needed.\n\n"
+                    "**1 free call/day** — no signup needed.\n\n"
                     "API: https://api.aipaygen.com\n"
                     "OpenAPI spec: https://api.aipaygen.com/openapi.json\n"
                     "MCP tools: https://api.aipaygen.com/sdk"
@@ -386,14 +386,14 @@ def generate_blog_post(slug: str, title: str, endpoint: str, claude_client) -> s
     """Generate a blog post tutorial for an endpoint using Claude."""
     prompt = f"""Write a comprehensive developer tutorial blog post titled "{title}".
 
-This is for AiPayGen (https://api.aipaygen.com) — a pay-per-use Claude AI API with 250 tools and 140+ endpoints.
+This is for AiPayGen (https://api.aipaygen.com) — a pay-per-use Claude AI API with 65+ tools and 140+ endpoints.
 The first call/day is free. After that, users pay with a prepaid API key or USDC on Base.
 
 The post should:
 1. Explain the problem being solved
 2. Show how to use the relevant AiPayGen endpoint(s) with real curl + Python examples
 3. Include example responses
-4. Mention the $0.25 free trial credits and /buy-credits for more
+4. Mention the $0.10 free trial credits and /buy-credits for more
 5. Be 600-900 words, written for developers
 6. End with links to https://api.aipaygen.com/discover and https://api.aipaygen.com/openapi.json
 
@@ -642,7 +642,7 @@ def generate_trending_blog_posts(claude_client) -> dict:
 This is for AiPayGen (https://api.aipaygen.com) — a pay-per-use Claude AI API.
 Connect the topic to how AiPayGen can help developers working in this space.
 Show a concrete curl or Python code example using the most relevant AiPayGen endpoint.
-End with: "Try it free at https://api.aipaygen.com — 1 call/day, no credit card."
+End with: "Try it free at https://api.aipaygen.com — 1 free call/day, no signup needed."
 Return only clean HTML article body (no doctype/head tags)."""
 
             msg = claude_client.messages.create(

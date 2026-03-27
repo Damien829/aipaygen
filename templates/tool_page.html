@@ -47,27 +47,27 @@
   <!-- Header -->
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;margin-bottom:2rem">
     <div>
-      <h1 style="font-family:'IBM Plex Mono',monospace;font-size:2rem;margin-bottom:0.5rem">{{ tool.name }}</h1>
+      <h1 style="font-family:'SF Mono','Fira Code',monospace;font-size:2rem;margin-bottom:0.5rem">{{ tool.name }}</h1>
       <p style="color:var(--text-muted);font-size:1rem;max-width:600px">{{ tool.description }}</p>
     </div>
     <div style="text-align:right">
-      <div style="font-size:2rem;font-weight:700;font-family:'IBM Plex Mono',monospace;color:var(--green,#00ff9d)">{{ tool.price_label }}</div>
+      <div style="font-size:2rem;font-weight:700;font-family:'SF Mono','Fira Code',monospace;color:var(--green,#2997ff)">{{ tool.price_label }}</div>
       <div style="color:var(--text-muted);font-size:0.8rem">per call</div>
     </div>
   </div>
 
   <!-- Info chips -->
   <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:2rem">
-    <span style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:20px;padding:0.4rem 1rem;font-size:0.8rem;color:var(--cyan,#00d4ff)">{{ tool.method }} {{ tool.endpoint }}</span>
-    <span style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:20px;padding:0.4rem 1rem;font-size:0.8rem;color:var(--text-muted)">{{ tool.category }}</span>
+    <span style="background:var(--bg-alt,rgba(28,28,30,0.72));border:1px solid var(--border,#48484a);border-radius:20px;padding:0.4rem 1rem;font-size:0.8rem;color:var(--cyan,#bf5af2)">{{ tool.method }} {{ tool.endpoint }}</span>
+    <span style="background:var(--bg-alt,rgba(28,28,30,0.72));border:1px solid var(--border,#48484a);border-radius:20px;padding:0.4rem 1rem;font-size:0.8rem;color:var(--text-muted)">{{ tool.category }}</span>
     {% if tool.price_usd == 0 %}
-    <span style="background:#003d20;border:1px solid #00ff9d;border-radius:20px;padding:0.4rem 1rem;font-size:0.8rem;color:#00ff9d;font-weight:600">FREE</span>
+    <span style="background:rgba(41,151,255,0.12);border:1px solid #2997ff;border-radius:20px;padding:0.4rem 1rem;font-size:0.8rem;color:#2997ff;font-weight:600">FREE</span>
     {% endif %}
   </div>
 
   <!-- Try It -->
-  <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem;margin-bottom:2rem" id="try-section">
-    <h2 style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem;margin-bottom:1rem">Try It</h2>
+  <div style="background:var(--bg-alt,rgba(28,28,30,0.72));border:1px solid var(--border,#48484a);border-radius:12px;padding:1.5rem;margin-bottom:2rem" id="try-section">
+    <h2 style="font-family:'SF Mono','Fira Code',monospace;font-size:1.2rem;margin-bottom:1rem">Try It</h2>
     {% if tool.demo_available %}
     <div id="demo-form">
       {% for field in tool.input_fields %}
@@ -75,56 +75,56 @@
         <label style="display:block;font-size:0.8rem;color:var(--text-muted);margin-bottom:0.3rem">{{ field.name }}</label>
         {% if field.type == 'textarea' %}
         <textarea id="field-{{ field.key }}" placeholder="{{ field.placeholder }}"
-                  style="width:100%;background:#0d1a2a;border:1px solid #1a2a3a;color:#c8d8e8;padding:0.6rem;border-radius:8px;font-family:inherit;font-size:0.9rem;min-height:80px;resize:vertical">{{ field.default }}</textarea>
+                  style="width:100%;background:#1c1c1e;border:1px solid #48484a;color:#c8d8e8;padding:0.6rem;border-radius:8px;font-family:inherit;font-size:0.9rem;min-height:80px;resize:vertical">{{ field.default }}</textarea>
         {% else %}
         <input type="text" id="field-{{ field.key }}" placeholder="{{ field.placeholder }}" value="{{ field.default }}"
-               style="width:100%;background:#0d1a2a;border:1px solid #1a2a3a;color:#c8d8e8;padding:0.6rem;border-radius:8px;font-family:inherit;font-size:0.9rem">
+               style="width:100%;background:#1c1c1e;border:1px solid #48484a;color:#c8d8e8;padding:0.6rem;border-radius:8px;font-family:inherit;font-size:0.9rem">
         {% endif %}
       </div>
       {% endfor %}
       <button onclick="runDemo()" id="run-btn"
-              style="background:var(--green,#00ff9d);color:#020408;border:none;padding:0.6rem 1.5rem;border-radius:8px;font-weight:600;cursor:pointer;font-size:0.9rem;margin-top:0.5rem">
+              style="background:var(--green,#2997ff);color:#fff;border:none;padding:0.6rem 1.5rem;border-radius:8px;font-weight:600;cursor:pointer;font-size:0.9rem;margin-top:0.5rem">
         Run
       </button>
-      <div id="demo-result" style="margin-top:1rem;background:#070e18;border:1px solid #1a2a3a;border-radius:8px;padding:1rem;font-size:0.85rem;font-family:'IBM Plex Mono',monospace;white-space:pre-wrap;word-break:break-word;display:none;max-height:400px;overflow-y:auto"></div>
+      <div id="demo-result" style="margin-top:1rem;background:#1c1c1e;border:1px solid #48484a;border-radius:8px;padding:1rem;font-size:0.85rem;font-family:'SF Mono','Fira Code',monospace;white-space:pre-wrap;word-break:break-word;display:none;max-height:400px;overflow-y:auto"></div>
     </div>
     {% else %}
-    <p style="color:var(--text-muted);font-size:0.9rem">This tool requires an API key. <a href="/buy-credits" style="color:var(--green,#00ff9d)">Get one from $1</a> to try it.</p>
+    <p style="color:var(--text-muted);font-size:0.9rem">This tool requires an API key. <a href="/buy-credits" style="color:var(--green,#2997ff)">Get one from $1</a> to try it.</p>
     {% endif %}
   </div>
 
   <!-- curl Example -->
-  <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
+  <div style="background:var(--bg-alt,rgba(28,28,30,0.72));border:1px solid var(--border,#48484a);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-      <h2 style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem">curl Example</h2>
-      <button onclick="copyCode('curl-code')" style="background:transparent;border:1px solid var(--border,#1a2a3a);color:var(--text-muted);padding:0.3rem 0.8rem;border-radius:6px;font-size:0.75rem;cursor:pointer">Copy</button>
+      <h2 style="font-family:'SF Mono','Fira Code',monospace;font-size:1.2rem">curl Example</h2>
+      <button onclick="copyCode('curl-code')" style="background:transparent;border:1px solid var(--border,#48484a);color:var(--text-muted);padding:0.3rem 0.8rem;border-radius:6px;font-size:0.75rem;cursor:pointer">Copy</button>
     </div>
-    <pre style="background:#070e18;border-radius:8px;padding:1rem;overflow-x:auto;margin:0"><code id="curl-code" class="language-bash">{{ tool.curl_example }}</code></pre>
+    <pre style="background:#1c1c1e;border-radius:8px;padding:1rem;overflow-x:auto;margin:0"><code id="curl-code" class="language-bash">{{ tool.curl_example }}</code></pre>
   </div>
 
   <!-- Python Example -->
-  <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
+  <div style="background:var(--bg-alt,rgba(28,28,30,0.72));border:1px solid var(--border,#48484a);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-      <h2 style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem">Python Example</h2>
-      <button onclick="copyCode('python-code')" style="background:transparent;border:1px solid var(--border,#1a2a3a);color:var(--text-muted);padding:0.3rem 0.8rem;border-radius:6px;font-size:0.75rem;cursor:pointer">Copy</button>
+      <h2 style="font-family:'SF Mono','Fira Code',monospace;font-size:1.2rem">Python Example</h2>
+      <button onclick="copyCode('python-code')" style="background:transparent;border:1px solid var(--border,#48484a);color:var(--text-muted);padding:0.3rem 0.8rem;border-radius:6px;font-size:0.75rem;cursor:pointer">Copy</button>
     </div>
-    <pre style="background:#070e18;border-radius:8px;padding:1rem;overflow-x:auto;margin:0"><code id="python-code" class="language-python">{{ tool.python_example }}</code></pre>
+    <pre style="background:#1c1c1e;border-radius:8px;padding:1rem;overflow-x:auto;margin:0"><code id="python-code" class="language-python">{{ tool.python_example }}</code></pre>
   </div>
 
   <!-- Response Format -->
-  <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
-    <h2 style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem;margin-bottom:1rem">Response Format</h2>
-    <pre style="background:#070e18;border-radius:8px;padding:1rem;overflow-x:auto;margin:0"><code class="language-json">{{ tool.response_example }}</code></pre>
+  <div style="background:var(--bg-alt,rgba(28,28,30,0.72));border:1px solid var(--border,#48484a);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
+    <h2 style="font-family:'SF Mono','Fira Code',monospace;font-size:1.2rem;margin-bottom:1rem">Response Format</h2>
+    <pre style="background:#1c1c1e;border-radius:8px;padding:1rem;overflow-x:auto;margin:0"><code class="language-json">{{ tool.response_example }}</code></pre>
   </div>
 
   <!-- Related Tools -->
   {% if tool.related %}
-  <div style="background:var(--bg-alt,#0a1628);border:1px solid var(--border,#1a2a3a);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
-    <h2 style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem;margin-bottom:1rem">Related Tools</h2>
+  <div style="background:var(--bg-alt,rgba(28,28,30,0.72));border:1px solid var(--border,#48484a);border-radius:12px;padding:1.5rem;margin-bottom:2rem">
+    <h2 style="font-family:'SF Mono','Fira Code',monospace;font-size:1.2rem;margin-bottom:1rem">Related Tools</h2>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem">
       {% for rel in tool.related %}
-      <a href="/tools/{{ rel.slug }}" style="display:block;background:#070e18;border:1px solid #1a2a3a;border-radius:8px;padding:1rem;text-decoration:none;transition:border-color 0.2s">
-        <div style="font-family:'IBM Plex Mono',monospace;color:var(--cyan,#00d4ff);font-size:0.95rem;margin-bottom:0.3rem">{{ rel.name }}</div>
+      <a href="/tools/{{ rel.slug }}" style="display:block;background:#1c1c1e;border:1px solid #48484a;border-radius:8px;padding:1rem;text-decoration:none;transition:border-color 0.2s">
+        <div style="font-family:'SF Mono','Fira Code',monospace;color:var(--cyan,#bf5af2);font-size:0.95rem;margin-bottom:0.3rem">{{ rel.name }}</div>
         <div style="color:var(--text-muted);font-size:0.8rem">{{ rel.price_label }}</div>
       </a>
       {% endfor %}
@@ -133,11 +133,11 @@
   {% endif %}
 
   <!-- CTA -->
-  <div style="background:linear-gradient(135deg,#0a1628 0%,#0d2040 100%);border:1px solid var(--green,#00ff9d);border-radius:12px;padding:2rem;text-align:center;margin-bottom:2rem">
-    <h2 style="font-family:'IBM Plex Mono',monospace;font-size:1.5rem;margin-bottom:0.5rem">Get API Key &mdash; From $1</h2>
-    <p style="color:var(--text-muted);margin-bottom:1.5rem">$0.25 trial credits free. ~40 AI calls. No subscription.</p>
-    <a href="/buy-credits" style="display:inline-block;background:var(--green,#00ff9d);color:#020408;padding:0.75rem 2rem;border-radius:8px;font-weight:700;text-decoration:none;font-size:1rem">Get Started</a>
-    <p style="color:var(--text-muted);font-size:0.8rem;margin-top:1rem">Or install via MCP: <code style="background:#070e18;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem">pip install aipaygen-mcp</code></p>
+  <div style="background:linear-gradient(135deg,rgba(28,28,30,0.72) 0%,rgba(28,28,30,0.72) 100%);border:1px solid var(--green,#2997ff);border-radius:12px;padding:2rem;text-align:center;margin-bottom:2rem">
+    <h2 style="font-family:'SF Mono','Fira Code',monospace;font-size:1.5rem;margin-bottom:0.5rem">Get API Key &mdash; From $1</h2>
+    <p style="color:var(--text-muted);margin-bottom:1.5rem">$0.10 trial credits free. ~16 AI calls. No subscription.</p>
+    <a href="/buy-credits" style="display:inline-block;background:var(--green,#2997ff);color:#fff;padding:0.75rem 2rem;border-radius:8px;font-weight:700;text-decoration:none;font-size:1rem">Get Started</a>
+    <p style="color:var(--text-muted);font-size:0.8rem;margin-top:1rem">Or install via MCP: <code style="background:#1c1c1e;padding:0.2rem 0.5rem;border-radius:4px;font-size:0.75rem">pip install aipaygen-mcp</code></p>
   </div>
 
 </section>

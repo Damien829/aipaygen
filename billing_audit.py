@@ -64,8 +64,10 @@ def log_audit(event_type: str, api_key: str = "", amount_usd: float = 0.0,
                 (event_type, _mask_key(api_key), amount_usd, balance_after,
                  endpoint, _hash_ip(ip), metadata, now),
             )
-    except Exception:
-        pass
+    except Exception as e:
+        import logging
+        logging.getLogger("billing_audit").error("AUDIT WRITE FAILED [%s] key=%s amt=%.4f: %s",
+                                                  event_type, _mask_key(api_key), amount_usd, e)
 
 
 def get_audit_log(api_key_masked: str = "", event_type: str = "",

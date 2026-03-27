@@ -13,25 +13,23 @@
 <meta property="og:site_name" content="AiPayGen">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="/static/icon.png" type="image/png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #020408;
-    --bg2: #070d14;
-    --green: #00ff9d;
+    --bg: #000;
+    --bg2: #1c1c1e;
+    --green: #2997ff;
     --blue: #0088ff;
-    --cyan: #00d4ff;
+    --cyan: #bf5af2;
     --text: #c8d8e8;
-    --muted: #4a6070;
-    --border: #0d2030;
+    --muted: #86868b;
+    --border: rgba(28,28,30,0.72);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'SF Mono', 'Fira Code', monospace;
     overflow-x: hidden;
     padding-top: 70px;
   }
@@ -61,7 +59,7 @@
   }
   h1 .accent { color: var(--green); }
   .subtitle {
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     font-size: 1rem;
     color: var(--muted);
     margin-bottom: 48px;
@@ -84,7 +82,7 @@
     margin-bottom: 32px;
   }
   .contact-card p {
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     font-size: 0.9rem;
     color: var(--text);
     line-height: 1.7;
@@ -110,7 +108,7 @@
     border: 1px solid var(--border);
     padding: 12px 14px;
     color: var(--text);
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'SF Mono', 'Fira Code', monospace;
     font-size: 0.88rem;
     transition: border-color 0.2s;
   }
@@ -132,10 +130,10 @@
     display: inline-block;
     padding: 12px 32px;
     background: var(--green);
-    color: #000;
+    color: #fff;
     font-weight: 700;
     font-size: 0.88rem;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'SF Mono', 'Fira Code', monospace;
     border: none;
     cursor: pointer;
     letter-spacing: 0.03em;
@@ -144,7 +142,7 @@
   .submit-btn:hover {
     background: #fff;
     transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(0,255,157,0.3);
+    box-shadow: 0 8px 30px rgba(41,151,255,0.3);
   }
   .submit-btn:disabled {
     opacity: 0.5;
@@ -155,8 +153,8 @@
   .form-success {
     display: none;
     padding: 20px;
-    background: rgba(0,255,157,0.06);
-    border: 1px solid rgba(0,255,157,0.2);
+    background: rgba(41,151,255,0.06);
+    border: 1px solid rgba(41,151,255,0.2);
     text-align: center;
   }
   .form-success h3 {
@@ -165,7 +163,7 @@
     margin-bottom: 8px;
   }
   .form-success p {
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     font-size: 0.88rem;
     color: var(--text);
     font-weight: 300;
@@ -195,7 +193,7 @@
     background: none;
     border: none;
     padding: 18px 24px;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'SF Mono', 'Fira Code', monospace;
     font-size: 0.88rem;
     font-weight: 600;
     color: #fff;
@@ -215,7 +213,7 @@
   .faq-a {
     display: none;
     padding: 0 24px 18px;
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     font-size: 0.88rem;
     color: var(--muted);
     line-height: 1.7;
@@ -233,7 +231,7 @@
     margin-top: 32px;
   }
   .bug-card p {
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     font-size: 0.88rem;
     color: var(--text);
     line-height: 1.7;
@@ -250,7 +248,7 @@
   .links-row a {
     display: inline-block;
     padding: 10px 22px;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'SF Mono', 'Fira Code', monospace;
     font-size: 0.82rem;
     font-weight: 600;
     text-decoration: none;
@@ -259,7 +257,7 @@
     transition: all 0.2s;
   }
   .links-row a:hover {
-    background: rgba(0,255,157,0.08);
+    background: rgba(41,151,255,0.08);
     transform: translateY(-2px);
   }
 
@@ -268,7 +266,6 @@
     .form-row { grid-template-columns: 1fr; }
   }
 </style>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4228277826827893" crossorigin="anonymous"></script>
 </head>
 <body>
 <div class="noise"></div>
@@ -319,7 +316,7 @@
 <div class="faq-item">
   <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">How do I get started?</button>
   <div class="faq-a">
-    The easiest way is to open <a href="/try">the app</a> and start using tools right away. You can also <a href="/try">try tools on the website</a> or visit <a href="/get-key">get a key</a> to create a free account with $0.25 in credits — no credit card needed.
+    The easiest way is to open <a href="/try">the app</a> and start using tools right away. You can also <a href="/try">try tools on the website</a> or visit <a href="/get-key">get a key</a> to create a free account with $0.10 in credits — no credit card needed.
   </div>
 </div>
 
@@ -340,7 +337,7 @@
 <div class="faq-item">
   <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What AI tools are available?</button>
   <div class="faq-a">
-    Over 250 tools including: text summarization, translation, writing, code generation, research, image analysis, web scraping, and much more. Browse the full list at <a href="/discover">the tool catalog</a>.
+    Over 65+ tools including: text summarization, translation, writing, code generation, research, image analysis, web scraping, and much more. Browse the full list at <a href="/discover">the tool catalog</a>.
   </div>
 </div>
 
@@ -354,7 +351,7 @@
 <div class="faq-item">
   <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">How do I get an API key?</button>
   <div class="faq-a">
-    Visit the <a href="/get-key">Get Key</a> page to generate a free API key instantly. No credit card required — you get $0.25 in free credits to start.
+    Visit the <a href="/get-key">Get Key</a> page to generate a free API key instantly. No credit card required — you get $0.10 in free credits to start.
   </div>
 </div>
 
@@ -369,7 +366,7 @@
 <h2>Report a Problem</h2>
 <div class="bug-card">
   <p>Something not working right? We want to know! Use the contact form above or email <a href="mailto:support@aipaygen.com" style="color:var(--cyan)">support@aipaygen.com</a> and include:</p>
-  <ul style="margin:12px 0 0 20px;font-family:'IBM Plex Sans',sans-serif;font-size:0.88rem;color:var(--text);line-height:2">
+  <ul style="margin:12px 0 0 20px;font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;font-size:0.88rem;color:var(--text);line-height:2">
     <li>Which tool you were using</li>
     <li>What you expected to happen</li>
     <li>What actually happened (screenshots help!)</li>

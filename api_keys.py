@@ -205,7 +205,7 @@ def validate_key(key: str) -> dict | None:
 
     with _conn() as c:
         row = c.execute(
-            "SELECT key, balance_usd, is_active, daily_spend_limit, allowed_tools FROM api_keys WHERE key = ? AND is_active = 1",
+            "SELECT key, balance_usd, is_active, daily_spend_limit, allowed_tools, subscription_tier, monthly_calls_remaining FROM api_keys WHERE key = ? AND is_active = 1",
             (key,),
         ).fetchone()
     result = dict(row) if row else None

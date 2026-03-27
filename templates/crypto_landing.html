@@ -14,31 +14,30 @@
 <meta name="twitter:card" content="summary_large_image">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #0a0a0a; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; }
+  body { background: #000; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; line-height: 1.6; }
   .container { max-width: 720px; margin: 0 auto; padding: 2rem 1rem; }
   h1 { color: #fff; margin-bottom: 0.5rem; }
   h2 { color: #ccc; margin: 1.5rem 0 0.5rem; font-size: 1.2rem; }
-  .subtitle { color: #888; margin-bottom: 2rem; }
-  .wallet-box { background: #151515; border: 1px solid #333; border-radius: 8px; padding: 1rem; margin: 1rem 0; display: flex; align-items: center; gap: 0.5rem; }
-  .wallet-addr { font-family: monospace; font-size: 0.85rem; word-break: break-all; flex: 1; color: #4fc3f7; }
-  .copy-btn { background: #333; color: #fff; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-size: 0.85rem; }
-  .copy-btn:hover { background: #555; }
-  .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.8rem; font-weight: 600; margin-right: 0.5rem; }
+  .subtitle { color: #86868b; margin-bottom: 2rem; }
+  .wallet-box { background: #1c1c1e; border: 1px solid #48484a; border-radius: 12px; padding: 1rem; margin: 1rem 0; display: flex; align-items: center; gap: 0.5rem; }
+  .wallet-addr { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.85rem; word-break: break-all; flex: 1; color: #2997ff; }
+  .copy-btn { background: #48484a; color: #fff; border: none; padding: 0.4rem 0.8rem; border-radius: 980px; cursor: pointer; font-size: 0.85rem; }
+  .copy-btn:hover { background: #636366; }
+  .badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 980px; font-size: 0.8rem; font-weight: 600; margin-right: 0.5rem; }
   .badge-base { background: #1652f0; color: #fff; }
   .badge-solana { background: #9945ff; color: #fff; }
   .qr-wrap { text-align: center; margin: 1.5rem 0; }
-  .qr-wrap img { border-radius: 8px; border: 4px solid #fff; }
+  .qr-wrap img { border-radius: 12px; border: 4px solid #fff; }
   .steps { list-style: none; counter-reset: step; }
   .steps li { counter-increment: step; margin: 0.75rem 0; padding-left: 2rem; position: relative; }
-  .steps li::before { content: counter(step); position: absolute; left: 0; background: #333; color: #4fc3f7; width: 1.5rem; height: 1.5rem; border-radius: 50%; text-align: center; line-height: 1.5rem; font-size: 0.8rem; }
-  pre { background: #151515; border: 1px solid #333; border-radius: 6px; padding: 1rem; overflow-x: auto; font-size: 0.8rem; margin: 0.5rem 0; }
-  code { color: #4fc3f7; }
-  .contract { font-family: monospace; font-size: 0.8rem; color: #aaa; word-break: break-all; }
-  nav { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #222; }
-  nav a { color: #4fc3f7; text-decoration: none; margin-right: 1.5rem; }
+  .steps li::before { content: counter(step); position: absolute; left: 0; background: #48484a; color: #2997ff; width: 1.5rem; height: 1.5rem; border-radius: 50%; text-align: center; line-height: 1.5rem; font-size: 0.8rem; }
+  pre { background: #1c1c1e; border: 1px solid #48484a; border-radius: 12px; padding: 1rem; overflow-x: auto; font-size: 0.8rem; margin: 0.5rem 0; }
+  code { color: #2997ff; }
+  .contract { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.8rem; color: #aaa; word-break: break-all; }
+  nav { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #48484a; }
+  nav a { color: #2997ff; text-decoration: none; margin-right: 1.5rem; }
   nav a:hover { text-decoration: underline; }
 </style>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4228277826827893" crossorigin="anonymous"></script>
 </head>
 <body>
 <div class="container">

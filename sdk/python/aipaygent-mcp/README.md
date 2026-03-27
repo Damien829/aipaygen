@@ -1,8 +1,8 @@
 # AiPayGen MCP Server
 
-**250 AI tools for Claude, Cursor, Windsurf, and any MCP-compatible agent.**
+**65+ AI tools for Claude Code, Cursor, Cline, and any MCP-compatible client.**
 
-One install gives your AI agent access to research, writing, code generation, web scraping, an agent-to-agent network, 500+ API catalog, persistent memory, and more.
+One install gives your AI agent access to research, writing, code generation, web scraping (Google Maps, Twitter, YouTube, Instagram, TikTok), agent memory, workflows, and more. Pay per call from $0.006. Free trial credits included.
 
 ## Quick Start
 
@@ -86,7 +86,7 @@ Add to your MCP config:
 | **Scraping** | $0.01 | Google Maps, Twitter, Instagram, YouTube |
 | **AI Heavy** | $0.02 | workflow, pipeline, batch, chain |
 
-**Free tier**: 1 call/day, no key needed.
+**Free tier**: 3 calls/day, no signup needed.
 **API key**: Unlimited access. Get one at [api.aipaygen.com/buy-credits](https://api.aipaygen.com/buy-credits).
 
 ```bash

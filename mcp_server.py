@@ -1,8 +1,8 @@
 """
-AiPayGen MCP Server — 250 tools (metered + free)
+AiPayGen MCP Server — 65+ tools (metered + free)
 
 Exposes all AiPayGen capabilities as MCP tools with usage metering.
-Get a free API key with $0.25 trial credits (~40 calls). Unlimited with prepaid credits.
+Get a free API key with $0.10 trial credits (~16 calls). Unlimited with prepaid credits.
 
 Usage:
   stdio (Claude Code / Cursor / Cline):

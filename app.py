@@ -1098,6 +1098,34 @@ routes: dict[str, RouteConfig] = {
     ),
 }
 
+# Merge data/utility endpoint pricing from route_pricing.py
+try:
+    from route_pricing import build_routes as _build_pricing_routes
+    _extra = _build_pricing_routes(WALLET_ADDRESS, EVM_NETWORK)
+    for k, v in _extra.items():
+        if k not in routes:
+            routes[k] = v
+except Exception as _e:
+    logging.getLogger(__name__).warning("Failed to load route_pricing: %s", _e)
+
+# Add data endpoints not covered by route_pricing (default $0.001/call)
+_data_default = RouteConfig(
+    accepts=[PaymentOption(scheme="exact", pay_to=WALLET_ADDRESS, price="$0.001", network=EVM_NETWORK)],
+    mime_type="application/json",
+    description="Data utility endpoint ($0.001)",
+)
+for _dp in [
+    "GET /data/weather", "GET /data/crypto", "GET /data/exchange-rates",
+    "GET /data/country", "GET /data/ip", "GET /data/news", "GET /data/stocks",
+    "GET /data/joke", "GET /data/quote", "GET /data/timezone", "GET /data/holidays",
+    "GET /data/wikipedia", "GET /data/arxiv", "GET /data/github/trending",
+    "GET /data/reddit", "GET /data/youtube/transcript", "GET /data/qr",
+    "GET /data/dns", "GET /data/validate/email", "GET /data/validate/url",
+    "GET /data/random/name", "GET /data/color", "GET /data/screenshot",
+]:
+    if _dp not in routes:
+        routes[_dp] = _data_default
+
 _raw_flask_wsgi = app.wsgi_app  # save original Flask WSGI before x402 wraps it
 _x402_middleware = payment_middleware(app, routes=routes, server=server)
 
@@ -1218,7 +1246,7 @@ def _api_key_wsgi(environ, start_response):
                 "error": "free_tier_blocked",
                 "message": "Unusual activity detected from this client. Get an API key to continue.",
                 "upgrade": {
-                    "free_key": "POST https://aipaygen.com/auth/generate-key (includes $0.25 trial credits)",
+                    "free_key": "POST https://aipaygen.com/auth/generate-key (includes $0.10 trial credits)",
                     "buy_credits": "https://aipaygen.com/buy-credits",
                 },
             }).encode()
@@ -1241,7 +1269,7 @@ def _api_key_wsgi(environ, start_response):
         if any(_path.startswith(p) for p in _PRO_ONLY_PREFIXES):
             body = json.dumps({
                 "error": "pro_tool",
-                "message": f"'{_path}' is a Pro tool. Get an API key with $0.25 free credits to unlock all tools.",
+                "message": f"'{_path}' is a Pro tool. Get an API key with $0.10 free credits to unlock all tools.",
                 "unlock": {
                     "step_1": "Get free key: POST https://api.aipaygen.com/auth/generate-key",
                     "step_2": "Add to requests: Authorization: Bearer apk_YOUR_KEY",
@@ -1263,7 +1291,7 @@ def _api_key_wsgi(environ, start_response):
             def _free_tier_start_response(status, headers, exc_info=None):
                 headers = list(headers) + [
                     ("X-Free-Calls-Remaining", str(remaining)),
-                    ("X-Upgrade-Hint", "Get a free API key with $0.25 trial credits (~40 calls): POST https://api.aipaygen.com/auth/generate-key"),
+                    ("X-Upgrade-Hint", "Get a free API key with $0.10 trial credits (~16 calls): POST https://api.aipaygen.com/auth/generate-key"),
                     ("X-Get-Key", "https://aipaygen.com/quick-key"),
                 ]
                 return start_response(status, headers, exc_info)
@@ -1272,15 +1300,14 @@ def _api_key_wsgi(environ, start_response):
         else:
             funnel_log_event("free_tier_exhausted", endpoint=environ.get("PATH_INFO", ""), ip=_ip, user_agent=environ.get("HTTP_USER_AGENT", ""))
             _track_402(_ip)
-            # Return 402 — no credits, must watch ad, get key, or pay
+            # Return 402 — no credits, must get key or pay
             body = json.dumps({
                 "error": "payment_required",
-                "message": "Free tier exhausted for today. Get an API key with $0.25 free credits (one click, no card needed).",
+                "message": "Free tier exhausted for today (1 call/day). Get a free API key with $0.10 trial credits (~16 calls).",
                 "options": {
-                    "1_free_key": {"description": "Get a free API key with $0.25 trial credits (~40 calls) — one click, no card", "url": "https://aipaygen.com/quick-key"},
-                    "2_watch_ad": {"description": "Watch a short ad to earn 1 free API call", "endpoint": "POST /auth/ad-reward"},
-                    "3_buy_credits": {"description": "Buy credits from $1 (Stripe)", "url": "https://aipaygen.com/buy-credits"},
-                    "4_x402_crypto": {"description": "Pay per call with USDC via x402 — no account needed", "docs": "https://aipaygen.com/docs#x402"},
+                    "1_free_key": {"description": "Get a free API key with $0.10 trial credits (~16 calls) — one click, no card", "url": "https://aipaygen.com/quick-key"},
+                    "2_buy_credits": {"description": "Buy credits from $1 (Stripe)", "url": "https://aipaygen.com/buy-credits"},
+                    "3_x402_crypto": {"description": "Pay per call with USDC via x402 — no account needed", "docs": "https://aipaygen.com/docs#x402"},
                 },
                 "quick_start": "curl -X POST https://api.aipaygen.com/auth/generate-key -d '{}'",
             }).encode()
@@ -1525,12 +1552,12 @@ def _api_key_wsgi(environ, start_response):
             price = route_cfg.accepts[0].price if route_cfg else "varies"
             enrichment = json.dumps({
                 "error": "payment_required",
-                "message": f"Payment required. Watch an ad for 1 free call, or get an API key with $0.25 free credits.",
+                "message": f"Payment required. Get a free API key with $0.10 trial credits (~16 calls) at /get-key.",
                 "endpoint": path,
                 "price": price,
                 "unlock": {
                     "1_get_free_key": {
-                        "description": "Get a free API key with $0.25 trial credits (~40 calls). No payment needed.",
+                        "description": "Get a free API key with $0.10 trial credits (~16 calls). No payment needed.",
                         "one_click": "https://api.aipaygen.com/quick-key",
                         "command": "curl -s -X POST https://api.aipaygen.com/auth/generate-key -H 'Content-Type: application/json' -d '{\"label\": \"my-key\"}' | grep -o 'apk_[^\"]*'",
                         "mcp": "If using MCP: call the generate_api_key tool, then set AIPAYGEN_API_KEY env var.",
@@ -1877,7 +1904,7 @@ def set_cache_headers(response):
     elif path in _CACHE_NO_CACHE:
         response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
     elif path.startswith("/static/"):
-        response.headers["Cache-Control"] = "public, max-age=604800"
+        response.headers["Cache-Control"] = "public, max-age=3600"
     return response
 
 
@@ -1916,13 +1943,8 @@ def add_cors(response):
         elapsed_ms = int((_time.time() - start) * 1000)
         response.headers["X-Response-Time"] = f"{elapsed_ms}ms"
 
-    # ── CORS ──────────────────────────────────────────────────────────────────
-    origin = request.headers.get("Origin", "")
-    if origin:
-        response.headers["Access-Control-Allow-Origin"] = origin
-        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization, X-API-Key"
-        response.headers["Access-Control-Max-Age"] = "86400"
+    # ── CORS (Max-Age for preflight caching) ────────────────────────────────
+    response.headers["Access-Control-Max-Age"] = "86400"
 
     # ── API Version + Powered-By ───────────────────────────────────────────────
     response.headers["X-API-Version"] = APP_VERSION
@@ -1963,8 +1985,9 @@ def add_cors(response):
                 amount = float(price_str.lstrip("$"))
                 code = _issue_refund_credit(amount, request.path, req_id)
                 response.headers["X-Refund-Credit"] = code
-            except Exception:
-                pass
+            except Exception as _rc_err:
+                logging.getLogger(__name__).error("REFUND CREDIT FAILED for 500 on %s (amount=$%.4f): %s",
+                                                   request.path, amount if 'amount' in dir() else 0, _rc_err)
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-XSS-Protection"] = "1; mode=block"
@@ -2012,7 +2035,7 @@ def inject_free_tier_upsell(response):
         }
         if remaining_int <= 5:
             data["_free_tier"]["upgrade"] = {
-                "message": f"Only {remaining_int} free calls left today. Get a free API key with $0.25 trial credits (~40 calls).",
+                "message": f"Only {remaining_int} free calls left today. Get a free API key with $0.10 trial credits (~16 calls).",
                 "get_key": "POST https://api.aipaygen.com/auth/generate-key",
                 "quick_buy_url": "https://aipaygen.com/buy-credits?amount=5&quick=1",
                 "buy_credits": "https://aipaygen.com/buy-credits",
@@ -2074,7 +2097,7 @@ def enrich_402_response(response):
             "description": endpoint_desc,
             "unlock": {
                 "1_get_free_key": {
-                    "description": "Generate a free API key with $0.25 trial credits (~40 calls). No payment needed.",
+                    "description": "Generate a free API key with $0.10 trial credits (~16 calls). No payment needed.",
                     "command": "curl -X POST https://api.aipaygen.com/auth/generate-key -H 'Content-Type: application/json' -d '{\"label\": \"my-key\"}'",
                 },
                 "2_use_key": {
@@ -2089,7 +2112,7 @@ def enrich_402_response(response):
             "quick_buy_url": "https://aipaygen.com/buy-credits?amount=5&quick=1",
             "also_accepted": {
                 "x402_usdc": {"description": "Pay per call with USDC. No signup.", "docs": "https://x402.org"},
-                "mcp": {"description": "Install MCP package for $0.25 free trial credits with API key.", "install": "pip install aipaygen-mcp"},
+                "mcp": {"description": "Install MCP package for $0.10 free trial credits with API key.", "install": "pip install aipaygen-mcp"},
             },
             "quick_buy_url": "https://aipaygen.com/buy-credits?amount=5&quick=1",
             "try_free": f"https://aipaygen.com/try?tool={request.path.strip('/')}",

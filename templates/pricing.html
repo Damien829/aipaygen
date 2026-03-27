@@ -1,118 +1,127 @@
 {% extends "base.html" %}
 
 {% block title %}Pricing{% endblock %}
-{% block description %}Start free, upgrade when you need more. 250+ AI tools, 27 models. Free tier: 1 AI call per day, no account needed. Plans from $4.99/mo. Credit packs from $0.50.{% endblock %}
+{% block description %}Start free, upgrade when you need more. 65+ AI tools, 15 models. Free tier: 1 free call/day, no account needed. Plans from $4.99/mo. Credit packs from $0.50.{% endblock %}
 {% block canonical %}/pricing{% endblock %}
 
 {% block head %}
 <meta property="og:type" content="website">
 <meta property="og:title" content="Pricing — AiPayGen">
-<meta property="og:description" content="Start free with 1 AI call per day. No account needed. 250+ tools, 27 AI models. Plans from $4.99/mo. Credit packs from $0.50.">
+<meta property="og:description" content="Start free with 1 free call/day. No account needed. 65+ tools, 15 AI models. Plans from $4.99/mo. Credit packs from $0.50.">
 <meta property="og:url" content="https://aipaygen.com/pricing">
 <meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Pricing — AiPayGen">
-<meta name="twitter:description" content="Start free, upgrade when you need more. 250+ AI tools. 27 models. Plans from $4.99/mo.">
+<meta name="twitter:description" content="Start free, upgrade when you need more. 65+ AI tools. 15 models. Plans from $4.99/mo.">
 <style>
   /* Pricing Hero */
   .pricing-hero {
     text-align: center;
-    padding: 80px 24px 40px;
+    padding: 100px 24px 48px;
     max-width: 800px;
     margin: 0 auto;
   }
   .pricing-hero h1 {
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
     font-size: clamp(2rem, 5vw, 3.2rem);
     font-weight: 700;
-    color: #fff;
+    color: var(--text, #f5f5f7);
     margin-bottom: 16px;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
   }
-  .pricing-hero h1 .accent { color: var(--accent, #00ff9d); }
+  .pricing-hero h1 .accent { color: var(--accent, #2997ff); }
   .pricing-hero p {
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
     font-size: 1.1rem;
-    color: var(--muted, #4a6070);
+    color: var(--text-secondary, #86868b);
     line-height: 1.7;
-    font-weight: 300;
+    font-weight: 400;
   }
   .pricing-hero .hero-sub {
     font-size: 0.95rem;
     margin-top: 8px;
-    color: var(--muted, #4a6070);
-    font-family: 'IBM Plex Sans', sans-serif;
-    font-weight: 300;
+    color: var(--text-secondary, #86868b);
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
+    font-weight: 400;
   }
 
   /* Tier cards */
   .tiers {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 1px;
-    background: var(--border, #0d2030);
-    border: 1px solid var(--border, #0d2030);
+    gap: 16px;
     max-width: 1200px;
-    margin: 40px auto 80px;
+    margin: 48px auto 80px;
+    padding: 0 24px;
   }
   .tier {
-    background: var(--bg, #020408);
+    background: var(--bg-elevated, #1c1c1e);
     padding: 48px 28px;
     text-align: center;
     position: relative;
-    transition: background 0.25s;
+    transition: background 0.25s, border-color 0.25s;
+    border-radius: var(--radius-lg, 20px);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
   }
-  .tier:hover { background: var(--bg2, #070d14); }
+  .tier:hover {
+    background: var(--surface, rgba(28,28,30,0.72));
+    border-color: var(--border-hover, rgba(255,255,255,0.16));
+  }
   .tier.featured {
-    border: 1px solid var(--accent, #00ff9d);
-    margin: -1px;
+    border: 1px solid var(--accent, #2997ff);
     z-index: 1;
   }
   .tier-badge {
     position: absolute;
     top: 0; left: 50%;
     transform: translate(-50%, -50%);
-    background: var(--accent, #00ff9d);
-    color: #000;
+    background: var(--accent, #2997ff);
+    color: #fff;
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
     font-size: 0.7rem;
-    font-weight: 700;
-    padding: 4px 16px;
-    letter-spacing: 0.1em;
+    font-weight: 600;
+    padding: 5px 18px;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
+    border-radius: 980px;
   }
   .tier-name {
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
     font-size: 0.85rem;
     font-weight: 600;
-    color: var(--muted, #4a6070);
+    color: var(--text-secondary, #86868b);
     text-transform: uppercase;
-    letter-spacing: 0.15em;
+    letter-spacing: 0.1em;
     margin-bottom: 16px;
   }
   .tier-tagline {
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
     font-size: 0.82rem;
-    color: var(--accent, #00ff9d);
+    color: var(--accent, #2997ff);
     margin-bottom: 12px;
-    font-weight: 400;
+    font-weight: 500;
   }
   .tier-price {
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
     font-size: 3rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--text, #f5f5f7);
     line-height: 1;
     margin-bottom: 4px;
+    letter-spacing: -0.03em;
   }
-  .tier-price .currency { font-size: 1.4rem; vertical-align: super; color: var(--accent, #00ff9d); }
+  .tier-price .currency { font-size: 1.4rem; vertical-align: super; color: var(--accent, #2997ff); }
   .tier-price .period {
     font-size: 0.85rem;
-    font-weight: 300;
-    color: var(--muted, #4a6070);
+    font-weight: 400;
+    color: var(--text-secondary, #86868b);
   }
   .tier-desc {
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
     font-size: 0.85rem;
-    color: var(--muted, #4a6070);
-    margin: 12px 0 24px;
-    font-weight: 300;
+    color: var(--text-secondary, #86868b);
+    margin: 12px 0 28px;
+    font-weight: 400;
   }
   .tier-features {
     list-style: none;
@@ -120,63 +129,64 @@
     margin-bottom: 32px;
   }
   .tier-features li {
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
     font-size: 0.85rem;
-    color: var(--text, #c8d8e8);
-    padding: 8px 0;
-    border-bottom: 1px solid rgba(13,32,48,0.6);
-    font-weight: 300;
+    color: var(--text, #f5f5f7);
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
+    font-weight: 400;
   }
   .tier-features li::before {
     content: '\2713';
-    color: var(--accent, #00ff9d);
+    color: var(--success, #30d158);
     font-weight: 700;
     margin-right: 10px;
   }
   .tier-features li.disabled {
-    color: var(--muted, #4a6070);
+    color: var(--text-muted, #48484a);
     opacity: 0.5;
   }
   .tier-features li.disabled::before {
     content: '\2014';
-    color: var(--muted, #4a6070);
+    color: var(--text-muted, #48484a);
   }
   .btn-tier {
     display: inline-block;
     padding: 14px 32px;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
     font-size: 0.85rem;
-    font-weight: 700;
+    font-weight: 600;
     text-decoration: none;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.01em;
     transition: all 0.2s;
     width: 100%;
+    border-radius: 980px;
   }
   .btn-tier.primary {
-    background: var(--accent, #00ff9d);
-    color: #000;
+    background: var(--accent, #2997ff);
+    color: #fff;
   }
   .btn-tier.primary:hover {
-    background: #fff;
+    background: var(--accent-hover, #0077ed);
     transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(0,255,157,0.3);
+    box-shadow: 0 8px 30px rgba(41,151,255,0.2);
   }
   .btn-tier.secondary {
     background: transparent;
-    color: var(--accent, #00ff9d);
-    border: 1px solid var(--accent, #00ff9d);
+    color: var(--accent, #2997ff);
+    border: 1px solid var(--accent, #2997ff);
   }
   .btn-tier.secondary:hover {
-    background: rgba(0,255,157,0.08);
+    background: var(--accent-dim, rgba(41,151,255,0.1));
     transform: translateY(-2px);
   }
   .btn-tier.outline {
     background: transparent;
-    color: var(--cyan, #00d4ff);
-    border: 1px solid var(--cyan, #00d4ff);
+    color: var(--accent2, #bf5af2);
+    border: 1px solid var(--accent2, #bf5af2);
   }
   .btn-tier.outline:hover {
-    background: rgba(0,212,255,0.08);
+    background: rgba(191,90,242,0.1);
     transform: translateY(-2px);
   }
 
@@ -193,49 +203,52 @@
     margin-bottom: 32px;
   }
   .section-header span {
+    font-family: var(--font-mono, 'SF Mono', 'Fira Code', ui-monospace, monospace);
     font-size: 0.7rem;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.15em;
     text-transform: uppercase;
-    color: var(--muted, #4a6070);
+    color: var(--text-secondary, #86868b);
   }
   .section-header-line {
     flex: 1;
     height: 1px;
-    background: var(--border, #0d2030);
+    background: var(--border, rgba(255,255,255,0.08));
   }
   .compare-table {
     width: 100%;
     border-collapse: collapse;
-    border: 1px solid var(--border, #0d2030);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: var(--radius-md, 12px);
+    overflow: hidden;
   }
   .compare-table th,
   .compare-table td {
-    padding: 14px 20px;
+    padding: 16px 20px;
     text-align: center;
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
     font-size: 0.85rem;
-    font-weight: 300;
-    border-bottom: 1px solid var(--border, #0d2030);
+    font-weight: 400;
+    border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
   }
   .compare-table th {
-    background: var(--bg2, #070d14);
-    color: #fff;
-    font-family: 'IBM Plex Mono', monospace;
+    background: var(--bg-elevated, #1c1c1e);
+    color: var(--text, #f5f5f7);
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
     font-weight: 600;
     font-size: 0.8rem;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.03em;
     text-transform: uppercase;
   }
   .compare-table td:first-child {
     text-align: left;
-    color: var(--text, #c8d8e8);
-    font-weight: 400;
+    color: var(--text, #f5f5f7);
+    font-weight: 500;
   }
   .compare-table tr:hover td {
-    background: var(--bg2, #070d14);
+    background: var(--bg-elevated, #1c1c1e);
   }
-  .compare-table .check { color: var(--accent, #00ff9d); font-weight: 700; }
-  .compare-table .dash { color: var(--muted, #4a6070); opacity: 0.5; }
+  .compare-table .check { color: var(--accent, #2997ff); font-weight: 600; }
+  .compare-table .dash { color: var(--text-muted, #48484a); opacity: 0.5; }
 
   /* Payment methods */
   .methods-section {
@@ -246,29 +259,33 @@
   .methods-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-    background: var(--border, #0d2030);
-    border: 1px solid var(--border, #0d2030);
+    gap: 16px;
   }
   .method-card {
-    background: var(--bg, #020408);
-    padding: 32px 24px;
-    transition: background 0.25s;
+    background: var(--bg-elevated, #1c1c1e);
+    padding: 36px 28px;
+    transition: background 0.25s, border-color 0.25s;
+    border-radius: var(--radius-lg, 20px);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
   }
-  .method-card:hover { background: var(--bg2, #070d14); }
+  .method-card:hover {
+    background: var(--surface, rgba(28,28,30,0.72));
+    border-color: var(--border-hover, rgba(255,255,255,0.16));
+  }
   .method-card h3 {
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
     font-size: 0.95rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--text, #f5f5f7);
     margin-bottom: 12px;
-    letter-spacing: 0.03em;
+    letter-spacing: -0.01em;
   }
   .method-card p {
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
     font-size: 0.85rem;
-    color: var(--muted, #4a6070);
+    color: var(--text-secondary, #86868b);
     line-height: 1.7;
-    font-weight: 300;
+    font-weight: 400;
   }
 
   /* FAQ */
@@ -278,22 +295,27 @@
     padding: 0 24px 100px;
   }
   .faq-item {
-    border: 1px solid var(--border, #0d2030);
-    margin-bottom: -1px;
-    background: var(--bg, #020408);
-    transition: background 0.2s;
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    margin-bottom: 8px;
+    background: var(--bg-elevated, #1c1c1e);
+    transition: background 0.2s, border-color 0.2s;
+    border-radius: var(--radius-md, 12px);
+    overflow: hidden;
   }
-  .faq-item:hover { background: var(--bg2, #070d14); }
+  .faq-item:hover {
+    background: var(--surface, rgba(28,28,30,0.72));
+    border-color: var(--border-hover, rgba(255,255,255,0.16));
+  }
   .faq-q {
     display: block;
     width: 100%;
     background: none;
     border: none;
-    padding: 20px 24px;
-    font-family: 'IBM Plex Mono', monospace;
+    padding: 22px 24px;
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
     font-size: 0.9rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--text, #f5f5f7);
     cursor: pointer;
     text-align: left;
     display: flex;
@@ -302,7 +324,7 @@
   }
   .faq-q::after {
     content: '+';
-    color: var(--accent, #00ff9d);
+    color: var(--accent, #2997ff);
     font-size: 1.2rem;
     font-weight: 700;
     transition: transform 0.2s;
@@ -312,15 +334,15 @@
   }
   .faq-a {
     display: none;
-    padding: 0 24px 20px;
-    font-family: 'IBM Plex Sans', sans-serif;
+    padding: 0 24px 22px;
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
     font-size: 0.88rem;
-    color: var(--muted, #4a6070);
+    color: var(--text-secondary, #86868b);
     line-height: 1.7;
-    font-weight: 300;
+    font-weight: 400;
   }
   .faq-a a {
-    color: var(--cyan, #00d4ff);
+    color: var(--accent2, #bf5af2);
     text-decoration: none;
   }
   .faq-a a:hover { text-decoration: underline; }
@@ -329,23 +351,25 @@
   /* Bottom CTA */
   .bottom-cta {
     text-align: center;
-    padding: 60px 24px 80px;
-    border-top: 1px solid var(--border, #0d2030);
+    padding: 72px 24px 100px;
+    border-top: 1px solid var(--border, rgba(255,255,255,0.08));
     max-width: 700px;
     margin: 0 auto;
   }
   .bottom-cta h2 {
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
     font-size: 1.6rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--text, #f5f5f7);
     margin-bottom: 12px;
+    letter-spacing: -0.03em;
   }
   .bottom-cta p {
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
     font-size: 0.95rem;
-    color: var(--muted, #4a6070);
-    margin-bottom: 28px;
-    font-weight: 300;
+    color: var(--text-secondary, #86868b);
+    margin-bottom: 32px;
+    font-weight: 400;
   }
   .bottom-cta .btn-group {
     display: flex;
@@ -356,12 +380,13 @@
   .bottom-cta .btn-group a {
     display: inline-block;
     padding: 14px 32px;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
     font-size: 0.85rem;
-    font-weight: 700;
+    font-weight: 600;
     text-decoration: none;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.01em;
     transition: all 0.2s;
+    border-radius: 980px;
   }
 
   /* Animations */
@@ -379,13 +404,13 @@
     .tiers { grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 768px) {
-    .pricing-hero { padding: 60px 20px 32px; }
+    .pricing-hero { padding: 72px 20px 36px; }
     .pricing-hero p { font-size: 0.95rem; }
-    .tiers { grid-template-columns: 1fr; margin: 32px 16px 60px; }
+    .tiers { grid-template-columns: 1fr; margin: 32px 16px 60px; padding: 0; }
     .tier { padding: 36px 24px; }
-    .tier.featured { margin: 0; border: 1px solid var(--accent, #00ff9d); }
+    .tier.featured { border: 1px solid var(--accent, #2997ff); }
     .compare-table { font-size: 0.78rem; }
-    .compare-table th, .compare-table td { padding: 10px 8px; }
+    .compare-table th, .compare-table td { padding: 12px 10px; }
     .compare-section { padding: 0 16px 60px; }
     .methods-grid { grid-template-columns: 1fr; }
     .faq-section { padding: 0 16px 60px; }
@@ -405,14 +430,14 @@
 <!-- Hero -->
 <section class="pricing-hero fade-up">
   <h1>Start <span class="accent">free</span>, upgrade when you need more</h1>
-  <p>250+ AI tools. 27 models. One simple price. Try everything free &mdash; no account needed.</p>
+  <p>65+ AI tools. 15 models. One simple price. Try everything free &mdash; no account needed.</p>
   <p class="hero-sub">Write, research, translate, code, analyze, scrape &mdash; all from one place.</p>
 </section>
 
 <!-- Billing Toggle -->
-<div style="display:flex;justify-content:center;margin-bottom:24px;gap:0">
-  <button id="toggle-monthly" onclick="showBilling('monthly')" style="padding:12px 28px;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:600;background:var(--accent,#00ff9d);color:#000;border:1px solid var(--accent,#00ff9d);cursor:pointer;letter-spacing:0.05em;transition:all 0.2s">Monthly Plans</button>
-  <button id="toggle-credits" onclick="showBilling('credits')" style="padding:12px 28px;font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:600;background:transparent;color:var(--accent,#00ff9d);border:1px solid var(--accent,#00ff9d);cursor:pointer;letter-spacing:0.05em;transition:all 0.2s">Credit Packs</button>
+<div style="display:flex;justify-content:center;margin-bottom:24px;gap:4px">
+  <button id="toggle-monthly" onclick="showBilling('monthly')" style="padding:12px 28px;font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif);font-size:0.82rem;font-weight:600;background:var(--accent,#2997ff);color:#fff;border:1px solid var(--accent,#2997ff);cursor:pointer;letter-spacing:0.01em;transition:all 0.2s;border-radius:980px">Monthly Plans</button>
+  <button id="toggle-credits" onclick="showBilling('credits')" style="padding:12px 28px;font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif);font-size:0.82rem;font-weight:600;background:transparent;color:var(--accent,#2997ff);border:1px solid var(--accent,#2997ff);cursor:pointer;letter-spacing:0.01em;transition:all 0.2s;border-radius:980px">Credit Packs</button>
 </div>
 
 <!-- Monthly Plans -->
@@ -423,11 +448,11 @@
     <div class="tier-name">Free</div>
     <div class="tier-tagline">Try everything free</div>
     <div class="tier-price"><span class="currency">$</span>0</div>
-    <div class="tier-desc">Watch an ad, get a free call &middot; No account needed</div>
+    <div class="tier-desc">1 free call/day, no signup needed</div>
     <ul class="tier-features">
-      <li>Watch ad = 1 free AI call</li>
-      <li>Access all 250+ tools</li>
-      <li>27 AI models (ChatGPT, Claude, Gemini&hellip;)</li>
+      <li>1 free call/day</li>
+      <li>Access all 65+ tools</li>
+      <li>15 AI models (ChatGPT, Claude, Gemini&hellip;)</li>
       <li>No sign-up or credit card</li>
       <li>Use from any device</li>
       <li class="disabled">Unlimited calls</li>
@@ -441,11 +466,11 @@
     <div class="tier-name">Starter</div>
     <div class="tier-tagline">For regular users</div>
     <div class="tier-price"><span class="currency">$</span>4.99 <span class="period">/mo</span></div>
-    <div class="tier-desc">All 250+ tools &middot; All 27 AI models</div>
+    <div class="tier-desc">All 65+ tools &middot; All 15 AI models</div>
     <ul class="tier-features">
       <li>Unlimited AI calls</li>
-      <li>All 250+ tools unlocked</li>
-      <li>27 AI models to choose from</li>
+      <li>All 65+ tools unlocked</li>
+      <li>15 AI models to choose from</li>
       <li>Save your history &amp; favorites</li>
       <li>Email support</li>
       <li class="disabled">Priority speed</li>
@@ -475,7 +500,7 @@
 
   <!-- Enterprise -->
   <div class="tier fade-up delay-3">
-    <div class="tier-badge" style="background:var(--cyan,#00d4ff);color:#000">Best Value</div>
+    <div class="tier-badge" style="background:var(--accent2,#bf5af2);color:#fff">Best Value</div>
     <div class="tier-name">Enterprise</div>
     <div class="tier-tagline">For teams</div>
     <div class="tier-price"><span class="currency">$</span>49.99 <span class="period">/mo</span></div>
@@ -505,8 +530,8 @@
     <div class="tier-desc">~80 calls &middot; Perfect for trying out</div>
     <ul class="tier-features">
       <li>~80 AI calls</li>
-      <li>All 250+ tools unlocked</li>
-      <li>27 AI models</li>
+      <li>All 65+ tools unlocked</li>
+      <li>15 AI models</li>
       <li>Credits never expire</li>
       <li>Use anytime, at your pace</li>
       <li class="disabled">Priority support</li>
@@ -523,8 +548,8 @@
     <div class="tier-desc">~830 calls &middot; Great value</div>
     <ul class="tier-features">
       <li>~830 AI calls</li>
-      <li>All 250+ tools unlocked</li>
-      <li>27 AI models</li>
+      <li>All 65+ tools unlocked</li>
+      <li>15 AI models</li>
       <li>Credits never expire</li>
       <li>Use anytime, at your pace</li>
       <li class="disabled">Priority support</li>
@@ -542,8 +567,8 @@
     <div class="tier-desc">~3,300 calls &middot; Bulk discount</div>
     <ul class="tier-features">
       <li>~3,300 AI calls</li>
-      <li>All 250+ tools unlocked</li>
-      <li>27 AI models</li>
+      <li>All 65+ tools unlocked</li>
+      <li>15 AI models</li>
       <li>Credits never expire</li>
       <li>Use anytime, at your pace</li>
       <li>Priority support</li>
@@ -554,15 +579,15 @@
 
   <!-- $50 -->
   <div class="tier fade-up delay-3">
-    <div class="tier-badge" style="background:var(--cyan,#00d4ff);color:#000">Best Value</div>
+    <div class="tier-badge" style="background:var(--accent2,#bf5af2);color:#fff">Best Value</div>
     <div class="tier-name">Team Pack</div>
     <div class="tier-tagline">Best rate per call</div>
     <div class="tier-price"><span class="currency">$</span>50</div>
     <div class="tier-desc">~8,300 calls &middot; Lowest price</div>
     <ul class="tier-features">
       <li>~8,300 AI calls</li>
-      <li>All 250+ tools unlocked</li>
-      <li>27 AI models</li>
+      <li>All 65+ tools unlocked</li>
+      <li>15 AI models</li>
       <li>Credits never expire</li>
       <li>Use anytime, at your pace</li>
       <li>Premium support</li>
@@ -573,10 +598,6 @@
 </div>
 </div><!-- end billing-credits -->
 
-<!-- Ad: Inline mid-page -->
-<div class="ad-slot ad-slot-inline" aria-label="Advertisement">
-  <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-4228277826827893" data-ad-slot="6374231109" data-ad-format="auto" data-full-width-responsive="true"></ins>
-  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
 </div>
 
 <!-- What's Included -->
@@ -605,17 +626,17 @@
       </tr>
       <tr>
         <td>AI tools</td>
-        <td class="check">All 250+</td>
-        <td class="check">All 250+</td>
-        <td class="check">All 250+</td>
-        <td class="check">All 250+</td>
+        <td class="check">All 65+</td>
+        <td class="check">All 65+</td>
+        <td class="check">All 65+</td>
+        <td class="check">All 65+</td>
       </tr>
       <tr>
         <td>AI models (ChatGPT, Claude, Gemini&hellip;)</td>
-        <td class="check">27 models</td>
-        <td class="check">27 models</td>
-        <td class="check">27 models</td>
-        <td class="check">27 models</td>
+        <td class="check">15 models</td>
+        <td class="check">15 models</td>
+        <td class="check">15 models</td>
+        <td class="check">15 models</td>
       </tr>
       <tr>
         <td>Workflow builder</td>
@@ -654,7 +675,7 @@
       </tr>
     </tbody>
   </table>
-  <p style="color:var(--muted,#4a6070);font-size:0.78rem;margin-top:12px;font-family:'IBM Plex Sans',sans-serif">Monthly plans include the subscription fee. Individual calls cost $0.01&ndash;$0.50 depending on the tool. Credit packs are also available for pay-as-you-go.</p>
+  <p style="color:var(--text-secondary,#86868b);font-size:0.78rem;margin-top:12px;font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif)">Monthly plans include the subscription fee. Individual calls cost $0.01&ndash;$0.50 depending on the tool. Credit packs are also available for pay-as-you-go.</p>
 </section>
 
 <!-- What Things Cost -->
@@ -717,7 +738,7 @@
       </tr>
     </tbody>
   </table>
-  <p style="color:var(--muted,#4a6070);font-size:0.78rem;margin-top:12px;font-family:'IBM Plex Sans',sans-serif">Most things cost just 1&ndash;2 cents. Research and scraping cost more because they pull from multiple sources behind the scenes.</p>
+  <p style="color:var(--text-secondary,#86868b);font-size:0.78rem;margin-top:12px;font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif)">Most things cost just 1&ndash;2 cents. Research and scraping cost more because they pull from multiple sources behind the scenes.</p>
 </section>
 
 <!-- Save vs Doing It Yourself -->
@@ -774,7 +795,7 @@
       </tr>
     </tbody>
   </table>
-  <p style="color:var(--muted,#4a6070);font-size:0.78rem;margin-top:12px;font-family:'IBM Plex Sans',sans-serif">AiPayGen automatically picks the best model for your task and caches results, so you pay less than going directly to OpenAI, Anthropic, or Google.</p>
+  <p style="color:var(--text-secondary,#86868b);font-size:0.78rem;margin-top:12px;font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif)">AiPayGen automatically picks the best model for your task and caches results, so you pay less than going directly to OpenAI, Anthropic, or Google.</p>
 </section>
 
 <!-- How to Pay -->
@@ -816,14 +837,14 @@
   <div class="faq-item">
     <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What can I do with the free trial?</button>
     <div class="faq-a">
-      Anything! Your $0.25 trial credits give you ~40 full-powered calls to all 250+ tools and all 27 AI models. Summarize a document, translate text, generate code, research a topic, analyze data, scrape a website &mdash; whatever you need. Or watch an ad for 1 free call anytime.
+      Anything! Your $0.10 trial credits give you ~16 full-powered calls to all 65+ tools and all 15 AI models. Summarize a document, translate text, generate code, research a topic, analyze data, scrape a website &mdash; whatever you need. Plus 1 free call/day, no account needed.
     </div>
   </div>
 
   <div class="faq-item">
     <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Do I need a credit card?</button>
     <div class="faq-a">
-      Not for the free tier. You can use 1 call per day without any payment info or account. If you want more calls, you can subscribe to a monthly plan or buy a credit pack starting at just $0.50 using any major credit or debit card.
+      Not for the free tier. You get 1 free call/day without any payment info or account. If you want more calls, you can subscribe to a monthly plan or buy a credit pack starting at just $0.50 using any major credit or debit card.
     </div>
   </div>
 
@@ -851,14 +872,14 @@
   <div class="faq-item">
     <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What AI models can I use?</button>
     <div class="faq-a">
-      All 27 models from 7 providers: ChatGPT (GPT-4o, GPT-4o-mini), Claude (Anthropic), Gemini (Google), DeepSeek, Llama, Mistral, and more. AiPayGen automatically picks the best model for your task, or you can choose yourself.
+      All 15 models from 7 providers: ChatGPT (GPT-4o, GPT-4o-mini), Claude (Anthropic), Gemini (Google), DeepSeek, Llama, Mistral, and more. AiPayGen automatically picks the best model for your task, or you can choose yourself.
     </div>
   </div>
 
   <div class="faq-item">
     <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What's the difference between a plan and credits?</button>
     <div class="faq-a">
-      Monthly plans ($4.99&ndash;$49.99/mo) give you a subscription with extra features like priority speed, workflow builder, and dedicated support. Credit packs ($0.50&ndash;$50) are one-time purchases with no commitment &mdash; just prepaid balance that never expires. Both give you access to all 250+ tools and 27 models.
+      Monthly plans ($4.99&ndash;$49.99/mo) give you a subscription with extra features like priority speed, workflow builder, and dedicated support. Credit packs ($0.50&ndash;$50) are one-time purchases with no commitment &mdash; just prepaid balance that never expires. Both give you access to all 65+ tools and 15 models.
     </div>
   </div>
 
@@ -879,7 +900,7 @@
   <div class="faq-item">
     <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">How is AiPayGen different from OpenRouter?</button>
     <div class="faq-a">
-      OpenRouter gives you raw access to LLMs &mdash; you send prompts, you get completions. AiPayGen gives you <strong>250+ pre-built tools</strong> with structured output. Call <code>/research</code>, <code>/scrape_website</code>, <code>/sentiment</code>, <code>/translate</code> and get structured JSON results back &mdash; no prompt engineering needed. AiPayGen also has MCP support (works natively in Claude Code, Cursor, and Windsurf), agent-to-agent messaging, persistent memory, a 500+ API catalog, and x402 crypto micropayments for autonomous agents. Think of it as: OpenRouter = model access. AiPayGen = pre-built AI tools with smart model routing under the hood.
+      OpenRouter gives you raw access to LLMs &mdash; you send prompts, you get completions. AiPayGen gives you <strong>65+ pre-built tools</strong> with structured output. Call <code>/research</code>, <code>/scrape_website</code>, <code>/sentiment</code>, <code>/translate</code> and get structured JSON results back &mdash; no prompt engineering needed. AiPayGen also has MCP support (works natively in Claude Code, Cursor, and Windsurf), agent-to-agent messaging, persistent memory, a 500+ API catalog, and x402 crypto micropayments for autonomous agents. Think of it as: OpenRouter = model access. AiPayGen = pre-built AI tools with smart model routing under the hood.
     </div>
   </div>
 
@@ -894,11 +915,11 @@
 <!-- Bottom CTA -->
 <section class="bottom-cta">
   <h2>Ready to try it?</h2>
-  <p>Get $0.25 free trial credits (~40 calls). No credit card needed. Upgrade whenever you want.</p>
+  <p>Get $0.10 free trial credits (~16 calls). No credit card needed. Upgrade whenever you want.</p>
   <div class="btn-group">
-    <a href="/try" style="background:transparent;color:var(--accent,#00ff9d);border:1px solid var(--accent,#00ff9d)">Try Free</a>
-    <a href="/buy-credits" style="background:var(--accent,#00ff9d);color:#000">Buy Credits &rarr;</a>
-    <a href="/subscribe" style="background:transparent;color:var(--cyan,#00d4ff);border:1px solid var(--cyan,#00d4ff)">Monthly Plans &rarr;</a>
+    <a href="/try" style="background:transparent;color:var(--accent,#2997ff);border:1px solid var(--accent,#2997ff);border-radius:980px">Try Free</a>
+    <a href="/buy-credits" style="background:var(--accent,#2997ff);color:#fff;border-radius:980px">Buy Credits &rarr;</a>
+    <a href="/subscribe" style="background:transparent;color:var(--accent2,#bf5af2);border:1px solid var(--accent2,#bf5af2);border-radius:980px">Monthly Plans &rarr;</a>
   </div>
 </section>
 
@@ -908,15 +929,15 @@
   "@context": "https://schema.org",
   "@type": "FAQPage",
   "mainEntity": [
-    {"@type": "Question", "name": "Is it really free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. You get 1 free AI call every day, forever. No sign-up, no credit card, no account needed."}},
-    {"@type": "Question", "name": "What can I do with the free trial?", "acceptedAnswer": {"@type": "Answer", "text": "Anything. Your $0.25 trial credits give you ~40 calls to all 250+ tools and 27 AI models. Summarize, translate, code, research, scrape — full-powered calls. Or watch an ad for 1 free call anytime."}},
-    {"@type": "Question", "name": "Do I need a credit card?", "acceptedAnswer": {"@type": "Answer", "text": "Not for the free tier. You can use 1 call per day with no payment info. For more, plans start at $4.99/mo or credit packs from $0.50."}},
+    {"@type": "Question", "name": "Is it really free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. You get 1 free call every day, forever. No sign-up, no credit card, no account needed."}},
+    {"@type": "Question", "name": "What can I do with the free trial?", "acceptedAnswer": {"@type": "Answer", "text": "Anything. Your $0.10 trial credits give you ~16 calls to all 65+ tools and 15 AI models. Summarize, translate, code, research, scrape — full-powered calls. Plus 1 free call/day, no account needed."}},
+    {"@type": "Question", "name": "Do I need a credit card?", "acceptedAnswer": {"@type": "Answer", "text": "Not for the free tier. You get 1 free call/day with no payment info. For more, plans start at $4.99/mo or credit packs from $0.50."}},
     {"@type": "Question", "name": "How do credits work?", "acceptedAnswer": {"@type": "Answer", "text": "Credits are prepaid balance. Buy a pack ($0.50–$50), each tool use deducts 1–2 cents. Credits never expire. No recurring charges."}},
     {"@type": "Question", "name": "Do credits expire?", "acceptedAnswer": {"@type": "Answer", "text": "No. Credits never expire. Use them at your own pace."}},
-    {"@type": "Question", "name": "What AI models can I use?", "acceptedAnswer": {"@type": "Answer", "text": "27 models from 7 providers: ChatGPT, Claude, Gemini, DeepSeek, Llama, Mistral, and more."}},
+    {"@type": "Question", "name": "What AI models can I use?", "acceptedAnswer": {"@type": "Answer", "text": "15 models from 7 providers: ChatGPT, Claude, Gemini, DeepSeek, Llama, Mistral, and more."}},
     {"@type": "Question", "name": "Can I cancel anytime?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Monthly plans can be canceled anytime. Credit packs are one-time purchases that never expire."}},
-    {"@type": "Question", "name": "How is AiPayGen different from OpenRouter?", "acceptedAnswer": {"@type": "Answer", "text": "OpenRouter gives you raw LLM access. AiPayGen gives you 250+ pre-built tools with structured output — call /research, /scrape_website, /sentiment and get JSON back. Plus MCP support, agent messaging, persistent memory, and x402 crypto payments."}},
-    {"@type": "Question", "name": "Can I choose which AI model to use?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Every tool accepts an optional model parameter. The router auto-picks the best model for each task, or you can override with any of the 27 available models."}}
+    {"@type": "Question", "name": "How is AiPayGen different from OpenRouter?", "acceptedAnswer": {"@type": "Answer", "text": "OpenRouter gives you raw LLM access. AiPayGen gives you 65+ pre-built tools with structured output — call /research, /scrape_website, /sentiment and get JSON back. Plus MCP support, agent messaging, persistent memory, and x402 crypto payments."}},
+    {"@type": "Question", "name": "Can I choose which AI model to use?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Every tool accepts an optional model parameter. The router auto-picks the best model for each task, or you can override with any of the 15 available models."}}
   ]
 }
 </script>
@@ -932,17 +953,17 @@ function showBilling(mode) {
   if (mode === 'credits') {
     monthly.style.display = 'none';
     credits.style.display = 'block';
-    btnCred.style.background = 'var(--accent,#00ff9d)';
-    btnCred.style.color = '#000';
+    btnCred.style.background = 'var(--accent,#2997ff)';
+    btnCred.style.color = '#fff';
     btnMon.style.background = 'transparent';
-    btnMon.style.color = 'var(--accent,#00ff9d)';
+    btnMon.style.color = 'var(--accent,#2997ff)';
   } else {
     monthly.style.display = 'block';
     credits.style.display = 'none';
-    btnMon.style.background = 'var(--accent,#00ff9d)';
-    btnMon.style.color = '#000';
+    btnMon.style.background = 'var(--accent,#2997ff)';
+    btnMon.style.color = '#fff';
     btnCred.style.background = 'transparent';
-    btnCred.style.color = 'var(--accent,#00ff9d)';
+    btnCred.style.color = 'var(--accent,#2997ff)';
   }
 }
 </script>

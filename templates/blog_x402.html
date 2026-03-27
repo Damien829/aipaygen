@@ -27,31 +27,31 @@
 </script>
 <style>
   .blog-post { max-width: 740px; margin: 0 auto; padding: 3rem 1.5rem; }
-  .blog-post h1 { font-family: 'IBM Plex Sans', sans-serif; font-size: 2.2rem; font-weight: 700; color: #fff; line-height: 1.25; margin-bottom: 0.5rem; }
+  .blog-post h1 { font-family: var(--font-sans), sans-serif; font-size: 2.2rem; font-weight: 700; color: #fff; line-height: 1.25; margin-bottom: 0.5rem; }
   .blog-meta { color: var(--text-muted, #4a6070); font-size: 0.85rem; margin-bottom: 2.5rem; }
-  .blog-post h2 { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.4rem; color: #fff; margin: 2.5rem 0 1rem; }
-  .blog-post h3 { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.1rem; color: var(--green, #00ff9d); margin: 2rem 0 0.75rem; }
+  .blog-post h2 { font-family: var(--font-sans), sans-serif; font-size: 1.4rem; color: #fff; margin: 2.5rem 0 1rem; }
+  .blog-post h3 { font-family: var(--font-sans), sans-serif; font-size: 1.1rem; color: var(--green, #2997ff); margin: 2rem 0 0.75rem; }
   .blog-post p { line-height: 1.75; margin-bottom: 1.25rem; color: var(--text, #c8d8e8); }
   .blog-post ul, .blog-post ol { margin: 1rem 0 1.5rem 1.5rem; line-height: 1.75; color: var(--text, #c8d8e8); }
   .blog-post li { margin-bottom: 0.5rem; }
-  .blog-post a { color: var(--green, #00ff9d); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
-  .blog-post a:hover { border-bottom-color: var(--green, #00ff9d); }
+  .blog-post a { color: var(--green, #2997ff); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+  .blog-post a:hover { border-bottom-color: var(--green, #2997ff); }
   .blog-post code { background: rgba(0,136,255,0.1); padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
-  .blog-post pre { background: var(--bg2, #070d14); border: 1px solid var(--border, #0d2030); border-radius: 8px; padding: 1.25rem; overflow-x: auto; margin: 1.25rem 0; }
+  .blog-post pre { background: var(--bg2, #1c1c1e); border: 1px solid var(--border, rgba(28,28,30,0.72)); border-radius: 12px; padding: 1.25rem; overflow-x: auto; margin: 1.25rem 0; }
   .blog-post pre code { background: none; padding: 0; }
-  .blog-callout { background: rgba(0,255,157,0.05); border: 1px solid rgba(0,255,157,0.15); border-radius: 8px; padding: 1.25rem 1.5rem; margin: 2rem 0; }
-  .blog-callout strong { color: var(--green, #00ff9d); }
-  .blog-cta { display: inline-block; background: var(--green, #00ff9d); color: #020408; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; border: none; margin: 0.5rem 0.5rem 0.5rem 0; transition: opacity 0.2s; }
+  .blog-callout { background: rgba(41,151,255,0.05); border: 1px solid rgba(41,151,255,0.15); border-radius: 12px; padding: 1.25rem 1.5rem; margin: 2rem 0; }
+  .blog-callout strong { color: var(--green, #2997ff); }
+  .blog-cta { display: inline-block; background: var(--green, #2997ff); color: #fff; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 980px; text-decoration: none; border: none; margin: 0.5rem 0.5rem 0.5rem 0; transition: opacity 0.2s; }
   .blog-cta:hover { opacity: 0.85; border-bottom: none; }
-  .blog-cta-secondary { display: inline-block; border: 1px solid var(--green, #00ff9d); color: var(--green, #00ff9d); font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; margin: 0.5rem 0.5rem 0.5rem 0; transition: background 0.2s; }
-  .blog-cta-secondary:hover { background: rgba(0,255,157,0.1); border-bottom: none; }
+  .blog-cta-secondary { display: inline-block; border: 1px solid var(--green, #2997ff); color: var(--green, #2997ff); font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 980px; text-decoration: none; margin: 0.5rem 0.5rem 0.5rem 0; transition: background 0.2s; }
+  .blog-cta-secondary:hover { background: rgba(41,151,255,0.1); border-bottom: none; }
   .blog-nav { color: var(--text-muted, #4a6070); font-size: 0.9rem; margin-bottom: 2rem; }
   .blog-nav a { color: var(--text-muted, #4a6070); }
-  .blog-nav a:hover { color: var(--green, #00ff9d); }
+  .blog-nav a:hover { color: var(--green, #2997ff); }
   .flow-diagram { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; margin: 1.5rem 0; font-size: 0.9rem; }
-  .flow-step { background: var(--bg2, #070d14); border: 1px solid var(--border, #0d2030); border-radius: 8px; padding: 0.6rem 1rem; color: var(--text, #c8d8e8); }
-  .flow-arrow { color: var(--green, #00ff9d); font-weight: 700; }
-  .flow-step.highlight { border-color: var(--green, #00ff9d); color: var(--green, #00ff9d); }
+  .flow-step { background: var(--bg2, #1c1c1e); border: 1px solid var(--border, rgba(28,28,30,0.72)); border-radius: 12px; padding: 0.6rem 1rem; color: var(--text, #c8d8e8); }
+  .flow-arrow { color: var(--green, #2997ff); font-weight: 700; }
+  .flow-step.highlight { border-color: var(--green, #2997ff); color: var(--green, #2997ff); }
   @media (max-width: 600px) {
     .blog-post h1 { font-size: 1.6rem; }
     .flow-diagram { flex-direction: column; align-items: flex-start; }
@@ -259,7 +259,7 @@ print(r.json())
     <li><a href="https://github.com/coinbase/x402">x402 Reference Implementation (Coinbase)</a></li>
     <li><a href="/docs">AiPayGen API Documentation</a></li>
     <li><a href="/blog/launch">Why I Built AiPayGen</a> &mdash; the full backstory</li>
-    <li><a href="/blog/5-things-you-can-build">5 Things You Can Build with 250 AI Tools</a></li>
+    <li><a href="/blog/5-things-you-can-build">5 Things You Can Build with 65+ AI Tools</a></li>
   </ul>
 
   <div style="margin: 2.5rem 0;">

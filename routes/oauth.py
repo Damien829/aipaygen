@@ -53,7 +53,7 @@ def _get_or_create_key_for_account(account: dict) -> str:
     if keys:
         return keys[0]["api_key"]
     # Create new key with trial credits
-    new_key = generate_key(initial_balance=0.25, label="oauth-login", source=f"oauth-{account.get('oauth_provider', 'unknown')}")
+    new_key = generate_key(initial_balance=0.10, label="oauth-login", source=f"oauth-{account.get('oauth_provider', 'unknown')}")
     link_key_to_account(account["id"], new_key["key"])
     return new_key["key"]
 

@@ -274,7 +274,7 @@ def send_onboarding_day2(to: str, api_key: str) -> bool:
   ]}}'</pre>
   </div>
 
-  <p style="color:#888;font-size:0.85rem;margin-bottom:20px;">You still have <span style="color:#34d399;font-weight:700;">$0.25 in trial credits</span> (~40 AI calls). No credit card needed to start.</p>
+  <p style="color:#888;font-size:0.85rem;margin-bottom:20px;">You still have <span style="color:#34d399;font-weight:700;">$0.10 in trial credits</span> (~16 AI calls). No credit card needed to start.</p>
 
   <div style="margin-bottom:24px;">
     <a href="https://aipaygen.com/docs" style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;border-radius:10px;padding:12px 24px;font-weight:600;margin-right:10px;">View Docs</a>
@@ -349,17 +349,17 @@ def send_abandoned_checkout(to: str) -> bool:
         resend.Emails.send({
             "from": FROM_EMAIL,
             "to": [to],
-            "subject": "You were about to unlock 250 AI tools",
+            "subject": "You were about to unlock 65+ AI tools",
             "html": """<!DOCTYPE html>
 <html><head><meta charset="UTF-8"></head>
 <body style="margin:0;padding:0;background:#0a0a0a;color:#e8e8e8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
 <div style="max-width:520px;margin:40px auto;background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:40px;">
-  <h1 style="font-size:1.5rem;margin-bottom:8px;">You were about to unlock 250 AI tools</h1>
-  <p style="color:#888;margin-bottom:24px;">Looks like you didn't finish checking out. No worries — you can start free with $0.25 trial credits. No credit card needed.</p>
+  <h1 style="font-size:1.5rem;margin-bottom:8px;">You were about to unlock 65+ AI tools</h1>
+  <p style="color:#888;margin-bottom:24px;">Looks like you didn't finish checking out. No worries — you can start free with $0.10 trial credits. No credit card needed.</p>
 
   <div style="background:#1a1a2e;border:1px solid #2d2d5e;border-radius:10px;padding:20px;margin-bottom:24px;text-align:center;">
     <p style="font-size:1.1rem;font-weight:700;margin-bottom:8px;">Get your free trial key</p>
-    <p style="color:#888;font-size:0.85rem;margin-bottom:16px;">$0.25 credits (~40 AI calls) — completely free</p>
+    <p style="color:#888;font-size:0.85rem;margin-bottom:16px;">$0.10 credits (~16 AI calls) — completely free</p>
     <a href="https://aipaygen.com/try" style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;border-radius:10px;padding:14px 32px;font-weight:600;font-size:1rem;">Try It Free</a>
   </div>
 

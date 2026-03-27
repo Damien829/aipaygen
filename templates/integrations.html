@@ -18,11 +18,11 @@
     margin-bottom: 16px;
     letter-spacing: -0.02em;
   }
-  .integ-hero h1 .accent { color: var(--accent, #00ff9d); }
+  .integ-hero h1 .accent { color: var(--accent, #2997ff); }
   .integ-hero p {
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     font-size: 1.1rem;
-    color: var(--text-muted, #4a6070);
+    color: var(--text-muted, #86868b);
     line-height: 1.7;
   }
   .guides {
@@ -31,14 +31,14 @@
     padding: 0 24px;
   }
   .guide {
-    border: 1px solid var(--border, #0d2030);
-    background: var(--bg-secondary, #070d14);
+    border: 1px solid var(--border, #48484a);
+    background: var(--bg-secondary, #1c1c1e);
     padding: 40px 32px;
     margin-bottom: 2px;
     transition: border-color 0.2s;
   }
   .guide:hover {
-    border-color: var(--accent, #00ff9d);
+    border-color: var(--accent, #2997ff);
   }
   .guide h2 {
     font-size: 1.4rem;
@@ -50,23 +50,23 @@
     font-size: 0.65rem;
     font-weight: 600;
     padding: 3px 10px;
-    border: 1px solid var(--accent, #00ff9d);
-    color: var(--accent, #00ff9d);
+    border: 1px solid var(--accent, #2997ff);
+    color: var(--accent, #2997ff);
     vertical-align: middle;
     margin-left: 10px;
     letter-spacing: 0.08em;
     text-transform: uppercase;
   }
   .guide p {
-    font-family: 'IBM Plex Sans', sans-serif;
-    color: var(--text-muted, #4a6070);
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    color: var(--text-muted, #86868b);
     line-height: 1.7;
     margin-bottom: 20px;
     font-size: 0.95rem;
   }
   .guide pre {
     background: #010409;
-    border: 1px solid var(--border, #0d2030);
+    border: 1px solid var(--border, #48484a);
     padding: 20px;
     overflow-x: auto;
     font-size: 0.82rem;
@@ -76,28 +76,28 @@
   }
   .guide pre code {
     color: var(--text, #c8d8e8);
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'SF Mono', 'Fira Code', monospace;
   }
   .guide .install-cmd {
     background: #010409;
-    border: 1px solid var(--border, #0d2030);
+    border: 1px solid var(--border, #48484a);
     padding: 12px 20px;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'SF Mono', 'Fira Code', monospace;
     font-size: 0.85rem;
-    color: var(--accent, #00ff9d);
+    color: var(--accent, #2997ff);
     margin-bottom: 16px;
     display: flex;
     align-items: center;
     gap: 10px;
   }
   .guide .install-cmd .prompt {
-    color: var(--text-muted, #4a6070);
+    color: var(--text-muted, #86868b);
     user-select: none;
   }
   .guide-link {
     display: inline-block;
     font-size: 0.8rem;
-    color: var(--accent, #00ff9d);
+    color: var(--accent, #2997ff);
     text-decoration: none;
     font-weight: 500;
     letter-spacing: 0.05em;
@@ -109,22 +109,22 @@
     top: 8px;
     right: 8px;
     background: transparent;
-    border: 1px solid var(--border, #0d2030);
-    color: var(--text-muted, #4a6070);
+    border: 1px solid var(--border, #48484a);
+    color: var(--text-muted, #86868b);
     font-size: 0.7rem;
     padding: 4px 10px;
     cursor: pointer;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'SF Mono', 'Fira Code', monospace;
     transition: color 0.2s, border-color 0.2s;
   }
-  .copy-btn:hover { color: var(--accent, #00ff9d); border-color: var(--accent, #00ff9d); }
+  .copy-btn:hover { color: var(--accent, #2997ff); border-color: var(--accent, #2997ff); }
 </style>
 {% endblock %}
 
 {% block content %}
 <section class="integ-hero">
   <h1>Plug into <span class="accent">anything</span></h1>
-  <p>Connect AiPayGen's 250+ tools to your favorite AI framework in minutes. Each guide includes a working code example you can copy and run.</p>
+  <p>Connect AiPayGen's 65+ tools to your favorite AI framework in minutes. Each guide includes a working code example you can copy and run.</p>
 </section>
 
 <div class="guides">
@@ -167,7 +167,7 @@ print(result["messages"][-1].content)</code></pre>
   <!-- CrewAI -->
   <div class="guide" id="crewai">
     <h2>CrewAI <span class="tag">Python</span></h2>
-    <p>Build multi-agent workflows where each crew member uses AiPayGen tools. Define researchers, analysts, and writers that collaborate using AiPayGen's 250 endpoints as their shared toolset.</p>
+    <p>Build multi-agent workflows where each crew member uses AiPayGen tools. Define researchers, analysts, and writers that collaborate using AiPayGen's 65+ endpoints as their shared toolset.</p>
     <div class="install-cmd"><span class="prompt">$</span> pip install crewai requests</div>
     <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>from crewai import Agent, Task, Crew
 from crewai.tools import tool
@@ -256,7 +256,7 @@ user_proxy.initiate_chat(assistant, message="Research AI agents and analyze the 
   <!-- Claude Code (MCP) -->
   <div class="guide" id="claude-code">
     <h2>Claude Code <span class="tag">MCP</span></h2>
-    <p>Add AiPayGen as an MCP server in Claude Code to give Claude access to 250+ tools directly in your terminal. Supports both remote (hosted) and local (PyPI) installation modes.</p>
+    <p>Add AiPayGen as an MCP server in Claude Code to give Claude access to 65+ tools directly in your terminal. Supports both remote (hosted) and local (PyPI) installation modes.</p>
     <div class="install-cmd"><span class="prompt">$</span> pip install aipaygen-mcp</div>
     <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code># Option 1: Remote MCP (no install needed)
 claude mcp add aipaygen --transport http https://mcp.aipaygen.com/mcp
@@ -285,7 +285,7 @@ claude mcp add aipaygen -- aipaygen-mcp --http
   <!-- Cursor -->
   <div class="guide" id="cursor">
     <h2>Cursor <span class="tag">MCP</span></h2>
-    <p>Connect AiPayGen to Cursor IDE via MCP so the AI assistant can research, scrape, analyze, and code using 250+ tools directly from your editor.</p>
+    <p>Connect AiPayGen to Cursor IDE via MCP so the AI assistant can research, scrape, analyze, and code using 65+ tools directly from your editor.</p>
     <div class="install-cmd"><span class="prompt">$</span> pip install aipaygen-mcp</div>
     <pre><button class="copy-btn" onclick="copyCode(this)">Copy</button><code>// Add to .cursor/mcp.json in your project root:
 {

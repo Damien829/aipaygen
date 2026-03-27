@@ -1,9 +1,23 @@
 import json
+import logging
 from flask import Blueprint, request, jsonify, Response, stream_with_context
 from model_router import call_model_stream
 from helpers import log_payment
 
+logger = logging.getLogger(__name__)
 streaming_bp = Blueprint("streaming", __name__)
+
+
+def _deduct_metered_stream(endpoint: str, cost_usd: float, input_tokens: int = 0, output_tokens: int = 0):
+    """Deduct actual token cost for metered streaming after stream completes."""
+    api_key = request.environ.get("X_APIKEY_BYPASS", "")
+    pricing_mode = request.environ.get("X_PRICING_MODE", "")
+    if pricing_mode == "metered" and api_key and cost_usd > 0:
+        try:
+            from api_keys import deduct_metered
+            deduct_metered(api_key, endpoint, input_tokens, output_tokens)
+        except Exception as e:
+            logger.error("Metered streaming deduction failed for %s: %s", api_key[:12], e)
 
 
 def _enforce_model(requested_model: str) -> str:
@@ -34,6 +48,7 @@ def stream_research():
             if chunk.get("done"):
                 yield f"data: {json.dumps({'done': True, 'endpoint': '/stream/research', 'model': chunk.get('model'), 'cost_usd': chunk.get('cost_usd')})}\n\n"
                 log_payment("/stream/research", chunk.get("cost_usd", 0.01), request.remote_addr)
+                _deduct_metered_stream("/stream/research", chunk.get("cost_usd", 0), chunk.get("input_tokens", 0), chunk.get("output_tokens", 0))
             else:
                 yield f"data: {json.dumps({'text': chunk['text']})}\n\n"
 
@@ -60,6 +75,7 @@ def stream_write():
             if chunk.get("done"):
                 yield f"data: {json.dumps({'done': True, 'endpoint': '/stream/write', 'model': chunk.get('model'), 'cost_usd': chunk.get('cost_usd')})}\n\n"
                 log_payment("/stream/write", chunk.get("cost_usd", 0.05), request.remote_addr)
+                _deduct_metered_stream("/stream/write", chunk.get("cost_usd", 0), chunk.get("input_tokens", 0), chunk.get("output_tokens", 0))
             else:
                 yield f"data: {json.dumps({'text': chunk['text']})}\n\n"
 
@@ -90,6 +106,7 @@ def stream_chat():
             if chunk.get("done"):
                 yield f"data: {json.dumps({'done': True, 'endpoint': '/stream/chat', 'model': chunk.get('model'), 'cost_usd': chunk.get('cost_usd'), 'input_tokens': chunk.get('input_tokens'), 'output_tokens': chunk.get('output_tokens')})}\n\n"
                 log_payment("/stream/chat", chunk.get("cost_usd", 0.03), request.remote_addr)
+                _deduct_metered_stream("/stream/chat", chunk.get("cost_usd", 0), chunk.get("input_tokens", 0), chunk.get("output_tokens", 0))
             else:
                 yield f"data: {json.dumps({'text': chunk['text']})}\n\n"
 
@@ -115,6 +132,7 @@ def stream_analyze():
             if chunk.get("done"):
                 yield f"data: {json.dumps({'done': True, 'endpoint': '/stream/analyze', 'model': chunk.get('model'), 'cost_usd': chunk.get('cost_usd')})}\n\n"
                 log_payment("/stream/analyze", chunk.get("cost_usd", 0.02), request.remote_addr)
+                _deduct_metered_stream("/stream/analyze", chunk.get("cost_usd", 0), chunk.get("input_tokens", 0), chunk.get("output_tokens", 0))
             else:
                 yield f"data: {json.dumps({'text': chunk['text']})}\n\n"
 

@@ -1,7 +1,7 @@
 {
   "name": "AiPayGen",
   "short_name": "AiPayGen",
-  "description": "250+ AI tools in one app. Chat, research, write, translate, code, and more.",
+  "description": "65+ AI tools as an MCP server & API. Research, write, code, scrape, translate, analyze.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0f",

@@ -3,41 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>{% block title %}AiPayGen{% endblock %} — 250+ AI Tools in One App</title>
-<meta name="description" content="{% block description %}250+ AI tools in one app. Chat with AI, research, write, translate, code, and more. 27 models from Claude, GPT-4o, Gemini. Free to try. No sign up needed.{% endblock %}">
+<title>{% block title %}AiPayGen{% endblock %} — 65+ AI Tools as an MCP Server & API</title>
+<meta name="description" content="{% block description %}65+ AI tools as an MCP server & API. Research, write, code, scrape, translate, analyze. 15 models from Claude, GPT-4o, Gemini. Free to try. No sign up needed.{% endblock %}">
 <link rel="canonical" href="https://aipaygen.com{% block canonical %}{{ request.path }}{% endblock %}">
 <link rel="icon" href="/static/icon.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" href="/static/css/main.css" as="style">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/main.css">
-<meta name="theme-color" content="#020408">
+<link rel="preload" href="/static/css/main.css?v=2" as="style">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/main.css?v=2">
+<meta name="theme-color" content="#000000">
 <link rel="manifest" href="/static/manifest.json">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
 <meta property="og:site_name" content="AiPayGen">
 <meta property="og:type" content="website">
 <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
-<meta property="og:description" content="{% block og_desc %}250+ AI tools in one app. Chat, research, write, translate, code. Free to try.{% endblock %}">
+<meta property="og:description" content="{% block og_desc %}65+ AI tools as an MCP server & API. Research, write, code, scrape, translate, analyze. Free to try.{% endblock %}">
 <meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta property="og:url" content="https://aipaygen.com{{ request.path }}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:site" content="@aipaygen">
 <meta name="twitter:title" content="{% block tw_title %}{{ self.title() }}{% endblock %}">
-<meta name="twitter:description" content="{% block tw_desc %}250+ AI tools. Chat, research, write, translate, code. Free to try.{% endblock %}">
+<meta name="twitter:description" content="{% block tw_desc %}65+ AI tools. Research, write, code, scrape, translate, analyze. Free to try.{% endblock %}">
 <meta name="twitter:image" content="https://aipaygen.com/og-image.png">
 {% block head %}{% endblock %}
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4228277826827893" crossorigin="anonymous"></script>
 {% if GA4_ID %}
 <script async src="https://www.googletagmanager.com/gtag/js?id={{ GA4_ID }}"></script>
 <script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{ GA4_ID }}');</script>
 {% endif %}
-<style>
-.ad-slot{text-align:center;margin:1.5rem auto;max-width:728px;min-height:90px;overflow:hidden}
-.ad-slot-sidebar{max-width:300px;min-height:250px}
-.ad-slot-inline{max-width:100%;min-height:100px;margin:2rem 0}
-@media(max-width:768px){.ad-slot{max-width:320px;min-height:50px}}
-</style>
 </head>
 <body>
 <a href="#main-content" class="sr-only" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:9999" onfocus="this.style.position='static';this.style.width='auto';this.style.height='auto'" onblur="this.style.position='absolute';this.style.left='-9999px';this.style.width='1px';this.style.height='1px'">Skip to main content</a>
@@ -53,11 +46,10 @@
       <span></span><span></span><span></span>
     </button>
     <ul class="nav-links" id="navLinks">
+      <li><a href="/docs">Docs</a></li>
       <li><a href="/pricing">Pricing</a></li>
-      <li><a href="/discover">Tools</a></li>
-      <li><a href="/docs">API Docs</a></li>
-      <li><a href="/support">Help</a></li>
-      <li><a href="/app/" class="nav-cta" style="background:var(--accent);color:#000">Open App</a></li>
+      <li><a href="/try">Try Free</a></li>
+      <li><a href="/quick-key" class="nav-cta">Get API Key</a></li>
     </ul>
   </div>
 </nav>
@@ -65,11 +57,6 @@
 <main class="pt-nav" id="main-content">
 {% block content %}{% endblock %}
 
-<!-- Ad: Bottom before footer -->
-<div class="ad-slot" aria-label="Advertisement">
-  <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-4228277826827893" data-ad-slot="9290236735" data-ad-format="auto" data-full-width-responsive="true"></ins>
-  <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-</div>
 </main>
 
 <!-- Footer -->
@@ -77,12 +64,13 @@
   <div class="footer-inner">
     <div class="footer-brand">
       <div class="logo">AiPayGen</div>
-      <p>250+ AI tools in one app. Chat, research, write, translate, code, and more. Free to try.</p>
+      <p>65+ AI tools as an MCP server and API. Research, write, code, scrape, translate, analyze. Free to try.</p>
     </div>
     <div class="footer-col">
       <h4>Product</h4>
       <a href="/try">Open App</a>
       <a href="/pricing">Pricing</a>
+      <a href="/compare">Compare APIs</a>
       <a href="/discover">Browse Tools</a>
       <a href="/playground">Playground</a>
       <a href="/premium">Pro Tools</a>
@@ -91,7 +79,7 @@
     <div class="footer-col">
       <h4>Developers</h4>
       <a href="/docs">API Docs</a>
-      <a href="/get-key">Get API Key</a>
+      <a href="/quick-key">Get API Key</a>
       <a href="/integrations">Integrations</a>
       <a href="/openapi.json">OpenAPI Spec</a>
       <a href="https://pypi.org/project/aipaygen-mcp/" target="_blank" rel="noopener">PyPI</a>

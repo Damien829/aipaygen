@@ -5,26 +5,24 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="canonical" href="https://aipaygen.com/get-key">
 <title>Get API Key — AiPayGen</title>
-<meta name="description" content="Get a free AiPayGen API key with $0.25 trial credits. No credit card required.">
+<meta name="description" content="Get a free AiPayGen API key with $0.10 trial credits. No credit card required.">
 <meta property="og:title" content="Get API Key — AiPayGen">
 <link rel="icon" href="/static/icon.png" type="image/png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #020408;
-    --bg2: #070d14;
-    --green: #00ff9d;
-    --cyan: #00d4ff;
+    --bg: #000;
+    --bg2: #1c1c1e;
+    --green: #2997ff;
+    --cyan: #bf5af2;
     --text: #c8d8e8;
-    --muted: #4a6070;
-    --border: #0d2030;
+    --muted: #86868b;
+    --border: rgba(28,28,30,0.72);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'SF Mono', 'Fira Code', monospace;
     overflow-x: hidden;
     padding-top: 70px;
   }
@@ -57,7 +55,7 @@
   }
   h1 .accent { color: var(--green); }
   .subtitle {
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     font-size: 0.95rem;
     color: var(--muted);
     margin-bottom: 40px;
@@ -76,7 +74,7 @@
     border: 1px solid var(--border);
     color: var(--text);
     font-size: 0.9rem;
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     outline: none;
     transition: border-color 0.2s;
   }
@@ -84,8 +82,8 @@
   .key-form button {
     padding: 14px 28px;
     background: var(--green);
-    color: #000;
-    font-family: 'IBM Plex Mono', monospace;
+    color: #fff;
+    font-family: 'SF Mono', 'Fira Code', monospace;
     font-size: 0.85rem;
     font-weight: 700;
     border: none;
@@ -97,7 +95,7 @@
   .key-form button:hover {
     background: #fff;
     transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(0,255,157,0.3);
+    box-shadow: 0 8px 30px rgba(41,151,255,0.3);
   }
   .key-form button:disabled {
     opacity: 0.6;
@@ -133,16 +131,16 @@
   }
   .key-result .copy-btn {
     background: var(--green);
-    color: #000;
+    color: #fff;
     border: none;
     padding: 6px 16px;
     font-size: 0.75rem;
     font-weight: 700;
     cursor: pointer;
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'SF Mono', 'Fira Code', monospace;
   }
   .key-result .info {
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     font-size: 0.78rem;
     color: var(--muted);
     margin-top: 10px;
@@ -157,13 +155,246 @@
   }
   .links {
     margin-top: 32px;
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     font-size: 0.88rem;
     color: var(--muted);
     line-height: 2;
   }
   .links a { color: var(--cyan); text-decoration: none; }
   .links a:hover { text-decoration: underline; }
+
+  /* Try it now section */
+  .try-now {
+    display: none;
+    margin-top: 28px;
+    margin-bottom: 28px;
+    text-align: left;
+    border: 1px solid transparent;
+    border-radius: 16px;
+    padding: 28px 24px;
+    background: var(--bg2);
+    position: relative;
+    overflow: hidden;
+  }
+  .try-now::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 17px;
+    padding: 1px;
+    background: linear-gradient(135deg, var(--green), var(--cyan), var(--green));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    animation: borderGlow 3s ease-in-out infinite;
+  }
+  @keyframes borderGlow {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+  .try-now h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #f5f5f7;
+    margin-bottom: 6px;
+  }
+  .try-now h2 .accent { color: var(--green); }
+  .try-now .try-subtitle {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    font-size: 0.82rem;
+    color: #86868b;
+    margin-bottom: 18px;
+    font-weight: 300;
+  }
+  .curl-box {
+    background: #000;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 16px;
+    position: relative;
+    margin-bottom: 14px;
+  }
+  .curl-box pre {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.78rem;
+    color: #f5f5f7;
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.6;
+    margin: 0;
+  }
+  .curl-box pre .curl-key { color: var(--green); }
+  .curl-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 2px;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+  }
+  .curl-actions button {
+    padding: 6px 16px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    border-radius: 980px;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .btn-copy-curl {
+    background: rgba(255,255,255,0.08);
+    color: #f5f5f7;
+  }
+  .btn-copy-curl:hover {
+    background: rgba(255,255,255,0.15);
+  }
+  .btn-run {
+    background: var(--green);
+    color: #fff;
+  }
+  .btn-run:hover {
+    background: #fff;
+    color: #000;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(41,151,255,0.3);
+  }
+  .btn-run:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  .api-result {
+    display: none;
+    background: #000;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 18px;
+    margin-top: 14px;
+  }
+  .api-result .result-label {
+    font-size: 0.68rem;
+    color: #86868b;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  .api-result .result-body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    font-size: 0.85rem;
+    color: #f5f5f7;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .api-result .result-meta {
+    font-size: 0.72rem;
+    color: #86868b;
+    margin-top: 10px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+
+  /* What's next section */
+  .whats-next {
+    display: none;
+    margin-top: 28px;
+    margin-bottom: 28px;
+    text-align: left;
+  }
+  .whats-next h3 {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #f5f5f7;
+    margin-bottom: 16px;
+  }
+  .next-links {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .next-link {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--bg2);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 16px 18px;
+    text-decoration: none;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .next-link:hover {
+    border-color: var(--green);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(41,151,255,0.1);
+  }
+  .next-link .nl-icon {
+    font-size: 1.3rem;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(41,151,255,0.1);
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+  .next-link .nl-text {
+    flex: 1;
+  }
+  .next-link .nl-title {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #f5f5f7;
+  }
+  .next-link .nl-desc {
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    font-size: 0.76rem;
+    color: #86868b;
+    font-weight: 300;
+    margin-top: 2px;
+  }
+  .next-link .nl-arrow {
+    color: #86868b;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+  .mcp-cmd {
+    display: none;
+    background: #000;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-top: 8px;
+    margin-left: 50px;
+    position: relative;
+  }
+  .mcp-cmd code {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.74rem;
+    color: #f5f5f7;
+    word-break: break-all;
+  }
+  .mcp-cmd .mcp-copy {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(255,255,255,0.08);
+    color: #f5f5f7;
+    border: none;
+    padding: 4px 10px;
+    font-size: 0.68rem;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 980px;
+  }
+  .mcp-cmd .mcp-copy:hover { background: rgba(255,255,255,0.15); }
   .features {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -184,7 +415,7 @@
     margin-bottom: 4px;
   }
   .feature p {
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     font-size: 0.78rem;
     color: var(--muted);
     font-weight: 300;
@@ -194,7 +425,6 @@
     .features { grid-template-columns: 1fr; }
   }
 </style>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4228277826827893" crossorigin="anonymous"></script>
 </head>
 <body>
 <div class="noise"></div>
@@ -202,7 +432,7 @@
 <div class="content">
 
 <h1>Get your <span class="accent">free API key</span></h1>
-<p class="subtitle">Enter your email to generate a key instantly. Includes $0.25 trial credits (~40 AI calls). No credit card required.</p>
+<p class="subtitle">Enter your email to generate a key instantly. Includes $0.10 trial credits (~16 AI calls). No credit card required.</p>
 
 <form id="keyForm" onsubmit="return generateKey(event)">
   <div class="key-form">
@@ -219,7 +449,63 @@
     <code id="keyValue"></code>
     <button class="copy-btn" onclick="copyKey()">Copy</button>
   </div>
-  <div class="info">$0.25 trial credits loaded. <a href="/docs">Read the docs</a> or <a href="/playground">open the playground</a>.</div>
+  <div class="info">$0.10 trial credits loaded. <a href="/docs">Read the docs</a> or <a href="/playground">open the playground</a>.</div>
+</div>
+
+<!-- Try it now section -->
+<div class="try-now" id="tryNow">
+  <h2><span class="accent">Try it now</span> — make your first call</h2>
+  <p class="try-subtitle">Your key is live. Run this command to call the research tool instantly.</p>
+  <div class="curl-box">
+    <div class="curl-actions">
+      <button class="btn-copy-curl" onclick="copyCurl()">Copy</button>
+      <button class="btn-run" id="runBtn" onclick="runFirstCall()">Run it</button>
+    </div>
+    <pre>curl -X POST https://aipaygen.com/research \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: <span class="curl-key" id="curlKey">YOUR_KEY</span>" \
+  -d '{"query": "What is MCP?"}'</pre>
+  </div>
+  <div class="api-result" id="apiResult">
+    <div class="result-label">Response</div>
+    <div class="result-body" id="resultBody"></div>
+    <div class="result-meta" id="resultMeta"></div>
+  </div>
+</div>
+
+<!-- What's next section -->
+<div class="whats-next" id="whatsNext">
+  <h3>What's next?</h3>
+  <div class="next-links">
+    <a href="/docs" class="next-link">
+      <div class="nl-icon">📖</div>
+      <div class="nl-text">
+        <div class="nl-title">Read the docs</div>
+        <div class="nl-desc">Full API reference, authentication, and examples</div>
+      </div>
+      <div class="nl-arrow">→</div>
+    </a>
+    <a href="/try" class="next-link">
+      <div class="nl-icon">⚡</div>
+      <div class="nl-text">
+        <div class="nl-title">Try all 65+ tools</div>
+        <div class="nl-desc">Research, write, code, scrape, translate, and more</div>
+      </div>
+      <div class="nl-arrow">→</div>
+    </a>
+    <div class="next-link" onclick="toggleMcpCmd()" style="cursor:pointer;">
+      <div class="nl-icon">🔌</div>
+      <div class="nl-text">
+        <div class="nl-title">Add to Claude Code</div>
+        <div class="nl-desc">One command to connect all 65+ tools to your IDE</div>
+        <div class="mcp-cmd" id="mcpCmd">
+          <code id="mcpInstallCmd">npx @anthropic-ai/claude-code mcp add aipaygen -- npx -y aipaygen-mcp@latest --key YOUR_KEY</code>
+          <button class="mcp-copy" onclick="event.stopPropagation(); copyMcp()">Copy</button>
+        </div>
+      </div>
+      <div class="nl-arrow" id="mcpArrow">→</div>
+    </div>
+  </div>
 </div>
 
 <div class="links">
@@ -229,15 +515,15 @@
 
 <div class="features">
   <div class="feature">
-    <h3>250 Tools</h3>
+    <h3>65+ Tools</h3>
     <p>Research, write, code, scrape, translate, and more</p>
   </div>
   <div class="feature">
-    <h3>27 AI Models</h3>
+    <h3>15 AI Models</h3>
     <p>Claude, GPT-4o, Gemini, DeepSeek, Grok, Mistral, Llama</p>
   </div>
   <div class="feature">
-    <h3>$0.25 Free</h3>
+    <h3>$0.10 Free</h3>
     <p>Trial credits loaded instantly on key creation</p>
   </div>
   <div class="feature">
@@ -250,6 +536,8 @@
 {{ footer|safe }}
 
 <script>
+var generatedKey = '';
+
 function generateKey(e) {
   e.preventDefault();
   var email = document.getElementById('emailInput').value.trim();
@@ -264,9 +552,21 @@ function generateKey(e) {
     body: JSON.stringify({email: email, source: 'get_key_page'})
   }).then(function(r){ return r.json(); }).then(function(d){
     if (d.key) {
+      generatedKey = d.key;
       document.getElementById('keyValue').textContent = d.key;
       document.getElementById('keyResult').style.display = 'block';
       document.getElementById('keyForm').style.display = 'none';
+      // Populate and show Try it now section
+      document.getElementById('curlKey').textContent = d.key;
+      document.getElementById('tryNow').style.display = 'block';
+      // Populate and show What's next section
+      document.getElementById('mcpInstallCmd').textContent =
+        'npx @anthropic-ai/claude-code mcp add aipaygen -- npx -y aipaygen-mcp@latest --key ' + d.key;
+      document.getElementById('whatsNext').style.display = 'block';
+      // Smooth scroll to the try-now section
+      setTimeout(function(){
+        document.getElementById('tryNow').scrollIntoView({behavior: 'smooth', block: 'center'});
+      }, 300);
     } else {
       errEl.textContent = d.error || d.message || 'Something went wrong';
       errEl.style.display = 'block';
@@ -279,10 +579,76 @@ function generateKey(e) {
   });
   return false;
 }
+
 function copyKey() {
   var key = document.getElementById('keyValue').textContent;
   navigator.clipboard.writeText(key).then(function(){
     var btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(function(){ btn.textContent = 'Copy'; }, 2000);
+  });
+}
+
+function copyCurl() {
+  var cmd = 'curl -X POST https://aipaygen.com/research \\\n  -H "Content-Type: application/json" \\\n  -H "X-API-Key: ' + generatedKey + '" \\\n  -d \'{"query": "What is MCP?"}\'';
+  navigator.clipboard.writeText(cmd).then(function(){
+    var btn = document.querySelector('.btn-copy-curl');
+    btn.textContent = 'Copied!';
+    setTimeout(function(){ btn.textContent = 'Copy'; }, 2000);
+  });
+}
+
+function runFirstCall() {
+  var btn = document.getElementById('runBtn');
+  var resultEl = document.getElementById('apiResult');
+  var bodyEl = document.getElementById('resultBody');
+  var metaEl = document.getElementById('resultMeta');
+  btn.disabled = true;
+  btn.textContent = 'Running...';
+  bodyEl.textContent = '';
+  metaEl.textContent = '';
+  resultEl.style.display = 'block';
+  bodyEl.textContent = 'Calling /research...';
+  var startTime = Date.now();
+  fetch('/research', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': generatedKey
+    },
+    body: JSON.stringify({query: 'What is MCP?'})
+  }).then(function(r){ return r.json(); }).then(function(d){
+    var elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+    var text = d.result || d.answer || d.response || d.data || JSON.stringify(d, null, 2);
+    bodyEl.textContent = text;
+    metaEl.textContent = 'Completed in ' + elapsed + 's';
+    btn.textContent = 'Run it';
+    btn.disabled = false;
+  }).catch(function(err){
+    var elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+    bodyEl.textContent = 'Error: ' + (err.message || 'Request failed. Check your connection and try again.');
+    metaEl.textContent = 'Failed after ' + elapsed + 's';
+    btn.textContent = 'Run it';
+    btn.disabled = false;
+  });
+}
+
+function toggleMcpCmd() {
+  var el = document.getElementById('mcpCmd');
+  var arrow = document.getElementById('mcpArrow');
+  if (el.style.display === 'block') {
+    el.style.display = 'none';
+    arrow.textContent = '→';
+  } else {
+    el.style.display = 'block';
+    arrow.textContent = '↓';
+  }
+}
+
+function copyMcp() {
+  var cmd = document.getElementById('mcpInstallCmd').textContent;
+  navigator.clipboard.writeText(cmd).then(function(){
+    var btn = document.querySelector('.mcp-copy');
     btn.textContent = 'Copied!';
     setTimeout(function(){ btn.textContent = 'Copy'; }, 2000);
   });

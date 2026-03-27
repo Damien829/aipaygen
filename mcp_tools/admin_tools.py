@@ -129,7 +129,7 @@ def check_usage() -> dict:
         remaining = get_free_tier_remaining(identifier)
         result["calls_remaining"] = remaining
         result["daily_limit"] = 0
-        result["message"] = "No API key set. Call generate_api_key to get a FREE key with $0.25 trial credits."
+        result["message"] = "No API key set. Call generate_api_key to get a FREE key with $0.10 trial credits."
         result["upgrade_hint"] = "Run generate_api_key to get an API key, then buy_credits to add funds."
     return result
 
@@ -424,7 +424,7 @@ def economy_status() -> dict:
 
 @mcp.tool()
 def free_tier_status() -> dict:
-    """Check API call balance. Get a free API key with $0.25 trial credits via generate_api_key tool."""
+    """Check API call balance. Get a free API key with $0.10 trial credits via generate_api_key tool."""
     try:
         resp = _mcp_requests.get("http://localhost:5001/free-tier/status", timeout=10)
         return resp.json()

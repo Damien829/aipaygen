@@ -4,43 +4,41 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="canonical" href="https://aipaygen.com/landing">
-<title>AiPayGen — 250+ AI Tools at Your Fingertips</title>
+<title>AiPayGen — 65+ AI Tools as an MCP Server & API</title>
 <link rel="alternate" type="text/plain" href="/llms.txt" title="LLMs.txt">
-<meta name="description" content="250+ AI tools in one API key. 27 models, 7 providers. Research, write, code, translate, analyze, scrape — from $0.01-$0.50/call. Free tier: 1 call/day. $0.25 trial credits with free key.">
+<meta name="description" content="65+ AI tools in one API key. 15 models, 7 providers. Research, write, code, translate, analyze, scrape — from $0.006/call. Free tier: 1 call/day, no signup needed. Free API key with $0.10 trial credits (~16 calls).">
 <link rel="icon" href="/static/icon.png" type="image/png">
 <meta property="og:type" content="website">
-<meta property="og:title" content="AiPayGen — 250+ AI Tools at Your Fingertips">
-<meta property="og:description" content="Research, write, code, translate, analyze — 250+ AI tools in one app. Try free, no sign-up required.">
+<meta property="og:title" content="AiPayGen — 65+ AI Tools as an MCP Server & API">
+<meta property="og:description" content="Research, write, code, translate, analyze — 65+ AI tools as an MCP server & API. Try free, no sign-up required.">
 <meta property="og:url" content="https://aipaygen.com">
 <meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta property="og:site_name" content="AiPayGen">
 <meta name="twitter:site" content="@aipaygen">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="AiPayGen — 250+ AI Tools at Your Fingertips">
-<meta name="twitter:description" content="Research, write, code, translate, analyze — 250+ AI tools in one app. Try free, no sign-up required.">
+<meta name="twitter:title" content="AiPayGen — 65+ AI Tools as an MCP Server & API">
+<meta name="twitter:description" content="Research, write, code, translate, analyze — 65+ AI tools as an MCP server & API. Try free, no sign-up required.">
 <meta name="twitter:image" content="https://aipaygen.com/og-image.png">
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"AiPayGen","url":"https://api.aipaygen.com","description":"Pay-per-use AI endpoints for autonomous agents via x402 micropayments on Base.","applicationCategory":"DeveloperApplication","operatingSystem":"Any","offers":{"@type":"Offer","price":"0.01","priceCurrency":"USD","description":"Per API call, paid in USDC on Base"},"provider":{"@type":"Organization","name":"AiPayGen","url":"https://api.aipaygen.com"}}
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600;700&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #020408;
-    --bg2: #070d14;
-    --green: #00ff9d;
+    --bg: #000;
+    --bg2: #1c1c1e;
+    --green: #2997ff;
     --blue: #0088ff;
-    --cyan: #00d4ff;
+    --cyan: #bf5af2;
     --text: #c8d8e8;
-    --muted: #4a6070;
-    --border: #0d2030;
+    --muted: #86868b;
+    --border: rgba(28,28,30,0.72);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
     background: var(--bg);
     color: var(--text);
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'SF Mono', 'Fira Code', monospace;
     overflow-x: hidden;
     padding-top: 70px;
   }
@@ -122,7 +120,7 @@
   }
   .hero h1 .accent { color: var(--green); }
   .hero-sub {
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     font-size: 1.15rem;
     color: var(--muted);
     max-width: 600px;
@@ -131,7 +129,7 @@
     font-weight: 300;
   }
   .hero-sub code {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'SF Mono', 'Fira Code', monospace;
     color: var(--cyan);
     font-size: 0.95rem;
   }
@@ -141,8 +139,8 @@
     gap: 8px;
     padding: 16px 36px;
     background: var(--green);
-    color: #000;
-    font-family: 'IBM Plex Mono', monospace;
+    color: #fff;
+    font-family: 'SF Mono', 'Fira Code', monospace;
     font-size: 0.9rem;
     font-weight: 700;
     text-decoration: none;
@@ -152,7 +150,7 @@
   .btn-cta:hover {
     background: #fff;
     transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(0,255,157,0.3);
+    box-shadow: 0 8px 30px rgba(41,151,255,0.3);
   }
 
   /* VALUE PROP CARDS */
@@ -190,7 +188,7 @@
     letter-spacing: 0.03em;
   }
   .value-card p {
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     font-size: 0.88rem;
     color: var(--muted);
     line-height: 1.7;
@@ -201,7 +199,7 @@
     margin-bottom: 16px;
     display: block;
     color: var(--green);
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'SF Mono', 'Fira Code', monospace;
     font-weight: 700;
   }
 
@@ -257,14 +255,14 @@
     letter-spacing: 0.03em;
   }
   .step-card p {
-    font-family: 'IBM Plex Sans', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     font-size: 0.85rem;
     color: var(--muted);
     line-height: 1.6;
     font-weight: 300;
   }
   .step-card code {
-    font-family: 'IBM Plex Mono', monospace;
+    font-family: 'SF Mono', 'Fira Code', monospace;
     color: var(--cyan);
     font-size: 0.82rem;
   }
@@ -286,7 +284,6 @@
     .how-section { padding: 60px 16px; }
   }
 </style>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4228277826827893" crossorigin="anonymous"></script>
 </head>
 <body>
 <div class="noise"></div>
@@ -295,26 +292,26 @@
 
 <section class="hero">
   <h1 class="fade-up">
-    250+ AI tools<br><span class="accent">at your fingertips.</span>
+    65+ AI tools<br><span class="accent">as an MCP server & API.</span>
   </h1>
   <p class="hero-sub fade-up delay-1">
-    Research, write, code, translate, analyze &mdash; all from one app. Powered by 27 top AI models including Claude, GPT-4o, and Gemini. Try it free, no sign-up needed.
+    Research, write, code, scrape, translate, analyze &mdash; all from one API. Powered by 15 AI models including Claude, GPT-4o, and Gemini. Try it free, no sign-up needed.
   </p>
   <div class="fade-up delay-2" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
     <a href="/try" class="btn-cta">Try It Free &rarr;</a>
-    <a href="/builder" class="btn-cta" style="background:transparent;border:1px solid #00ff9d">Build an Agent</a>
-    <a href="/subscribe" class="btn-cta" style="background:transparent;border:1px solid #4a6070">See Plans</a>
+    <a href="/builder" class="btn-cta" style="background:transparent;border:1px solid #2997ff">Build an Agent</a>
+    <a href="/subscribe" class="btn-cta" style="background:transparent;border:1px solid #86868b">See Plans</a>
   </div>
-  <p class="fade-up delay-2" style="color:#8b949e;font-size:0.85rem;margin-top:14px;font-family:'IBM Plex Sans',sans-serif">
-    <span style="color:#00ff9d;font-weight:600">Free every day</span> &nbsp;&middot;&nbsp; No account required &nbsp;&middot;&nbsp; Plans from $4.99/mo
+  <p class="fade-up delay-2" style="color:#86868b;font-size:0.85rem;margin-top:14px;font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif">
+    <span style="color:#2997ff;font-weight:600">Free every day</span> &nbsp;&middot;&nbsp; No account required &nbsp;&middot;&nbsp; Plans from $4.99/mo
   </p>
 
   <!-- Instant hero demo -->
   <div class="fade-up delay-3" id="hero-demo" style="margin-top:32px;width:100%;max-width:560px">
     <div style="font-size:0.75rem;text-transform:uppercase;letter-spacing:0.15em;color:var(--muted);margin-bottom:10px">See it in action &mdash; type anything</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <input id="demo-input" type="text" value="I love this product but the shipping was slow" style="flex:1;min-width:200px;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:0.85rem;outline:none" onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border)'" aria-label="Text for sentiment analysis">
-      <button id="demo-btn" onclick="runHeroDemo()" style="padding:12px 20px;background:var(--green);color:#000;font-family:'IBM Plex Mono',monospace;font-size:0.85rem;font-weight:700;border:none;cursor:pointer;white-space:nowrap;letter-spacing:0.03em;transition:all 0.2s" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='var(--green)'">Analyze Sentiment &rarr;</button>
+      <input id="demo-input" type="text" value="I love this product but the shipping was slow" style="flex:1;min-width:200px;padding:12px 16px;background:var(--bg2);border:1px solid var(--border);color:var(--text);font-family:'SF Mono','Fira Code',monospace;font-size:0.85rem;outline:none" onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border)'" aria-label="Text for sentiment analysis">
+      <button id="demo-btn" onclick="runHeroDemo()" style="padding:12px 20px;background:var(--green);color:#fff;font-family:'SF Mono','Fira Code',monospace;font-size:0.85rem;font-weight:700;border:none;cursor:pointer;white-space:nowrap;letter-spacing:0.03em;transition:all 0.2s" onmouseover="this.style.background='#fff'" onmouseout="this.style.background='var(--green)'">Analyze Sentiment &rarr;</button>
     </div>
     <div id="demo-result" style="display:none;margin-top:12px;padding:16px;background:var(--bg2);border:1px solid var(--border);font-size:0.85rem;text-align:left;line-height:1.6"></div>
   </div>
@@ -322,24 +319,24 @@
 
 <div class="stats-bar fade-up delay-3" style="display:flex;justify-content:center;gap:40px;flex-wrap:wrap;padding:0 24px 48px;max-width:900px;margin:0 auto">
   <div style="text-align:center">
-    <div id="stat-skills" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">&mdash;</div>
-    <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">AI Skills</div>
+    <div id="stat-skills" style="font-size:2rem;font-weight:700;color:#2997ff;font-family:'SF Mono','Fira Code',monospace">&mdash;</div>
+    <div style="font-size:0.75rem;color:#86868b;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">AI Skills</div>
   </div>
   <div style="text-align:center">
-    <div id="stat-apis" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">&mdash;</div>
-    <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">APIs Indexed</div>
+    <div id="stat-apis" style="font-size:2rem;font-weight:700;color:#2997ff;font-family:'SF Mono','Fira Code',monospace">&mdash;</div>
+    <div style="font-size:0.75rem;color:#86868b;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">APIs Indexed</div>
   </div>
   <div style="text-align:center">
-    <div id="stat-tools" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">250</div>
-    <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">MCP Tools</div>
+    <div id="stat-tools" style="font-size:2rem;font-weight:700;color:#2997ff;font-family:'SF Mono','Fira Code',monospace">250</div>
+    <div style="font-size:0.75rem;color:#86868b;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">MCP Tools</div>
   </div>
   <div style="text-align:center">
-    <div id="stat-agents" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">&mdash;</div>
-    <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">Agents</div>
+    <div id="stat-agents" style="font-size:2rem;font-weight:700;color:#2997ff;font-family:'SF Mono','Fira Code',monospace">&mdash;</div>
+    <div style="font-size:0.75rem;color:#86868b;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">Agents</div>
   </div>
   <div style="text-align:center">
-    <div id="stat-keys" style="font-size:2rem;font-weight:700;color:#00ff9d;font-family:'IBM Plex Mono',monospace">&mdash;</div>
-    <div style="font-size:0.75rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">API Keys</div>
+    <div id="stat-keys" style="font-size:2rem;font-weight:700;color:#2997ff;font-family:'SF Mono','Fira Code',monospace">&mdash;</div>
+    <div style="font-size:0.75rem;color:#86868b;text-transform:uppercase;letter-spacing:0.1em;margin-top:4px">API Keys</div>
   </div>
 </div>
 
@@ -370,7 +367,7 @@
     <div class="step-card fade-up">
       <span class="step-num">01</span>
       <h3>Pick a tool</h3>
-      <p>Choose from 250+ AI tools &mdash; research, writing, code, translation, analysis, scraping, and more.</p>
+      <p>Choose from 65+ AI tools &mdash; research, writing, code, translation, analysis, scraping, and more.</p>
     </div>
     <div class="step-card fade-up delay-1">
       <span class="step-num">02</span>
@@ -387,38 +384,38 @@
 
 <!-- Trust signals -->
 <section style="max-width:900px;margin:0 auto;padding:48px 24px 24px;text-align:center">
-  <div style="font-family:'IBM Plex Mono',monospace;font-size:0.8rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:24px">Trusted &amp; Verified</div>
+  <div style="font-family:'SF Mono','Fira Code',monospace;font-size:0.8rem;color:#86868b;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:24px">Trusted &amp; Verified</div>
   <div style="display:flex;justify-content:center;gap:24px;flex-wrap:wrap">
-    <span style="padding:8px 20px;border:1px solid #0d2030;border-radius:6px;font-size:0.85rem;color:#8b949e">Published on PyPI</span>
-    <span style="padding:8px 20px;border:1px solid #0d2030;border-radius:6px;font-size:0.85rem;color:#8b949e">MCP Registry</span>
-    <span style="padding:8px 20px;border:1px solid #0d2030;border-radius:6px;font-size:0.85rem;color:#8b949e">Stripe Payments</span>
-    <span style="padding:8px 20px;border:1px solid #0d2030;border-radius:6px;font-size:0.85rem;color:#8b949e">1,382 Tests Passed</span>
+    <span style="padding:8px 20px;border:1px solid rgba(28,28,30,0.72);border-radius:6px;font-size:0.85rem;color:#86868b">Published on PyPI</span>
+    <span style="padding:8px 20px;border:1px solid rgba(28,28,30,0.72);border-radius:6px;font-size:0.85rem;color:#86868b">MCP Registry</span>
+    <span style="padding:8px 20px;border:1px solid rgba(28,28,30,0.72);border-radius:6px;font-size:0.85rem;color:#86868b">Stripe Payments</span>
+    <span style="padding:8px 20px;border:1px solid rgba(28,28,30,0.72);border-radius:6px;font-size:0.85rem;color:#86868b">1,382 Tests Passed</span>
   </div>
 </section>
 
 <!-- Pricing preview -->
 <section style="max-width:700px;margin:0 auto;padding:32px 24px 48px">
-  <div style="font-family:'IBM Plex Mono',monospace;font-size:0.8rem;color:#4a6070;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:20px;text-align:center">Simple Pricing</div>
+  <div style="font-family:'SF Mono','Fira Code',monospace;font-size:0.8rem;color:#86868b;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:20px;text-align:center">Simple Pricing</div>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px">
-    <div style="background:#070d14;border:1px solid #00ff9d33;border-radius:8px;padding:16px;text-align:center">
-      <div style="color:#00ff9d;font-size:1.4rem;font-weight:700">Free</div>
-      <div style="color:#4a6070;font-size:0.8rem;margin-top:4px">1 call/day</div>
+    <div style="background:#1c1c1e;border:1px solid #2997ff33;border-radius:8px;padding:16px;text-align:center">
+      <div style="color:#2997ff;font-size:1.4rem;font-weight:700">Free</div>
+      <div style="color:#86868b;font-size:0.8rem;margin-top:4px">1 call/day</div>
     </div>
-    <div style="background:#070d14;border:1px solid #0d2030;border-radius:8px;padding:16px;text-align:center">
-      <div style="color:#00d4ff;font-size:1.4rem;font-weight:700">$4.99</div>
-      <div style="color:#4a6070;font-size:0.8rem;margin-top:4px">Starter /mo</div>
+    <div style="background:#1c1c1e;border:1px solid rgba(28,28,30,0.72);border-radius:8px;padding:16px;text-align:center">
+      <div style="color:#bf5af2;font-size:1.4rem;font-weight:700">$4.99</div>
+      <div style="color:#86868b;font-size:0.8rem;margin-top:4px">Starter /mo</div>
     </div>
-    <div style="background:#070d14;border:1px solid #0d2030;border-radius:8px;padding:16px;text-align:center">
-      <div style="color:#00d4ff;font-size:1.4rem;font-weight:700">$19.99</div>
-      <div style="color:#4a6070;font-size:0.8rem;margin-top:4px">Pro /mo</div>
+    <div style="background:#1c1c1e;border:1px solid rgba(28,28,30,0.72);border-radius:8px;padding:16px;text-align:center">
+      <div style="color:#bf5af2;font-size:1.4rem;font-weight:700">$19.99</div>
+      <div style="color:#86868b;font-size:0.8rem;margin-top:4px">Pro /mo</div>
     </div>
-    <div style="background:#070d14;border:1px solid #0d2030;border-radius:8px;padding:16px;text-align:center">
-      <div style="color:#00d4ff;font-size:1.4rem;font-weight:700">$49.99</div>
-      <div style="color:#4a6070;font-size:0.8rem;margin-top:4px">Enterprise /mo</div>
+    <div style="background:#1c1c1e;border:1px solid rgba(28,28,30,0.72);border-radius:8px;padding:16px;text-align:center">
+      <div style="color:#bf5af2;font-size:1.4rem;font-weight:700">$49.99</div>
+      <div style="color:#86868b;font-size:0.8rem;margin-top:4px">Enterprise /mo</div>
     </div>
   </div>
   <div style="text-align:center;margin-top:16px">
-    <a href="/pricing" style="color:#00ff9d;font-size:0.85rem;text-decoration:none;font-family:'IBM Plex Sans',sans-serif">See full pricing &rarr;</a>
+    <a href="/pricing" style="color:#2997ff;font-size:0.85rem;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif">See full pricing &rarr;</a>
   </div>
 </section>
 
@@ -426,11 +423,11 @@
 
 <!-- Live API Usage Feed -->
 <section style="max-width:1200px;margin:48px auto 0;padding:0 24px;position:relative;z-index:2">
-  <h2 style="font-family:'IBM Plex Mono',monospace;font-size:1.2rem;font-weight:600;color:#fff;margin-bottom:4px;text-align:center">
-    <span style="display:inline-block;width:8px;height:8px;background:#00ff9d;border-radius:50%;box-shadow:0 0 8px #00ff9d;animation:pulse-dot 2s ease-in-out infinite;margin-right:8px"></span>
+  <h2 style="font-family:'SF Mono','Fira Code',monospace;font-size:1.2rem;font-weight:600;color:#fff;margin-bottom:4px;text-align:center">
+    <span style="display:inline-block;width:8px;height:8px;background:#2997ff;border-radius:50%;box-shadow:0 0 8px #2997ff;animation:pulse-dot 2s ease-in-out infinite;margin-right:8px"></span>
     People are using AiPayGen right now
   </h2>
-  <p style="text-align:center;color:#4a6070;font-size:0.82rem;margin-bottom:20px;font-family:'IBM Plex Sans',sans-serif">See what others are creating in real time</p>
+  <p style="text-align:center;color:#86868b;font-size:0.82rem;margin-bottom:20px;font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif">See what others are creating in real time</p>
   <div id="showcaseFeed" style="max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:6px;max-height:320px;overflow:hidden"></div>
 </section>
 <script>
@@ -443,18 +440,18 @@
       var icon=ICONS[e.tool_name]||'\u26a1';
       var secs=(e.response_time_ms/1000).toFixed(1);
       var row=document.createElement('div');
-      row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(7,13,20,0.8);border:1px solid #0d2030;border-radius:6px;font-family:"IBM Plex Mono",monospace;font-size:0.82rem;animation:fadeSlide 0.4s ease';
+      row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(7,13,20,0.8);border:1px solid rgba(28,28,30,0.72);border-radius:6px;font-family:"SF Mono",monospace;font-size:0.82rem;animation:fadeSlide 0.4s ease';
       var iconSpan=document.createElement('span');
       iconSpan.style.fontSize='1.1rem';
       iconSpan.textContent=icon;
       var toolSpan=document.createElement('span');
-      toolSpan.style.cssText='color:#00ff9d;font-weight:600;min-width:80px';
+      toolSpan.style.cssText='color:#2997ff;font-weight:600;min-width:80px';
       toolSpan.textContent=e.tool_name;
       var inputSpan=document.createElement('span');
-      inputSpan.style.cssText='color:#8b949e;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      inputSpan.style.cssText='color:#86868b;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
       inputSpan.textContent='\u2018'+e.input_preview.substring(0,60)+'\u2019';
       var timeSpan=document.createElement('span');
-      timeSpan.style.cssText='color:#00d4ff;font-weight:500;white-space:nowrap';
+      timeSpan.style.cssText='color:#bf5af2;font-weight:500;white-space:nowrap';
       timeSpan.textContent='\u2192 '+secs+'s';
       row.appendChild(iconSpan);
       row.appendChild(toolSpan);
@@ -479,9 +476,9 @@
 {{ footer|safe }}
 
 <!-- Sticky CTA bar -->
-<div id="stickyCta" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:1000;background:rgba(2,4,8,0.95);backdrop-filter:blur(12px);border-top:1px solid rgba(0,255,157,0.15);padding:12px 24px;text-align:center">
-  <span style="color:#c8d8e8;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;margin-right:16px">Plans from <span style="color:#00ff9d;font-weight:600">$4.99/mo</span> &middot; Cancel anytime</span>
-  <a href="/subscribe" style="display:inline-block;padding:8px 24px;background:#00ff9d;color:#020408;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:0.85rem;border-radius:4px;text-decoration:none;letter-spacing:0.03em">GET STARTED</a>
+<div id="stickyCta" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:1000;background:rgba(2,4,8,0.95);backdrop-filter:blur(12px);border-top:1px solid rgba(41,151,255,0.15);padding:12px 24px;text-align:center">
+  <span style="color:#c8d8e8;font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;font-size:0.9rem;margin-right:16px">Plans from <span style="color:#2997ff;font-weight:600">$4.99/mo</span> &middot; Cancel anytime</span>
+  <a href="/subscribe" style="display:inline-block;padding:8px 24px;background:#2997ff;color:#fff;font-family:'SF Mono','Fira Code',monospace;font-weight:700;font-size:0.85rem;border-radius:4px;text-decoration:none;letter-spacing:0.03em">GET STARTED</a>
 </div>
 
 <script>
@@ -535,7 +532,7 @@ function runHeroDemo(){
       ctaSpan.textContent='That took less than a second. ';
       var ctaLink=document.createElement('a');
       ctaLink.href='/try';ctaLink.style.cssText='color:var(--green);text-decoration:underline';
-      ctaLink.textContent='Explore 250+ tools';
+      ctaLink.textContent='Explore 65+ tools';
       ctaSpan.appendChild(ctaLink);
       res.appendChild(ctaSpan);
     })

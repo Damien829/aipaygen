@@ -1,5 +1,5 @@
 """
-AiPayGen MCP Tools Package — 250 tools (metered + free)
+AiPayGen MCP Tools Package — 65+ tools (metered + free)
 
 Split from monolithic mcp_server.py into modular files by category.
 All tools register themselves on the shared `mcp` FastMCP instance.
@@ -66,7 +66,7 @@ _skills_engine = SkillsSearchEngine(_skills_db_path)
 mcp = FastMCP(
     "AiPayGen",
     instructions=(
-        "AiPayGen lets you build, run, and schedule AI agents with 250 tools. "
+        "AiPayGen lets you build, run, and schedule AI agents with 65+ tools. "
         "AGENT BUILDER: Create custom agents from 10 templates (research, monitor, content, sales, support, "
         "data pipeline, security, social, SEO, custom). Schedule agents on loops, cron, or event triggers. "
         "TOOLS: research, write, code, translate, analyze, summarize, vision (image analysis), "
@@ -75,9 +75,9 @@ mcp = FastMCP(
         "persistent agent memory, agent marketplace, 4183 API catalog, 2200+ skills. "
         "15 frontier models across 7 providers (Anthropic, OpenAI, Google, DeepSeek, xAI, Mistral, Together). "
         "\n\n"
-        "GETTING STARTED: Call the generate_api_key tool NOW to get a FREE API key with $0.25 trial credits (~40 calls). "
+        "GETTING STARTED: Call the generate_api_key tool NOW to get a FREE API key with $0.10 trial credits (~16 calls). "
         "Then set AIPAYGEN_API_KEY env var to unlock all tools. "
-        "PRICING: AI tools ~$0.006/call. Utility tools $0.002/call. $0.25 = ~40 calls. "
+        "PRICING: AI tools ~$0.006/call. Utility tools $0.002/call. $0.10 = ~16 calls. "
         "Buy more credits with the buy_credits tool when ready. "
         "All results include _billing metadata with cost and remaining balance."
     ),
@@ -183,12 +183,12 @@ _low_balance_notified: set = set()
 _PURCHASE_ERROR = {
     "error": "api_key_required",
     "message": "API key required. Get started in 2 steps:",
-    "step_1": "Call generate_api_key() — get a key with $0.25 free trial credits",
+    "step_1": "Call generate_api_key() — get a key with $0.10 free trial credits",
     "step_2": "Set AIPAYGEN_API_KEY env var to your key",
     "quick_buy_url": "https://aipaygen.com/buy-credits?amount=5&quick=1",
-    "note": "Most calls cost $0.002-$0.006 each. $0.25 trial = ~40 calls.",
+    "note": "Most calls cost $0.002-$0.006 each. $0.10 trial = ~16 calls.",
     "_free_calls_remaining": 0,
-    "_auto_action": "IMPORTANT: Call the generate_api_key tool NOW to get a free API key with $0.25 trial credits. Then set AIPAYGEN_API_KEY env var to continue.",
+    "_auto_action": "IMPORTANT: Call the generate_api_key tool NOW to get a free API key with $0.10 trial credits. Then set AIPAYGEN_API_KEY env var to continue.",
 }
 
 
@@ -212,7 +212,7 @@ def metered_tool(tier: str = "standard"):
                         identifier = hashlib.sha256(client_id.encode()).hexdigest()[:16]
                         billing["free_calls_remaining"] = get_free_tier_remaining(identifier)
                         billing["daily_limit"] = 0
-                        billing["get_key"] = "Call generate_api_key for FREE $0.25 credits"
+                        billing["get_key"] = "Call generate_api_key for FREE $0.10 credits"
                     result["_billing"] = billing
                 try:
                     _log_tool_usage(fn.__name__, api_key or "free")

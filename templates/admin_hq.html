@@ -9,16 +9,16 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #0a0a0a; color: #e8e8e8; padding: 0; -webkit-tap-highlight-color: transparent; }
   .wrap { max-width: 960px; margin: 0 auto; padding: 16px; }
-  header { background: linear-gradient(135deg, #0d1117 0%, #141422 100%); border-bottom: 1px solid #1e2a3a; padding: 20px 16px 14px; position: sticky; top: 0; z-index: 50; }
+  header { background: linear-gradient(135deg, #1c1c1e 0%, #141422 100%); border-bottom: 1px solid #1e2a3a; padding: 20px 16px 14px; position: sticky; top: 0; z-index: 50; }
   header h1 { font-size: 1.25rem; letter-spacing: -0.3px; }
-  header h1 span { color: #00ff9d; }
+  header h1 span { color: #2997ff; }
   .sub { color: #555; font-size: 0.72rem; margin-top: 2px; }
 
   /* TABS */
-  .tabs { display: flex; gap: 0; background: #0d1117; border-bottom: 1px solid #1e2a3a; overflow-x: auto; -webkit-overflow-scrolling: touch; position: sticky; top: 58px; z-index: 49; }
+  .tabs { display: flex; gap: 0; background: #1c1c1e; border-bottom: 1px solid #1e2a3a; overflow-x: auto; -webkit-overflow-scrolling: touch; position: sticky; top: 58px; z-index: 49; }
   .tab { padding: 12px 20px; cursor: pointer; font-size: 0.82rem; font-weight: 600; color: #666; border-bottom: 2.5px solid transparent; transition: all 0.15s; white-space: nowrap; user-select: none; -webkit-user-select: none; }
   .tab:active { transform: scale(0.97); }
-  .tab.active { color: #00ff9d; border-bottom-color: #00ff9d; }
+  .tab.active { color: #2997ff; border-bottom-color: #2997ff; }
   .badge { background: #ef4444; color: #fff; border-radius: 10px; padding: 1px 7px; font-size: 0.62rem; margin-left: 5px; font-weight: 700; vertical-align: top; }
 
   /* SECTIONS */
@@ -34,13 +34,13 @@
   .kpi { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
   .ki { background: #111318; border: 1px solid #1e2530; border-radius: 12px; padding: 14px 12px; }
   .kv { font-size: 1.35rem; font-weight: 800; letter-spacing: -0.5px; }
-  .kv.g { color: #00ff9d; } .kv.b { color: #818cf8; } .kv.a { color: #fbbf24; } .kv.r { color: #ef4444; } .kv.w { color: #e8e8e8; }
+  .kv.g { color: #2997ff; } .kv.b { color: #818cf8; } .kv.a { color: #fbbf24; } .kv.r { color: #ef4444; } .kv.w { color: #e8e8e8; }
   .kl { font-size: 0.65rem; color: #555; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; }
 
   /* PERIOD SELECTOR */
   .period { display: flex; gap: 6px; margin-bottom: 14px; }
   .period a { padding: 6px 14px; border-radius: 8px; background: #161b22; color: #888; text-decoration: none; font-size: 0.78rem; font-weight: 600; border: 1px solid #1e2530; transition: all 0.15s; }
-  .period a.act { background: #00ff9d; color: #000; border-color: #00ff9d; }
+  .period a.act { background: #2997ff; color: #fff; border-color: #2997ff; }
 
   /* TABLES */
   table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
@@ -155,7 +155,7 @@
     {{ other|safe }}
     <div class="card">
       <h2>Key Attribution</h2>
-      <p style="color:#8b949e;margin-bottom:10px;font-size:0.82rem">Median time to first call: <b style="color:#00ff9d">{{ median_label }}</b></p>
+      <p style="color:#8b949e;margin-bottom:10px;font-size:0.82rem">Median time to first call: <b style="color:#2997ff">{{ median_label }}</b></p>
       <div style="overflow-x:auto">
         <table><tr><th>Source</th><th>Keys</th><th>0 Calls</th><th>Active</th><th>Rate</th></tr>{{ key_stats|safe }}</table>
       </div>
@@ -179,7 +179,7 @@
       <h2>Recent Tickets</h2>
       {{ tickets|safe }}
       <p style="text-align:center;margin-top:14px">
-        <a href="/admin/support" style="color:#00ff9d;font-size:0.82rem;font-weight:600;text-decoration:none">Open full support dashboard &rarr;</a>
+        <a href="/admin/support" style="color:#2997ff;font-size:0.82rem;font-weight:600;text-decoration:none">Open full support dashboard &rarr;</a>
       </p>
     </div>
   </div>
@@ -232,15 +232,15 @@
       <h2>System Resources</h2>
       <div style="margin-bottom:14px">
         <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px"><span style="color:#8b949e">Memory</span><span style="font-weight:600">{{ health.mem }}</span></div>
-        <div style="height:8px;background:#161b22;border-radius:4px;overflow:hidden"><div style="height:100%;width:{{ health.mem_val }}%;background:{% if health.mem_val < 70 %}#00ff9d{% elif health.mem_val < 85 %}#fbbf24{% else %}#ef4444{% endif %};border-radius:4px"></div></div>
+        <div style="height:8px;background:#161b22;border-radius:4px;overflow:hidden"><div style="height:100%;width:{{ health.mem_val }}%;background:{% if health.mem_val < 70 %}#2997ff{% elif health.mem_val < 85 %}#fbbf24{% else %}#ef4444{% endif %};border-radius:4px"></div></div>
       </div>
       <div style="margin-bottom:14px">
         <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px"><span style="color:#8b949e">CPU</span><span style="font-weight:600">{{ health.cpu }}</span></div>
-        <div style="height:8px;background:#161b22;border-radius:4px;overflow:hidden"><div style="height:100%;width:{{ health.cpu_val }}%;background:{% if health.cpu_val < 70 %}#00ff9d{% elif health.cpu_val < 90 %}#fbbf24{% else %}#ef4444{% endif %};border-radius:4px"></div></div>
+        <div style="height:8px;background:#161b22;border-radius:4px;overflow:hidden"><div style="height:100%;width:{{ health.cpu_val }}%;background:{% if health.cpu_val < 70 %}#2997ff{% elif health.cpu_val < 90 %}#fbbf24{% else %}#ef4444{% endif %};border-radius:4px"></div></div>
       </div>
       <div>
         <div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px"><span style="color:#8b949e">Disk</span><span style="font-weight:600">{{ health.disk_free }} free ({{ health.disk_pct }}% used)</span></div>
-        <div style="height:8px;background:#161b22;border-radius:4px;overflow:hidden"><div style="height:100%;width:{{ health.disk_pct }}%;background:{% if health.disk_pct < 70 %}#00ff9d{% elif health.disk_pct < 85 %}#fbbf24{% else %}#ef4444{% endif %};border-radius:4px"></div></div>
+        <div style="height:8px;background:#161b22;border-radius:4px;overflow:hidden"><div style="height:100%;width:{{ health.disk_pct }}%;background:{% if health.disk_pct < 70 %}#2997ff{% elif health.disk_pct < 85 %}#fbbf24{% else %}#ef4444{% endif %};border-radius:4px"></div></div>
       </div>
     </div>
   </div>

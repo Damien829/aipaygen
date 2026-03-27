@@ -850,7 +850,7 @@ def call_model(
     if result is None and _is_free:
         raise ModelNotFoundError(
             "Free tier model is temporarily unavailable. "
-            "Get an API key for $0.25 trial credits: POST /auth/generate-key"
+            "Get an API key for $0.10 trial credits: POST /auth/generate-key"
         )
     if result is None:
         fallback = _get_fallback_model(canonical)

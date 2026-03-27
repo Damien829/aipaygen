@@ -1,24 +1,24 @@
 {% extends "base.html" %}
 
-{% block title %}5 Things You Can Build with 250 AI Tools{% endblock %}
-{% block description %}Practical projects you can build today with AiPayGen's 250+ AI tools — content pipelines, competitor monitors, code reviewers, chatbots, and research assistants. Includes working code examples.{% endblock %}
+{% block title %}5 Things You Can Build with 65+ AI Tools{% endblock %}
+{% block description %}Practical projects you can build today with AiPayGen's 65+ AI tools — content pipelines, competitor monitors, code reviewers, chatbots, and research assistants. Includes working code examples.{% endblock %}
 {% block canonical %}/blog/5-things-you-can-build{% endblock %}
 
 {% block head %}
 <meta property="og:type" content="article">
-<meta property="og:title" content="5 Things You Can Build with 250 AI Tools">
+<meta property="og:title" content="5 Things You Can Build with 65+ AI Tools">
 <meta property="og:description" content="Practical projects with working code examples — content pipelines, competitor monitors, code reviewers, chatbots, and research assistants.">
 <meta property="og:url" content="https://aipaygen.com/blog/5-things-you-can-build">
 <meta property="og:image" content="https://aipaygen.com/og-image.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="5 Things You Can Build with 250 AI Tools">
+<meta name="twitter:title" content="5 Things You Can Build with 65+ AI Tools">
 <meta name="twitter:description" content="Practical projects with working code examples — content pipelines, competitor monitors, and more.">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
   "@type": "BlogPosting",
-  "headline": "5 Things You Can Build with 250 AI Tools",
-  "description": "Practical projects you can build today with AiPayGen's 250+ AI tools.",
+  "headline": "5 Things You Can Build with 65+ AI Tools",
+  "description": "Practical projects you can build today with AiPayGen's 65+ AI tools.",
   "url": "https://aipaygen.com/blog/5-things-you-can-build",
   "datePublished": "2026-03-15",
   "author": {"@type": "Person", "name": "Damien"},
@@ -27,28 +27,28 @@
 </script>
 <style>
   .blog-post { max-width: 740px; margin: 0 auto; padding: 3rem 1.5rem; }
-  .blog-post h1 { font-family: 'IBM Plex Sans', sans-serif; font-size: 2.2rem; font-weight: 700; color: #fff; line-height: 1.25; margin-bottom: 0.5rem; }
+  .blog-post h1 { font-family: var(--font-sans), sans-serif; font-size: 2.2rem; font-weight: 700; color: #fff; line-height: 1.25; margin-bottom: 0.5rem; }
   .blog-meta { color: var(--text-muted, #4a6070); font-size: 0.85rem; margin-bottom: 2.5rem; }
-  .blog-post h2 { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.4rem; color: #fff; margin: 2.5rem 0 1rem; }
-  .blog-post h3 { font-family: 'IBM Plex Sans', sans-serif; font-size: 1.1rem; color: var(--green, #00ff9d); margin: 2rem 0 0.75rem; }
+  .blog-post h2 { font-family: var(--font-sans), sans-serif; font-size: 1.4rem; color: #fff; margin: 2.5rem 0 1rem; }
+  .blog-post h3 { font-family: var(--font-sans), sans-serif; font-size: 1.1rem; color: var(--green, #2997ff); margin: 2rem 0 0.75rem; }
   .blog-post p { line-height: 1.75; margin-bottom: 1.25rem; color: var(--text, #c8d8e8); }
   .blog-post ul, .blog-post ol { margin: 1rem 0 1.5rem 1.5rem; line-height: 1.75; color: var(--text, #c8d8e8); }
   .blog-post li { margin-bottom: 0.5rem; }
-  .blog-post a { color: var(--green, #00ff9d); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
-  .blog-post a:hover { border-bottom-color: var(--green, #00ff9d); }
+  .blog-post a { color: var(--green, #2997ff); text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.2s; }
+  .blog-post a:hover { border-bottom-color: var(--green, #2997ff); }
   .blog-post code { background: rgba(0,136,255,0.1); padding: 2px 6px; border-radius: 3px; font-size: 0.9em; }
-  .blog-post pre { background: var(--bg2, #070d14); border: 1px solid var(--border, #0d2030); border-radius: 8px; padding: 1.25rem; overflow-x: auto; margin: 1.25rem 0; }
+  .blog-post pre { background: var(--bg2, #1c1c1e); border: 1px solid var(--border, rgba(28,28,30,0.72)); border-radius: 12px; padding: 1.25rem; overflow-x: auto; margin: 1.25rem 0; }
   .blog-post pre code { background: none; padding: 0; }
-  .blog-callout { background: rgba(0,255,157,0.05); border: 1px solid rgba(0,255,157,0.15); border-radius: 8px; padding: 1.25rem 1.5rem; margin: 2rem 0; }
-  .blog-callout strong { color: var(--green, #00ff9d); }
-  .blog-cta { display: inline-block; background: var(--green, #00ff9d); color: #020408; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; border: none; margin: 0.5rem 0.5rem 0.5rem 0; transition: opacity 0.2s; }
+  .blog-callout { background: rgba(41,151,255,0.05); border: 1px solid rgba(41,151,255,0.15); border-radius: 12px; padding: 1.25rem 1.5rem; margin: 2rem 0; }
+  .blog-callout strong { color: var(--green, #2997ff); }
+  .blog-cta { display: inline-block; background: var(--green, #2997ff); color: #fff; font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 980px; text-decoration: none; border: none; margin: 0.5rem 0.5rem 0.5rem 0; transition: opacity 0.2s; }
   .blog-cta:hover { opacity: 0.85; border-bottom: none; }
-  .blog-cta-secondary { display: inline-block; border: 1px solid var(--green, #00ff9d); color: var(--green, #00ff9d); font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; margin: 0.5rem 0.5rem 0.5rem 0; transition: background 0.2s; }
-  .blog-cta-secondary:hover { background: rgba(0,255,157,0.1); border-bottom: none; }
+  .blog-cta-secondary { display: inline-block; border: 1px solid var(--green, #2997ff); color: var(--green, #2997ff); font-weight: 600; padding: 0.75rem 1.5rem; border-radius: 980px; text-decoration: none; margin: 0.5rem 0.5rem 0.5rem 0; transition: background 0.2s; }
+  .blog-cta-secondary:hover { background: rgba(41,151,255,0.1); border-bottom: none; }
   .blog-nav { color: var(--text-muted, #4a6070); font-size: 0.9rem; margin-bottom: 2rem; }
   .blog-nav a { color: var(--text-muted, #4a6070); }
-  .blog-nav a:hover { color: var(--green, #00ff9d); }
-  .project-num { display: inline-block; background: var(--green, #00ff9d); color: #020408; font-weight: 700; width: 2rem; height: 2rem; line-height: 2rem; text-align: center; border-radius: 50%; margin-right: 0.5rem; font-size: 0.95rem; }
+  .blog-nav a:hover { color: var(--green, #2997ff); }
+  .project-num { display: inline-block; background: var(--green, #2997ff); color: #fff; font-weight: 700; width: 2rem; height: 2rem; line-height: 2rem; text-align: center; border-radius: 50%; margin-right: 0.5rem; font-size: 0.95rem; }
   @media (max-width: 600px) {
     .blog-post h1 { font-size: 1.6rem; }
   }
@@ -61,12 +61,12 @@
     <a href="/blog">&larr; All posts</a> &middot; <a href="/">AiPayGen</a>
   </div>
 
-  <h1>5 Things You Can Build with 250 AI Tools</h1>
+  <h1>5 Things You Can Build with 65+ AI Tools</h1>
   <p class="blog-meta">March 15, 2026 &middot; 7 min read</p>
 
-  <p>AiPayGen gives you 250 tools behind a single API. But what do you actually <em>build</em> with that? Here are five practical projects, each with working code you can run today.</p>
+  <p>AiPayGen gives you 65+ tools behind a single API. But what do you actually <em>build</em> with that? Here are five practical projects, each with working code you can run today.</p>
 
-  <p>Every example uses the same API base: <code>https://api.aipaygen.com</code>. The first call per day is free, no key needed. For heavier usage, <a href="/buy-credits">grab an API key from $1</a>.</p>
+  <p>Every example uses the same API base: <code>https://api.aipaygen.com</code>. 1 free call/day, no signup needed. For heavier usage, <a href="/buy-credits">grab an API key from $1</a>.</p>
 
   <h2><span class="project-num">1</span> Content Pipeline</h2>
 
@@ -242,7 +242,7 @@ print(recall)</code></pre>
   <p>The <code>/research</code> endpoint does multi-source web research with AI synthesis. Combined with <code>/extract</code> and the memory endpoints, you get a persistent, queryable knowledge graph.</p>
 
   <div class="blog-callout">
-    <strong>All five projects use the same API key.</strong> No separate subscriptions for translation, scraping, code analysis, or research. One key, one balance, 250 tools.
+    <strong>All five projects use the same API key.</strong> No separate subscriptions for translation, scraping, code analysis, or research. One key, one balance, 65+ tools.
   </div>
 
   <h2>What's the cost?</h2>
@@ -264,7 +264,7 @@ print(recall)</code></pre>
   <div style="margin: 2.5rem 0;">
     <a href="/try" class="blog-cta">Try Free in Browser</a>
     <a href="/buy-credits" class="blog-cta-secondary">Get API Key ($1)</a>
-    <a href="/discover" class="blog-cta-secondary">Browse All 250 Tools</a>
+    <a href="/discover" class="blog-cta-secondary">Browse All 65+ Tools</a>
   </div>
 
   <p style="color:var(--text-muted);font-size:0.85rem;">Published March 15, 2026 &middot; <a href="/blog">All posts</a> &middot; <a href="/feed.xml">RSS feed</a></p>

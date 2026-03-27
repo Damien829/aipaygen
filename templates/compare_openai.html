@@ -1,0 +1,652 @@
+{% extends "base.html" %}
+{% block title %}AiPayGen vs OpenAI API — Detailed Comparison 2026{% endblock %}
+{% block description %}AiPayGen vs OpenAI API: honest comparison. Pre-built tools vs raw inference. $0.50 minimum vs $5. Web scraping, MCP support, crypto payments vs GPT ecosystem. Find which fits your needs.{% endblock %}
+{% block canonical %}/compare/openai{% endblock %}
+
+{% block head %}
+<meta property="og:type" content="article">
+<meta property="og:title" content="AiPayGen vs OpenAI API — Detailed Comparison 2026">
+<meta property="og:description" content="Honest comparison: AiPayGen's 65+ pre-built tools vs OpenAI's raw GPT inference. Pricing, features, and use cases compared.">
+<meta property="og:url" content="https://aipaygen.com/compare/openai">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AiPayGen vs OpenAI API — 2026 Comparison">
+<meta name="twitter:description" content="AiPayGen vs OpenAI API: pre-built tools vs raw inference. Lower minimums vs larger ecosystem. Full breakdown.">
+<meta name="robots" content="index, follow">
+<meta name="keywords" content="OpenAI API alternative, cheaper than OpenAI, AiPayGen vs OpenAI, OpenAI competitor, AI API comparison, cheaper AI API, OpenAI alternative 2026, GPT alternative API">
+
+<script type="application/ld+json">
+[{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "AiPayGen vs OpenAI API — Detailed Comparison",
+  "description": "Head-to-head comparison of AiPayGen and OpenAI API covering features, pricing, tools, and developer experience.",
+  "url": "https://aipaygen.com/compare/openai",
+  "dateModified": "2026-03-26",
+  "publisher": {
+    "@type": "Organization",
+    "name": "AiPayGen",
+    "url": "https://aipaygen.com"
+  }
+},{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is AiPayGen cheaper than OpenAI API?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "It depends on your use case. AiPayGen's per-call pricing ($0.01-$0.05/call) is simpler and often cheaper for structured tasks like sentiment analysis and web scraping. OpenAI's token-based pricing can be cheaper for short prompts but scales up quickly for longer conversations. AiPayGen's minimum purchase is $0.50 vs OpenAI's $5."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can AiPayGen replace OpenAI API?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "AiPayGen can replace OpenAI for many use cases, especially those involving pre-built tools like sentiment analysis, web scraping, code generation, and research. However, if you need direct access to GPT models, function calling with custom schemas, or the OpenAI-specific ecosystem (Assistants API, DALL-E, Whisper), you should stick with OpenAI."
+      }
+    }
+  ]
+}]
+</script>
+
+<style>
+/* Versus page styles */
+.vs-hero {
+  text-align: center;
+  padding: 100px 24px 60px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.vs-hero h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
+}
+.vs-hero h1 .accent { color: var(--accent, #2997ff); }
+.vs-hero h1 .dim { color: var(--text-secondary, #86868b); }
+.vs-hero .subtitle {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  max-width: 640px;
+  margin: 0 auto 12px;
+}
+.vs-hero .updated {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Nav */
+.vs-nav {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 0 24px 48px;
+}
+.vs-nav a {
+  padding: 8px 20px;
+  border: 1px solid var(--border, rgba(41,151,255,0.1));
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  transition: all var(--transition, 0.3s);
+}
+.vs-nav a:hover, .vs-nav a.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim, rgba(41,151,255,0.08));
+}
+
+/* TLDR */
+.tldr-box {
+  max-width: 800px;
+  margin: 0 auto 60px;
+  padding: 0 24px;
+}
+.tldr-card {
+  background: var(--bg-elevated, #1c1c1e);
+  border: 1px solid var(--accent, #2997ff);
+  border-radius: 20px;
+  padding: 32px;
+}
+.tldr-card h2 {
+  font-size: 1rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+}
+.tldr-card p {
+  color: var(--text);
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+.tldr-card p strong { color: #fff; }
+
+/* Key diffs */
+.key-diffs {
+  max-width: 900px;
+  margin: 0 auto 60px;
+  padding: 0 24px;
+}
+.key-diffs h2 {
+  font-size: 1.5rem;
+  color: #fff;
+  margin-bottom: 24px;
+}
+.diff-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+.diff-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px;
+}
+.diff-card h3 {
+  font-size: 0.92rem;
+  color: #fff;
+  margin-bottom: 8px;
+}
+.diff-card p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Feature table */
+.feature-section {
+  max-width: 900px;
+  margin: 0 auto 60px;
+  padding: 0 24px;
+  overflow-x: auto;
+}
+.feature-section h2 {
+  font-size: 1.5rem;
+  color: #fff;
+  margin-bottom: 24px;
+}
+.feature-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  min-width: 600px;
+}
+.feature-table thead { background: var(--bg-elevated); }
+.feature-table th {
+  padding: 14px 20px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--border);
+}
+.feature-table th:first-child { width: 40%; }
+.feature-table td {
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: var(--text);
+}
+.feature-table tbody tr:hover { background: rgba(41,151,255,0.03); }
+.feature-table .cat-row td {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-top: 24px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(41,151,255,0.02);
+}
+.yes { color: var(--accent, #2997ff); font-weight: 600; }
+.no { color: var(--text-muted, #48484a); }
+.partial { color: var(--warning, #d29922); }
+
+/* Pricing examples */
+.pricing-examples {
+  max-width: 900px;
+  margin: 0 auto 60px;
+  padding: 0 24px;
+}
+.pricing-examples h2 {
+  font-size: 1.5rem;
+  color: #fff;
+  margin-bottom: 8px;
+}
+.pricing-examples .section-desc {
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  font-size: 0.92rem;
+}
+.pricing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.pricing-example-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px;
+}
+.pricing-example-card h3 {
+  font-size: 0.95rem;
+  color: #fff;
+  margin-bottom: 16px;
+}
+.pricing-example-card .line {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 0.85rem;
+}
+.pricing-example-card .line .label { color: var(--text-secondary); }
+.pricing-example-card .line .value { color: var(--text); font-family: var(--font-mono); }
+.pricing-example-card .total {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.pricing-example-card .total .label { color: #fff; }
+.pricing-example-card .total .value { color: var(--accent); font-family: var(--font-mono); }
+
+/* When to use */
+.when-to-use {
+  max-width: 900px;
+  margin: 0 auto 60px;
+  padding: 0 24px;
+}
+.when-to-use h2 {
+  font-size: 1.5rem;
+  color: #fff;
+  margin-bottom: 24px;
+}
+.when-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.when-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 28px;
+}
+.when-card h3 {
+  font-size: 1rem;
+  color: #fff;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.when-card h3 .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.when-card ul {
+  list-style: none;
+  padding: 0;
+}
+.when-card ul li {
+  padding: 6px 0;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  padding-left: 16px;
+  position: relative;
+}
+.when-card ul li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 14px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border-hover);
+}
+
+/* CTA */
+.cta-section {
+  text-align: center;
+  padding: 80px 24px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+.cta-section h2 {
+  font-size: 1.8rem;
+  color: #fff;
+  margin-bottom: 12px;
+}
+.cta-section p {
+  color: var(--text-secondary);
+  margin-bottom: 28px;
+  font-size: 1rem;
+}
+.cta-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.btn-primary {
+  display: inline-block;
+  padding: 14px 32px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 980px;
+  font-size: 0.95rem;
+  transition: all var(--transition);
+}
+.btn-primary:hover { background: #fff; color: #000; transform: translateY(-1px); }
+.btn-secondary {
+  display: inline-block;
+  padding: 14px 32px;
+  background: transparent;
+  color: var(--text);
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 980px;
+  font-size: 0.95rem;
+  transition: all var(--transition);
+}
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+@media (max-width: 768px) {
+  .vs-hero { padding: 80px 20px 40px; }
+  .vs-hero h1 { font-size: 1.7rem; }
+  .pricing-grid, .when-grid { grid-template-columns: 1fr; }
+  .diff-grid { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<section class="vs-hero">
+  <h1><span class="accent">AiPayGen</span> <span class="dim">vs</span> OpenAI API</h1>
+  <p class="subtitle">An honest comparison of two different approaches to AI. Pre-built tools with flat pricing vs raw model inference with token-based billing.</p>
+  <p class="updated">Last updated: March 2026</p>
+</section>
+
+<!-- Nav -->
+<div class="vs-nav">
+  <a href="/compare">All Providers</a>
+  <a href="/compare/openai" class="active">vs OpenAI</a>
+  <a href="/compare/openrouter">vs OpenRouter</a>
+</div>
+
+<!-- TL;DR -->
+<section class="tldr-box">
+  <div class="tldr-card">
+    <h2>TL;DR</h2>
+    <p><strong>AiPayGen</strong> wraps multiple AI models into 65+ ready-to-use tools with simple per-call pricing ($0.01&ndash;$0.05/call). No prompt engineering needed. Includes web scraping, RAG, MCP support, and crypto payments. <strong>OpenAI API</strong> gives you direct access to GPT-4o, o1, DALL-E, Whisper, and the full OpenAI ecosystem with token-based pricing. If you want pre-built capabilities and simplicity, AiPayGen saves you development time. If you need direct GPT model access or OpenAI-specific features (Assistants, fine-tuning, image generation), stick with OpenAI.</p>
+  </div>
+</section>
+
+<!-- Key Differences -->
+<section class="key-diffs">
+  <h2>Key Differences</h2>
+  <div class="diff-grid">
+    <div class="diff-card">
+      <h3>Pre-built Tools vs Raw Inference</h3>
+      <p>AiPayGen ships 65+ tools ready to call: sentiment analysis, code gen, research, scraping, translation, and more. No prompt engineering required. OpenAI gives you raw model access and you build the logic yourself.</p>
+    </div>
+    <div class="diff-card">
+      <h3>Web Scraping Included</h3>
+      <p>AiPayGen can scrape websites, YouTube transcripts, Twitter/X posts, Instagram profiles, and Google Maps listings. OpenAI has no built-in scraping capability.</p>
+    </div>
+    <div class="diff-card">
+      <h3>Lower Barrier to Entry</h3>
+      <p>AiPayGen starts at $0.50 minimum purchase with $0.10 in free trial credits. OpenAI requires a $5 minimum deposit. AiPayGen also accepts crypto (USDC via x402).</p>
+    </div>
+    <div class="diff-card">
+      <h3>Simpler Pricing</h3>
+      <p>AiPayGen charges flat rates per tool call ($0.01 for sentiment, $0.02 for code, etc.). No token counting. OpenAI charges per input/output token, which varies by model and prompt length.</p>
+    </div>
+    <div class="diff-card">
+      <h3>OpenAI: Larger Ecosystem</h3>
+      <p>OpenAI has the GPT Store, Assistants API, DALL-E, Whisper, fine-tuning, embeddings, and the most comprehensive AI documentation available. This ecosystem is hard to match.</p>
+    </div>
+    <div class="diff-card">
+      <h3>OpenAI: Direct Model Access</h3>
+      <p>With OpenAI, you get direct access to the latest GPT models with full parameter control (temperature, top_p, function calling schemas). AiPayGen abstracts this away for simplicity.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Feature Comparison -->
+<section class="feature-section">
+  <h2>Feature Comparison</h2>
+  <table class="feature-table" role="table" aria-label="AiPayGen vs OpenAI API Feature Comparison">
+    <thead>
+      <tr>
+        <th scope="col">Feature</th>
+        <th scope="col">AiPayGen</th>
+        <th scope="col">OpenAI API</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="cat-row"><td colspan="3">AI Models</td></tr>
+      <tr>
+        <td>Models Available</td>
+        <td>15 models (Claude, GPT-4o, Gemini, DeepSeek, Grok, Llama)</td>
+        <td class="yes">GPT-4o, GPT-4 Turbo, o1, o3-mini, GPT-3.5 Turbo</td>
+      </tr>
+      <tr>
+        <td>Image Generation</td>
+        <td class="no">Not available</td>
+        <td class="yes">DALL-E 2 &amp; 3</td>
+      </tr>
+      <tr>
+        <td>Speech-to-Text</td>
+        <td class="no">Not available</td>
+        <td class="yes">Whisper</td>
+      </tr>
+      <tr>
+        <td>Fine-tuning</td>
+        <td class="no">Not available</td>
+        <td class="yes">GPT-3.5, GPT-4o mini</td>
+      </tr>
+      <tr>
+        <td>Embeddings</td>
+        <td class="no">Not directly</td>
+        <td class="yes">text-embedding-3-small/large</td>
+      </tr>
+
+      <tr class="cat-row"><td colspan="3">Built-in Tools</td></tr>
+      <tr>
+        <td>Sentiment Analysis</td>
+        <td class="yes">$0.01/call, dedicated tool</td>
+        <td class="partial">Via prompting (you build it)</td>
+      </tr>
+      <tr>
+        <td>Code Generation</td>
+        <td class="yes">$0.02/call, dedicated tool</td>
+        <td class="partial">Via prompting (you build it)</td>
+      </tr>
+      <tr>
+        <td>Research / Deep Search</td>
+        <td class="yes">$0.05/call, multi-source</td>
+        <td class="no">No built-in research</td>
+      </tr>
+      <tr>
+        <td>Web Scraping</td>
+        <td class="yes">Websites, YouTube, Twitter, Maps</td>
+        <td class="no">Not available</td>
+      </tr>
+      <tr>
+        <td>RAG / Knowledge Base</td>
+        <td class="yes">Built-in</td>
+        <td class="partial">Assistants API (vector store)</td>
+      </tr>
+      <tr>
+        <td>Translation</td>
+        <td class="yes">Dedicated tool</td>
+        <td class="partial">Via prompting</td>
+      </tr>
+      <tr>
+        <td>Vision / Image Analysis</td>
+        <td class="yes">Built-in tool</td>
+        <td class="yes">GPT-4o Vision</td>
+      </tr>
+
+      <tr class="cat-row"><td colspan="3">Developer Experience</td></tr>
+      <tr>
+        <td>MCP Server</td>
+        <td class="yes">Native MCP server</td>
+        <td class="no">No MCP support</td>
+      </tr>
+      <tr>
+        <td>OpenAI-compatible API</td>
+        <td class="no">Custom API format</td>
+        <td class="yes">The standard</td>
+      </tr>
+      <tr>
+        <td>Function Calling</td>
+        <td class="no">Pre-built tools instead</td>
+        <td class="yes">Full function calling schemas</td>
+      </tr>
+      <tr>
+        <td>Streaming</td>
+        <td class="yes">SSE streaming</td>
+        <td class="yes">SSE streaming</td>
+      </tr>
+      <tr>
+        <td>SDK / Libraries</td>
+        <td>Python (PyPI)</td>
+        <td class="yes">Python, Node.js, .NET, Go, Java</td>
+      </tr>
+      <tr>
+        <td>Playground</td>
+        <td class="yes">Built-in playground + consumer app</td>
+        <td class="yes">Comprehensive playground</td>
+      </tr>
+      <tr>
+        <td>Documentation</td>
+        <td>Growing docs</td>
+        <td class="yes">Industry-leading documentation</td>
+      </tr>
+
+      <tr class="cat-row"><td colspan="3">Pricing &amp; Payments</td></tr>
+      <tr>
+        <td>Pricing Model</td>
+        <td>Flat per-call pricing</td>
+        <td>Per input/output token</td>
+      </tr>
+      <tr>
+        <td>Minimum Purchase</td>
+        <td class="yes">$0.50</td>
+        <td>$5.00</td>
+      </tr>
+      <tr>
+        <td>Free Tier</td>
+        <td class="yes">$0.10 trial + ad-supported</td>
+        <td class="partial">Limited free tier</td>
+      </tr>
+      <tr>
+        <td>Crypto Payments</td>
+        <td class="yes">USDC via x402</td>
+        <td class="no">No</td>
+      </tr>
+      <tr>
+        <td>Subscription Plans</td>
+        <td class="yes">$4.99 / $19.99 / $49.99 per month</td>
+        <td class="no">Credit-based only (API)</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- Pricing Examples -->
+<section class="pricing-examples">
+  <h2>Pricing Examples</h2>
+  <p class="section-desc">Same workload, different pricing models. See how costs compare.</p>
+  <div class="pricing-grid">
+    <div class="pricing-example-card">
+      <h3>AiPayGen Cost</h3>
+      <div class="line"><span class="label">1,000 sentiment calls</span><span class="value">$10.00</span></div>
+      <div class="line"><span class="label">500 code gen calls</span><span class="value">$10.00</span></div>
+      <div class="line"><span class="label">200 research calls</span><span class="value">$10.00</span></div>
+      <div class="line"><span class="label">300 web scraping calls</span><span class="value">$12.00</span></div>
+      <div class="total"><span class="label">Total monthly</span><span class="value">$42.00</span></div>
+    </div>
+    <div class="pricing-example-card">
+      <h3>OpenAI API Cost (GPT-4o estimate)</h3>
+      <div class="line"><span class="label">1,000 sentiment calls</span><span class="value">~$6.00</span></div>
+      <div class="line"><span class="label">500 code gen calls</span><span class="value">~$15.00</span></div>
+      <div class="line"><span class="label">200 research calls</span><span class="value">~$12.00</span></div>
+      <div class="line"><span class="label">300 web scraping calls</span><span class="value">N/A</span></div>
+      <div class="total"><span class="label">Total monthly</span><span class="value">~$33.00*</span></div>
+    </div>
+  </div>
+  <p style="font-size:0.78rem;color:var(--text-muted);margin-top:12px;">* OpenAI estimate based on GPT-4o pricing (~$5/M input, $15/M output tokens). Assumes ~500 input + ~200 output tokens per call. Does not include scraping (unavailable on OpenAI). Actual costs vary significantly by prompt length and model choice.</p>
+</section>
+
+<!-- When to Use -->
+<section class="when-to-use">
+  <h2>When to Use Each</h2>
+  <div class="when-grid">
+    <div class="when-card">
+      <h3><span class="dot" style="background:var(--accent)"></span>Choose AiPayGen when you need:</h3>
+      <ul>
+        <li>Ready-to-use tools without writing prompts or building logic</li>
+        <li>Web scraping (websites, YouTube, Twitter, Instagram, Maps)</li>
+        <li>Simple per-call pricing without counting tokens</li>
+        <li>MCP server integration for AI assistants</li>
+        <li>Crypto payments via x402 / USDC</li>
+        <li>A low entry point ($0.50 minimum, free trial credits)</li>
+        <li>Multi-model access (Claude, GPT, Gemini, etc.) from one API</li>
+        <li>Visual workflow builder for chaining multiple tools</li>
+      </ul>
+    </div>
+    <div class="when-card">
+      <h3><span class="dot" style="background:var(--accent2, #bf5af2)"></span>Choose OpenAI API when you need:</h3>
+      <ul>
+        <li>Direct access to GPT-4o, o1, and the latest OpenAI models</li>
+        <li>Image generation with DALL-E</li>
+        <li>Speech-to-text with Whisper</li>
+        <li>Fine-tuning models on your own data</li>
+        <li>Custom function calling schemas for complex applications</li>
+        <li>The largest AI developer ecosystem and community</li>
+        <li>Industry-leading documentation and SDKs in every language</li>
+        <li>Assistants API with vector stores and code interpreter</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- Bottom line -->
+<section class="tldr-box" style="margin-bottom:20px;">
+  <div class="tldr-card" style="border-color:var(--border);">
+    <h2 style="color:#fff;">The Bottom Line</h2>
+    <p>AiPayGen and OpenAI API are not direct competitors. AiPayGen is best when you want pre-built, tested tools with predictable pricing and multi-model access. OpenAI is best when you want the raw power and flexibility of GPT models with the full OpenAI ecosystem behind them. Many developers use both: OpenAI for custom model interactions, and AiPayGen for ready-made tools like scraping, research, and sentiment analysis.</p>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2>Try AiPayGen Free</h2>
+  <p>Get $0.10 in trial credits. 65+ pre-built tools. No prompt engineering required. No credit card needed.</p>
+  <div class="cta-buttons">
+    <a href="/get-key" class="btn-primary">Get Free API Key</a>
+    <a href="/compare" class="btn-secondary">See All Comparisons</a>
+  </div>
+</section>
+{% endblock %}

@@ -4,26 +4,25 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Webhook Testing — AiPayGen</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#020408;--green:#00ff9d;--cyan:#00d4ff;--card-bg:#0a0e14;--card-border:#111820;--text:#e1e4e8;--muted:#6b7280;--red:#f87171;--orange:#f59e0b;--blue:#3b82f6}
+:root{--bg:#000;--green:#2997ff;--cyan:#bf5af2;--card-bg:#0a0e14;--card-border:#111820;--text:#e1e4e8;--muted:#6b7280;--red:#f87171;--orange:#f59e0b;--blue:#3b82f6}
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;line-height:1.6;padding-top:70px}
+body{background:var(--bg);color:var(--text);font-family:-apple-system, BlinkMacSystemFont, 'Inter', sans-serif;line-height:1.6;padding-top:70px}
 a{color:var(--green);text-decoration:none}
 a:hover{text-decoration:underline}
 .container{max-width:960px;margin:0 auto;padding:24px}
-h1{font-family:'IBM Plex Mono',monospace;font-size:1.8rem;color:#fff;margin-bottom:4px}
+h1{font-family:'SF Mono', 'Fira Code', monospace;font-size:1.8rem;color:#fff;margin-bottom:4px}
 h1 span{color:var(--green)}
 .subtitle{color:var(--muted);font-size:0.95rem;margin-bottom:32px}
-h2{font-family:'IBM Plex Mono',monospace;font-size:1.1rem;color:var(--green);margin:32px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--card-border)}
+h2{font-family:'SF Mono', 'Fira Code', monospace;font-size:1.1rem;color:var(--green);margin:32px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--card-border)}
 .panel{background:var(--card-bg);border:1px solid var(--card-border);border-radius:10px;padding:20px;margin-bottom:20px}
 label{display:block;font-size:0.85rem;color:var(--muted);margin-bottom:4px;font-weight:500}
-input[type=text],input[type=url],select{width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--card-border);border-radius:8px;color:var(--text);font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;outline:none;margin-bottom:12px}
+input[type=text],input[type=url],select{width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--card-border);border-radius:8px;color:var(--text);font-family:-apple-system, BlinkMacSystemFont, 'Inter', sans-serif;font-size:0.9rem;outline:none;margin-bottom:12px}
 input:focus{border-color:var(--green)}
 .row{display:flex;gap:12px;align-items:flex-end}
 .row>*{flex:1}
-.btn{padding:10px 20px;border:none;border-radius:6px;font-family:'IBM Plex Sans',sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all .2s}
-.btn-primary{background:var(--green);color:var(--bg)}
+.btn{padding:10px 20px;border:none;border-radius:6px;font-family:-apple-system, BlinkMacSystemFont, 'Inter', sans-serif;font-size:0.85rem;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-primary{background:var(--green);color:#fff}
 .btn-primary:hover{opacity:.9}
 .btn-danger{background:transparent;border:1px solid var(--red);color:var(--red)}
 .btn-danger:hover{background:var(--red);color:#fff}
@@ -31,28 +30,27 @@ input:focus{border-color:var(--green)}
 .btn-secondary:hover{background:var(--blue);color:#fff}
 .btn-sm{padding:6px 12px;font-size:0.78rem}
 table{width:100%;border-collapse:collapse}
-th{text-align:left;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;color:var(--green);padding:8px 12px;border-bottom:1px solid var(--card-border);text-transform:uppercase;letter-spacing:0.05em}
+th{text-align:left;font-family:'SF Mono', 'Fira Code', monospace;font-size:0.75rem;color:var(--green);padding:8px 12px;border-bottom:1px solid var(--card-border);text-transform:uppercase;letter-spacing:0.05em}
 td{padding:10px 12px;font-size:0.85rem;border-bottom:1px solid rgba(17,24,32,0.5);color:var(--muted);vertical-align:top}
-td:first-child{font-family:'IBM Plex Mono',monospace;color:#fff;font-size:0.82rem}
+td:first-child{font-family:'SF Mono', 'Fira Code', monospace;color:#fff;font-size:0.82rem}
 .status-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:600}
-.status-2xx{background:rgba(0,255,157,0.15);color:var(--green)}
+.status-2xx{background:rgba(41,151,255,0.15);color:var(--green)}
 .status-4xx{background:rgba(248,113,113,0.15);color:var(--red)}
 .status-5xx{background:rgba(245,158,11,0.15);color:var(--orange)}
 .status-pending{background:rgba(59,130,246,0.15);color:var(--blue)}
 .empty-state{text-align:center;padding:32px;color:var(--muted);font-size:0.9rem}
 .toast{position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:8px;font-size:0.85rem;font-weight:500;z-index:1000;animation:slideIn .3s ease}
-.toast-success{background:var(--green);color:var(--bg)}
+.toast-success{background:var(--green);color:#fff}
 .toast-error{background:var(--red);color:#fff}
 @keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
-.event-body{max-width:400px;overflow-x:auto;white-space:pre-wrap;font-family:'IBM Plex Mono',monospace;font-size:0.75rem;color:var(--text);background:var(--bg);padding:6px 8px;border-radius:4px;max-height:120px;overflow-y:auto}
+.event-body{max-width:400px;overflow-x:auto;white-space:pre-wrap;font-family:'SF Mono', 'Fira Code', monospace;font-size:0.75rem;color:var(--text);background:var(--bg);padding:6px 8px;border-radius:4px;max-height:120px;overflow-y:auto}
 .tag{display:inline-block;padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:600;margin:1px 2px}
-.tag-event{background:rgba(0,212,255,0.15);color:var(--cyan)}
+.tag-event{background:rgba(191,90,242,0.15);color:var(--cyan)}
 .no-key{text-align:center;padding:60px 24px}
 .no-key h2{color:#fff;font-size:1.3rem;margin-bottom:8px;border:none;padding:0}
 .no-key p{color:var(--muted);margin-bottom:20px}
-.mono{font-family:'IBM Plex Mono',monospace;font-size:0.82rem}
+.mono{font-family:'SF Mono', 'Fira Code', monospace;font-size:0.82rem}
 </style>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4228277826827893" crossorigin="anonymous"></script>
 </head>
 <body>
 {{ nav|safe }}
@@ -223,7 +221,7 @@ td:first-child{font-family:'IBM Plex Mono',monospace;color:#fff;font-size:0.82re
       hooks.forEach(function(h){
         var tr=document.createElement('tr');
         var tdId=document.createElement('td');tdId.textContent=h.id;tr.appendChild(tdId);
-        var tdUrl=document.createElement('td');tdUrl.textContent=h.url;tdUrl.style.cssText='max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:IBM Plex Mono,monospace;font-size:0.78rem;color:#00d4ff;cursor:pointer';
+        var tdUrl=document.createElement('td');tdUrl.textContent=h.url;tdUrl.style.cssText='max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:SF Mono,Fira Code,monospace;font-size:0.78rem;color:#bf5af2;cursor:pointer';
         tdUrl.title='Click to copy';
         tdUrl.addEventListener('click',function(){navigator.clipboard.writeText(h.url);toast('URL copied');});
         tr.appendChild(tdUrl);

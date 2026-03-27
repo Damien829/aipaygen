@@ -44,7 +44,7 @@ MANAGEMENT_ENDPOINTS = [
     {
         "path": "/auth/generate-key",
         "method": "post",
-        "description": "Generate a free API key with $0.25 trial credits (~40 calls)",
+        "description": "Generate a free API key with $0.10 trial credits (~16 calls)",
         "request_schema": {
             "type": "object",
             "properties": {
@@ -306,15 +306,15 @@ def generate_openapi_spec(routes=None):
             "title": "AiPayGen API",
             "version": APP_VERSION,
             "description": (
-                "250 AI tools in one API. Research, write, code, translate, analyze, scrape — "
-                "pay per call with USDC on Base via x402, use a prepaid API key, or get $0.25 trial credits.\n\n"
+                "65+ AI tools in one API. Research, write, code, translate, analyze, scrape — "
+                "pay per call with USDC on Base via x402, use a prepaid API key, or get $0.10 trial credits.\n\n"
                 "## Authentication\n"
                 "Three options:\n"
-                "1. **API Key** (recommended): `Authorization: Bearer apk_xxx` — get a free key with $0.25 trial credits via `POST /auth/generate-key`\n"
+                "1. **API Key** (recommended): `Authorization: Bearer apk_xxx` — get a free key with $0.10 trial credits via `POST /auth/generate-key`\n"
                 "2. **x402 Payment**: `X-Payment` header with USDC micropayment on Base (eip155:8453)\n"
                 "3. **Free tier**: 1 call/day per IP, no auth needed\n\n"
                 "## Rate Limits\n"
-                "- Free tier: 60 requests/minute per IP, 3 AI calls/day\n"
+                "- Free tier: 60 requests/minute per IP, 1 AI call/day\n"
                 "- API key: 60 requests/minute per IP (higher limits available)\n"
                 "- Rate limit state exposed via `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset` headers\n\n"
                 "## Request IDs\n"
@@ -336,7 +336,7 @@ def generate_openapi_spec(routes=None):
                     "scheme": "bearer",
                     "bearerFormat": "apk_xxx",
                     "description": (
-                        "Prepaid API key — generate a free key with $0.25 trial credits via "
+                        "Prepaid API key — generate a free key with $0.10 trial credits via "
                         "`POST /auth/generate-key`, or purchase at /buy-credits. "
                         "Pass as `Authorization: Bearer apk_xxx`."
                     ),

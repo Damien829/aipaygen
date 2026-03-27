@@ -2,31 +2,27 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>AiPayGen</title>
-    <meta name="description" content="250+ AI tools, 27 models, pay-per-call with USDC on Base. Research, write, code, translate, analyze — all in one app." />
+    <meta name="description" content="65+ AI tools, 15 models, pay-per-call with USDC on Base. Research, write, code, scrape, translate, analyze — all in one API." />
     <meta name="theme-color" content="#0a0a0f" />
-    <meta property="og:title" content="AiPayGen — 250+ AI Tools" />
-    <meta property="og:description" content="250+ AI tools, 27 models. Pay per call with USDC on Base." />
+    <meta property="og:title" content="AiPayGen — 65+ AI Tools" />
+    <meta property="og:description" content="65+ AI tools, 15 models. Pay per call with USDC on Base." />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://app.aipaygen.com" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="AiPayGen — 250+ AI Tools" />
-    <meta name="twitter:description" content="250+ AI tools, 27 models. Pay per call with USDC on Base." />
+    <meta name="twitter:title" content="AiPayGen — 65+ AI Tools" />
+    <meta name="twitter:description" content="65+ AI tools, 15 models. Pay per call with USDC on Base." />
     <link rel="manifest" href="/app/manifest.json" />
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4228277826827893" crossorigin="anonymous"></script>
-    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
     <style id="expo-reset">
-      /* These styles make the body full-height */
       html,
       body {
         height: 100%;
         height: -webkit-fill-available;
       }
-      /* These styles disable body scrolling if you are using <ScrollView> */
       body {
         overflow: hidden;
         padding-top: env(safe-area-inset-top, 0px);
@@ -35,7 +31,6 @@
         padding-right: env(safe-area-inset-right, 0px);
         background: #0a0a0f;
       }
-      /* These styles make the root element full-height */
       #root {
         display: flex;
         height: 100%;
@@ -46,19 +41,40 @@
   <link rel="preload" href="/_expo/static/css/web-69f39ceb9da8e588c3ad770d3774dd45.css" as="style"><link rel="stylesheet" href="/_expo/static/css/web-69f39ceb9da8e588c3ad770d3774dd45.css"><link rel="icon" href="/app/favicon.ico" /></head>
 
   <body>
-    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
-    <noscript>
-      You need to enable JavaScript to run this app.
-    </noscript>
-    <!-- The root element for your Expo app. -->
+    <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
-  
+    <div id="app-loader" style="position:fixed;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#0a0a0f;z-index:9999;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+      <div style="color:#00ff9d;font-size:24px;font-weight:700;margin-bottom:8px">AiPayGen</div>
+      <div style="color:#8b949e;font-size:14px">Loading...</div>
+    </div>
+    <div id="app-fallback" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:#0a0a0f;z-index:10000;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:24px">
+        <div style="color:#00ff9d;font-size:24px;font-weight:700;margin-bottom:16px">AiPayGen</div>
+        <div style="color:#e6edf3;font-size:16px;margin-bottom:8px">Having trouble loading?</div>
+        <div style="color:#8b949e;font-size:14px;margin-bottom:20px">This can happen on some browsers.</div>
+        <a href="/try" style="display:inline-block;background:#00ff9d;color:#000;padding:12px 24px;border-radius:12px;text-decoration:none;font-weight:600;font-size:15px">Use Web Version</a>
+        <div style="margin-top:12px"><a href="/buy-credits" style="color:#8b949e;font-size:13px;text-decoration:underline">Get API Key</a></div>
+      </div>
+    </div>
+
   <script>
     if (location.pathname.startsWith('/app')) {
       var clean = location.pathname.replace(/^\/app\/?/, '/') || '/';
       history.replaceState(null, '', clean + location.search + location.hash);
     }
+    var _loaderEl = document.getElementById('app-loader');
+    function _hideLoader() { if (_loaderEl) { _loaderEl.style.display = 'none'; _loaderEl = null; } }
+    new MutationObserver(function(m, o) {
+      var root = document.getElementById('root');
+      if (root && root.childNodes.length > 0) { _hideLoader(); o.disconnect(); }
+    }).observe(document.getElementById('root'), { childList: true });
+    setTimeout(function() {
+      if (_loaderEl) {
+        _loaderEl.style.display = 'none';
+        document.getElementById('app-fallback').style.display = 'block';
+      }
+    }, 8000);
   </script>
-  <script src="/_expo/static/js/web/entry-0dc18d79b29ba37880ae7b905b8d8949.js" defer></script>
+  <script src="/_expo/static/js/web/entry-04a8ce51e65edf1ecbc0be8ee5e32fe2.js" defer></script>
 </body>
 </html>
