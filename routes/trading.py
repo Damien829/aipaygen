@@ -341,6 +341,8 @@ def trading_backtest_list():
 def trading_indicators(pair):
     """Compute technical indicators for a pair."""
     days = min(int(request.args.get("days", 30)), 365)
+    if "/" not in pair and "USD" not in pair.upper():
+        pair = f"{pair}/USD"
     historical = exchange_connectors.get_historical_prices(pair, days=days)
     if len(historical) < 5:
         return jsonify({"error": f"Insufficient data for {pair}"}), 400
@@ -387,6 +389,9 @@ def trading_signals(pair):
     """Generate trading signals for a pair using a strategy."""
     strategy_type = request.args.get("strategy_type", "momentum")
     days = min(int(request.args.get("days", 30)), 365)
+    # Normalize pair: "BTC" -> "BTC/USD", "BTCUSD" -> "BTC/USD"
+    if "/" not in pair and "USD" not in pair.upper():
+        pair = f"{pair}/USD"
 
     tmpl = trading_engine.STRATEGY_TEMPLATES.get(strategy_type, {})
     config = tmpl.get("config", {})
