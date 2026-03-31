@@ -183,6 +183,7 @@
 <section class="section" style="padding-top:0">
   <div class="market-filters fade-in">
     <a href="/market" class="{{ 'active' if not current_category else '' }}">All</a>
+    <a href="/market/categories">Categories</a>
     {% for cat_name, count in categories.items() %}
     <a href="/market?category={{ cat_name }}" class="{{ 'active' if current_category == cat_name else '' }}">
       {{ cat_name|title }} <span class="cat-count">{{ count }}</span>
@@ -207,6 +208,9 @@
         {% if agent.is_verified %}
         <span class="badge" style="background:rgba(48,209,88,0.1);color:var(--green);font-size:var(--text-xs);">Verified</span>
         {% endif %}
+        {% if agent.listing_id in trending_ids or agent.is_featured == 1 or agent.call_count|default(0)|int > 1000 %}
+        <span class="badge" style="background:rgba(255,214,10,0.1);color:var(--warning);font-size:var(--text-xs);">&#128293; Trending</span>
+        {% endif %}
       </div>
       <div class="agent-card-meta">
         calls <span class="val">{{ agent.call_count|default(0) }}</span><br>
@@ -216,7 +220,10 @@
     </div>
     <div class="agent-card-footer">
       <div class="agent-card-price">${{ "%.2f"|format(agent.price_usd|float) }}<small>/call</small></div>
-      <span class="btn btn-sm btn-secondary">View</span>
+      <span style="display:flex;align-items:center;gap:10px">
+        <a href="/market/agent/{{ agent.listing_id }}/checkout" style="font-size:var(--text-xs);color:var(--accent);text-decoration:none;font-weight:600;" onclick="event.stopPropagation()">Deploy &rarr;</a>
+        <span class="btn btn-sm btn-secondary">View</span>
+      </span>
     </div>
   </a>
   {% endfor %}
@@ -227,6 +234,23 @@
   <p class="section-subtitle" style="margin:0 auto">No agents found in this category.</p>
   <a href="/market" class="btn btn-secondary" style="margin-top:16px">View All Agents</a>
 </div>
+{% endif %}
+
+{% if recommended and recommended|length > 0 %}
+<section class="section" style="padding-top:0;">
+  <h3 style="font-size:var(--text-lg);font-weight:600;margin-bottom:16px;">You might also like</h3>
+  <div style="display:flex;gap:12px;overflow-x:auto;padding-bottom:8px;">
+    {% for rec in recommended %}
+    <a href="/market/agent/{{ rec.listing_id }}" class="card" style="min-width:220px;padding:16px;text-decoration:none;flex-shrink:0;">
+      <div style="font-weight:600;color:var(--text);font-size:var(--text-sm);">{{ rec.name }}</div>
+      <div style="font-size:var(--text-xs);color:var(--text-secondary);margin-top:4px;">{{ rec.category }} · ${{ "%.2f"|format(rec.price_usd|float) }}</div>
+      {% if rec.avg_rating|default(0)|float > 0 %}
+      <div style="font-size:var(--text-xs);color:var(--warning);margin-top:4px;">{{ "%.1f"|format(rec.avg_rating|float) }} ★</div>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
+</section>
 {% endif %}
 
 <div class="text-center" style="padding:20px 22px 40px">

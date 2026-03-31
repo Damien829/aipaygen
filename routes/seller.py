@@ -38,6 +38,24 @@ def init_seller_bp():
     pass  # No global state needed
 
 
+# ── Seller Analytics ─────────────────────────────────────────────────────────
+
+
+@seller_bp.route("/seller/analytics", methods=["GET"])
+@require_api_key
+def seller_analytics_api():
+    """Return JSON analytics for a seller's agents."""
+    from agent_memory import get_seller_analytics
+    data = get_seller_analytics(request.api_key)
+    return jsonify(data)
+
+
+@seller_bp.route("/seller/analytics-page", methods=["GET"])
+def seller_analytics_page():
+    """Render the seller analytics dashboard."""
+    return render_template("seller_analytics.html")
+
+
 # ── Seller Onboarding Page ────────────────────────────────────────────────────
 
 

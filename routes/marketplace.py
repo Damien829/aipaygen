@@ -521,3 +521,134 @@ def marketplace_leaderboard_route():
     response = jsonify({"leaders": leaders, "category": category, "sort": sort})
     response.headers["Cache-Control"] = "public, max-age=300"  # 5 min
     return response
+
+
+# ── New Marketplace Discovery Routes ──────────────────────────────────────
+
+
+@marketplace_bp.route("/marketplace/categories/browse", methods=["GET"])
+def marketplace_categories_browse():
+    """Return all categories with agent counts, top agents, total calls, and avg rating."""
+    import agent_memory
+    with agent_memory._conn() as c:
+        cats = c.execute(
+            "SELECT category, COUNT(*) as cnt, SUM(call_count) as total_calls, "
+            "AVG(avg_rating) as avg_rat FROM marketplace WHERE is_active = 1 "
+            "GROUP BY category ORDER BY cnt DESC"
+        ).fetchall()
+        result = []
+        for cat in cats:
+            top_agents = c.execute(
+                "SELECT listing_id, name, call_count, avg_rating, price_usd "
+                "FROM marketplace WHERE category = ? AND is_active = 1 "
+                "ORDER BY call_count DESC LIMIT 3",
+                (cat["category"],)
+            ).fetchall()
+            result.append({
+                "category": cat["category"],
+                "agent_count": cat["cnt"],
+                "total_calls": cat["total_calls"] or 0,
+                "avg_rating": round(cat["avg_rat"] or 0, 2),
+                "top_agents": [dict(a) for a in top_agents],
+            })
+    response = jsonify({"categories": result})
+    response.headers["Cache-Control"] = "public, max-age=600"
+    return response
+
+
+@marketplace_bp.route("/marketplace/compare", methods=["GET"])
+def marketplace_compare():
+    """Compare 2-3 agents side by side by listing_id."""
+    ids_raw = request.args.get("ids", "")
+    ids = [i.strip() for i in ids_raw.split(",") if i.strip()]
+    if len(ids) < 2 or len(ids) > 3:
+        return jsonify({"error": "Provide 2-3 comma-separated listing ids via ?ids="}), 400
+    import agent_memory
+    agents = []
+    with agent_memory._conn() as c:
+        for lid in ids:
+            row = c.execute(
+                "SELECT listing_id, name, description, price_usd, call_count, avg_rating, "
+                "review_count, total_revenue, category, capabilities FROM marketplace "
+                "WHERE listing_id = ?", (lid,)
+            ).fetchone()
+            if row:
+                d = dict(row)
+                try:
+                    d["capabilities"] = json.loads(d.get("capabilities") or "[]")
+                except (json.JSONDecodeError, TypeError):
+                    d["capabilities"] = []
+                agents.append(d)
+    if len(agents) < 2:
+        return jsonify({"error": "Could not find enough agents for comparison"}), 404
+    # Normalize metrics for comparison
+    max_calls = max(a["call_count"] for a in agents) or 1
+    max_rev = max(a["total_revenue"] for a in agents) or 1
+    for a in agents:
+        a["call_count_norm"] = round(a["call_count"] / max_calls, 2)
+        a["revenue_norm"] = round(a["total_revenue"] / max_rev, 2)
+        a["rating_norm"] = round((a["avg_rating"] or 0) / 5.0, 2)
+    return jsonify({"agents": agents, "count": len(agents)})
+
+
+@marketplace_bp.route("/marketplace/similar/<listing_id>", methods=["GET"])
+def marketplace_similar_route(listing_id):
+    """Find similar agents in the same category."""
+    import agent_memory
+    with agent_memory._conn() as c:
+        agent = c.execute(
+            "SELECT category FROM marketplace WHERE listing_id = ?", (listing_id,)
+        ).fetchone()
+        if not agent:
+            return jsonify({"error": "Agent not found"}), 404
+        rows = c.execute(
+            "SELECT listing_id, name, description, price_usd, call_count, avg_rating, "
+            "review_count, category FROM marketplace "
+            "WHERE category = ? AND listing_id != ? AND is_active = 1 "
+            "ORDER BY call_count DESC LIMIT 6",
+            (agent["category"], listing_id)
+        ).fetchall()
+    return jsonify({"similar": [dict(r) for r in rows], "category": agent["category"]})
+
+
+@marketplace_bp.route("/marketplace/trending", methods=["GET"])
+def marketplace_trending():
+    """Top 10 verified agents with high ratings — trending now."""
+    import agent_memory
+    with agent_memory._conn() as c:
+        rows = c.execute(
+            "SELECT listing_id, name, description, price_usd, call_count, avg_rating, "
+            "review_count, category, total_revenue, is_verified "
+            "FROM marketplace WHERE is_active = 1 AND is_verified = 1 AND avg_rating >= 4.0 "
+            "ORDER BY call_count DESC LIMIT 10"
+        ).fetchall()
+    agents = [dict(r) for r in rows]
+    for a in agents:
+        a["trending"] = True
+    response = jsonify({"trending": agents, "count": len(agents)})
+    response.headers["Cache-Control"] = "public, max-age=300"
+    return response
+
+
+@marketplace_bp.route("/marketplace/stats", methods=["GET"])
+def marketplace_stats():
+    """Marketplace-wide statistics."""
+    import agent_memory
+    with agent_memory._conn() as c:
+        row = c.execute(
+            "SELECT COUNT(*) as total_agents, COALESCE(SUM(call_count),0) as total_calls, "
+            "COUNT(DISTINCT category) as total_categories, "
+            "COALESCE(SUM(total_revenue),0) as total_revenue, "
+            "ROUND(AVG(avg_rating),2) as avg_rating, "
+            "SUM(CASE WHEN is_verified = 1 THEN 1 ELSE 0 END) as verified_count "
+            "FROM marketplace WHERE is_active = 1"
+        ).fetchone()
+        top_cat = c.execute(
+            "SELECT category, COUNT(*) as cnt FROM marketplace "
+            "WHERE is_active = 1 GROUP BY category ORDER BY cnt DESC LIMIT 1"
+        ).fetchone()
+    stats = dict(row)
+    stats["top_category"] = top_cat["category"] if top_cat else None
+    response = jsonify(stats)
+    response.headers["Cache-Control"] = "public, max-age=600"
+    return response

@@ -2,7 +2,7 @@
 import sqlite3
 import json
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "agent_memory.db")
 
@@ -455,14 +455,90 @@ def marketplace_leaderboard(category=None, sort="call_count", limit=20):
     return [dict(r) for r in rows]
 
 
-def marketplace_trending_ids(limit=5):
-    """Return listing_ids of trending agents (highest calls + has reviews)."""
+def marketplace_trending_ids(limit=10):
+    """Return listing_ids of trending agents (featured, high calls, or has reviews)."""
     with _conn() as c:
         rows = c.execute(
-            "SELECT listing_id FROM marketplace WHERE is_active = 1 AND review_count > 0 ORDER BY call_count DESC LIMIT ?",
+            "SELECT listing_id FROM marketplace WHERE is_active = 1 "
+            "AND (is_featured = 1 OR call_count > 1000 OR review_count > 0) "
+            "ORDER BY is_featured DESC, call_count DESC LIMIT ?",
             (limit,)
         ).fetchall()
     return [r["listing_id"] for r in rows]
+
+
+def get_seller_analytics(api_key: str) -> dict:
+    """Return analytics for all marketplace agents owned by this API key (wallet_address match)."""
+    now = datetime.now(timezone.utc)
+    week_ago = (now - timedelta(days=7)).isoformat()
+    two_weeks_ago = (now - timedelta(days=14)).isoformat()
+    thirty_days_ago = (now - timedelta(days=30)).isoformat()
+
+    with _conn() as c:
+        # Get all agents listed by this seller (match on wallet_address = api_key)
+        agents = c.execute(
+            "SELECT listing_id, agent_id, name, category, price_usd, call_count, "
+            "avg_rating, review_count, total_revenue, is_active "
+            "FROM marketplace WHERE wallet_address = ? AND is_active = 1",
+            (api_key,)
+        ).fetchall()
+        agents = [dict(a) for a in agents]
+
+        if not agents:
+            return {"agents": [], "totals": {}, "revenue_by_day": [], "top_agent": None}
+
+        listing_ids = [a["listing_id"] for a in agents]
+        placeholders = ",".join("?" * len(listing_ids))
+
+        # Totals
+        total_calls = sum(a.get("call_count", 0) for a in agents)
+        total_revenue = sum(a.get("total_revenue", 0.0) for a in agents)
+        total_reviews = sum(a.get("review_count", 0) for a in agents)
+        ratings = [a["avg_rating"] for a in agents if a.get("avg_rating", 0) > 0]
+        avg_rating = round(sum(ratings) / len(ratings), 2) if ratings else 0.0
+
+        # Per-agent trend: calls this week vs last week
+        for agent in agents:
+            lid = agent["listing_id"]
+            this_week = c.execute(
+                "SELECT COUNT(*) FROM agent_performance WHERE listing_id = ? AND recorded_at >= ?",
+                (lid, week_ago)
+            ).fetchone()[0]
+            last_week = c.execute(
+                "SELECT COUNT(*) FROM agent_performance WHERE listing_id = ? AND recorded_at >= ? AND recorded_at < ?",
+                (lid, two_weeks_ago, week_ago)
+            ).fetchone()[0]
+            agent["calls_this_week"] = this_week
+            agent["calls_last_week"] = last_week
+            if last_week > 0:
+                agent["trend_pct"] = round(((this_week - last_week) / last_week) * 100, 1)
+            else:
+                agent["trend_pct"] = 100.0 if this_week > 0 else 0.0
+
+        # Revenue by day (last 30 days) from payment_splits
+        rev_rows = c.execute(
+            f"SELECT DATE(created_at) as day, SUM(seller_amount) as revenue "
+            f"FROM payment_splits WHERE listing_id IN ({placeholders}) AND created_at >= ? "
+            f"GROUP BY DATE(created_at) ORDER BY day",
+            listing_ids + [thirty_days_ago]
+        ).fetchall()
+        revenue_by_day = [{"day": r["day"], "revenue": round(r["revenue"], 2)} for r in rev_rows]
+
+        # Top performing agent
+        top_agent = max(agents, key=lambda a: a.get("total_revenue", 0)) if agents else None
+
+    return {
+        "agents": agents,
+        "totals": {
+            "total_calls": total_calls,
+            "total_revenue": round(total_revenue, 2),
+            "total_reviews": total_reviews,
+            "avg_rating": avg_rating,
+            "active_agents": len(agents),
+        },
+        "revenue_by_day": revenue_by_day,
+        "top_agent": top_agent,
+    }
 
 
 # ── Payment Splits (95/5) ────────────────────────────────────────────────────
@@ -501,8 +577,6 @@ def get_pending_payments(limit: int = 100) -> list[dict]:
 
 
 # ── Marketplace Completion Features ─────────────────────────────────────────
-
-from datetime import timedelta
 
 
 def process_subscription_renewals() -> dict:

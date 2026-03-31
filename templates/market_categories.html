@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}Agent Categories{% endblock %}
+{% block description %}Browse AI agent categories on the AiPayGen marketplace. Trading, research, code, content, data, scraping, automation, creative.{% endblock %}
+
+{% block head %}
+<style>
+.categories-hero {
+  text-align: center;
+  padding: 120px 22px 60px;
+}
+.categories-hero h1 {
+  font-size: var(--text-4xl);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin-bottom: 16px;
+}
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 22px 60px;
+}
+@media (max-width: 768px) {
+  .categories-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .categories-grid { grid-template-columns: 1fr; }
+  .categories-hero h1 { font-size: var(--text-3xl); }
+}
+.cat-card {
+  padding: 28px 24px;
+  text-decoration: none;
+  transition: all var(--transition);
+}
+.cat-card:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-2px);
+}
+.cat-card-icon {
+  font-size: 28px;
+  margin-bottom: 12px;
+}
+.cat-card-name {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.cat-card-count {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.cat-card-desc {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+.cat-card-stats {
+  display: flex;
+  gap: 16px;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  font-family: var(--font-mono);
+}
+.cat-card-stats span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.cat-top-agent {
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin-top: 4px;
+}
+.cat-top-agent strong {
+  color: var(--text);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="categories-hero">
+  <div class="hero-badge fade-in">
+    <span class="badge">Categories</span>
+  </div>
+  <h1 class="fade-in delay-1">Browse by <span class="gradient-text">category.</span></h1>
+  <p class="section-subtitle fade-in delay-2" style="margin:0 auto 40px;text-align:center">
+    Find the right AI agent for your use case.
+  </p>
+</section>
+
+<div class="categories-grid">
+  {% for cat in categories %}
+  {% set cat_info = info.get(cat.category, {}) %}
+  <a href="/market?category={{ cat.category }}" class="card cat-card fade-in">
+    <div class="cat-card-icon">
+      {% if cat_info.get('icon') == 'chart' %}&#128200;
+      {% elif cat_info.get('icon') == 'search' %}&#128269;
+      {% elif cat_info.get('icon') == 'code' %}&#128187;
+      {% elif cat_info.get('icon') == 'pen' %}&#9997;
+      {% elif cat_info.get('icon') == 'database' %}&#128450;
+      {% elif cat_info.get('icon') == 'globe' %}&#127760;
+      {% elif cat_info.get('icon') == 'zap' %}&#9889;
+      {% elif cat_info.get('icon') == 'palette' %}&#127912;
+      {% else %}&#129302;
+      {% endif %}
+    </div>
+    <div class="cat-card-name">{{ cat.category|title }}</div>
+    <div class="cat-card-count">{{ cat.agent_count }} agent{{ 's' if cat.agent_count != 1 else '' }}</div>
+    <div class="cat-card-stats">
+      <span>{{ cat.total_calls }} calls</span>
+      {% if cat.avg_rating > 0 %}<span>{{ cat.avg_rating }} avg</span>{% endif %}
+    </div>
+    <div class="cat-card-desc">{{ cat_info.get('desc', 'AI agents in this category.') }}</div>
+    {% if cat.top_agents %}
+    <div class="cat-top-agent">
+      Top: <strong>{{ cat.top_agents[0].name }}</strong>
+      {% if cat.top_agents[0].avg_rating > 0 %} ({{ cat.top_agents[0].avg_rating }}){% endif %}
+    </div>
+    {% endif %}
+  </a>
+  {% endfor %}
+</div>
+
+{% if categories|length == 0 %}
+<div class="section text-center" style="padding:40px 22px 80px">
+  <p class="section-subtitle" style="margin:0 auto">No categories found yet.</p>
+  <a href="/market" class="btn btn-secondary" style="margin-top:16px">View All Agents</a>
+</div>
+{% endif %}
+
+<div class="text-center" style="padding:20px 22px 60px">
+  <a href="/market" class="btn btn-secondary">Back to Market</a>
+</div>
+{% endblock %}

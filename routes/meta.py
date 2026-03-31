@@ -12,7 +12,7 @@ from model_router import call_model, list_models, get_all_perf
 from discovery_engine import get_blog_post, list_blog_posts, get_health_history, get_daily_cost
 from uptime_tracker import record_check as _record_uptime, get_uptime_stats as _get_uptime_stats, get_recent_checks as _get_recent_checks
 from alerting import process_health_result as _process_alerts, get_recent_alerts as _get_recent_alerts
-from agent_memory import marketplace_search, marketplace_get_categories, marketplace_get_service, marketplace_get_reviews, marketplace_get_performance, marketplace_leaderboard, marketplace_list_service
+from agent_memory import marketplace_search, marketplace_get_categories, marketplace_get_service, marketplace_get_reviews, marketplace_get_performance, marketplace_leaderboard, marketplace_list_service, marketplace_similar_agents, marketplace_trending_ids
 import logging
 
 from funnel_tracker import log_event as funnel_log_event
@@ -3322,6 +3322,8 @@ def sitemap():
         ("/trading", "daily", "0.8"),
         ("/a2a", "daily", "0.8"),
         ("/market/new", "daily", "0.7"),
+        ("/market/categories", "weekly", "0.75"),
+        ("/market/stats", "daily", "0.7"),
         ("/feedback", "monthly", "0.5"),
         ("/trading/deploy", "monthly", "0.7"),
         ("/a2a/post-rfq", "monthly", "0.7"),
@@ -3892,9 +3894,20 @@ def market_home():
     per_page = 20
     agents, total = marketplace_search(query="", category=category, sort="popular", page=page, per_page=per_page)
     categories = marketplace_get_categories()
+    trending_ids = marketplace_trending_ids()
+    # Recommended: top agents from categories NOT currently shown
+    import random
+    all_cats = list(categories.keys())
+    other_cats = [c for c in all_cats if c != category][:3]
+    recommended = []
+    for cat in other_cats:
+        cat_agents, _ = marketplace_search(query="", category=cat, sort="rating", per_page=2)
+        recommended.extend(cat_agents)
+    random.shuffle(recommended)
     return render_template("market.html",
         agents=agents, total=total, categories=categories,
-        current_category=category, page=page, per_page=per_page)
+        current_category=category, page=page, per_page=per_page,
+        trending_ids=trending_ids, recommended=recommended[:6])
 
 
 @meta_bp.route("/market/agent/<listing_id>")
@@ -3918,9 +3931,11 @@ def market_agent_detail(listing_id):
     except (TypeError, ValueError):
         tags = []
 
+    similar = marketplace_similar_agents(listing_id)
+
     return render_template("market_agent.html",
         agent=agent, reviews=reviews, pricing=pricing,
-        tags=tags, listing_id=listing_id)
+        tags=tags, listing_id=listing_id, similar=similar)
 
 
 @meta_bp.route("/market/leaderboard")
@@ -3939,7 +3954,8 @@ def market_new():
     """Newest agents page."""
     agents, total = marketplace_search(query="", sort="newest", per_page=20)
     categories = marketplace_get_categories()
-    return render_template("market.html", agents=agents, total=total, categories=categories, current_category=None, page=1, per_page=20)
+    trending_ids = marketplace_trending_ids()
+    return render_template("market.html", agents=agents, total=total, categories=categories, current_category=None, page=1, per_page=20, trending_ids=trending_ids)
 
 
 @meta_bp.route("/market/list")
@@ -4005,6 +4021,20 @@ def market_list_agent_submit():
         tags=tags,
     )
 
+    # Telegram notification for new listing
+    try:
+        telegram_token = open(os.path.expanduser("~/.secrets/telegram_bot_token")).read().strip()
+        owner_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".telegram_owner_id")
+        if os.path.exists(owner_file):
+            chat_id = open(owner_file).read().strip()
+            _requests.post(f"https://api.telegram.org/bot{telegram_token}/sendMessage", json={
+                "chat_id": chat_id,
+                "text": f"New agent listed: {name} ({data.get('category','general')})\nPrice: ${price_usd}/call\nEndpoint: {endpoint}",
+                "parse_mode": "Markdown"
+            }, timeout=5)
+    except Exception:
+        pass
+
     # Save email and send notification
     email = data.get("email", "").strip()
     if email and "@" in email:
@@ -4059,6 +4089,151 @@ def market_agent_checkout(listing_id):
     return render_template("market_checkout.html",
         agent=agent, listing_id=listing_id, plan=plan,
         price=float(price), label=label, desc=desc)
+
+
+# ---------------------------------------------------------------------------
+# Compare, Changelog, Analytics
+# ---------------------------------------------------------------------------
+
+@meta_bp.route("/market/compare")
+def market_compare():
+    """Side-by-side comparison of 2-3 agents."""
+    ids = request.args.get("agents", "").split(",")
+    agents = []
+    for lid in ids[:3]:
+        a = marketplace_get_service(lid.strip())
+        if a:
+            agents.append(a)
+    if not agents:
+        return render_template("market_error.html",
+            error_title="No Agents Selected",
+            error_message="Add agent IDs to compare: /market/compare?agents=id1,id2",
+            back_url="/market"), 400
+    return render_template("market_compare.html", agents=agents)
+
+
+@meta_bp.route("/changelog")
+def changelog_page():
+    """Platform changelog."""
+    return render_template("changelog.html")
+
+
+@meta_bp.route("/market/agent/<listing_id>/analytics")
+def market_agent_analytics(listing_id):
+    """Agent analytics / seller stats page."""
+    agent = marketplace_get_service(listing_id)
+    if not agent:
+        return render_template("market_error.html",
+            error_title="Not Found",
+            error_message="Agent not found",
+            back_url="/market"), 404
+    performance = marketplace_get_performance(listing_id, limit=30)
+    reviews = marketplace_get_reviews(listing_id, limit=20)
+    return render_template("market_analytics.html",
+        agent=agent, performance=performance, reviews=reviews, listing_id=listing_id)
+
+
+CATEGORY_INFO = {
+    "trading": {"icon": "chart", "desc": "Crypto trading bots, prediction markets, portfolio analyzers"},
+    "research": {"icon": "search", "desc": "Deep web research, competitive analysis, academic papers"},
+    "code": {"icon": "code", "desc": "Code generation, debugging, review, testing"},
+    "content": {"icon": "pen", "desc": "SEO writing, blog posts, social media, email sequences"},
+    "data": {"icon": "database", "desc": "Data analysis, ETL, CSV processing, visualization"},
+    "scraping": {"icon": "globe", "desc": "Web scraping, data extraction, monitoring"},
+    "automation": {"icon": "zap", "desc": "Workflow automation, scheduling, integrations"},
+    "creative": {"icon": "palette", "desc": "Image generation, design, music, video"},
+}
+
+
+@meta_bp.route("/market/categories")
+def market_categories_page():
+    """Browse marketplace categories with rich data."""
+    import agent_memory
+    with agent_memory._conn() as c:
+        cats = c.execute(
+            "SELECT category, COUNT(*) as cnt, SUM(call_count) as total_calls, "
+            "AVG(avg_rating) as avg_rat FROM marketplace WHERE is_active = 1 "
+            "GROUP BY category ORDER BY cnt DESC"
+        ).fetchall()
+        categories = []
+        for cat in cats:
+            top_agents = c.execute(
+                "SELECT listing_id, name, call_count, avg_rating, price_usd "
+                "FROM marketplace WHERE category = ? AND is_active = 1 "
+                "ORDER BY call_count DESC LIMIT 3",
+                (cat["category"],)
+            ).fetchall()
+            categories.append({
+                "category": cat["category"],
+                "agent_count": cat["cnt"],
+                "total_calls": cat["total_calls"] or 0,
+                "avg_rating": round(cat["avg_rat"] or 0, 2),
+                "top_agents": [dict(a) for a in top_agents],
+            })
+    return render_template("market_categories.html", categories=categories, info=CATEGORY_INFO)
+
+
+@meta_bp.route("/market/stats")
+def market_stats_page():
+    """Public marketplace stats dashboard."""
+    categories = marketplace_get_categories()
+    total_agents = sum(categories.values())
+    total_categories = len(categories)
+    leaders = marketplace_leaderboard(limit=5)
+
+    import trading_engine, a2a_engine
+    try:
+        trading_strats = len(trading_engine.list_strategies())
+    except Exception:
+        trading_strats = 0
+    try:
+        a2a_stats_data = a2a_engine.a2a_stats()
+    except Exception:
+        a2a_stats_data = {}
+
+    return render_template("market_stats.html",
+        total_agents=total_agents, total_categories=total_categories,
+        categories=categories, leaders=leaders,
+        trading_strategies=trading_strats, a2a=a2a_stats_data)
+
+
+@meta_bp.route("/api/report", methods=["POST"])
+def report_agent():
+    """Save agent report."""
+    import sqlite3
+    data = request.get_json() or {}
+    try:
+        db = sqlite3.connect(os.path.join(os.path.dirname(os.path.dirname(__file__)), "support.db"))
+        db.execute("CREATE TABLE IF NOT EXISTS agent_reports (id INTEGER PRIMARY KEY AUTOINCREMENT, listing_id TEXT, reason TEXT, ip TEXT, created_at TEXT)")
+        db.execute("INSERT INTO agent_reports (listing_id, reason, ip, created_at) VALUES (?,?,?,?)",
+            (data.get("listing_id", ""), data.get("reason", "")[:500], request.remote_addr, datetime.now(timezone.utc).isoformat()))
+        db.commit()
+        db.close()
+    except Exception:
+        pass
+    return "", 204
+
+
+@meta_bp.route("/api/subscribe-email", methods=["POST"])
+def subscribe_email():
+    """Save email subscriber from footer form."""
+    email = request.form.get("email", "")
+    if not email:
+        data = request.get_json(silent=True) or {}
+        email = data.get("email", "")
+    if email and "@" in email:
+        import sqlite3
+        try:
+            db = sqlite3.connect(os.path.join(os.path.dirname(os.path.dirname(__file__)), "analytics.db"))
+            db.execute("CREATE TABLE IF NOT EXISTS email_subscribers (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE, source TEXT, created_at TEXT)")
+            db.execute("INSERT OR IGNORE INTO email_subscribers (email, source, created_at) VALUES (?,?,?)",
+                (email.strip().lower(), "footer", datetime.now(timezone.utc).isoformat()))
+            db.commit()
+            db.close()
+        except Exception:
+            pass
+    from flask import redirect
+    return redirect(request.referrer or "/market")
 
 
 # ---------------------------------------------------------------------------
@@ -4156,3 +4331,28 @@ def feedback_submit():
     except Exception:
         pass
     return "", 204
+
+
+@meta_bp.route("/api/agent-health")
+def agent_health_api():
+    """Get latest agent health check results."""
+    import sqlite3
+    try:
+        db = sqlite3.connect(os.path.join(os.path.dirname(os.path.dirname(__file__)), "agent_memory.db"))
+        db.row_factory = sqlite3.Row
+        row = db.execute("SELECT * FROM agent_health_checks ORDER BY id DESC LIMIT 1").fetchone()
+        if row:
+            return jsonify({"total": row["total"], "healthy": row["healthy"], "unhealthy": row["unhealthy"], "errors": json.loads(row["errors"]), "checked_at": row["checked_at"]})
+    except Exception:
+        pass
+    return jsonify({"status": "no health check data yet"})
+
+
+@meta_bp.route("/market/agent/<listing_id>/success")
+def market_checkout_success(listing_id):
+    """Post-checkout success page."""
+    from flask import redirect
+    agent = marketplace_get_service(listing_id)
+    if not agent:
+        return redirect("/market")
+    return render_template("market_success.html", agent=agent, listing_id=listing_id)

@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+{% block title %}Seller Analytics{% endblock %}
+{% block description %}Track your agent performance, revenue, and growth on AiPayGen.{% endblock %}
+
+{% block head %}
+<style>
+.analytics-hero {
+  text-align: center;
+  padding: 120px 22px 40px;
+}
+.analytics-hero h1 {
+  font-size: var(--text-4xl);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin-bottom: 8px;
+}
+.analytics-hero p {
+  color: var(--text-secondary);
+  font-size: var(--text-base);
+}
+.analytics-auth {
+  max-width: 480px;
+  margin: 0 auto 48px;
+  display: flex;
+  gap: 8px;
+}
+.analytics-auth input {
+  flex: 1;
+  padding: 12px 18px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-family: var(--font-mono);
+}
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  max-width: 980px;
+  margin: 0 auto 40px;
+  padding: 0 22px;
+}
+@media (max-width: 768px) {
+  .summary-cards { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .summary-cards { grid-template-columns: 1fr; }
+}
+.summary-card {
+  padding: 24px;
+  text-align: center;
+}
+.summary-card .label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+.summary-card .value {
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.summary-card .value.accent {
+  color: var(--accent);
+}
+.summary-card .value.green {
+  color: var(--green);
+}
+.agent-table-wrap {
+  max-width: 980px;
+  margin: 0 auto 48px;
+  padding: 0 22px;
+}
+.agent-table-wrap h2 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+.agent-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+.agent-table th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.agent-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.agent-table tr:hover td {
+  background: rgba(255,255,255,0.02);
+}
+.agent-table .name {
+  color: var(--text);
+  font-weight: 600;
+}
+.agent-table .trend-up {
+  color: var(--green);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+.agent-table .trend-down {
+  color: var(--red, #ff453a);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+.agent-table .trend-flat {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+#analytics-content { display: none; }
+#analytics-loading { display: none; text-align: center; padding: 40px; color: var(--text-muted); }
+#analytics-error { display: none; text-align: center; padding: 40px; color: var(--red, #ff453a); }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="analytics-hero">
+  <h1 class="fade-in">Seller <span class="gradient-text">Analytics</span></h1>
+  <p class="fade-in delay-1" style="margin-bottom:32px">Track revenue, calls, and growth across your agents.</p>
+  <div class="analytics-auth fade-in delay-2">
+    <input type="text" id="api-key-input" placeholder="Enter your API key (apk_...)" autocomplete="off">
+    <button class="btn btn-primary" id="load-btn" onclick="loadAnalytics()">Load</button>
+  </div>
+</section>
+
+<div id="analytics-loading">Loading analytics...</div>
+<div id="analytics-error"></div>
+
+<div id="analytics-content">
+  <div class="summary-cards">
+    <div class="card summary-card fade-in">
+      <div class="label">Total Revenue</div>
+      <div class="value accent" id="stat-revenue">$0.00</div>
+    </div>
+    <div class="card summary-card fade-in delay-1">
+      <div class="label">Total Calls</div>
+      <div class="value" id="stat-calls">0</div>
+    </div>
+    <div class="card summary-card fade-in delay-2">
+      <div class="label">Avg Rating</div>
+      <div class="value green" id="stat-rating">0.0</div>
+    </div>
+    <div class="card summary-card fade-in delay-3">
+      <div class="label">Active Agents</div>
+      <div class="value" id="stat-agents">0</div>
+    </div>
+  </div>
+
+  <div class="agent-table-wrap fade-in">
+    <h2>Per-Agent Breakdown</h2>
+    <div style="overflow-x:auto">
+      <table class="agent-table">
+        <thead>
+          <tr>
+            <th>Agent</th>
+            <th>Category</th>
+            <th>Calls</th>
+            <th>Revenue</th>
+            <th>Rating</th>
+            <th>Trend</th>
+          </tr>
+        </thead>
+        <tbody id="agent-rows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="agent-table-wrap fade-in" id="top-agent-section" style="display:none">
+    <h2>Top Performing Agent</h2>
+    <div class="card" style="padding:24px;display:flex;align-items:center;gap:16px">
+      <div style="width:48px;height:48px;border-radius:var(--radius-sm);background:rgba(255,255,255,0.04);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">&#129302;</div>
+      <div>
+        <div style="font-weight:600;color:var(--text);font-size:var(--text-base)" id="top-name"></div>
+        <div style="font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted);margin-top:4px">
+          <span id="top-calls"></span> calls &middot; <span id="top-revenue" style="color:var(--accent)"></span> revenue &middot; <span id="top-rating" style="color:var(--green)"></span> rating
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function createCell(text, className, style) {
+  var td = document.createElement('td');
+  td.textContent = text;
+  if (className) td.className = className;
+  if (style) td.setAttribute('style', style);
+  return td;
+}
+
+async function loadAnalytics() {
+  var key = document.getElementById('api-key-input').value.trim();
+  if (!key || !key.startsWith('apk_')) {
+    document.getElementById('analytics-error').textContent = 'Please enter a valid API key (apk_...)';
+    document.getElementById('analytics-error').style.display = 'block';
+    return;
+  }
+  document.getElementById('analytics-error').style.display = 'none';
+  document.getElementById('analytics-content').style.display = 'none';
+  document.getElementById('analytics-loading').style.display = 'block';
+  document.getElementById('load-btn').disabled = true;
+
+  try {
+    var resp = await fetch('/seller/analytics', {
+      headers: { 'Authorization': 'Bearer ' + key }
+    });
+    if (!resp.ok) {
+      var err = await resp.json();
+      throw new Error(err.error || 'Failed to load analytics');
+    }
+    var data = await resp.json();
+    renderAnalytics(data);
+  } catch (e) {
+    document.getElementById('analytics-error').textContent = e.message;
+    document.getElementById('analytics-error').style.display = 'block';
+    document.getElementById('analytics-loading').style.display = 'none';
+  } finally {
+    document.getElementById('load-btn').disabled = false;
+  }
+}
+
+function renderAnalytics(data) {
+  document.getElementById('analytics-loading').style.display = 'none';
+
+  var t = data.totals || {};
+  document.getElementById('stat-revenue').textContent = '$' + (t.total_revenue || 0).toFixed(2);
+  document.getElementById('stat-calls').textContent = (t.total_calls || 0).toLocaleString();
+  document.getElementById('stat-rating').textContent = (t.avg_rating || 0).toFixed(1);
+  document.getElementById('stat-agents').textContent = t.active_agents || 0;
+
+  var tbody = document.getElementById('agent-rows');
+  while (tbody.firstChild) tbody.removeChild(tbody.firstChild);
+
+  if (!data.agents || data.agents.length === 0) {
+    var tr = document.createElement('tr');
+    var td = document.createElement('td');
+    td.setAttribute('colspan', '6');
+    td.setAttribute('style', 'text-align:center;color:var(--text-muted);padding:32px');
+    td.textContent = 'No agents found for this API key. List an agent on the marketplace first.';
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+  } else {
+    data.agents.sort(function(a, b) { return (b.total_revenue || 0) - (a.total_revenue || 0); });
+    for (var i = 0; i < data.agents.length; i++) {
+      var agent = data.agents[i];
+      var pct = agent.trend_pct || 0;
+      var trendClass = 'trend-flat';
+      var trendText = '0%';
+      if (pct > 0) { trendClass = 'trend-up'; trendText = '+' + pct + '%'; }
+      else if (pct < 0) { trendClass = 'trend-down'; trendText = pct + '%'; }
+
+      var tr = document.createElement('tr');
+      tr.appendChild(createCell(agent.name, 'name'));
+      tr.appendChild(createCell(agent.category || 'general'));
+      tr.appendChild(createCell((agent.call_count || 0).toLocaleString()));
+      tr.appendChild(createCell('$' + (agent.total_revenue || 0).toFixed(2), null, 'color:var(--accent);font-weight:500'));
+      tr.appendChild(createCell((agent.avg_rating || 0).toFixed(1)));
+      tr.appendChild(createCell(trendText, trendClass));
+      tbody.appendChild(tr);
+    }
+  }
+
+  // Top agent
+  if (data.top_agent) {
+    document.getElementById('top-agent-section').style.display = 'block';
+    document.getElementById('top-name').textContent = data.top_agent.name;
+    document.getElementById('top-calls').textContent = (data.top_agent.call_count || 0).toLocaleString();
+    document.getElementById('top-revenue').textContent = '$' + (data.top_agent.total_revenue || 0).toFixed(2);
+    document.getElementById('top-rating').textContent = (data.top_agent.avg_rating || 0).toFixed(1);
+  }
+
+  document.getElementById('analytics-content').style.display = 'block';
+}
+
+// Auto-load if key is in URL hash
+if (location.hash && location.hash.startsWith('#apk_')) {
+  document.getElementById('api-key-input').value = location.hash.slice(1);
+  loadAnalytics();
+}
+</script>
+{% endblock %}
