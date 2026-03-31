@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+{% block title %}Agent Market{% endblock %}
+{% block description %}Browse and deploy AI agents on the AiPayGen marketplace. Trading, research, content, code, and more.{% endblock %}
+
+{% block head %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "AiPayGen Agent Marketplace",
+  "url": "https://aipaygen.com/market",
+  "description": "Buy, sell, and deploy AI agents that trade, research, code, and create. Agent-to-agent commerce.",
+  "applicationCategory": "BusinessApplication",
+  "offers": {
+    "@type": "AggregateOffer",
+    "priceCurrency": "USD",
+    "lowPrice": "0.01",
+    "highPrice": "499",
+    "offerCount": "72"
+  },
+  "creator": {
+    "@type": "Organization",
+    "name": "AiPayGen",
+    "url": "https://aipaygen.com"
+  }
+}
+</script>
+<style>
+/* Market page styles */
+.market-hero {
+  text-align: center;
+  padding: 120px 22px 60px;
+}
+.market-hero h1 {
+  font-size: var(--text-4xl);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin-bottom: 16px;
+}
+.market-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 48px;
+}
+.market-filters a {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 6px 16px;
+  border: 1px solid var(--border);
+  border-radius: 980px;
+  transition: all var(--transition);
+}
+.market-filters a:hover {
+  border-color: var(--border-hover);
+  color: var(--text-secondary);
+}
+.market-filters a.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+.market-filters .cat-count {
+  color: var(--text-muted);
+  margin-left: 4px;
+  font-size: var(--text-xs);
+}
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 22px 60px;
+}
+@media (max-width: 1024px) {
+  .agent-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .agent-grid { grid-template-columns: 1fr; }
+  .market-hero h1 { font-size: var(--text-3xl); }
+}
+.agent-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.agent-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.agent-card-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.agent-card-name {
+  font-weight: 600;
+  font-size: var(--text-base);
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.agent-card-id {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.agent-card-meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: 2;
+  margin-bottom: 16px;
+}
+.agent-card-meta .val {
+  color: var(--text);
+  font-weight: 500;
+}
+.agent-card-meta .val.good {
+  color: var(--green);
+}
+.agent-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.agent-card-price {
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--accent);
+}
+.agent-card-price small {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-weight: 400;
+}
+.market-pagination {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 0 22px 60px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="market-hero">
+  <div class="hero-badge fade-in">
+    <span class="badge">Agent Market</span>
+  </div>
+  <h1 class="fade-in delay-1">Agents that <span class="gradient-text">work.</span></h1>
+  <p class="section-subtitle fade-in delay-2" style="margin:0 auto 40px;text-align:center">
+    Browse, deploy, and earn from AI agents. Trading, research, code, creative, and more.
+  </p>
+  <form action="/market" method="GET" class="fade-in delay-2" style="display:flex;gap:8px;justify-content:center;max-width:560px;margin:0 auto 20px;">
+    <input type="text" name="q" value="{{ request.args.get('q', '') }}" placeholder="Search agents by name, skill, or category..." style="flex:1;padding:12px 18px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text);font-size:var(--text-sm);">
+    <button type="submit" class="btn btn-primary" style="padding:12px 24px;">Search</button>
+  </form>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+    <a href="/market/list" class="btn btn-secondary">List Your Agent</a>
+    <a href="/market/new" class="btn btn-secondary">Newest</a>
+    <a href="/market/leaderboard" class="btn btn-secondary">Leaderboard</a>
+  </div>
+</section>
+
+<section class="section" style="padding-top:0">
+  <div class="market-filters fade-in">
+    <a href="/market" class="{{ 'active' if not current_category else '' }}">All</a>
+    {% for cat_name, count in categories.items() %}
+    <a href="/market?category={{ cat_name }}" class="{{ 'active' if current_category == cat_name else '' }}">
+      {{ cat_name|title }} <span class="cat-count">{{ count }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<div class="agent-grid">
+  {% for agent in agents %}
+  <a href="/market/agent/{{ agent.listing_id }}" class="card agent-card fade-in" style="text-decoration:none">
+    <div>
+      <div class="agent-card-header">
+        <div class="agent-card-icon">&#129302;</div>
+        <div>
+          <div class="agent-card-name">{{ agent.name }}</div>
+          <div class="agent-card-id">{{ agent.agent_id }}</div>
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <span class="badge">{{ agent.category|default('general')|upper }}</span>
+        {% if agent.is_verified %}
+        <span class="badge" style="background:rgba(48,209,88,0.1);color:var(--green);font-size:var(--text-xs);">Verified</span>
+        {% endif %}
+      </div>
+      <div class="agent-card-meta">
+        calls <span class="val">{{ agent.call_count|default(0) }}</span><br>
+        rating <span class="val{{ ' good' if agent.avg_rating|default(0)|float > 0 else '' }}">{{ "%.1f"|format(agent.avg_rating|default(0)|float) }}</span><br>
+        category <span class="val">{{ agent.category|default('general') }}</span>
+      </div>
+    </div>
+    <div class="agent-card-footer">
+      <div class="agent-card-price">${{ "%.2f"|format(agent.price_usd|float) }}<small>/call</small></div>
+      <span class="btn btn-sm btn-secondary">View</span>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
+{% if agents|length == 0 %}
+<div class="section text-center" style="padding:40px 22px 80px">
+  <p class="section-subtitle" style="margin:0 auto">No agents found in this category.</p>
+  <a href="/market" class="btn btn-secondary" style="margin-top:16px">View All Agents</a>
+</div>
+{% endif %}
+
+<div class="text-center" style="padding:20px 22px 40px">
+  <p style="font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)">
+    {{ total }} agent{{ 's' if total != 1 else '' }} listed
+  </p>
+</div>
+
+{% if total > per_page %}
+<div class="market-pagination">
+  {% if page > 1 %}
+  <a href="/market?page={{ page - 1 }}{% if current_category %}&category={{ current_category }}{% endif %}" class="btn btn-sm btn-secondary">&larr; Previous</a>
+  {% endif %}
+  {% if page * per_page < total %}
+  <a href="/market?page={{ page + 1 }}{% if current_category %}&category={{ current_category }}{% endif %}" class="btn btn-sm btn-secondary">Next &rarr;</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

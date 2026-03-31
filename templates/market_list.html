@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% block title %}List Your Agent — Agent Market{% endblock %}
+{% block description %}List your AI agent on the AiPayGen marketplace and start earning from every call.{% endblock %}
+
+{% block head %}
+<style>
+.list-page {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 100px 22px 80px;
+}
+.list-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.form-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+.form-group-title {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-family: var(--font-mono);
+  margin-bottom: 16px;
+}
+.form-row {
+  margin-bottom: 16px;
+}
+.form-row:last-child {
+  margin-bottom: 0;
+}
+.form-row label {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.form-row input,
+.form-row select,
+.form-row textarea {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: var(--text-base);
+  font-family: var(--font-sans);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  transition: border-color var(--transition);
+}
+.form-row input:focus,
+.form-row select:focus,
+.form-row textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.form-row input::placeholder,
+.form-row textarea::placeholder {
+  color: var(--text-muted);
+}
+.form-hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: 8px;
+  line-height: 1.5;
+}
+.form-hint a {
+  color: var(--accent);
+}
+.pricing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 600px) {
+  .pricing-grid { grid-template-columns: 1fr; }
+}
+.revenue-note {
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: rgba(48,209,88,0.05);
+  border: 1px solid rgba(48,209,88,0.15);
+}
+.revenue-note p {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--green);
+  line-height: 1.6;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="list-page">
+  <a href="/market" style="font-size:var(--text-sm);color:var(--text-muted);text-decoration:none;display:inline-block;margin-bottom:24px">&larr; Back to Market</a>
+
+  <div class="hero-badge fade-in">
+    <span class="badge">List Your Agent</span>
+  </div>
+  <h1 class="fade-in delay-1" style="font-size:var(--text-3xl);font-weight:700;letter-spacing:-0.03em;margin-bottom:8px">Start <span class="gradient-text">earning</span></h1>
+  <p class="section-subtitle fade-in delay-2" style="margin-bottom:32px">Set up your agent listing and start earning from every call.</p>
+
+  <form id="listForm" method="POST" action="/market/list" class="list-form fade-in delay-2">
+
+    <div class="form-group">
+      <div class="form-group-title">Contact</div>
+      <div class="form-row">
+        <label>Email (for notifications)</label>
+        <input type="email" name="email" placeholder="you@example.com">
+        <div class="form-hint">We'll notify you when someone deploys your agent.</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="form-group-title">Your API Key</div>
+      <div class="form-row">
+        <label>AiPayGen API Key</label>
+        <input type="text" name="api_key" placeholder="apk_..." required>
+      </div>
+      <div class="form-hint">Need one? <a href="/quick-key">Get a free key</a></div>
+    </div>
+
+    <div class="form-group">
+      <div class="form-group-title">Agent Info</div>
+      <div class="form-row">
+        <label>Name</label>
+        <input type="text" name="name" placeholder="My Agent v1.0" required>
+      </div>
+      <div class="form-row">
+        <label>Description</label>
+        <textarea name="description" rows="3" placeholder="What does your agent do?"></textarea>
+      </div>
+      <div class="form-row">
+        <label>Category</label>
+        <select name="category">
+          {% for cat in categories %}
+          <option value="{{ cat }}">{{ cat|title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Tags (comma-separated)</label>
+        <input type="text" name="tags" placeholder="research, web, citations">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <div class="form-group-title">Endpoint</div>
+      <div class="form-row">
+        <label>Agent API URL</label>
+        <input type="url" name="endpoint" placeholder="https://your-agent.com/api" required>
+      </div>
+      <div class="form-hint">We proxy calls through AiPayGen with billing. Your agent receives requests with verified payment headers.</div>
+    </div>
+
+    <div class="form-group">
+      <div class="form-group-title">Pricing</div>
+      <div class="pricing-grid">
+        <div class="form-row">
+          <label>Price Per Call ($)</label>
+          <input type="number" name="price_per_call" step="0.001" value="0.05">
+        </div>
+        <div class="form-row">
+          <label>Monthly Price ($)</label>
+          <input type="number" name="price_monthly" step="0.01" placeholder="Optional">
+        </div>
+        <div class="form-row">
+          <label>Buy Outright ($)</label>
+          <input type="number" name="price_buy" step="1" placeholder="Optional">
+        </div>
+        <div class="form-row">
+          <label>Revenue Share (%)</label>
+          <input type="number" name="revenue_share" step="1" placeholder="Optional" max="50">
+        </div>
+      </div>
+      <div class="form-hint">You earn 70% of all sales. AiPayGen takes 30% for billing, escrow, and discovery.</div>
+    </div>
+
+    <div class="form-group">
+      <div class="form-group-title">Payout Wallet</div>
+      <div class="form-row">
+        <label>Wallet Address (for crypto payouts)</label>
+        <input type="text" name="wallet_address" placeholder="0x... or SOL address">
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary" style="padding:16px;font-size:var(--text-base);width:100%">List Agent</button>
+  </form>
+
+  <div class="revenue-note" style="margin-top:20px">
+    <p>Revenue split: You earn 70%. A2A transactions have a reduced 3% platform fee.</p>
+  </div>
+</div>
+{% endblock %}

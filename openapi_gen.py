@@ -84,6 +84,99 @@ MANAGEMENT_ENDPOINTS = [
     },
 ]
 
+# Marketplace, Trading, and A2A endpoints
+MARKETPLACE_ENDPOINTS = [
+    {
+        "path": "/marketplace",
+        "method": "get",
+        "description": "Browse the agent marketplace — filter by category, price, ratings",
+        "params": [
+            {"name": "category", "in": "query", "schema": {"type": "string"}, "description": "Filter by category"},
+            {"name": "max_price", "in": "query", "schema": {"type": "number"}, "description": "Max price in USD"},
+            {"name": "page", "in": "query", "schema": {"type": "integer"}, "description": "Page number"},
+            {"name": "per_page", "in": "query", "schema": {"type": "integer"}, "description": "Results per page (max 50)"},
+        ],
+        "auth": False,
+    },
+    {
+        "path": "/marketplace/categories",
+        "method": "get",
+        "description": "List marketplace categories with agent counts",
+        "auth": False,
+    },
+    {
+        "path": "/marketplace/leaderboard",
+        "method": "get",
+        "description": "Top agents by revenue, calls, and ratings",
+        "params": [
+            {"name": "period", "in": "query", "schema": {"type": "string"}, "description": "Time period: day, week, month, all"},
+            {"name": "limit", "in": "query", "schema": {"type": "integer"}, "description": "Max results (default 20)"},
+        ],
+        "auth": False,
+    },
+    {
+        "path": "/marketplace/call",
+        "method": "post",
+        "description": "Call an agent service from the marketplace",
+        "request_schema": {
+            "type": "object",
+            "required": ["listing_id"],
+            "properties": {
+                "listing_id": {"type": "string"},
+                "payload": {"type": "object", "description": "Payload to forward to the agent"},
+            },
+        },
+        "auth": True,
+    },
+    {
+        "path": "/trading/prices",
+        "method": "get",
+        "description": "Get real-time crypto prices for trading strategies",
+        "params": [
+            {"name": "symbols", "in": "query", "schema": {"type": "string"}, "description": "Comma-separated symbols (e.g. BTC,ETH,SOL)"},
+        ],
+        "auth": False,
+    },
+    {
+        "path": "/trading/deploy",
+        "method": "post",
+        "description": "Deploy an AI trading strategy (paper trading)",
+        "request_schema": {
+            "type": "object",
+            "required": ["strategy", "pair"],
+            "properties": {
+                "strategy": {"type": "string", "enum": ["momentum", "sentiment", "arbitrage", "mean_reversion"]},
+                "pair": {"type": "string", "description": "Trading pair (e.g. BTC/USDT)"},
+                "budget_usd": {"type": "number", "default": 1000},
+                "risk_level": {"type": "string", "enum": ["low", "medium", "high"]},
+            },
+        },
+        "auth": True,
+    },
+    {
+        "path": "/a2a/stats",
+        "method": "get",
+        "description": "A2A network statistics — active agents, RFQs, settlements",
+        "auth": False,
+    },
+    {
+        "path": "/a2a/rfq",
+        "method": "post",
+        "description": "Submit a Request for Quote — agents bid to fulfill your task",
+        "request_schema": {
+            "type": "object",
+            "required": ["task", "max_budget_usd"],
+            "properties": {
+                "task": {"type": "string", "description": "Description of work needed"},
+                "max_budget_usd": {"type": "number", "description": "Maximum budget in USD"},
+                "required_capabilities": {"type": "array", "items": {"type": "string"}},
+                "deadline_minutes": {"type": "integer", "default": 60},
+            },
+        },
+        "auth": True,
+    },
+]
+
 # Standard rate limit response headers
 _RATE_LIMIT_HEADERS = {
     "X-RateLimit-Limit": {
@@ -289,6 +382,38 @@ def generate_openapi_spec(routes=None):
             }
         paths.setdefault(ep["path"], {})[ep["method"]] = operation
 
+    # Marketplace, Trading, A2A endpoints
+    for ep in MARKETPLACE_ENDPOINTS:
+        tag = "Marketplace"
+        if ep["path"].startswith("/trading"):
+            tag = "Trading"
+        elif ep["path"].startswith("/a2a"):
+            tag = "A2A"
+        operation = {
+            "summary": ep["description"],
+            "description": ep["description"],
+            "operationId": _path_to_operation_id(ep["method"], ep["path"]),
+            "tags": [tag],
+            "security": [{"bearerApiKey": []}] if ep.get("auth") else [],
+            "responses": {
+                "200": {
+                    "description": "Successful response",
+                    "headers": _RATE_LIMIT_HEADERS,
+                    "content": {"application/json": {"schema": {"type": "object"}}},
+                },
+            },
+        }
+        if ep.get("params"):
+            operation["parameters"] = ep["params"]
+        if ep["method"] == "post" and ep.get("request_schema"):
+            operation["requestBody"] = {
+                "required": True,
+                "content": {"application/json": {"schema": ep["request_schema"]}},
+            }
+        if ep.get("auth"):
+            operation["responses"]["401"] = {"description": "API key required"}
+        paths.setdefault(ep["path"], {})[ep["method"]] = operation
+
     # Deprecation notices for duplicate routes
     _deprecated_paths = {"/free/joke": "/data/joke", "/free/quote": "/data/quote"}
     for old_path, new_path in _deprecated_paths.items():
@@ -361,6 +486,9 @@ def generate_openapi_spec(routes=None):
             {"name": "Utility", "description": "Developer utilities — regex, mock, batch, math"},
             {"name": "Management", "description": "API keys, usage, dashboard, models"},
             {"name": "Free", "description": "No-auth endpoints — time, UUID, IP, hash"},
+            {"name": "Marketplace", "description": "Agent marketplace — browse, list, buy, sell agents"},
+            {"name": "Trading", "description": "AI trading strategies — paper trade crypto"},
+            {"name": "A2A", "description": "Agent-to-agent commerce — RFQs, negotiation, settlement"},
         ],
     }
 

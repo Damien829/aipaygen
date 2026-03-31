@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+{% block title %}{{ strategy.name }} — Trading{% endblock %}
+{% block description %}{{ strategy.name }} trading strategy detail — performance, trades, and controls.{% endblock %}
+
+{% block head %}
+<style>
+.detail-header {
+  padding: 120px 22px 40px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+.detail-header h1 {
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  margin-bottom: 12px;
+}
+.detail-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.badge-active { background: rgba(48,209,88,0.12); color: var(--green); }
+.badge-paused { background: rgba(255,255,255,0.06); color: var(--text-muted); }
+.badge-paper { background: var(--accent-dim); color: var(--accent); }
+.badge-type { background: var(--accent2-dim); color: var(--accent2); }
+
+/* Stats grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  max-width: 980px;
+  margin: 0 auto 48px;
+  padding: 0 22px;
+}
+.stat-card {
+  padding: 20px;
+  text-align: center;
+}
+.stat-card .stat-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.stat-card .stat-value {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.stat-positive { color: var(--green) !important; }
+.stat-negative { color: #ff453a !important; }
+
+/* Trade history */
+.trades-section {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 22px 48px;
+}
+.trades-section h2 {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+.trades-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.trades-table th {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: left;
+  padding: 10px 10px;
+  border-bottom: 1px solid var(--border);
+}
+.trades-table td {
+  font-size: var(--text-sm);
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.trades-table tr:hover td {
+  background: rgba(255,255,255,0.02);
+}
+.side-long { color: var(--green); font-weight: 600; }
+.side-short { color: #ff453a; font-weight: 600; }
+.pnl-pos { color: var(--green); font-weight: 600; }
+.pnl-neg { color: #ff453a; font-weight: 600; }
+
+/* Controls */
+.controls-section {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 22px 80px;
+}
+.controls-section h2 {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 16px;
+}
+.controls-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+}
+.trade-form {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+}
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.form-group label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+.form-group select,
+.form-group input {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  padding: 8px 12px;
+  outline: none;
+  transition: border-color var(--transition);
+}
+.form-group select:focus,
+.form-group input:focus {
+  border-color: var(--accent);
+}
+
+@media (max-width: 600px) {
+  .detail-header h1 { font-size: var(--text-2xl); }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .trades-table { font-size: var(--text-xs); }
+  .trades-table th, .trades-table td { padding: 8px 6px; }
+  .trade-form { flex-direction: column; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<section class="detail-header">
+  <div style="margin-bottom:16px">
+    <a href="/trading" style="font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted);text-decoration:none">&larr; All Strategies</a>
+  </div>
+  <div class="detail-badges fade-in">
+    {% set status = strategy.status|default('paused') %}
+    <span class="badge badge-{{ status }}">{{ status|title }}</span>
+    <span class="badge badge-type">{{ strategy.type|default('custom')|upper }}</span>
+    {% if strategy.mode|default('paper') == 'paper' %}
+    <span class="badge badge-paper">Paper Trading</span>
+    {% endif %}
+  </div>
+  <h1 class="fade-in delay-1">{{ strategy.name }}</h1>
+  <p style="font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)" class="fade-in delay-2">
+    {{ strategy.strategy_id }} &middot;
+    Pairs: {% if strategy.pairs is string %}{{ strategy.pairs }}{% else %}{{ strategy.pairs|join(', ') }}{% endif %}
+  </p>
+</section>
+
+<!-- Stats Grid -->
+<div class="stats-grid">
+  {% set bal = portfolio.balance|default(10000)|float if portfolio else 10000 %}
+  {% set pnl = portfolio.total_pnl|default(0)|float if portfolio else 0 %}
+  {% set wr = portfolio.win_rate|default(0)|float if portfolio else 0 %}
+  {% set dd = portfolio.max_drawdown|default(0)|float if portfolio else 0 %}
+  {% set tt = portfolio.total_trades|default(0)|int if portfolio else 0 %}
+  {% set sr = portfolio.sharpe_ratio|default(0)|float if portfolio else 0 %}
+
+  <div class="card stat-card fade-in">
+    <div class="stat-label">Balance</div>
+    <div class="stat-value">${{ "%.2f"|format(bal) }}</div>
+  </div>
+  <div class="card stat-card fade-in">
+    <div class="stat-label">Total P&L</div>
+    <div class="stat-value {{ 'stat-positive' if pnl >= 0 else 'stat-negative' }}">
+      {{ "+" if pnl >= 0 else "" }}${{ "%.2f"|format(pnl) }}
+    </div>
+  </div>
+  <div class="card stat-card fade-in">
+    <div class="stat-label">Win Rate</div>
+    <div class="stat-value">{{ "%.1f"|format(wr) }}%</div>
+  </div>
+  <div class="card stat-card fade-in">
+    <div class="stat-label">Max Drawdown</div>
+    <div class="stat-value stat-negative">{{ "%.1f"|format(dd) }}%</div>
+  </div>
+  <div class="card stat-card fade-in">
+    <div class="stat-label">Total Trades</div>
+    <div class="stat-value">{{ tt }}</div>
+  </div>
+  <div class="card stat-card fade-in">
+    <div class="stat-label">Sharpe Ratio</div>
+    <div class="stat-value">{{ "%.2f"|format(sr) }}</div>
+  </div>
+</div>
+
+<!-- Trade History -->
+<section class="trades-section">
+  <h2 class="fade-in">Trade History</h2>
+  {% if trades %}
+  <div class="card fade-in" style="overflow-x:auto;padding:0">
+    <table class="trades-table">
+      <thead>
+        <tr>
+          <th>Pair</th>
+          <th>Side</th>
+          <th>Entry</th>
+          <th>Exit</th>
+          <th>P&L</th>
+          <th>Duration</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in trades %}
+        <tr>
+          <td style="font-family:var(--font-mono);font-weight:500;color:var(--text)">{{ t.pair }}</td>
+          <td>
+            <span class="{{ 'side-long' if t.side == 'long' else 'side-short' }}">
+              {{ t.side|upper }}
+            </span>
+          </td>
+          <td style="font-family:var(--font-mono)">${{ "%.2f"|format(t.entry_price|default(0)|float) }}</td>
+          <td style="font-family:var(--font-mono)">
+            {% if t.exit_price %}${{ "%.2f"|format(t.exit_price|float) }}{% else %}&mdash;{% endif %}
+          </td>
+          <td>
+            {% set tpnl = t.pnl|default(0)|float %}
+            <span class="{{ 'pnl-pos' if tpnl >= 0 else 'pnl-neg' }}">
+              {{ "+" if tpnl >= 0 else "" }}${{ "%.2f"|format(tpnl) }}
+            </span>
+          </td>
+          <td style="font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)">
+            {{ t.duration|default('--') }}
+          </td>
+          <td style="font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted)">
+            {{ t.timestamp|default(t.created_at)|default('')|truncate(16, True, '') }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card fade-in" style="text-align:center;padding:32px 20px">
+    <p style="color:var(--text-muted)">No trades recorded yet.</p>
+  </div>
+  {% endif %}
+</section>
+
+<!-- Controls -->
+<section class="controls-section">
+  <h2 class="fade-in">Controls</h2>
+  <div class="controls-row fade-in">
+    {% if strategy.status == 'active' %}
+    <form action="/api/v1/trading/strategies/{{ strategy.strategy_id }}/pause" method="POST" style="display:inline">
+      <button type="submit" class="btn btn-secondary">Pause Strategy</button>
+    </form>
+    {% else %}
+    <form action="/api/v1/trading/strategies/{{ strategy.strategy_id }}/activate" method="POST" style="display:inline">
+      <button type="submit" class="btn btn-primary">Activate Strategy</button>
+    </form>
+    {% endif %}
+    <a href="/trading" class="btn btn-secondary">Back to Dashboard</a>
+  </div>
+
+  <h2 class="fade-in" style="margin-top:16px">Open Trade</h2>
+  <form class="trade-form fade-in" action="/api/v1/trading/strategies/{{ strategy.strategy_id }}/trade" method="POST">
+    <div class="form-group">
+      <label>Pair</label>
+      <select name="pair">
+        {% if strategy.pairs is string %}
+          {% for p in strategy.pairs.split(',') %}
+          <option value="{{ p|trim }}">{{ p|trim }}</option>
+          {% endfor %}
+        {% else %}
+          {% for p in strategy.pairs %}
+          <option value="{{ p }}">{{ p }}</option>
+          {% endfor %}
+        {% endif %}
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Side</label>
+      <select name="side">
+        <option value="long">Long</option>
+        <option value="short">Short</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Quantity</label>
+      <input type="number" name="quantity" step="0.001" min="0.001" value="0.01" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Place Trade</button>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% block title %}Checkout — {{ agent.name }}{% endblock %}
+{% block description %}Complete your purchase of {{ agent.name }} on AiPayGen Agent Market.{% endblock %}
+
+{% block head %}
+<style>
+.checkout-page {
+  max-width: 580px;
+  margin: 0 auto;
+  padding: 100px 22px 80px;
+}
+.checkout-agent {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.checkout-agent-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.checkout-agent-name {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.checkout-agent-meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.checkout-summary {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.checkout-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.checkout-label {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text);
+}
+.checkout-desc {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+.checkout-price {
+  font-family: var(--font-mono);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--accent);
+}
+.checkout-features {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+.checkout-features p {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: 2.2;
+}
+.checkout-features .check {
+  color: var(--green);
+  margin-right: 6px;
+}
+.checkout-form-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-bottom: 16px;
+}
+.checkout-form-group .form-row {
+  margin-bottom: 16px;
+}
+.checkout-form-group .form-row:last-child {
+  margin-bottom: 0;
+}
+.checkout-form-group label {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.checkout-form-group input {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: var(--text-base);
+  font-family: var(--font-sans);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  transition: border-color var(--transition);
+}
+.checkout-form-group input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.checkout-form-group input::placeholder {
+  color: var(--text-muted);
+}
+.checkout-disclaimer {
+  margin-top: 16px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: rgba(255,69,58,0.03);
+  border: 1px solid rgba(255,69,58,0.1);
+}
+.checkout-disclaimer p {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: rgba(255,69,58,0.5);
+  line-height: 1.7;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="checkout-page">
+  <a href="/market/agent/{{ listing_id }}" style="font-size:var(--text-sm);color:var(--text-muted);text-decoration:none;display:inline-block;margin-bottom:24px">&larr; Back to {{ agent.name }}</a>
+
+  <div class="checkout-agent">
+    <div class="checkout-agent-icon">&#129302;</div>
+    <div>
+      <div class="checkout-agent-name">{{ agent.name }}</div>
+      <div class="checkout-agent-meta">{{ agent.category|default('general') }} &middot; {{ agent.call_count|default(0) }} calls</div>
+    </div>
+  </div>
+
+  <hr style="border:none;border-top:1px solid var(--border);margin-bottom:28px">
+
+  <h3 style="font-size:var(--text-sm);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;font-family:var(--font-mono);margin-bottom:16px">Order Summary</h3>
+
+  <div class="checkout-summary">
+    <div class="checkout-summary-row">
+      <div>
+        <div class="checkout-label">{{ label }}</div>
+        <div class="checkout-desc">{{ desc }}</div>
+      </div>
+      <div class="checkout-price">${{ "%.2f"|format(price|float) }}</div>
+    </div>
+  </div>
+
+  <h3 style="font-size:var(--text-sm);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;font-family:var(--font-mono);margin-bottom:12px">What You Get</h3>
+
+  <div class="checkout-features">
+    <p>
+      {% if plan == 'buy' %}
+      <span class="check">&#10003;</span> Agent config file (JSON) for self-hosting<br>
+      <span class="check">&#10003;</span> Full source prompt + tools<br>
+      <span class="check">&#10003;</span> Lifetime updates from creator<br>
+      <span class="check">&#10003;</span> No platform fees ever
+      {% elif plan == 'monthly' %}
+      <span class="check">&#10003;</span> API key with agent access<br>
+      <span class="check">&#10003;</span> Call via /marketplace/call endpoint<br>
+      <span class="check">&#10003;</span> Usage tracked in dashboard<br>
+      <span class="check">&#10003;</span> Cancel anytime
+      {% else %}
+      <span class="check">&#10003;</span> API key with agent access<br>
+      <span class="check">&#10003;</span> Call via /marketplace/call endpoint<br>
+      <span class="check">&#10003;</span> Pay per call — no commitment<br>
+      <span class="check">&#10003;</span> Top up anytime
+      {% endif %}
+    </p>
+  </div>
+
+  <h3 style="font-size:var(--text-sm);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;font-family:var(--font-mono);margin-bottom:12px">Your Details</h3>
+
+  <form id="checkoutForm">
+    <div class="checkout-form-group">
+      <div class="form-row">
+        <label>Email</label>
+        <input type="email" id="email" placeholder="you@example.com" required>
+      </div>
+      <div class="form-row">
+        <label>API Key (optional — for top-up)</label>
+        <input type="text" id="existing_key" placeholder="apk_... (leave blank for new key)">
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary" style="padding:16px;font-size:var(--text-base);width:100%">
+      Pay ${{ "%.2f"|format(price|float) }}
+    </button>
+  </form>
+
+  <div class="checkout-disclaimer">
+    <p>Secure checkout via Stripe. AiPayGen does not store your card details.</p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById("checkoutForm").addEventListener("submit", async function(e) {
+  e.preventDefault();
+  const btn = this.querySelector("button");
+  btn.textContent = "Redirecting to Stripe...";
+  btn.disabled = true;
+  try {
+    const resp = await fetch("/stripe/create-checkout", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        amount: {{ price }},
+        email: document.getElementById("email").value,
+        existing_key: document.getElementById("existing_key").value,
+        label: "marketplace:{{ listing_id }}:{{ plan }}"
+      })
+    });
+    const data = await resp.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      btn.textContent = 'Retry Payment';
+      btn.disabled = false;
+      const errDiv = document.createElement('div');
+      errDiv.style.cssText = 'margin-top:12px;padding:14px;border-radius:8px;background:rgba(255,69,58,0.08);border:1px solid rgba(255,69,58,0.15);';
+      errDiv.textContent = (data.error || 'Payment failed') + '. Click Retry or contact support.';
+      const supportLink = document.createElement('a');
+      supportLink.href = '/support';
+      supportLink.style.cssText = 'display:block;margin-top:8px;color:var(--accent);font-size:13px;';
+      supportLink.textContent = 'Contact Support →';
+      errDiv.appendChild(supportLink);
+      btn.parentElement.appendChild(errDiv);
+    }
+  } catch(err) {
+    btn.textContent = 'Retry Payment';
+    btn.disabled = false;
+    const errDiv = document.createElement('div');
+    errDiv.style.cssText = 'margin-top:12px;padding:14px;border-radius:8px;background:rgba(255,69,58,0.08);border:1px solid rgba(255,69,58,0.15);';
+    errDiv.textContent = 'Network error. Check your connection and try again.';
+    const supportLink = document.createElement('a');
+    supportLink.href = '/support';
+    supportLink.style.cssText = 'display:block;margin-top:8px;color:var(--accent);font-size:13px;';
+    supportLink.textContent = 'Contact Support →';
+    errDiv.appendChild(supportLink);
+    btn.parentElement.appendChild(errDiv);
+  }
+});
+</script>
+{% endblock %}

@@ -1,7 +1,7 @@
 {
-  "name": "AiPayGen",
+  "name": "AiPayGen — Agent Marketplace",
   "short_name": "AiPayGen",
-  "description": "65+ AI tools as an MCP server & API. Research, write, code, scrape, translate, analyze.",
+  "description": "The AI agent marketplace. Buy, sell, deploy agents that trade, research, code, and create.",
   "start_url": "/try",
   "display": "standalone",
   "background_color": "#020408",

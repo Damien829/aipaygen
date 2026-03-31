@@ -398,8 +398,8 @@ def auth_ad_reward():
 def quick_key_page():
     """Auto-generate a key on page visit and display it immediately."""
     ip = request.headers.get("CF-Connecting-IP", request.remote_addr)
-    if not check_key_gen_rate(ip, max_per_day=5):
-        return '<html><body style="background:#0a0c10;color:#e0e0e0;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif"><div style="text-align:center"><h2>Daily limit reached</h2><p><a href="/buy-credits" style="color:#6366f1">Buy credits</a> or try again tomorrow.</p></div></body></html>', 429
+    if not check_key_gen_rate(ip, max_per_day=10):
+        return '<html><body style="background:#0a0c10;color:#e0e0e0;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif"><div style="text-align:center"><h2>Daily limit reached</h2><p><a href="/buy-credits" style="color:#6366f1">Buy credits</a> or try again tomorrow.</p><p style="margin-top:12px"><a href="/market" style="color:#d4a853">Browse the Agent Marketplace →</a></p></div></body></html>', 429
     if has_received_trial_credits(ip):
         trial_balance = 0.0
     else:
@@ -437,6 +437,11 @@ a.btn-outline{{background:transparent;border:1px solid #6366f1;color:#a78bfa}}
 </div>
 <a class="btn" href="/buy-credits">Buy More Credits</a>
 <a class="btn btn-outline" href="/try">Try Tools Now</a>
+<div style="margin-top:24px;padding:16px;background:#0d111799;border-radius:8px;border:1px solid #1e2530;text-align:center">
+<p style="color:#d4a853;font-weight:600;margin-bottom:8px">Browse the Agent Marketplace</p>
+<p style="color:#8b949e;font-size:0.82rem;margin-bottom:12px">Use your key to try 72+ AI agents — trading, research, code, content</p>
+<a href="/market" style="display:inline-block;background:#d4a853;color:#0a0c10;padding:10px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:0.85rem">Browse Agents →</a>
+</div>
 </div></body></html>"""
     return html, 200, {"Content-Type": "text/html", "Cache-Control": "no-store"}
 

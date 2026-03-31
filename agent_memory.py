@@ -67,6 +67,65 @@ def init_memory_db():
             pass  # Column already exists
         c.execute("CREATE INDEX IF NOT EXISTS idx_mp_category ON marketplace(category)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_mp_active ON marketplace(is_active)")
+
+        # Extended marketplace columns (safe — ignores if exists)
+        for col, typedef in [
+            ("pricing_models", "TEXT DEFAULT '{}'"),
+            ("tags", "TEXT DEFAULT '[]'"),
+            ("is_featured", "INTEGER DEFAULT 0"),
+            ("total_revenue", "REAL DEFAULT 0.0"),
+            ("subscriber_count", "INTEGER DEFAULT 0"),
+            ("performance_metrics", "TEXT DEFAULT '{}'"),
+            ("avg_rating", "REAL DEFAULT 0.0"),
+            ("review_count", "INTEGER DEFAULT 0"),
+        ]:
+            try:
+                c.execute(f"ALTER TABLE marketplace ADD COLUMN {col} {typedef}")
+            except sqlite3.OperationalError:
+                pass
+
+        try:
+            c.execute("ALTER TABLE marketplace ADD COLUMN is_verified INTEGER DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass
+
+        # Reviews table
+        c.execute("""CREATE TABLE IF NOT EXISTS marketplace_reviews (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            review_id TEXT UNIQUE NOT NULL,
+            listing_id TEXT NOT NULL,
+            reviewer_id TEXT NOT NULL,
+            rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+            review_text TEXT DEFAULT '',
+            verified INTEGER DEFAULT 0,
+            created_at TEXT NOT NULL
+        )""")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_reviews_listing ON marketplace_reviews(listing_id)")
+
+        # Subscriptions table
+        c.execute("""CREATE TABLE IF NOT EXISTS marketplace_subscriptions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sub_id TEXT UNIQUE NOT NULL,
+            listing_id TEXT NOT NULL,
+            subscriber_id TEXT NOT NULL,
+            plan_type TEXT NOT NULL,
+            price_usd REAL NOT NULL,
+            status TEXT DEFAULT 'active',
+            created_at TEXT NOT NULL,
+            expires_at TEXT
+        )""")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_subs_listing ON marketplace_subscriptions(listing_id)")
+
+        # Performance time-series
+        c.execute("""CREATE TABLE IF NOT EXISTS agent_performance (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            listing_id TEXT NOT NULL,
+            metric_name TEXT NOT NULL,
+            metric_value REAL NOT NULL,
+            recorded_at TEXT NOT NULL
+        )""")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_perf_listing ON agent_performance(listing_id)")
+
         init_payment_splits_table()
 
 
@@ -174,13 +233,16 @@ def marketplace_list_service(agent_id: str, name: str, description: str,
                               endpoint: str, price_usd: float,
                               category: str = "general",
                               capabilities: list = None,
-                              wallet_address: str = "") -> dict:
+                              wallet_address: str = "",
+                              pricing_models: dict = None,
+                              tags: list = None) -> dict:
     """Register/update a service in the agent marketplace."""
     now = datetime.now(timezone.utc).isoformat()
     caps_str = json.dumps(capabilities or [])
+    pricing_str = json.dumps(pricing_models or {})
+    tags_str = json.dumps(tags or [])
     listing_id = str(_uuid.uuid4())
     with _conn() as c:
-        # Check if this agent already has a listing with same name
         existing = c.execute(
             "SELECT listing_id FROM marketplace WHERE agent_id=? AND name=?",
             (agent_id, name)
@@ -189,16 +251,20 @@ def marketplace_list_service(agent_id: str, name: str, description: str,
             listing_id = existing["listing_id"]
             c.execute("""
                 UPDATE marketplace SET description=?, endpoint=?, price_usd=?,
-                    category=?, capabilities=?, wallet_address=?, is_active=1, updated_at=?
+                    category=?, capabilities=?, wallet_address=?, pricing_models=?,
+                    tags=?, is_active=1, updated_at=?
                 WHERE listing_id=?
-            """, (description, endpoint, price_usd, category, caps_str, wallet_address, now, listing_id))
+            """, (description, endpoint, price_usd, category, caps_str,
+                  wallet_address, pricing_str, tags_str, now, listing_id))
         else:
             c.execute("""
                 INSERT INTO marketplace (listing_id, agent_id, name, description, endpoint,
-                    price_usd, category, capabilities, wallet_address, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    price_usd, category, capabilities, wallet_address, pricing_models,
+                    tags, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (listing_id, agent_id, name, description, endpoint,
-                  price_usd, category, caps_str, wallet_address, now, now))
+                  price_usd, category, caps_str, wallet_address, pricing_str,
+                  tags_str, now, now))
     return {"listing_id": listing_id, "listed": True}
 
 
@@ -253,6 +319,127 @@ def marketplace_deregister(listing_id: str, agent_id: str) -> bool:
             (listing_id, agent_id)
         )
     return cur.rowcount > 0
+
+
+# ── Enhanced Marketplace Functions ────────────────────────────────────────────
+
+def marketplace_search(query="", category=None, max_price=None, min_price=None,
+                       sort="popular", page=1, per_page=20):
+    """Full-text search across agent names, descriptions, capabilities, and tags."""
+    conditions = ["is_active = 1"]
+    params = []
+    if query:
+        conditions.append("(name LIKE ? OR description LIKE ? OR capabilities LIKE ? OR tags LIKE ?)")
+        q = f"%{query}%"
+        params.extend([q, q, q, q])
+    if category:
+        conditions.append("category = ?")
+        params.append(category)
+    if max_price is not None:
+        conditions.append("price_usd <= ?")
+        params.append(max_price)
+    if min_price is not None:
+        conditions.append("price_usd >= ?")
+        params.append(min_price)
+    where = " AND ".join(conditions)
+    sort_sql = {
+        "popular": "call_count DESC",
+        "newest": "created_at DESC",
+        "price_low": "price_usd ASC",
+        "price_high": "price_usd DESC",
+        "rating": "avg_rating DESC",
+    }.get(sort, "call_count DESC")
+    with _conn() as c:
+        total = c.execute(f"SELECT COUNT(*) FROM marketplace WHERE {where}", params).fetchone()[0]
+        offset = (page - 1) * per_page
+        rows = c.execute(
+            f"SELECT * FROM marketplace WHERE {where} ORDER BY {sort_sql} LIMIT ? OFFSET ?",
+            params + [per_page, offset]
+        ).fetchall()
+    return [dict(r) for r in rows], total
+
+
+def marketplace_verify_agent(listing_id, verified=True):
+    """Mark an agent as verified."""
+    with _conn() as c:
+        c.execute("UPDATE marketplace SET is_verified = ? WHERE listing_id = ?", (1 if verified else 0, listing_id))
+    return {"listing_id": listing_id, "verified": verified}
+
+
+def marketplace_get_categories():
+    """Return category counts for active listings."""
+    with _conn() as c:
+        rows = c.execute(
+            "SELECT category, COUNT(*) FROM marketplace WHERE is_active = 1 GROUP BY category ORDER BY COUNT(*) DESC"
+        ).fetchall()
+    return dict(rows)
+
+
+def marketplace_add_review(listing_id, reviewer_id, rating, review_text="", verified=False):
+    """Add a review and update avg rating on the listing."""
+    now = datetime.now(timezone.utc).isoformat()
+    review_id = str(_uuid.uuid4())
+    with _conn() as c:
+        c.execute(
+            "INSERT INTO marketplace_reviews (review_id, listing_id, reviewer_id, rating, review_text, verified, created_at) VALUES (?,?,?,?,?,?,?)",
+            (review_id, listing_id, reviewer_id, rating, review_text, 1 if verified else 0, now)
+        )
+        row = c.execute("SELECT AVG(rating), COUNT(*) FROM marketplace_reviews WHERE listing_id = ?", (listing_id,)).fetchone()
+        avg, count = row[0], row[1]
+        c.execute("UPDATE marketplace SET avg_rating = ?, review_count = ? WHERE listing_id = ?",
+                  (round(avg, 2), count, listing_id))
+    return {"review_id": review_id, "rating": rating, "listing_id": listing_id}
+
+
+def marketplace_get_reviews(listing_id, limit=20):
+    """Get reviews for a listing."""
+    with _conn() as c:
+        rows = c.execute(
+            "SELECT review_id, reviewer_id, rating, review_text, verified, created_at FROM marketplace_reviews WHERE listing_id = ? ORDER BY created_at DESC LIMIT ?",
+            (listing_id, limit)
+        ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def marketplace_record_performance(listing_id, metric_name, metric_value):
+    """Record a performance metric data point."""
+    now = datetime.now(timezone.utc).isoformat()
+    with _conn() as c:
+        c.execute("INSERT INTO agent_performance (listing_id, metric_name, metric_value, recorded_at) VALUES (?,?,?,?)",
+                  (listing_id, metric_name, metric_value, now))
+
+
+def marketplace_get_performance(listing_id, metric_name=None, limit=100):
+    """Get performance history for a listing."""
+    with _conn() as c:
+        if metric_name:
+            rows = c.execute(
+                "SELECT metric_name, metric_value, recorded_at FROM agent_performance WHERE listing_id = ? AND metric_name = ? ORDER BY recorded_at DESC LIMIT ?",
+                (listing_id, metric_name, limit)
+            ).fetchall()
+        else:
+            rows = c.execute(
+                "SELECT metric_name, metric_value, recorded_at FROM agent_performance WHERE listing_id = ? ORDER BY recorded_at DESC LIMIT ?",
+                (listing_id, limit)
+            ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def marketplace_leaderboard(category=None, sort="call_count", limit=20):
+    """Get top agents by category or overall."""
+    conditions = ["is_active = 1"]
+    params = []
+    if category:
+        conditions.append("category = ?")
+        params.append(category)
+    where = " AND ".join(conditions)
+    sort_col = {"call_count": "call_count", "rating": "avg_rating", "revenue": "total_revenue"}.get(sort, "call_count")
+    with _conn() as c:
+        rows = c.execute(
+            f"SELECT listing_id, agent_id, name, category, price_usd, call_count, avg_rating, review_count, total_revenue, pricing_models, tags FROM marketplace WHERE {where} ORDER BY {sort_col} DESC LIMIT ?",
+            params + [limit]
+        ).fetchall()
+    return [dict(r) for r in rows]
 
 
 # ── Payment Splits (95/5) ────────────────────────────────────────────────────

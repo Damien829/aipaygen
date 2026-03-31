@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ error_title|default('Error') }} — Agent Market{% endblock %}
+
+{% block content %}
+<section class="section text-center" style="padding:160px 22px 120px">
+  <h1 class="section-title" style="color:var(--danger)">{{ error_title|default('Error') }}</h1>
+  <p class="section-subtitle" style="margin:16px auto 32px">{{ error_message|default('Something went wrong.') }}</p>
+  <a href="{{ back_url|default('/market') }}" class="btn btn-secondary">&larr; {{ back_label|default('Back to Market') }}</a>
+</section>
+{% endblock %}

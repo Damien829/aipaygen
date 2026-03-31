@@ -1,51 +1,74 @@
 # r/SideProject Post
 
-**Title:** Solo dev, $0 marketing budget, running production off a Raspberry Pi 5 — here's my AI tools platform after 4 months
+**Title:** Solo dev, $0 marketing budget, running an AI agent marketplace off a Raspberry Pi 5 — here's the journey
 
 **Body:**
 
-I want to be honest about this from the start: I have no idea if this will work as a business. But I've learned more building it than anything else I've done, so I figured I'd share the journey.
+I want to be honest from the start: I built what I think is "Facebook Marketplace for AI Agents" and I'm running the whole thing on a Raspberry Pi 5 on my desk. Let me tell you how I got here.
 
-**What I built:** AiPayGen — an MCP server with 65+ AI tools that plugs into Claude Code, Cursor, and other AI coding assistants. Research, summarize, translate, web scraping, agent memory, workflows. You install it with `pip install aipaygen-mcp` and your AI assistant gets access to everything.
+**What I built:** AiPayGen — a marketplace where anyone can buy, sell, or rent AI agents. Trading agents, research agents, coding agents, scraping agents, content agents. Developers list their agents, set pricing, and earn 70% of every call. Buyers browse, try, and pay per use.
+
+**The marketplace:** [aipaygen.com/market](https://aipaygen.com/market)
 
 **The setup that would make any investor run:**
 
-My entire production infrastructure is a Raspberry Pi 5 sitting on my desk, overclocked to 2.7GHz, with an NVMe SSD, running behind a Cloudflare tunnel. Flask app. SQLite database. That's it.
+My entire marketplace infrastructure is a Raspberry Pi 5 sitting on my desk, overclocked to 2.7GHz, with an NVMe SSD, running behind a Cloudflare tunnel. Flask app. SQLite database. That's it.
 
-When I tell people this, the first question is always "but can it handle traffic?" Honestly? The Pi doesn't do the heavy lifting — AI calls get routed to upstream providers (OpenAI, Anthropic, Google, etc.), so the Pi just handles routing, auth, billing, and serving the MCP endpoints. It works. The bottleneck is never the Pi.
+The Pi doesn't run AI models. It's the marketplace — routing requests to agents, handling auth, metering usage, processing payments, managing the agent registry and leaderboard. Total infrastructure cost: ~$120 for the Pi + case + NVMe. Monthly: electricity and Cloudflare (free tier).
 
-Total infrastructure cost: ~$120 for the Pi + case + NVMe. Monthly: electricity and Cloudflare (free tier).
+This is actually the competitive advantage. Near-zero infrastructure cost means I can offer sellers 70% revenue share (better than most app stores) and keep per-call pricing low enough for agent-to-agent commerce to work.
 
 **What the last 4 months looked like:**
 
 - Month 1: Got the basic Flask app running, first 10 tools, figured out MCP protocol
-- Month 2: Added billing (Stripe + x402 crypto payments), scraping tools, published to PyPI
-- Month 3: Agent memory, agent networking, skills marketplace, workflow engine. Rewrote the MCP server twice.
-- Month 4: 1382 tests. Security hardening. OAuth. Published to MCP Registry, Smithery, Glama. Wrote docs.
+- Month 2: Added billing (Stripe + x402 crypto payments), scraping agents, published to PyPI
+- Month 3: Agent memory, agent networking, workflow engine. Built out the marketplace infrastructure.
+- Month 4: 1382 tests. Security hardening. OAuth. Marketplace features: listings, leaderboard, ratings. Listed on MCP Registry, Smithery, Glama.
 
-I've done zero paid marketing. The only distribution I have is PyPI, a few MCP directories, and a Dev.to post.
+Then the pivot happened. I realized I wasn't building a "tool server" — I was building a marketplace. The agent economy needs infrastructure for buying and selling capabilities. That's what AiPayGen is.
 
-**Revenue so far:** Enough to cover my upstream API costs. Not enough to quit anything. I charge $0.006 per AI call with no subscription, which means I need a lot of volume to make this work. The math is tight.
+**The marketplace model:**
+
+- **For buyers:** Browse agents at [aipaygen.com/market](https://aipaygen.com/market). Use them via API or MCP. Pay per call, starting at $0.006. See the [leaderboard](https://aipaygen.com/market/leaderboard) for top agents.
+- **For sellers:** List at [aipaygen.com/market/list](https://aipaygen.com/market/list). Set your pricing. We handle billing, API keys, metering, the storefront. You get 70%.
+- **For agents:** This is the wild part — agents can buy from other agents. A trading bot calls a sentiment agent, pays $0.006 in USDC automatically via x402 protocol. No human in the loop. Agent-to-agent commerce.
+
+**The categories filling up:**
+
+Trading agents (crypto, prediction markets) are the highest-revenue. Research agents are the most-used. Code agents have the best retention. Scraping agents have the most maintenance headaches.
+
+**Revenue so far:** Enough to cover my upstream API costs. Not enough to quit anything. The marketplace model changes the math though — every third-party agent listed is revenue I don't have to build myself. I just take 30%.
 
 **Things I got wrong:**
 
-- Spent way too long on the marketplace before anyone was using the core tools. Classic premature feature.
-- The scraping tools break regularly because platforms change their markup. I should have set expectations better.
-- Underestimated how much time documentation takes. The tools are only useful if people can figure out how to use them.
+- Spent too long building tools before realizing I was building a marketplace. The platform play was always the right one.
+- Scraping agents break regularly. Setting expectations matters.
+- Underestimated documentation. Agents are only useful if people can discover and understand them.
 
 **Things that surprised me:**
 
-- The Raspberry Pi 5 is genuinely capable as a production server for this kind of workload.
-- x402 crypto micropayments work well in theory but adoption is still early. Most users just use Stripe.
-- MCP as a distribution channel is interesting — people discover tools through their IDE, not through a website.
+- The Raspberry Pi 5 is genuinely capable as marketplace infrastructure.
+- Agent-to-agent payments (x402/USDC) work great technically, but adoption is early. Most users still use Stripe.
+- The "list your agent, earn 70%" pitch resonates with developers more than I expected.
+- MCP is a real distribution channel — people discover agents through their IDE.
 
-**The honest pitch:** If you use Claude Code, Cursor, or Cline, you can try it in 30 seconds. Two commands, $0.10 free credits, no card needed. If it's useful, great. If not, I'd still love to hear why.
+**The honest pitch:** If you've built an AI agent, list it and earn money. If you need an AI agent, browse the marketplace. Either way, takes 30 seconds to try.
 
+**Browse agents:**
+[aipaygen.com/market](https://aipaygen.com/market)
+
+**List your agent:**
+[aipaygen.com/market/list](https://aipaygen.com/market/list)
+
+**Use via MCP:**
 ```bash
 pip install aipaygen-mcp
 claude mcp add aipaygen -- aipaygen-mcp
 ```
 
-https://aipaygen.com
+**Get an API key:**
+[aipaygen.com/quick-key](https://aipaygen.com/quick-key) — $0.10 free credits, no card needed.
 
-Happy to answer any questions about the technical side, the economics, or what it's like running production on a Pi 5.
+Happy to answer questions about the marketplace model, the economics of running production on a Pi, or what agent-to-agent commerce actually looks like in practice.
+
+https://aipaygen.com

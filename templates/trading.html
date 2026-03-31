@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+{% block title %}Trading Agents{% endblock %}
+{% block description %}Deploy AI trading strategies that trade for you. Momentum, mean reversion, sentiment, arbitrage, and DCA strategies.{% endblock %}
+
+{% block head %}
+<style>
+.trading-hero {
+  text-align: center;
+  padding: 120px 22px 60px;
+}
+.trading-hero h1 {
+  font-size: var(--text-4xl);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin-bottom: 16px;
+}
+@media (max-width: 600px) {
+  .trading-hero h1 { font-size: var(--text-3xl); }
+}
+
+/* Live prices bar */
+.prices-bar {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  flex-wrap: wrap;
+  padding: 20px 22px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin: 0 auto 48px;
+  max-width: 720px;
+}
+.price-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+.price-item .pair {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.price-item .val {
+  color: var(--text);
+  font-weight: 600;
+  font-size: var(--text-base);
+}
+.price-item .exchange {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+/* Strategy templates */
+.templates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 22px 60px;
+}
+.template-card {
+  text-align: center;
+  padding: 28px 20px;
+}
+.template-card h3 {
+  font-size: var(--text-base);
+  font-weight: 600;
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+.template-card p {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+.template-card .type-badge {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent);
+  background: var(--accent-dim);
+  padding: 3px 10px;
+  border-radius: 980px;
+  margin-bottom: 16px;
+}
+
+/* Active strategies */
+.strategies-section {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 22px 80px;
+}
+.strategies-section h2 {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin-bottom: 24px;
+}
+.strategy-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.strategy-table th {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+}
+.strategy-table td {
+  font-size: var(--text-sm);
+  padding: 14px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+.strategy-table tr:hover td {
+  background: rgba(255,255,255,0.02);
+}
+.strategy-table a {
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 500;
+}
+.strategy-table a:hover {
+  color: var(--accent);
+}
+.pnl-positive { color: var(--green); font-weight: 600; }
+.pnl-negative { color: #ff453a; font-weight: 600; }
+.status-active { color: var(--green); }
+.status-paused { color: var(--text-muted); }
+.status-paper { color: var(--accent); }
+
+@media (max-width: 600px) {
+  .prices-bar { gap: 20px; }
+  .strategy-table { font-size: var(--text-xs); }
+  .strategy-table th, .strategy-table td { padding: 10px 8px; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="trading-hero">
+  <div class="hero-badge fade-in">
+    <span class="badge">Trading</span>
+  </div>
+  <h1 class="fade-in delay-1">Trading <span class="gradient-text">Agents</span></h1>
+  <p class="section-subtitle fade-in delay-2" style="margin:0 auto 40px;text-align:center">
+    Deploy AI strategies that trade for you
+  </p>
+</section>
+
+<!-- Live Prices -->
+<div class="prices-bar fade-in">
+  {% for pair in ["BTC/USD", "ETH/USD", "SOL/USD"] %}
+  {% set info = prices.get(pair, {}) %}
+  <div class="price-item">
+    <span class="pair">{{ pair.split('/')[0] }}</span>
+    <span class="val" data-pair="{{ pair }}">${{ "%.2f"|format(info.get("price", 0)|float) }}</span>
+    <span class="exchange">{{ info.get("exchange", "") }}</span>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Strategy Templates -->
+<section class="section" style="padding-top:0">
+  <div class="text-center" style="margin-bottom:32px">
+    <h2 class="fade-in" style="font-size:var(--text-2xl);font-weight:700;letter-spacing:-0.03em">Strategy Templates</h2>
+    <p class="section-subtitle fade-in" style="margin:8px auto 0">Pick a template. Configure. Deploy.</p>
+  </div>
+  <div class="templates-grid">
+    {% for key, tmpl in templates.items() %}
+    <div class="card template-card fade-in">
+      <div class="type-badge">{{ key }}</div>
+      <h3>{{ tmpl.get("name", key|title) }}</h3>
+      <p>{{ tmpl.get("description", "") }}</p>
+      <a href="/trading/deploy?template={{ key }}" class="btn btn-sm btn-primary">Deploy</a>
+    </div>
+    {% endfor %}
+    {% if not templates %}
+    <div class="card template-card fade-in">
+      <div class="type-badge">momentum</div>
+      <h3>Momentum</h3>
+      <p>Trade breakouts and trend continuations with adaptive position sizing.</p>
+      <a href="/trading/deploy?template=momentum" class="btn btn-sm btn-primary">Deploy</a>
+    </div>
+    <div class="card template-card fade-in">
+      <div class="type-badge">mean reversion</div>
+      <h3>Mean Reversion</h3>
+      <p>Fade overextended moves and profit from price returning to the mean.</p>
+      <a href="/trading/deploy?template=mean_reversion" class="btn btn-sm btn-primary">Deploy</a>
+    </div>
+    <div class="card template-card fade-in">
+      <div class="type-badge">sentiment</div>
+      <h3>Sentiment</h3>
+      <p>AI-powered news and social sentiment analysis for directional trades.</p>
+      <a href="/trading/deploy?template=sentiment" class="btn btn-sm btn-primary">Deploy</a>
+    </div>
+    <div class="card template-card fade-in">
+      <div class="type-badge">arbitrage</div>
+      <h3>Arbitrage</h3>
+      <p>Exploit price differences across exchanges for risk-free profit.</p>
+      <a href="/trading/deploy?template=arbitrage" class="btn btn-sm btn-primary">Deploy</a>
+    </div>
+    <div class="card template-card fade-in">
+      <div class="type-badge">dca</div>
+      <h3>Dollar Cost Average</h3>
+      <p>Systematic accumulation with intelligent timing and rebalancing.</p>
+      <a href="/trading/deploy?template=dca" class="btn btn-sm btn-primary">Deploy</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <div style="margin-top:40px;padding:32px;border-radius:var(--radius-lg);background:var(--surface);border:1px solid var(--border);text-align:center;">
+    <h3 style="font-size:var(--text-lg);color:var(--text);margin-bottom:8px;">Need a trading agent?</h3>
+    <p style="color:var(--text-secondary);font-size:var(--text-sm);margin-bottom:16px;">Browse pre-built trading agents on the marketplace — deploy instantly, no coding required.</p>
+    <a href="/market?category=trading" class="btn btn-primary" style="padding:12px 28px;">Browse Trading Agents →</a>
+  </div>
+</section>
+
+<!-- Active Strategies -->
+<section class="strategies-section">
+  <h2 class="fade-in">Active Strategies</h2>
+  {% if strategies %}
+  <div class="card fade-in" style="overflow-x:auto;padding:0">
+    <table class="strategy-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Pairs</th>
+          <th>Trades</th>
+          <th>P&L</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in strategies %}
+        <tr>
+          <td><a href="/trading/{{ s.strategy_id }}">{{ s.name }}</a></td>
+          <td><span class="badge">{{ s.type|upper }}</span></td>
+          <td>
+            <span class="status-{{ s.status|default('paused') }}">{{ s.status|default('paused')|title }}</span>
+          </td>
+          <td style="font-family:var(--font-mono);font-size:var(--text-xs)">
+            {% if s.pairs is string %}{{ s.pairs }}{% else %}{{ s.pairs|join(', ') }}{% endif %}
+          </td>
+          <td>{{ s.get("total_trades", 0) if s.get is defined else s.total_trades|default(0) }}</td>
+          <td class="{{ 'pnl-positive' if (s.pnl|default(0)|float) >= 0 else 'pnl-negative' }}">
+            {{ "%.2f"|format(s.pnl|default(0)|float) }}%
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card fade-in" style="text-align:center;padding:40px 20px">
+    <p style="color:var(--text-muted);margin-bottom:16px">No active strategies yet. Deploy a template to get started.</p>
+  </div>
+  {% endif %}
+</section>
+
+<script>
+setInterval(async () => {
+  try {
+    const resp = await fetch('/trading/prices');
+    const data = await resp.json();
+    for (const [pair, info] of Object.entries(data.prices || {})) {
+      const el = document.querySelector(`[data-pair="${pair}"]`);
+      if (el) {
+        const oldPrice = parseFloat(el.textContent.replace(/[$,]/g, ''));
+        const newPrice = info.price;
+        el.textContent = '$' + newPrice.toLocaleString('en-US', {minimumFractionDigits: 2});
+        el.style.color = newPrice > oldPrice ? 'var(--green)' : newPrice < oldPrice ? 'var(--danger)' : '';
+        setTimeout(() => el.style.color = '', 2000);
+      }
+    }
+  } catch(e) {}
+}, 60000);
+</script>
+{% endblock %}

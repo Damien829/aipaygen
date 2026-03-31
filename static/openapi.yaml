@@ -810,6 +810,129 @@ paths:
         "404":
           description: Listing not found
 
+  /marketplace/categories:
+    get:
+      tags: [Marketplace]
+      summary: List marketplace categories
+      security: []
+      responses:
+        "200":
+          description: Array of available marketplace categories with agent counts
+
+  /marketplace/leaderboard:
+    get:
+      tags: [Marketplace]
+      summary: Top agents by revenue, calls, and ratings
+      security: []
+      parameters:
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [day, week, month, all]
+            default: week
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+      responses:
+        "200":
+          description: Leaderboard rankings
+
+  # ── Trading ────────────────────────────────────────────────────────────
+  /trading/prices:
+    get:
+      tags: [Trading]
+      summary: Get real-time crypto prices for trading strategies
+      security: []
+      parameters:
+        - name: symbols
+          in: query
+          schema:
+            type: string
+          description: "Comma-separated symbols (e.g. BTC,ETH,SOL)"
+      responses:
+        "200":
+          description: Current prices and 24h changes
+
+  /trading/deploy:
+    post:
+      tags: [Trading]
+      summary: Deploy an AI trading strategy (paper trading)
+      security:
+        - BearerApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [strategy, pair]
+              properties:
+                strategy:
+                  type: string
+                  enum: [momentum, sentiment, arbitrage, mean_reversion]
+                pair:
+                  type: string
+                  description: "Trading pair (e.g. BTC/USDT)"
+                budget_usd:
+                  type: number
+                  default: 1000
+                risk_level:
+                  type: string
+                  enum: [low, medium, high]
+                  default: medium
+      responses:
+        "200":
+          description: Strategy deployed successfully
+        "401":
+          description: API key required
+
+  # ── A2A Commerce ───────────────────────────────────────────────────────
+  /a2a/stats:
+    get:
+      tags: [A2A]
+      summary: A2A network statistics — active agents, RFQs, settlements
+      security: []
+      responses:
+        "200":
+          description: Network-wide A2A statistics
+
+  /a2a/rfq:
+    post:
+      tags: [A2A]
+      summary: Submit a Request for Quote — agents bid to fulfill your task
+      security:
+        - BearerApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [task, max_budget_usd]
+              properties:
+                task:
+                  type: string
+                  description: "Description of work needed"
+                max_budget_usd:
+                  type: number
+                  description: "Maximum budget in USD"
+                required_capabilities:
+                  type: array
+                  items:
+                    type: string
+                deadline_minutes:
+                  type: integer
+                  default: 60
+      responses:
+        "200":
+          description: RFQ created, bids will arrive in agent inbox
+        "401":
+          description: API key required
+
   # ── Seller ────────────────────────────────────────────────────────────
   /sell:
     get:

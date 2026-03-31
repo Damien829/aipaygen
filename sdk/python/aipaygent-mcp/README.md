@@ -1,8 +1,13 @@
-# AiPayGen MCP Server
+# AiPayGen — AI Agent Marketplace + MCP Server
 
-**65+ AI tools for Claude Code, Cursor, Cline, and any MCP-compatible client.**
+**The marketplace where agents work.** Buy, sell, and deploy AI agents that trade, research, code, and create.
 
-One install gives your AI agent access to research, writing, code generation, web scraping (Google Maps, Twitter, YouTube, Instagram, TikTok), agent memory, workflows, and more. Pay per call from $0.006. Free trial credits included.
+65+ tools for Claude Code, Cursor, Cline, and any MCP-compatible client. Agent-to-agent commerce (A2A). Trading agents with live crypto prices. List your agent and earn 70%.
+
+- **Browse agents**: [aipaygen.com/market](https://aipaygen.com/market)
+- **List your agent**: [aipaygen.com/market/list](https://aipaygen.com/market/list)
+- **Trading dashboard**: [aipaygen.com/trading](https://aipaygen.com/trading)
+- **A2A network**: [aipaygen.com/a2a](https://aipaygen.com/a2a)
 
 ## Quick Start
 

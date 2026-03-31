@@ -8,7 +8,10 @@ from flask import Blueprint, request, jsonify
 from agent_memory import (
     marketplace_list_service, marketplace_get_services,
     marketplace_get_service, marketplace_increment_calls,
-    marketplace_deregister,
+    marketplace_deregister, marketplace_search,
+    marketplace_get_categories, marketplace_add_review,
+    marketplace_get_reviews, marketplace_get_performance,
+    marketplace_leaderboard,
 )
 from api_catalog import get_all_apis, get_api, get_recent_runs
 from apify_client import run_actor_sync
@@ -336,29 +339,36 @@ def scrape_actor():
 
 @marketplace_bp.route("/marketplace", methods=["GET"])
 def marketplace_browse():
-    """Browse the agent marketplace — free, no payment required."""
+    """Browse/search the agent marketplace — free, no payment required."""
+    q = request.args.get("q", "")
     category = request.args.get("category")
-    max_price = float(request.args.get("max_price", 9999))
-    min_price = float(request.args.get("min_price", 0))
+    max_price_raw = request.args.get("max_price")
+    min_price_raw = request.args.get("min_price")
+    max_price = float(max_price_raw) if max_price_raw else None
+    min_price = float(min_price_raw) if min_price_raw else None
+    sort = request.args.get("sort", "popular")
     try:
         page = max(1, min(1000, int(request.args.get("page", 1))))
     except (ValueError, TypeError):
         page = 1
     per_page = min(int(request.args.get("per_page", 20)), 50)
-    listings, total = marketplace_get_services(
-        category=category or None,
-        max_price=max_price if max_price < 9999 else None,
-        min_price=min_price if min_price > 0 else None,
-        page=page, per_page=per_page
+
+    agents, total = marketplace_search(
+        query=q, category=category or None,
+        max_price=max_price, min_price=min_price,
+        sort=sort, page=page, per_page=per_page,
     )
-    return jsonify({
-        "listings": listings,
+    response = jsonify({
+        "agents": agents,
+        "listings": agents,  # backward compat
         "total": total,
         "page": page,
         "per_page": per_page,
         "pages": (total + per_page - 1) // per_page,
-        "_meta": {"free": True, "description": "Agent-to-agent marketplace — list your services, earn x402 payments"}
+        "_meta": {"free": True, "description": "Agent-to-agent marketplace"}
     })
+    response.headers["Cache-Control"] = "public, max-age=300"  # 5 min
+    return response
 
 
 @marketplace_bp.route("/marketplace/list", methods=["POST"])
@@ -437,12 +447,77 @@ def marketplace_call():
                               headers={"User-Agent": "AiPayGen-Marketplace/1.0"})
         marketplace_increment_calls(listing_id)
         log_payment("/marketplace/call", 0.05, request.remote_addr)
-        return jsonify(agent_response({
+        response_data = {
             "listing_id": listing_id,
             "listing_name": listing["name"],
             "status_code": resp.status_code,
             "result": resp.json() if resp.headers.get("Content-Type", "").startswith("application/json") else resp.text[:2000],
-        }, "/marketplace/call"))
+            "_powered_by": {"platform": "AiPayGen Agent Market", "url": "https://aipaygen.com/market"},
+        }
+        response = jsonify(agent_response(response_data, "/marketplace/call"))
+        response.headers["X-Powered-By"] = "AiPayGen Agent Market"
+        return response
     except Exception:
         _log.exception("proxy call failed")
         return jsonify({"error": "proxy_failed", "message": "Request failed"}), 502
+
+
+# ── Enhanced Marketplace Routes ────────────────────────────────────────────
+
+
+@marketplace_bp.route("/marketplace/categories", methods=["GET"])
+def marketplace_categories_route():
+    """Get category list with counts."""
+    response = jsonify({"categories": marketplace_get_categories()})
+    response.headers["Cache-Control"] = "public, max-age=600"  # 10 min
+    return response
+
+
+@marketplace_bp.route("/marketplace/agent/<listing_id>", methods=["GET"])
+def marketplace_agent_detail(listing_id):
+    """Get full agent detail with performance data and reviews."""
+    agent = marketplace_get_service(listing_id)
+    if not agent:
+        return jsonify({"error": "Agent not found"}), 404
+    reviews = marketplace_get_reviews(listing_id, limit=10)
+    performance = marketplace_get_performance(listing_id, limit=50)
+    return jsonify({"agent": agent, "reviews": reviews, "performance": performance})
+
+
+@marketplace_bp.route("/marketplace/agent/<listing_id>/performance", methods=["GET"])
+def marketplace_agent_performance(listing_id):
+    """Get time-series performance data for charts."""
+    metric = request.args.get("metric")
+    limit = int(request.args.get("limit", 100))
+    data = marketplace_get_performance(listing_id, metric_name=metric, limit=limit)
+    return jsonify({"listing_id": listing_id, "performance": data})
+
+
+@marketplace_bp.route("/marketplace/agent/<listing_id>/review", methods=["POST"])
+@require_api_key
+def marketplace_submit_review(listing_id):
+    """Submit a review for an agent."""
+    data = request.get_json() or {}
+    rating = data.get("rating")
+    if not rating or not isinstance(rating, int) or rating < 1 or rating > 5:
+        return jsonify({"error": "rating must be integer 1-5"}), 400
+    review = marketplace_add_review(
+        listing_id=listing_id,
+        reviewer_id=data.get("reviewer_id", "anonymous"),
+        rating=rating,
+        review_text=data.get("review_text", ""),
+        verified=data.get("verified", False),
+    )
+    return jsonify(review)
+
+
+@marketplace_bp.route("/marketplace/leaderboard", methods=["GET"])
+def marketplace_leaderboard_route():
+    """Get top agents by category."""
+    category = request.args.get("category")
+    sort = request.args.get("sort", "call_count")
+    limit = int(request.args.get("limit", 20))
+    leaders = marketplace_leaderboard(category=category, sort=sort, limit=limit)
+    response = jsonify({"leaders": leaders, "category": category, "sort": sort})
+    response.headers["Cache-Control"] = "public, max-age=300"  # 5 min
+    return response

@@ -12,6 +12,7 @@ from model_router import call_model, list_models, get_all_perf
 from discovery_engine import get_blog_post, list_blog_posts, get_health_history, get_daily_cost
 from uptime_tracker import record_check as _record_uptime, get_uptime_stats as _get_uptime_stats, get_recent_checks as _get_recent_checks
 from alerting import process_health_result as _process_alerts, get_recent_alerts as _get_recent_alerts
+from agent_memory import marketplace_search, marketplace_get_categories, marketplace_get_service, marketplace_get_reviews, marketplace_get_performance, marketplace_leaderboard, marketplace_list_service
 import logging
 
 from funnel_tracker import log_event as funnel_log_event
@@ -106,10 +107,10 @@ NAV_HTML = '''
 <nav style="position:fixed;top:0;width:100%;z-index:100;background:rgba(2,4,8,0.95);backdrop-filter:blur(16px) saturate(180%);border-bottom:1px solid rgba(0,255,157,0.1);padding:14px 0">
   <div style="max-width:1200px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between">
     <a href="/" style="font-family:'IBM Plex Mono',monospace;font-size:1.3rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px">
-      <span style="display:inline-block;width:8px;height:8px;background:#00ff9d;border-radius:50%;box-shadow:0 0 8px #00ff9d,0 0 16px rgba(0,255,157,0.4);animation:pulse-dot 2s ease-in-out infinite"></span>
       Ai<span style="color:#00ff9d">Pay</span>Gen
     </a>
     <div style="display:flex;gap:24px;align-items:center">
+      <a href="/market" style="color:#d4a853;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600;transition:color .2s">Agent Market</a>
       <a href="/docs" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Docs</a>
       <a href="/pricing" style="color:#8b949e;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;transition:color .2s">Pricing</a>
       <a href="/try" style="color:#00d4ff;text-decoration:none;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:600">Try Free</a>
@@ -117,24 +118,19 @@ NAV_HTML = '''
     </div>
   </div>
 </nav>
-<style>
-@keyframes pulse-dot{0%,100%{opacity:1;box-shadow:0 0 8px #00ff9d,0 0 16px rgba(0,255,157,0.4)}50%{opacity:0.6;box-shadow:0 0 4px #00ff9d,0 0 8px rgba(0,255,157,0.2)}}
-</style>
 '''
 
 FOOTER_HTML = '''
 <footer style="border-top:1px solid rgba(0,255,157,0.08);padding:40px 24px;text-align:center;background:#020408">
   <div style="max-width:1200px;margin:0 auto">
     <div style="margin-bottom:16px">
-      <a href="/discover" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Discover</a>
+      <a href="/market" style="color:#d4a853;text-decoration:none;margin:0 16px;font-size:0.85rem;font-weight:600">Agent Market</a>
       <a href="/docs" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Docs</a>
       <a href="/pricing" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Pricing</a>
       <a href="/playground" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Playground</a>
-      <a href="/llms.txt" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">llms.txt</a>
-      <a href="/.well-known/agent.json" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">agent.json</a>
-      <a href="/health" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Health</a>
-      <a href="/status" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Status</a>
+      <a href="/market/list" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">List Your Agent</a>
       <a href="/support" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Support</a>
+      <a href="/status" style="color:#8b949e;text-decoration:none;margin:0 16px;font-size:0.85rem">Status</a>
     </div>
     <div style="color:#4a5568;font-size:0.8rem;font-family:'IBM Plex Mono',monospace">
       Powered by x402 &middot; USDC on Base &middot; Built for autonomous agents
@@ -1445,6 +1441,11 @@ def robots_txt():
         "Allow: /get-key\n"
         "Allow: /support\n"
         "Allow: /security\n"
+        "Allow: /market\n"
+        "Allow: /market/leaderboard\n"
+        "Allow: /market/list\n"
+        "Allow: /trading\n"
+        "Allow: /a2a\n"
         "Allow: /openapi.json\n"
         "Allow: /.well-known/\n"
         "Allow: /.well-known/agent.json\n"
@@ -1459,6 +1460,35 @@ def robots_txt():
         "Disallow: /agent/inbox\n"
         "Disallow: /credits/\n"
         "Disallow: /free-tier/\n"
+        "\n"
+        "# Block AI scrapers that don't add value\n"
+        "User-agent: GPTBot\n"
+        "Disallow: /\n"
+        "\n"
+        "User-agent: ChatGPT-User\n"
+        "Disallow: /\n"
+        "\n"
+        "User-agent: CCBot\n"
+        "Disallow: /\n"
+        "\n"
+        "User-agent: anthropic-ai\n"
+        "Disallow: /\n"
+        "\n"
+        "User-agent: ByteSpider\n"
+        "Disallow: /\n"
+        "\n"
+        "User-agent: Bytedance\n"
+        "Disallow: /\n"
+        "\n"
+        "User-agent: cohere-ai\n"
+        "Disallow: /\n"
+        "\n"
+        "# Allow search engines\n"
+        "User-agent: Googlebot\n"
+        "Allow: /\n"
+        "\n"
+        "User-agent: Bingbot\n"
+        "Allow: /\n"
         "\n"
         "Sitemap: https://aipaygen.com/sitemap.xml\n"
         "\n"
@@ -1641,7 +1671,8 @@ def support_page():
 @meta_bp.route("/seller")
 def seller_redirect():
     from flask import redirect
-    return redirect("/sell", code=301)
+    return redirect("/market/list", code=301)
+
 
 
 @meta_bp.route("/docs")
@@ -2060,6 +2091,24 @@ def agent_manifest():
                 "id": "tasks", "name": "Task Board",
                 "description": "Post tasks for other agents to claim and complete",
                 "tags": ["tasks", "collaboration", "marketplace"],
+                "inputModes": ["application/json"], "outputModes": ["application/json"],
+            },
+            {
+                "id": "agent-marketplace", "name": "Agent Marketplace",
+                "description": "Browse, deploy, and list AI agents. Buy, sell, rent agents that trade, research, code, and create.",
+                "tags": ["marketplace", "agents", "commerce"],
+                "inputModes": ["application/json"], "outputModes": ["application/json"],
+            },
+            {
+                "id": "trading-agents", "name": "Trading Agents",
+                "description": "Deploy AI trading strategies. Paper trade crypto with momentum, sentiment, and arbitrage strategies.",
+                "tags": ["trading", "crypto", "strategies"],
+                "inputModes": ["application/json"], "outputModes": ["application/json"],
+            },
+            {
+                "id": "a2a-commerce", "name": "A2A Commerce",
+                "description": "Agent-to-agent discovery, RFQs, negotiation, and settlement. Agents hire agents autonomously.",
+                "tags": ["a2a", "commerce", "autonomous"],
                 "inputModes": ["application/json"], "outputModes": ["application/json"],
             },
         ],
@@ -3267,6 +3316,15 @@ def sitemap():
         ("/contact", "monthly", "0.5"),
         ("/links", "monthly", "0.4"),
         ("/app/", "weekly", "0.7"),
+        ("/market", "daily", "0.85"),
+        ("/market/leaderboard", "daily", "0.8"),
+        ("/market/list", "monthly", "0.8"),
+        ("/trading", "daily", "0.8"),
+        ("/a2a", "daily", "0.8"),
+        ("/market/new", "daily", "0.7"),
+        ("/feedback", "monthly", "0.5"),
+        ("/trading/deploy", "monthly", "0.7"),
+        ("/a2a/post-rfq", "monthly", "0.7"),
     ]
     # Add top 30 tool pages for programmatic SEO
     for t_slug in _SITEMAP_TOOLS:
@@ -3723,3 +3781,378 @@ def support_reply_ticket(ticket_id):
         )
 
     return jsonify({"status": "replied", "ticket_id": ticket_id})
+
+
+# ── Frontend Conversion Tracking ─────────────────────────────────────────────
+
+_analytics_db = os.path.join(os.path.dirname(os.path.dirname(__file__)), "analytics.db")
+_track_rate = {}  # ip -> (count, window_start)
+
+
+def _init_page_events():
+    """Create page_events table if it doesn't exist."""
+    with _sqlite3.connect(_analytics_db) as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS page_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_type TEXT NOT NULL,
+                page TEXT DEFAULT '',
+                target TEXT DEFAULT '',
+                value TEXT DEFAULT '',
+                ip TEXT DEFAULT '',
+                user_agent TEXT DEFAULT '',
+                session_id TEXT DEFAULT '',
+                created_at TEXT NOT NULL
+            )
+        """)
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_pe_type ON page_events(event_type)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_pe_created ON page_events(created_at)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_pe_page ON page_events(page)")
+
+
+_init_page_events()
+
+
+def _check_rate_limit(ip: str) -> bool:
+    """Return True if this IP is within the 100 events/minute rate limit."""
+    now = _time.time()
+    entry = _track_rate.get(ip)
+    if entry is None or now - entry[1] > 60:
+        _track_rate[ip] = (1, now)
+        return True
+    if entry[0] >= 100:
+        return False
+    _track_rate[ip] = (entry[0] + 1, entry[1])
+    return True
+
+
+def _session_id_from_ip(ip: str) -> str:
+    """Generate a deterministic session id from IP + date."""
+    day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    return _hashlib.sha256(f"{ip}:{day}".encode()).hexdigest()[:16]
+
+
+@meta_bp.route("/api/track", methods=["POST"])
+def track_event():
+    """Accept frontend tracking events and store in analytics.db."""
+    ip = get_client_ip()
+    if not _check_rate_limit(ip):
+        return "", 429
+
+    data = request.get_json(silent=True)
+    if not data:
+        return "", 400
+
+    events = data.get("events") if isinstance(data, dict) else None
+    if not events or not isinstance(events, list):
+        return "", 400
+
+    ua = request.headers.get("User-Agent", "")
+    server_session = _session_id_from_ip(ip)
+    now = datetime.now(timezone.utc).isoformat()
+
+    rows = []
+    for ev in events[:50]:  # cap at 50 events per request
+        if not isinstance(ev, dict):
+            continue
+        event_type = str(ev.get("event", ""))[:50]
+        if not event_type:
+            continue
+        rows.append((
+            event_type,
+            str(ev.get("page", ""))[:200],
+            str(ev.get("target", ev.get("step", "")))[:200],
+            str(ev.get("depth", ev.get("seconds", ev.get("referrer", ""))))[:500],
+            ip,
+            ua[:300],
+            ev.get("session_id", server_session)[:64],
+            ev.get("ts", now),
+        ))
+
+    if rows:
+        with _sqlite3.connect(_analytics_db) as conn:
+            conn.executemany(
+                "INSERT INTO page_events (event_type, page, target, value, ip, user_agent, session_id, created_at)"
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                rows,
+            )
+
+    return "", 204
+
+
+# ---------------------------------------------------------------------------
+# Agent Marketplace Pages
+# ---------------------------------------------------------------------------
+
+@meta_bp.route("/market")
+def market_home():
+    """Agent marketplace home page."""
+    category = request.args.get("category")
+    page = max(1, int(request.args.get("page", 1)))
+    per_page = 20
+    agents, total = marketplace_search(query="", category=category, sort="popular", page=page, per_page=per_page)
+    categories = marketplace_get_categories()
+    return render_template("market.html",
+        agents=agents, total=total, categories=categories,
+        current_category=category, page=page, per_page=per_page)
+
+
+@meta_bp.route("/market/agent/<listing_id>")
+def market_agent_detail(listing_id):
+    """Agent detail page."""
+    import json as _json
+    agent = marketplace_get_service(listing_id)
+    if not agent:
+        return render_template("market_error.html",
+            error_title="Agent Not Found",
+            error_message="This agent listing doesn't exist or has been removed."), 404
+
+    reviews = marketplace_get_reviews(listing_id, limit=10)
+
+    try:
+        pricing = _json.loads(agent.get("pricing_models", "{}"))
+    except (TypeError, ValueError):
+        pricing = {}
+    try:
+        tags = _json.loads(agent.get("tags", "[]"))
+    except (TypeError, ValueError):
+        tags = []
+
+    return render_template("market_agent.html",
+        agent=agent, reviews=reviews, pricing=pricing,
+        tags=tags, listing_id=listing_id)
+
+
+@meta_bp.route("/market/leaderboard")
+def market_leaderboard():
+    """Leaderboard page."""
+    category = request.args.get("category")
+    sort = request.args.get("sort", "call_count")
+    leaders = marketplace_leaderboard(category=category, sort=sort, limit=20)
+    categories = marketplace_get_categories()
+    return render_template("market_leaderboard.html",
+        leaders=leaders, categories=categories, current_category=category)
+
+
+@meta_bp.route("/market/new")
+def market_new():
+    """Newest agents page."""
+    agents, total = marketplace_search(query="", sort="newest", per_page=20)
+    categories = marketplace_get_categories()
+    return render_template("market.html", agents=agents, total=total, categories=categories, current_category=None, page=1, per_page=20)
+
+
+@meta_bp.route("/market/list")
+def market_list_agent():
+    """List your agent page — creator onboarding form."""
+    # Pull categories dynamically from DB instead of hardcoded list
+    db_categories = marketplace_get_categories()
+    categories = list(db_categories.keys()) if db_categories else ["trading", "research", "content", "code", "data", "automation", "creative"]
+    return render_template("market_list.html", categories=categories)
+
+
+@meta_bp.route("/market/list", methods=["POST"])
+def market_list_agent_submit():
+    """Handle agent listing form submission (no JWT required, just API key in form)."""
+    import json as _json
+    from flask import redirect
+    from api_keys import get_key_status
+
+    data = request.form.to_dict()
+    api_key = data.get("api_key", "").strip()
+    name = data.get("name", "").strip()
+    endpoint = data.get("endpoint", "").strip()
+
+    if not api_key or not api_key.startswith("apk_"):
+        return render_template("market_error.html",
+            error_title="Invalid API Key",
+            error_message="Enter a valid AiPayGen API key starting with apk_",
+            back_url="/market/list", back_label="Try Again"), 400
+
+    key_status = get_key_status(api_key)
+    if not key_status:
+        return render_template("market_error.html",
+            error_title="Key Not Found",
+            error_message='This API key doesn\'t exist. <a href="/quick-key" style="color:var(--accent)">Get a free key</a>',
+            back_url="/market/list", back_label="Try Again"), 404
+
+    if not name or not endpoint:
+        return redirect("/market/list")
+
+    pricing_models = {}
+    if data.get("price_per_call"):
+        pricing_models["per_call"] = float(data["price_per_call"])
+    if data.get("price_monthly"):
+        pricing_models["monthly"] = float(data["price_monthly"])
+    if data.get("price_buy"):
+        pricing_models["buy"] = float(data["price_buy"])
+    if data.get("revenue_share"):
+        pricing_models["revenue_share"] = float(data["revenue_share"])
+
+    price_usd = float(data.get("price_per_call", 0.05))
+    tags_raw = data.get("tags", "")
+    tags = [t.strip() for t in tags_raw.split(",") if t.strip()]
+
+    result = marketplace_list_service(
+        agent_id=api_key[:12],
+        name=name[:255],
+        description=data.get("description", "")[:500],
+        endpoint=endpoint,
+        price_usd=price_usd,
+        category=data.get("category", "general"),
+        wallet_address=data.get("wallet_address", ""),
+        pricing_models=pricing_models,
+        tags=tags,
+    )
+
+    # Save email and send notification
+    email = data.get("email", "").strip()
+    if email and "@" in email:
+        try:
+            from notifications import create_notification
+            create_notification(email, "marketplace_listing", f"Your agent '{name}' has been listed on the AiPayGen marketplace.")
+        except Exception:
+            pass
+
+    return redirect(f"/market/agent/{result['listing_id']}")
+
+
+@meta_bp.route("/market/agent/<listing_id>/checkout")
+def market_agent_checkout(listing_id):
+    """Checkout page — buy/subscribe to an agent via Stripe."""
+    import json as _json
+    import os
+    agent = marketplace_get_service(listing_id)
+    if not agent:
+        return render_template("market_error.html",
+            error_title="Agent Not Found",
+            error_message="This agent listing doesn't exist or has been removed."), 404
+
+    stripe_key = os.getenv("STRIPE_SECRET_KEY", "")
+    if not stripe_key:
+        return render_template("market_error.html",
+            error_title="Payments Not Configured",
+            error_message="Stripe is not configured on this server.",
+            back_url=f"/market/agent/{listing_id}", back_label="Back"), 503
+
+    try:
+        pricing = _json.loads(agent.get("pricing_models", "{}"))
+    except (TypeError, ValueError):
+        pricing = {}
+
+    plan = request.args.get("plan", "per_call")
+    # Bug fix: default to per_call price if plan not found in pricing_models
+    price = pricing.get(plan, agent.get("price_usd", 0.05))
+
+    # Map plans to Stripe-compatible amounts
+    if plan == "buy":
+        label = f"Buy {agent['name']} — Own Forever"
+        desc = "One-time purchase. Download agent config and self-host."
+    elif plan == "monthly":
+        label = f"{agent['name']} — Monthly Subscription"
+        desc = "Unlimited calls for 30 days. Auto-renews."
+    else:
+        plan = "per_call"
+        label = f"{agent['name']} — Pay for Access"
+        desc = "Pay per call. No commitment, top up anytime."
+
+    return render_template("market_checkout.html",
+        agent=agent, listing_id=listing_id, plan=plan,
+        price=float(price), label=label, desc=desc)
+
+
+# ---------------------------------------------------------------------------
+# Trading UI pages
+# ---------------------------------------------------------------------------
+
+@meta_bp.route("/trading")
+def trading_dashboard():
+    """Trading agents dashboard."""
+    import trading_engine
+    import exchange_connectors
+    strategies = trading_engine.list_strategies()
+    prices = exchange_connectors.get_prices(["BTC/USD", "ETH/USD", "SOL/USD"])
+    templates = trading_engine.STRATEGY_TEMPLATES
+    return render_template("trading.html", strategies=strategies, prices=prices, templates=templates)
+
+
+@meta_bp.route("/trading/<strategy_id>")
+def trading_detail(strategy_id):
+    """Strategy detail page."""
+    import trading_engine
+    strategy = trading_engine.get_strategy(strategy_id)
+    if not strategy:
+        return render_template("market_error.html", title="Strategy Not Found", message="This trading strategy does not exist.", back_url="/trading"), 404
+    portfolio = None
+    with trading_engine._conn() as c:
+        row = c.execute("SELECT * FROM portfolios WHERE strategy_id = ? LIMIT 1", (strategy_id,)).fetchone()
+        if row:
+            import json
+            portfolio = dict(row)
+            portfolio["active_positions"] = json.loads(portfolio.get("active_positions") or "[]")
+            portfolio["win_rate"] = round(portfolio["winning_trades"] / portfolio["total_trades"] * 100, 1) if portfolio["total_trades"] > 0 else 0
+    trades = trading_engine.get_trades(strategy_id=strategy_id, limit=20)
+    snapshots = trading_engine.get_snapshots(strategy_id, limit=50)
+    return render_template("trading_detail.html", strategy=strategy, portfolio=portfolio, trades=trades, snapshots=snapshots)
+
+
+@meta_bp.route("/trading/deploy")
+def trading_deploy_page():
+    """Trading strategy deployment page."""
+    import trading_engine
+    template_name = request.args.get("template", "momentum")
+    template = trading_engine.STRATEGY_TEMPLATES.get(template_name)
+    if not template:
+        template = trading_engine.STRATEGY_TEMPLATES.get("momentum")
+        template_name = "momentum"
+    return render_template("trading_deploy.html", template=template, template_name=template_name)
+
+
+@meta_bp.route("/a2a/post-rfq")
+def a2a_post_rfq():
+    """Post a Request for Quote."""
+    return render_template("a2a_post_rfq.html")
+
+
+@meta_bp.route("/a2a")
+def a2a_network():
+    """A2A Commerce Network page."""
+    import a2a_engine
+    stats = a2a_engine.a2a_stats()
+    agents = a2a_engine.discover_agents(limit=10)
+    rfqs = a2a_engine.get_open_rfqs(limit=10)
+    transactions = a2a_engine.get_a2a_transactions(limit=20)
+    leaders = a2a_engine.a2a_leaderboard(limit=10)
+    return render_template("a2a.html", stats=stats, agents=agents, rfqs=rfqs, transactions=transactions, leaders=leaders)
+
+
+@meta_bp.route("/feedback")
+def feedback_page():
+    """User satisfaction survey and review page."""
+    return render_template("feedback.html")
+
+
+@meta_bp.route("/api/feedback", methods=["POST"])
+def feedback_submit():
+    """Save user feedback to analytics DB."""
+    import sqlite3
+    data = request.get_json() or {}
+    try:
+        db = sqlite3.connect(os.path.join(os.path.dirname(os.path.dirname(__file__)), "analytics.db"))
+        db.execute("""CREATE TABLE IF NOT EXISTS user_feedback (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            rating INTEGER, use_cases TEXT, improvement TEXT, review TEXT,
+            email TEXT, api_key_masked TEXT, created_at TEXT
+        )""")
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc).isoformat()
+        key = data.get("api_key", "")
+        masked = key[:8] + "..." + key[-4:] if key and len(key) > 12 else ""
+        db.execute("INSERT INTO user_feedback (rating, use_cases, improvement, review, email, api_key_masked, created_at) VALUES (?,?,?,?,?,?,?)",
+            (data.get("rating", 0), str(data.get("use_cases", [])), data.get("improvement", ""),
+             data.get("review", ""), data.get("email", ""), masked, now))
+        db.commit()
+        db.close()
+    except Exception:
+        pass
+    return "", 204

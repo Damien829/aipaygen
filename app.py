@@ -162,6 +162,7 @@ else:
     load_dotenv(_env_plain)
 
 app = Flask(__name__)
+app.url_map.strict_slashes = False
 app.config["PREFERRED_URL_SCHEME"] = "https"
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10MB max request body
@@ -1140,13 +1141,13 @@ def _api_key_wsgi(environ, start_response):
         environ["SERVER_PORT"] = "443"
         # Preserve original host for app.aipaygen.com SPA routing
         host = environ.get("HTTP_HOST", "").split(":")[0]
-        if host not in ("app.aipaygen.com", "www.aipaygen.com", "mcp.aipaygen.com"):
+        if host not in ("app.aipaygen.com", "www.aipaygen.com", "mcp.aipaygen.com", "trade.aipaygen.com"):
             environ["HTTP_HOST"] = "api.aipaygen.com"
             environ["SERVER_NAME"] = "api.aipaygen.com"
 
-    # app/www bypass — SPA and redirect served by Flask before_request, skip payment middleware
+    # app/www/trade bypass — redirects served by Flask before_request, skip payment middleware
     _host = environ.get("HTTP_HOST", "").split(":")[0]
-    if _host in ("app.aipaygen.com", "www.aipaygen.com"):
+    if _host in ("app.aipaygen.com", "www.aipaygen.com", "trade.aipaygen.com"):
         return _raw_flask_wsgi(environ, start_response)
 
     auth = environ.get("HTTP_AUTHORIZATION", "")
@@ -1168,7 +1169,8 @@ def _api_key_wsgi(environ, start_response):
     if remote_addr in ("127.0.0.1", "::1") and not cf_ip:
         path = environ.get("PATH_INFO", "")
         _internal_prefixes = ("/admin", "/health", "/status", "/stats", "/discovery",
-                              "/skills/absorb", "/skills/harvest", "/blog", "/indexnow")
+                              "/skills/absorb", "/skills/harvest", "/blog", "/indexnow",
+                              "/chat")  # Alpha Scout internal AI calls
         if any(path.startswith(p) for p in _internal_prefixes):
             return _raw_flask_wsgi(environ, start_response)
         # AI tool calls from localhost: set free tier flag so they use llama-local
@@ -2163,6 +2165,8 @@ def not_found(e):
         {"name": "Documentation", "url": "https://aipaygen.com/docs"},
         {"name": "Pricing", "url": "https://aipaygen.com/pricing"},
         {"name": "Discover", "url": "https://aipaygen.com/discover"},
+        {"name": "Agent Market", "url": "https://aipaygen.com/market"},
+        {"name": "Trading", "url": "https://aipaygen.com/trading"},
     ]
     # Serve styled HTML 404 for browsers, JSON for API clients
     # Detect browser: check Accept header, User-Agent, or non-API paths
@@ -2243,42 +2247,12 @@ def www_redirect():
 
 @app.before_request
 def serve_web_app():
-    """Serve Expo web app for app.aipaygen.com — SPA with all routes falling through to index.html."""
+    """Redirect app.aipaygen.com to main site."""
     host = request.host.split(":")[0]
-    if host != "app.aipaygen.com":
-        return None
-    path = request.path.lstrip("/")
-    # Strip /app/ prefix — on app.aipaygen.com, /app/manifest.json should serve manifest.json
-    if path.startswith("app/"):
-        path = path[4:]
-    # Let admin, API, and health routes pass through to Flask — don't serve as SPA
-    _passthrough = ("admin", "auth", "health", "support/ticket", "api/", "stream/", "status", "blog")
-    if any(path.startswith(p) for p in _passthrough):
-        return None
-    static_dir = os.path.join(os.path.dirname(__file__), "static", "app")
-    full_path = os.path.join(static_dir, path)
-    if path and os.path.isfile(full_path):
-        from flask import send_from_directory
-        return send_from_directory(static_dir, path)
-    # Font files: Cloudflare blocks @ in paths, serve from /static/fonts/
-    if path.startswith("assets/") and (path.endswith(".ttf") or path.endswith(".woff2")):
-        font_name = os.path.basename(path)
-        fonts_dir = os.path.join(os.path.dirname(__file__), "static", "fonts")
-        font_path = os.path.join(fonts_dir, font_name)
-        if os.path.isfile(font_path):
-            from flask import send_from_directory
-            return send_from_directory(fonts_dir, font_name)
-    # SPA fallback — serve index.html with custom styles injected
-    from flask import make_response
-    html_path = os.path.join(static_dir, "index.html")
-    with open(html_path, "r") as f:
-        html = f.read()
-    inject = f'<link rel="stylesheet" href="/web-custom.css?v={APP_VERSION}">'
-    html = html.replace("</head>", inject + "\n</head>", 1)
-    resp = make_response(html)
-    resp.headers["Content-Type"] = "text/html; charset=utf-8"
-    resp.headers["Cache-Control"] = "no-cache"
-    return resp
+    from flask import redirect
+    if host == "app.aipaygen.com":
+        return redirect(f"https://aipaygen.com{request.path}", code=302)
+    return None
 
 
 @app.before_request
@@ -2392,6 +2366,19 @@ app.register_blueprint(auth_bp)
 # oauth_bp temporarily disabled for debugging
 app.register_blueprint(agent_bp)
 app.register_blueprint(marketplace_bp)
+
+# Trading Engine
+from routes.trading import trading_bp
+import trading_engine
+trading_engine.init_trading_db()
+app.register_blueprint(trading_bp)
+
+# A2A Commerce
+from routes.a2a import a2a_bp
+import a2a_engine
+a2a_engine.init_a2a_db()
+app.register_blueprint(a2a_bp)
+
 app.register_blueprint(admin_bp)
 app.register_blueprint(skills_bp)
 app.register_blueprint(meta_bp)

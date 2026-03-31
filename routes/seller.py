@@ -43,8 +43,9 @@ def init_seller_bp():
 
 @seller_bp.route("/sell", methods=["GET"])
 def sell_page():
-    """Visual seller onboarding page."""
-    return render_template("seller.html")
+    """Redirect to the new marketplace listing page."""
+    from flask import redirect
+    return redirect("/market/list", code=301)
 
 
 # ── Auth helper ───────────────────────────────────────────────────────────────
