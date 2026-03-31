@@ -10,6 +10,10 @@ import requests
 import sqlite3
 from datetime import datetime, timezone
 
+import trading_engine
+import backtesting
+import a2a_engine
+
 TOKEN_FILE = os.path.expanduser("~/.secrets/telegram_bot_token")
 TOKEN = open(TOKEN_FILE).read().strip() if os.path.exists(TOKEN_FILE) else os.getenv("TELEGRAM_BOT_TOKEN", "")
 API = f"https://api.telegram.org/bot{TOKEN}"
@@ -54,11 +58,24 @@ def cmd_start(chat_id, uid):
 
 Your marketplace, in your pocket.
 
+*Marketplace*
 /status — Server health & stats
 /agents — Top agents
 /leaderboard — Rankings
 /categories — All categories
 /revenue — Revenue breakdown
+
+*Trading*
+/deploy <type> — Deploy strategy (momentum, mean\_reversion, sentiment, dca)
+/trade <id> <pair> <side> <qty> — Paper trade
+/backtest <type> <pair> [days] — Run backtest
+/portfolio [strategy\_id] — Portfolio stats
+
+*Network*
+/a2a — A2A commerce stats
+/alerts — Toggle alert notifications
+
+*System*
 /restart — Restart server
 /logs — Recent server logs
 /help — This message""")
@@ -238,6 +255,206 @@ def cmd_logs(chat_id):
         send(chat_id, f"Error: {e}")
 
 
+# ── Alert flag ────────────────────────────────────────────────────────────────
+ALERTS_FLAG_FILE = os.path.join(DB_DIR, ".telegram_alerts_enabled")
+
+def _alerts_enabled():
+    return os.path.exists(ALERTS_FLAG_FILE)
+
+def _toggle_alerts():
+    if _alerts_enabled():
+        os.remove(ALERTS_FLAG_FILE)
+        return False
+    with open(ALERTS_FLAG_FILE, "w") as f:
+        f.write("1")
+    return True
+
+
+def send_alert(message: str):
+    """Send an alert to the bot owner. Called by external modules."""
+    _load_owner()
+    if OWNER_ID and _alerts_enabled():
+        send(OWNER_ID, f"*ALERT*\n{message}")
+
+
+# ── Trading Commands ──────────────────────────────────────────────────────────
+
+VALID_STRATEGY_TYPES = {"momentum", "mean_reversion", "sentiment", "dca"}
+
+def cmd_deploy(chat_id, text):
+    parts = text.split()
+    if len(parts) < 2:
+        send(chat_id, "Usage: `/deploy <strategy_type>`\nTypes: momentum, mean\\_reversion, sentiment, dca")
+        return
+    stype = parts[1].lower()
+    if stype not in VALID_STRATEGY_TYPES:
+        send(chat_id, f"Invalid type `{stype}`. Choose: momentum, mean\\_reversion, sentiment, dca")
+        return
+    try:
+        result = trading_engine.create_strategy(
+            agent_id="telegram_bot",
+            name=f"tg_{stype}",
+            strategy_type=stype,
+        )
+        portfolio = trading_engine.create_portfolio(
+            user_id="telegram_owner",
+            strategy_id=result["strategy_id"],
+        )
+        send(chat_id, f"""*Strategy Deployed*
+
+Type: `{stype}`
+Strategy ID: `{result['strategy_id']}`
+Status: `{result['status']}`
+Mode: `{result['mode']}`
+Portfolio: `{portfolio['portfolio_id']}`
+Balance: `${portfolio['balance']:.2f}`""")
+    except Exception as e:
+        send(chat_id, f"Deploy failed: {e}")
+
+
+def cmd_trade(chat_id, text):
+    parts = text.split()
+    if len(parts) < 5:
+        send(chat_id, "Usage: `/trade <strategy_id> <pair> <side> <quantity>`\nSide: long or short")
+        return
+    strategy_id, pair, side, qty_str = parts[1], parts[2].upper(), parts[3].lower(), parts[4]
+    if side not in ("long", "short"):
+        send(chat_id, "Side must be `long` or `short`")
+        return
+    try:
+        qty = float(qty_str)
+    except ValueError:
+        send(chat_id, "Quantity must be a number")
+        return
+    try:
+        result = trading_engine.open_trade(
+            strategy_id=strategy_id,
+            agent_id="telegram_bot",
+            pair=pair,
+            side=side,
+            entry_price=0.0,  # paper trade — engine records at market
+            quantity=qty,
+            exchange="paper",
+            entry_reason="telegram_manual",
+        )
+        if "error" in result:
+            send(chat_id, f"Trade error: {result['error']}")
+            return
+        send(chat_id, f"""*Trade Opened*
+
+Trade ID: `{result['trade_id']}`
+Pair: `{result['pair']}`
+Side: `{result['side']}`
+Quantity: `{result['quantity']}`
+Status: `{result['status']}`""")
+    except Exception as e:
+        send(chat_id, f"Trade failed: {e}")
+
+
+def cmd_backtest(chat_id, text):
+    parts = text.split()
+    if len(parts) < 3:
+        send(chat_id, "Usage: `/backtest <strategy_type> <pair> [days]`\nExample: `/backtest momentum BTC/USD 30`")
+        return
+    stype = parts[1].lower()
+    pair = parts[2].upper()
+    days = 30
+    if len(parts) >= 4:
+        try:
+            days = int(parts[3])
+        except ValueError:
+            send(chat_id, "Days must be a number")
+            return
+    if stype not in VALID_STRATEGY_TYPES:
+        send(chat_id, f"Invalid type `{stype}`. Choose: momentum, mean\\_reversion, sentiment, dca")
+        return
+    try:
+        send(chat_id, f"Running backtest: `{stype}` on `{pair}` for {days}d...")
+        result = backtesting.run_backtest(
+            strategy_type=stype,
+            config={},
+            pair=pair,
+            days=days,
+        )
+        if "error" in result:
+            send(chat_id, f"Backtest error: {result['error']}")
+            return
+        send(chat_id, f"""*Backtest Results*
+
+Strategy: `{stype}`
+Pair: `{pair}` | Days: `{days}`
+
+P&L: `{result['total_pnl_pct']:.2f}%` (${result['total_pnl']:.2f})
+Final Balance: `${result['final_balance']:.2f}`
+Win Rate: `{result['win_rate']}%`
+Trades: `{result['total_trades']}` ({result['winning_trades']}W / {result['losing_trades']}L)
+Sharpe: `{result['sharpe_ratio']}`
+Max Drawdown: `{result['max_drawdown_pct']:.2f}%`
+Avg Trade: `${result['avg_trade_pnl']:.2f}`
+Duration: `{result['duration_ms']}ms`""")
+    except Exception as e:
+        send(chat_id, f"Backtest failed: {e}")
+
+
+def cmd_portfolio(chat_id, text):
+    parts = text.split()
+    try:
+        if len(parts) >= 2:
+            strategy_id = parts[1]
+            p = trading_engine.get_portfolio(user_id="telegram_owner", strategy_id=strategy_id)
+            if not p:
+                send(chat_id, f"No portfolio found for strategy `{strategy_id}`")
+                return
+            send(chat_id, f"""*Portfolio*
+
+Strategy: `{p.get('strategy_id', '?')}`
+Balance: `${p['balance']:.2f}` (initial ${p['initial_balance']:.2f})
+P&L: `{p.get('total_pnl_pct', 0):.2f}%`
+Win Rate: `{p.get('win_rate', 0)}%`
+Trades: `{p.get('total_trades', 0)}`
+Max Drawdown: `{p.get('max_drawdown_pct', 0):.2f}%`
+Sharpe Proxy: `{p.get('sharpe_proxy', 0)}`
+Status: `{p.get('status', '?')}`""")
+        else:
+            portfolios = trading_engine.list_portfolios(user_id="telegram_owner")
+            if not portfolios:
+                send(chat_id, "No portfolios. Deploy a strategy first with /deploy")
+                return
+            lines = ["*All Portfolios*\n"]
+            for p in portfolios:
+                pnl = p.get("total_pnl_pct", 0)
+                lines.append(
+                    f"  `{p['strategy_id'][:8]}...` — "
+                    f"${p['balance']:.2f} | {pnl:.1f}% | "
+                    f"{p.get('total_trades', 0)} trades"
+                )
+            send(chat_id, "\n".join(lines))
+    except Exception as e:
+        send(chat_id, f"Portfolio error: {e}")
+
+
+def cmd_alerts(chat_id):
+    enabled = _toggle_alerts()
+    state = "ON" if enabled else "OFF"
+    send(chat_id, f"Alerts toggled *{state}*")
+
+
+def cmd_a2a(chat_id):
+    try:
+        stats = a2a_engine.a2a_stats()
+        send(chat_id, f"""*A2A Commerce Stats*
+
+Live Agents: `{stats['live_agents']}`
+Open RFQs: `{stats['open_rfqs']}`
+Active Contracts: `{stats['active_contracts']}`
+
+*Transactions*
+Total: `{stats['total_transactions']}` (${stats['total_volume_usd']:.2f})
+24h: `{stats['transactions_24h']}` (${stats['volume_24h_usd']:.2f})""")
+    except Exception as e:
+        send(chat_id, f"A2A error: {e}")
+
+
 COMMANDS = {
     "/start": lambda cid, uid, _: cmd_start(cid, uid),
     "/help": lambda cid, uid, _: cmd_start(cid, uid),
@@ -248,6 +465,12 @@ COMMANDS = {
     "/revenue": lambda cid, uid, _: cmd_revenue(cid),
     "/restart": lambda cid, uid, _: cmd_restart(cid),
     "/logs": lambda cid, uid, _: cmd_logs(cid),
+    "/deploy": lambda cid, uid, txt: cmd_deploy(cid, txt),
+    "/trade": lambda cid, uid, txt: cmd_trade(cid, txt),
+    "/backtest": lambda cid, uid, txt: cmd_backtest(cid, txt),
+    "/portfolio": lambda cid, uid, txt: cmd_portfolio(cid, txt),
+    "/alerts": lambda cid, uid, _: cmd_alerts(cid),
+    "/a2a": lambda cid, uid, _: cmd_a2a(cid),
 }
 
 

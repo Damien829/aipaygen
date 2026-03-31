@@ -2375,6 +2375,10 @@ app.register_blueprint(marketplace_bp)
 from routes.trading import trading_bp
 import trading_engine
 trading_engine.init_trading_db()
+import backtesting
+backtesting.init_backtest_db()
+import settlement
+settlement.init_settlement_db()
 app.register_blueprint(trading_bp)
 
 # A2A Commerce

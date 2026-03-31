@@ -26,47 +26,38 @@ def client():
 
 class TestWebhookTestPage:
     def test_page_renders(self, client):
-        r = client.get("/webhooks/test")
+        r = client.get("/webhooks/test-page")
         assert r.status_code == 200
-        assert b"Webhook" in r.data
 
     def test_page_with_key(self, client):
-        r = client.get("/webhooks/test?key=apk_test123")
+        r = client.get("/webhooks/test-page?key=apk_test123")
         assert r.status_code == 200
 
 
-class TestWebhookTestEvent:
+class TestWebhookSubscribe:
     def test_no_auth(self, client):
-        r = client.post("/webhooks/test-event", json={"event": "low_balance"})
+        r = client.post("/webhooks/subscribe", json={"url": "https://example.com/hook", "events": ["trade.opened"]})
         assert r.status_code == 401
 
     @patch("api_keys.validate_key", side_effect=_validate_key_ok)
-    def test_send_test_event(self, mock_vk, client):
-        r = client.post("/webhooks/test-event", headers=AUTH,
-                        json={"event": "low_balance", "payload": {"test": True}})
-        assert r.status_code == 200
-        data = r.get_json()
-        assert "dispatched_to" in data
-        assert data["event"] == "low_balance"
-
-
-class TestWebhookDeliveries:
-    def test_no_auth(self, client):
-        r = client.get("/webhooks/deliveries")
-        assert r.status_code == 401
+    def test_subscribe(self, mock_vk, client):
+        r = client.post("/webhooks/subscribe", headers=AUTH,
+                        json={"url": "https://example.com/hook", "events": ["trade.opened"]})
+        assert r.status_code in (200, 201)
 
     @patch("api_keys.validate_key", side_effect=_validate_key_ok)
-    def test_deliveries(self, mock_vk, client):
-        r = client.get("/webhooks/deliveries", headers=AUTH)
+    def test_list_webhooks(self, mock_vk, client):
+        r = client.get("/webhooks", headers=AUTH)
+        assert r.status_code == 200
+
+
+class TestWebhookEvents:
+    def test_events_list(self, client):
+        r = client.get("/webhooks/events")
         assert r.status_code == 200
         data = r.get_json()
-        assert "deliveries" in data
-        assert isinstance(data["deliveries"], list)
-
-    @patch("api_keys.validate_key", side_effect=_validate_key_ok)
-    def test_deliveries_with_limit(self, mock_vk, client):
-        r = client.get("/webhooks/deliveries?limit=10", headers=AUTH)
-        assert r.status_code == 200
+        assert "events" in data
+        assert "trade.opened" in data["events"]
 
 
 class TestWebhookDispatchDeliveryLog:

@@ -1,9 +1,11 @@
-"""Trading API routes — deploy strategies, execute trades, track P&L."""
+"""Trading API routes — deploy strategies, execute trades, track P&L, backtesting."""
 from flask import Blueprint, request, jsonify
 from helpers import require_api_key, rate_limit
 
 import trading_engine
 import exchange_connectors
+import backtesting
+import ta_indicators
 
 trading_bp = Blueprint("trading", __name__)
 
@@ -280,3 +282,138 @@ def trading_historical(pair):
     days = int(request.args.get("days", 30))
     data = exchange_connectors.get_historical_prices(pair, days=days)
     return jsonify({"pair": pair, "days": days, "data": data, "count": len(data)})
+
+
+# ── Backtesting ──────────────────────────────────────────────────────────────
+
+@trading_bp.route("/trading/backtest", methods=["POST"])
+@rate_limit(60)
+def trading_backtest():
+    """Run a backtest simulation against historical data."""
+    data = request.get_json() or {}
+    strategy_type = data.get("strategy_type", "momentum")
+    pair = data.get("pair", "BTC/USD")
+    days = min(int(data.get("days", 30)), 365)
+    config = data.get("config")
+
+    # Use template defaults if no config
+    if not config:
+        tmpl = trading_engine.STRATEGY_TEMPLATES.get(strategy_type, {})
+        config = tmpl.get("config", {})
+
+    result = backtesting.run_backtest(
+        strategy_type=strategy_type,
+        config=config,
+        pair=pair,
+        days=days,
+        initial_balance=float(data.get("initial_balance", 10000)),
+        position_size_pct=float(data.get("position_size_pct", 10)),
+        stop_loss_pct=float(data.get("stop_loss_pct", 5)),
+        take_profit_pct=float(data.get("take_profit_pct", 10)),
+    )
+    if "error" in result:
+        return jsonify(result), 400
+    return jsonify(result)
+
+
+@trading_bp.route("/trading/backtest/<backtest_id>", methods=["GET"])
+def trading_backtest_detail(backtest_id):
+    """Get detailed backtest results."""
+    result = backtesting.get_backtest(backtest_id)
+    if not result:
+        return jsonify({"error": "Backtest not found"}), 404
+    return jsonify(result)
+
+
+@trading_bp.route("/trading/backtests", methods=["GET"])
+def trading_backtest_list():
+    """List recent backtests."""
+    strategy_type = request.args.get("strategy_type")
+    pair = request.args.get("pair")
+    limit = int(request.args.get("limit", 20))
+    results = backtesting.list_backtests(strategy_type=strategy_type, pair=pair, limit=limit)
+    return jsonify({"backtests": results, "count": len(results)})
+
+
+# ── Technical Indicators ─────────────────────────────────────────────────────
+
+@trading_bp.route("/trading/indicators/<pair>", methods=["GET"])
+def trading_indicators(pair):
+    """Compute technical indicators for a pair."""
+    days = min(int(request.args.get("days", 30)), 365)
+    historical = exchange_connectors.get_historical_prices(pair, days=days)
+    if len(historical) < 5:
+        return jsonify({"error": f"Insufficient data for {pair}"}), 400
+
+    prices = [h["price"] for h in historical]
+    timestamps = [h["timestamp"] for h in historical]
+
+    indicators = request.args.get("indicators", "sma,rsi,macd,bb").split(",")
+    result = {"pair": pair, "days": days, "data_points": len(prices), "timestamps": timestamps}
+
+    if "sma" in indicators:
+        result["sma_20"] = ta_indicators.sma(prices, 20)
+        result["sma_50"] = ta_indicators.sma(prices, 50)
+    if "ema" in indicators:
+        result["ema_12"] = ta_indicators.ema(prices, 12)
+        result["ema_26"] = ta_indicators.ema(prices, 26)
+    if "rsi" in indicators:
+        result["rsi_14"] = ta_indicators.rsi(prices, 14)
+    if "macd" in indicators:
+        ml, sl, hist = ta_indicators.macd(prices)
+        result["macd_line"] = ml
+        result["macd_signal"] = sl
+        result["macd_histogram"] = hist
+    if "bb" in indicators:
+        upper, mid, lower = ta_indicators.bollinger_bands(prices)
+        result["bb_upper"] = upper
+        result["bb_middle"] = mid
+        result["bb_lower"] = lower
+    if "stochastic" in indicators:
+        k, d = ta_indicators.stochastic(prices)
+        result["stoch_k"] = k
+        result["stoch_d"] = d
+
+    result["prices"] = prices
+    response = jsonify(result)
+    response.headers["Cache-Control"] = "public, max-age=300"
+    return response
+
+
+# ── Signal Generation ────────────────────────────────────────────────────────
+
+@trading_bp.route("/trading/signals/<pair>", methods=["GET"])
+def trading_signals(pair):
+    """Generate trading signals for a pair using a strategy."""
+    strategy_type = request.args.get("strategy_type", "momentum")
+    days = min(int(request.args.get("days", 30)), 365)
+
+    tmpl = trading_engine.STRATEGY_TEMPLATES.get(strategy_type, {})
+    config = tmpl.get("config", {})
+
+    historical = exchange_connectors.get_historical_prices(pair, days=days)
+    if len(historical) < 10:
+        return jsonify({"error": f"Insufficient data for {pair}"}), 400
+
+    prices = [h["price"] for h in historical]
+    timestamps = [h["timestamp"] for h in historical]
+    signals = ta_indicators.generate_signals(prices, strategy_type, config)
+
+    # Add timestamps and prices to signals
+    for i, sig in enumerate(signals):
+        sig["timestamp"] = timestamps[i]
+        sig["price"] = prices[i]
+
+    buy_signals = [s for s in signals if s["signal"] == "buy"]
+    sell_signals = [s for s in signals if s["signal"] == "sell"]
+
+    return jsonify({
+        "pair": pair,
+        "strategy_type": strategy_type,
+        "days": days,
+        "total_signals": len(signals),
+        "buy_count": len(buy_signals),
+        "sell_count": len(sell_signals),
+        "signals": signals,
+        "latest": signals[-1] if signals else None,
+    })

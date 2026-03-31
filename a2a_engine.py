@@ -125,6 +125,37 @@ def init_a2a_db():
         c.execute("CREATE INDEX IF NOT EXISTS idx_a2a_cap_agent ON a2a_capabilities(agent_id)")
         c.execute("CREATE INDEX IF NOT EXISTS idx_a2a_cap_enabled ON a2a_capabilities(a2a_enabled)")
 
+        # Escrow records — funds held during transaction lifecycle
+        c.execute("""CREATE TABLE IF NOT EXISTS a2a_escrow (
+            id TEXT PRIMARY KEY,
+            transaction_id TEXT NOT NULL,
+            payer_id TEXT NOT NULL,
+            amount_usd REAL NOT NULL,
+            status TEXT NOT NULL DEFAULT 'held',
+            released_to TEXT,
+            created_at TEXT NOT NULL,
+            released_at TEXT,
+            FOREIGN KEY (transaction_id) REFERENCES a2a_transactions(id)
+        )""")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_escrow_tx ON a2a_escrow(transaction_id)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_escrow_payer ON a2a_escrow(payer_id)")
+
+        # Disputes — filed against transactions
+        c.execute("""CREATE TABLE IF NOT EXISTS a2a_disputes (
+            id TEXT PRIMARY KEY,
+            transaction_id TEXT NOT NULL,
+            filed_by TEXT NOT NULL,
+            reason TEXT NOT NULL,
+            resolution TEXT,
+            resolved_by TEXT,
+            status TEXT NOT NULL DEFAULT 'open',
+            created_at TEXT NOT NULL,
+            resolved_at TEXT,
+            FOREIGN KEY (transaction_id) REFERENCES a2a_transactions(id)
+        )""")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_dispute_tx ON a2a_disputes(transaction_id)")
+        c.execute("CREATE INDEX IF NOT EXISTS idx_dispute_status ON a2a_disputes(status)")
+
 
 # ── A2A Agent Registration ────────────────────────────────────────────────────
 
@@ -372,3 +403,261 @@ def a2a_leaderboard(limit: int = 20) -> list:
         d["capabilities"] = json.loads(d.get("capabilities") or "[]")
         results.append(d)
     return results
+
+
+# ── Negotiation ──────────────────────────────────────────────────────────────
+
+def counter_offer(rfq_id: str, responder_id: str, new_price: float,
+                  message: str = "") -> dict:
+    """Submit a counter-offer to an RFQ. Creates a new response with status='counter_offer'."""
+    now = datetime.now(timezone.utc).isoformat()
+    resp_id = str(uuid.uuid4())
+    with _conn() as c:
+        rfq = c.execute("SELECT * FROM rfq_requests WHERE id = ? AND status = 'open'", (rfq_id,)).fetchone()
+        if not rfq:
+            return {"error": "RFQ not found or closed"}
+        # Look up responder name from capabilities
+        cap = c.execute("SELECT agent_name FROM a2a_capabilities WHERE agent_id = ?", (responder_id,)).fetchone()
+        responder_name = cap["agent_name"] if cap else ""
+        c.execute("""INSERT INTO rfq_responses
+            (id, rfq_id, responder_id, responder_name, price_usd, price_type,
+             sla_offered, message, status, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (resp_id, rfq_id, responder_id, responder_name, new_price,
+             dict(rfq).get("budget_type", "per_call"), "{}", message, "counter_offer", now))
+        c.execute("UPDATE rfq_requests SET responses_count = responses_count + 1 WHERE id = ?", (rfq_id,))
+    return {"response_id": resp_id, "rfq_id": rfq_id, "price_usd": new_price, "status": "counter_offer"}
+
+
+def negotiate(rfq_id: str, response_id: str, action: str,
+              new_price: float = None, message: str = None) -> dict:
+    """Handle negotiation on an RFQ response.
+
+    action: 'accept' — accept the response and create a contract.
+            'reject' — reject the response.
+            'counter' — submit a counter with new_price.
+    """
+    if action not in ("accept", "reject", "counter"):
+        return {"error": "action must be 'accept', 'reject', or 'counter'"}
+
+    now = datetime.now(timezone.utc).isoformat()
+    with _conn() as c:
+        resp = c.execute("SELECT * FROM rfq_responses WHERE id = ? AND rfq_id = ?",
+                         (response_id, rfq_id)).fetchone()
+        if not resp:
+            return {"error": "Response not found"}
+        resp = dict(resp)
+
+        if action == "accept":
+            return accept_rfq_response(rfq_id, response_id)
+
+        if action == "reject":
+            c.execute("UPDATE rfq_responses SET status = 'rejected' WHERE id = ?", (response_id,))
+            return {"response_id": response_id, "rfq_id": rfq_id, "status": "rejected"}
+
+        # action == 'counter'
+        if new_price is None:
+            return {"error": "new_price required for counter action"}
+        # Mark old response as countered
+        c.execute("UPDATE rfq_responses SET status = 'countered' WHERE id = ?", (response_id,))
+        # Create new counter-offer response from the RFQ owner
+        rfq = c.execute("SELECT * FROM rfq_requests WHERE id = ?", (rfq_id,)).fetchone()
+        if not rfq:
+            return {"error": "RFQ not found"}
+        rfq = dict(rfq)
+        new_resp_id = str(uuid.uuid4())
+        c.execute("""INSERT INTO rfq_responses
+            (id, rfq_id, responder_id, responder_name, price_usd, price_type,
+             sla_offered, message, status, created_at)
+            VALUES (?,?,?,?,?,?,?,?,?,?)""",
+            (new_resp_id, rfq_id, rfq["requester_id"], rfq.get("requester_name", ""),
+             new_price, resp.get("price_type", "per_call"), resp.get("sla_offered", "{}"),
+             message or "", "counter_offer", now))
+        c.execute("UPDATE rfq_requests SET responses_count = responses_count + 1 WHERE id = ?", (rfq_id,))
+    return {"response_id": new_resp_id, "rfq_id": rfq_id, "price_usd": new_price, "status": "counter_offer"}
+
+
+# ── Escrow ───────────────────────────────────────────────────────────────────
+
+def create_escrow(transaction_id: str, amount: float, payer_id: str) -> dict:
+    """Create an escrow hold for a transaction."""
+    now = datetime.now(timezone.utc).isoformat()
+    eid = str(uuid.uuid4())
+    with _conn() as c:
+        tx = c.execute("SELECT id FROM a2a_transactions WHERE id = ?", (transaction_id,)).fetchone()
+        if not tx:
+            return {"error": "Transaction not found"}
+        c.execute("""INSERT INTO a2a_escrow
+            (id, transaction_id, payer_id, amount_usd, status, created_at)
+            VALUES (?,?,?,?,?,?)""",
+            (eid, transaction_id, payer_id, amount, "held", now))
+        c.execute("UPDATE a2a_transactions SET escrow_status = 'held' WHERE id = ?", (transaction_id,))
+    return {"escrow_id": eid, "transaction_id": transaction_id, "amount": amount, "status": "held"}
+
+
+def release_escrow(transaction_id: str, release_to: str) -> dict:
+    """Release escrowed funds to the specified party."""
+    now = datetime.now(timezone.utc).isoformat()
+    with _conn() as c:
+        escrow = c.execute("SELECT * FROM a2a_escrow WHERE transaction_id = ? AND status = 'held'",
+                           (transaction_id,)).fetchone()
+        if not escrow:
+            return {"error": "No held escrow found for this transaction"}
+        c.execute("UPDATE a2a_escrow SET status = 'released', released_to = ?, released_at = ? WHERE id = ?",
+                  (release_to, now, escrow["id"]))
+        c.execute("UPDATE a2a_transactions SET escrow_status = 'released' WHERE id = ?", (transaction_id,))
+    return {"transaction_id": transaction_id, "released_to": release_to,
+            "amount": escrow["amount_usd"], "status": "released"}
+
+
+# ── Disputes ─────────────────────────────────────────────────────────────────
+
+def dispute_transaction(transaction_id: str, reason: str, filed_by: str) -> dict:
+    """File a dispute against a transaction."""
+    now = datetime.now(timezone.utc).isoformat()
+    did = str(uuid.uuid4())
+    with _conn() as c:
+        tx = c.execute("SELECT id FROM a2a_transactions WHERE id = ?", (transaction_id,)).fetchone()
+        if not tx:
+            return {"error": "Transaction not found"}
+        c.execute("""INSERT INTO a2a_disputes
+            (id, transaction_id, filed_by, reason, status, created_at)
+            VALUES (?,?,?,?,?,?)""",
+            (did, transaction_id, filed_by, reason, "open", now))
+        c.execute("UPDATE a2a_transactions SET escrow_status = 'disputed' WHERE id = ?", (transaction_id,))
+    return {"dispute_id": did, "transaction_id": transaction_id, "status": "open"}
+
+
+def resolve_dispute(transaction_id: str, resolution: str, resolved_by: str) -> dict:
+    """Resolve a dispute. resolution: 'refund' returns funds to payer, 'release' sends to seller."""
+    if resolution not in ("refund", "release"):
+        return {"error": "resolution must be 'refund' or 'release'"}
+    now = datetime.now(timezone.utc).isoformat()
+    with _conn() as c:
+        dispute = c.execute("SELECT * FROM a2a_disputes WHERE transaction_id = ? AND status = 'open'",
+                            (transaction_id,)).fetchone()
+        if not dispute:
+            return {"error": "No open dispute found for this transaction"}
+        c.execute("""UPDATE a2a_disputes SET status = 'resolved', resolution = ?,
+                     resolved_by = ?, resolved_at = ? WHERE id = ?""",
+                  (resolution, resolved_by, now, dispute["id"]))
+
+        escrow = c.execute("SELECT * FROM a2a_escrow WHERE transaction_id = ?",
+                           (transaction_id,)).fetchone()
+        if resolution == "refund":
+            # Return funds to payer
+            if escrow:
+                c.execute("UPDATE a2a_escrow SET status = 'refunded', released_to = ?, released_at = ? WHERE id = ?",
+                          (escrow["payer_id"], now, escrow["id"]))
+            c.execute("UPDATE a2a_transactions SET escrow_status = 'refunded', status = 'refunded' WHERE id = ?",
+                      (transaction_id,))
+        else:
+            # Release to seller
+            tx = c.execute("SELECT seller_id FROM a2a_transactions WHERE id = ?", (transaction_id,)).fetchone()
+            release_to = tx["seller_id"] if tx else resolved_by
+            if escrow:
+                c.execute("UPDATE a2a_escrow SET status = 'released', released_to = ?, released_at = ? WHERE id = ?",
+                          (release_to, now, escrow["id"]))
+            c.execute("UPDATE a2a_transactions SET escrow_status = 'released' WHERE id = ?", (transaction_id,))
+
+    return {"transaction_id": transaction_id, "resolution": resolution,
+            "resolved_by": resolved_by, "status": "resolved"}
+
+
+# ── Reputation & SLA ─────────────────────────────────────────────────────────
+
+def update_reputation(agent_id: str) -> dict:
+    """Recalculate reputation score based on weighted metrics.
+
+    Weights: success_rate 40%, avg_rating 30%, response_time 20%, dispute_rate 10%.
+    """
+    with _conn() as c:
+        # Transaction success rate (completed / total)
+        total_tx = c.execute(
+            "SELECT COUNT(*) FROM a2a_transactions WHERE seller_id = ?", (agent_id,)
+        ).fetchone()[0]
+        completed_tx = c.execute(
+            "SELECT COUNT(*) FROM a2a_transactions WHERE seller_id = ? AND status = 'completed'",
+            (agent_id,)
+        ).fetchone()[0]
+        success_rate = (completed_tx / total_tx) if total_tx > 0 else 1.0
+
+        # Average rating — use response_status as proxy (200 = good)
+        avg_status = c.execute(
+            "SELECT AVG(CASE WHEN response_status BETWEEN 200 AND 299 THEN 1.0 ELSE 0.0 END) "
+            "FROM a2a_transactions WHERE seller_id = ?", (agent_id,)
+        ).fetchone()[0]
+        avg_rating = avg_status if avg_status is not None else 1.0
+
+        # Response time score — normalised from avg_response_ms (lower is better, cap at 5000ms)
+        cap = c.execute("SELECT avg_response_ms FROM a2a_capabilities WHERE agent_id = ?",
+                        (agent_id,)).fetchone()
+        avg_ms = cap["avg_response_ms"] if cap else 0
+        response_time_score = max(0.0, 1.0 - (avg_ms / 5000.0))
+
+        # Dispute rate (lower is better)
+        disputes = c.execute(
+            "SELECT COUNT(*) FROM a2a_disputes d JOIN a2a_transactions t ON d.transaction_id = t.id "
+            "WHERE t.seller_id = ?", (agent_id,)
+        ).fetchone()[0]
+        dispute_rate = (disputes / total_tx) if total_tx > 0 else 0.0
+        dispute_score = max(0.0, 1.0 - dispute_rate)
+
+        # Weighted score (0-5 scale)
+        score = round((success_rate * 0.4 + avg_rating * 0.3 +
+                        response_time_score * 0.2 + dispute_score * 0.1) * 5.0, 2)
+
+        c.execute("UPDATE a2a_capabilities SET reputation_score = ? WHERE agent_id = ?",
+                  (score, agent_id))
+
+    return {
+        "agent_id": agent_id,
+        "reputation_score": score,
+        "metrics": {
+            "success_rate": round(success_rate, 4),
+            "avg_rating": round(avg_rating, 4),
+            "response_time_score": round(response_time_score, 4),
+            "dispute_score": round(dispute_score, 4),
+        }
+    }
+
+
+def check_sla(agent_id: str) -> dict:
+    """Check if agent meets its SLA commitments."""
+    with _conn() as c:
+        cap = c.execute("SELECT * FROM a2a_capabilities WHERE agent_id = ?",
+                        (agent_id,)).fetchone()
+        if not cap:
+            return {"error": "Agent not found"}
+        cap = dict(cap)
+
+        # Response time average (ms)
+        avg_ms = cap.get("avg_response_ms", 0)
+
+        # Uptime — percentage of successful transactions (2xx status)
+        total = c.execute(
+            "SELECT COUNT(*) FROM a2a_transactions WHERE seller_id = ?", (agent_id,)
+        ).fetchone()[0]
+        successes = c.execute(
+            "SELECT COUNT(*) FROM a2a_transactions WHERE seller_id = ? AND response_status BETWEEN 200 AND 299",
+            (agent_id,)
+        ).fetchone()[0]
+        uptime_pct = round((successes / total) * 100, 2) if total > 0 else 100.0
+
+        # Error rate
+        errors = total - successes
+        error_rate = round((errors / total) * 100, 2) if total > 0 else 0.0
+
+        # SLA compliance: response < 2000ms, uptime >= 99%, error_rate < 5%
+        compliant = (avg_ms < 2000 and uptime_pct >= 99.0 and error_rate < 5.0)
+
+    return {
+        "agent_id": agent_id,
+        "compliant": compliant,
+        "metrics": {
+            "response_time_avg_ms": avg_ms,
+            "uptime_pct": uptime_pct,
+            "error_rate_pct": error_rate,
+            "total_transactions": total,
+        }
+    }

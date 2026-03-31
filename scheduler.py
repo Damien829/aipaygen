@@ -69,6 +69,69 @@ def init_scheduler(claude_client, call_model_fn, parse_json_fn,
 
     _scheduler.add_job(_daily_cleanup, "cron", hour=2, minute=0, id="daily_cleanup")
 
+    # ── Trading auto-execution — every 15 min (FREE, uses free price APIs) ──
+    try:
+        from trading_engine import run_all_active_strategies
+        _scheduler.add_job(run_all_active_strategies, "interval", minutes=15, id="trading_auto_exec")
+        logger.info("Trading auto-execution started (every 15 min)")
+    except Exception as e:
+        logger.warning("trading auto-exec init failed: %s", e)
+
+    # ── Settlement processor — every 6 hours (FREE, internal only) ──────
+    try:
+        from settlement import process_all_settlements
+        _scheduler.add_job(process_all_settlements, "interval", hours=6, id="settlement")
+        logger.info("Settlement processor started (every 6 hours)")
+    except Exception as e:
+        logger.warning("settlement init failed: %s", e)
+
+    # ── Subscription renewal — daily at 3am (FREE, internal only) ────────
+    try:
+        from agent_memory import process_subscription_renewals
+        _scheduler.add_job(process_subscription_renewals, "cron", hour=3, minute=0, id="sub_renewal")
+        logger.info("Subscription renewal started (daily 3am)")
+    except Exception as e:
+        logger.warning("subscription renewal init failed: %s", e)
+
+    # ── Webhook delivery processor — every 2 min (FREE) ─────────────────
+    try:
+        from routes.webhooks import process_webhook_queue
+        _scheduler.add_job(process_webhook_queue, "interval", minutes=2, id="webhook_queue")
+        logger.info("Webhook processor started (every 2 min)")
+    except Exception as e:
+        logger.warning("webhook queue init failed: %s", e)
+
+    # ── Agent certification — daily at 4am (FREE) ───────────────────────
+    def _auto_certify():
+        try:
+            from agent_memory import certify_agent, _marketplace_conn
+            with _marketplace_conn() as c:
+                rows = c.execute("SELECT listing_id FROM marketplace WHERE is_verified = 0").fetchall()
+            certified = 0
+            for row in rows:
+                result = certify_agent(row[0])
+                if result.get("certified"):
+                    certified += 1
+            if certified:
+                logger.info(f"auto_certify: certified {certified} agents")
+        except Exception as e:
+            logger.error("auto_certify failed: %s", e)
+
+    _scheduler.add_job(_auto_certify, "cron", hour=4, minute=0, id="auto_certify")
+
+    # ── A2A reputation update — every 4 hours (FREE) ────────────────────
+    def _update_reputations():
+        try:
+            from a2a_engine import update_reputation, _conn as _a2a_conn
+            with _a2a_conn() as c:
+                agents = c.execute("SELECT agent_id FROM a2a_agents").fetchall()
+            for row in agents:
+                update_reputation(row[0])
+        except Exception as e:
+            logger.error("reputation update failed: %s", e)
+
+    _scheduler.add_job(_update_reputations, "interval", hours=4, id="reputation_update")
+
     # ── PyPI download tracker — every 6h ──────────────────────────────
     try:
         from funnel_tracker import poll_pypi_downloads

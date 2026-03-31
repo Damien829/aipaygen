@@ -3,8 +3,14 @@ import sqlite3
 import json
 import os
 import uuid
+import logging
 from datetime import datetime, timezone
 from typing import Optional
+
+import ta_indicators
+import exchange_connectors
+
+_log = logging.getLogger(__name__)
 
 DB_PATH = os.path.join(os.path.dirname(__file__), "trading.db")
 
@@ -486,3 +492,313 @@ def trading_leaderboard(limit: int = 20) -> list:
         d["win_rate"] = round(d["winning_trades"] / d["total_trades"] * 100, 1) if d["total_trades"] > 0 else 0
         results.append(d)
     return results
+
+
+# ── Auto-Execution Engine ────────────────────────────────────────────────────
+
+def check_risk_limits(strategy_id: str) -> dict:
+    """Check if a strategy has hit its daily loss limit, stop-loss, or take-profit.
+
+    Returns {allowed: bool, reason: str}.
+    """
+    strategy = get_strategy(strategy_id)
+    if not strategy:
+        return {"allowed": False, "reason": "strategy not found"}
+
+    daily_loss_limit = strategy.get("daily_loss_limit", 50.0)
+    stop_loss_pct = strategy.get("stop_loss_pct", 5.0)
+    take_profit_pct = strategy.get("take_profit_pct", 10.0)
+
+    # Check daily realized P&L
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+    with _conn() as c:
+        row = c.execute(
+            "SELECT COALESCE(SUM(pnl), 0) as daily_pnl FROM trades "
+            "WHERE strategy_id = ? AND status = 'closed' AND closed_at >= ?",
+            (strategy_id, today_start)
+        ).fetchone()
+    daily_pnl = row["daily_pnl"] if row else 0.0
+
+    if daily_pnl <= -daily_loss_limit:
+        return {"allowed": False, "reason": f"daily loss limit hit ({daily_pnl:.2f} <= -{daily_loss_limit})"}
+
+    # Check portfolio-level stop-loss and take-profit
+    with _conn() as c:
+        port = c.execute(
+            "SELECT * FROM portfolios WHERE strategy_id = ?", (strategy_id,)
+        ).fetchone()
+
+    if port:
+        port = dict(port)
+        initial = port["initial_balance"]
+        balance = port["balance"]
+        if initial > 0:
+            pnl_pct = ((balance - initial) / initial) * 100
+            if pnl_pct <= -stop_loss_pct:
+                return {"allowed": False, "reason": f"portfolio stop-loss hit ({pnl_pct:.2f}% <= -{stop_loss_pct}%)"}
+            if pnl_pct >= take_profit_pct:
+                return {"allowed": False, "reason": f"portfolio take-profit hit ({pnl_pct:.2f}% >= {take_profit_pct}%)"}
+
+    return {"allowed": True, "reason": "within risk limits"}
+
+
+def auto_execute_strategy(strategy_id: str) -> dict:
+    """Auto-execute an active strategy: fetch prices, generate signals, manage trades.
+
+    Returns summary of actions taken.
+    """
+    strategy = get_strategy(strategy_id)
+    if not strategy:
+        return {"error": "strategy not found"}
+    if strategy["status"] != "active":
+        return {"error": f"strategy status is '{strategy['status']}', not 'active'"}
+
+    pairs = strategy.get("pairs", [])
+    config = strategy.get("config", {})
+    strategy_type = strategy.get("strategy_type", "custom")
+    agent_id = strategy["agent_id"]
+    exchange = strategy.get("exchange", "paper")
+    max_position_usd = strategy.get("max_position_usd", 100.0)
+    stop_loss_pct = strategy.get("stop_loss_pct", 5.0)
+    take_profit_pct = strategy.get("take_profit_pct", 10.0)
+
+    actions = []
+
+    # Check risk limits before proceeding
+    risk = check_risk_limits(strategy_id)
+    if not risk["allowed"]:
+        # Even if blocked, still enforce stop-loss / take-profit on open positions
+        _enforce_exit_limits(strategy_id, agent_id, stop_loss_pct, take_profit_pct, actions)
+        actions.append({"action": "risk_blocked", "reason": risk["reason"]})
+        _record_strategy_snapshot(strategy_id)
+        return {"strategy_id": strategy_id, "status": "risk_blocked",
+                "reason": risk["reason"], "actions": actions}
+
+    # Process each pair
+    for pair in pairs:
+        try:
+            # Get current price
+            price_data = exchange_connectors.get_price(pair, exchange)
+            if not price_data:
+                actions.append({"pair": pair, "action": "skip", "reason": "no price available"})
+                continue
+            current_price = price_data["price"]
+
+            # Get historical prices for signal generation
+            hist = exchange_connectors.get_historical_prices(pair, days=60)
+            if len(hist) < 2:
+                actions.append({"pair": pair, "action": "skip", "reason": "insufficient historical data"})
+                continue
+            hist_prices = [h["price"] for h in hist]
+            # Append current price to the end for the latest signal
+            hist_prices.append(current_price)
+
+            # Generate signals
+            signals = ta_indicators.generate_signals(hist_prices, strategy_type, config)
+            if not signals:
+                actions.append({"pair": pair, "action": "skip", "reason": "no signals generated"})
+                continue
+
+            latest_signal = signals[-1]
+
+            # Check if there's already an open position on this pair
+            open_trades = get_trades(strategy_id=strategy_id, status="open")
+            open_for_pair = [t for t in open_trades if t["pair"] == pair]
+
+            if latest_signal["signal"] == "buy" and not open_for_pair:
+                # Open a long position
+                quantity = max_position_usd / current_price if current_price > 0 else 0
+                if quantity > 0:
+                    trade = open_trade(
+                        strategy_id=strategy_id, agent_id=agent_id,
+                        pair=pair, side="long", entry_price=current_price,
+                        quantity=round(quantity, 8), exchange=exchange,
+                        entry_reason=latest_signal.get("reason", "buy signal")
+                    )
+                    actions.append({"pair": pair, "action": "open_long",
+                                    "price": current_price, "quantity": round(quantity, 8),
+                                    "trade_id": trade["trade_id"],
+                                    "reason": latest_signal.get("reason", "")})
+                    # Execute copy trades
+                    execute_copy_trades(strategy_id, trade)
+
+            elif latest_signal["signal"] == "sell" and open_for_pair:
+                # Close open positions
+                for t in open_for_pair:
+                    result = close_trade(t["id"], current_price,
+                                         exit_reason=latest_signal.get("reason", "sell signal"))
+                    actions.append({"pair": pair, "action": "close",
+                                    "price": current_price, "pnl": result.get("pnl", 0),
+                                    "trade_id": t["id"],
+                                    "reason": latest_signal.get("reason", "")})
+                    execute_copy_trades(strategy_id, {"trade_id": t["id"],
+                                                       "action": "close", "exit_price": current_price})
+
+            else:
+                actions.append({"pair": pair, "action": "hold",
+                                "signal": latest_signal["signal"],
+                                "reason": latest_signal.get("reason", "")})
+
+        except Exception as e:
+            _log.error(f"auto_execute error for {pair} on strategy {strategy_id}: {e}")
+            actions.append({"pair": pair, "action": "error", "reason": str(e)})
+
+    # Enforce stop-loss / take-profit on all open positions
+    _enforce_exit_limits(strategy_id, agent_id, stop_loss_pct, take_profit_pct, actions)
+
+    # Record performance snapshot
+    _record_strategy_snapshot(strategy_id)
+
+    return {"strategy_id": strategy_id, "status": "executed", "actions": actions}
+
+
+def _enforce_exit_limits(strategy_id: str, agent_id: str,
+                         stop_loss_pct: float, take_profit_pct: float,
+                         actions: list):
+    """Close any open positions that have hit stop-loss or take-profit."""
+    open_trades = get_trades(strategy_id=strategy_id, status="open")
+    for t in open_trades:
+        try:
+            price_data = exchange_connectors.get_price(t["pair"])
+            if not price_data:
+                continue
+            current_price = price_data["price"]
+            entry = t["entry_price"]
+            side = t["side"]
+
+            if side == "long":
+                pnl_pct = ((current_price - entry) / entry) * 100
+            else:
+                pnl_pct = ((entry - current_price) / entry) * 100
+
+            if pnl_pct <= -stop_loss_pct:
+                result = close_trade(t["id"], current_price,
+                                      exit_reason=f"stop-loss triggered ({pnl_pct:.2f}%)")
+                actions.append({"pair": t["pair"], "action": "stop_loss",
+                                "price": current_price, "pnl": result.get("pnl", 0),
+                                "pnl_pct": round(pnl_pct, 2), "trade_id": t["id"]})
+                execute_copy_trades(strategy_id, {"trade_id": t["id"],
+                                                   "action": "close", "exit_price": current_price})
+
+            elif pnl_pct >= take_profit_pct:
+                result = close_trade(t["id"], current_price,
+                                      exit_reason=f"take-profit triggered ({pnl_pct:.2f}%)")
+                actions.append({"pair": t["pair"], "action": "take_profit",
+                                "price": current_price, "pnl": result.get("pnl", 0),
+                                "pnl_pct": round(pnl_pct, 2), "trade_id": t["id"]})
+                execute_copy_trades(strategy_id, {"trade_id": t["id"],
+                                                   "action": "close", "exit_price": current_price})
+
+        except Exception as e:
+            _log.error(f"exit limit check error for trade {t['id']}: {e}")
+
+
+def _record_strategy_snapshot(strategy_id: str):
+    """Record a performance snapshot for the strategy."""
+    with _conn() as c:
+        port = c.execute(
+            "SELECT * FROM portfolios WHERE strategy_id = ?", (strategy_id,)
+        ).fetchone()
+        open_count = c.execute(
+            "SELECT COUNT(*) as cnt FROM trades WHERE strategy_id = ? AND status = 'open'",
+            (strategy_id,)
+        ).fetchone()["cnt"]
+    if port:
+        port = dict(port)
+        record_snapshot(strategy_id, port["balance"], port["total_pnl"],
+                        port["total_pnl_pct"], open_count)
+
+
+def execute_copy_trades(strategy_id: str, trade: dict):
+    """Execute proportionally scaled trades for all copy subscribers of a strategy.
+
+    Args:
+        strategy_id: The source strategy being copied.
+        trade: Dict with trade details — either a newly opened trade
+               (with trade_id, pair, side, entry_price, quantity) or a close
+               action (with trade_id, action='close', exit_price).
+    """
+    subscribers = get_copy_subscribers(strategy_id)
+    if not subscribers:
+        return
+
+    for sub in subscribers:
+        if not sub.get("auto_execute"):
+            continue
+
+        subscriber_id = sub["subscriber_id"]
+        multiplier = sub.get("sizing_multiplier", 1.0)
+        max_pos = sub.get("max_position_usd", 100.0)
+
+        try:
+            if trade.get("action") == "close":
+                # Close the corresponding copy trade
+                source_trade_id = trade.get("trade_id")
+                exit_price = trade.get("exit_price", 0)
+                with _conn() as c:
+                    copy_trade = c.execute(
+                        "SELECT id FROM trades WHERE agent_id = ? AND entry_reason LIKE ? AND status = 'open'",
+                        (subscriber_id, f"%copy:{source_trade_id}%")
+                    ).fetchone()
+                if copy_trade:
+                    close_trade(copy_trade["id"], exit_price,
+                                exit_reason=f"copy close from {strategy_id}")
+            else:
+                # Open a proportionally scaled copy trade
+                pair = trade.get("pair", "")
+                side = trade.get("side", "long")
+                entry_price = trade.get("entry_price", 0)
+                quantity = trade.get("quantity", 0) * multiplier
+
+                # Cap to subscriber's max position
+                if entry_price > 0:
+                    max_qty = max_pos / entry_price
+                    quantity = min(quantity, max_qty)
+
+                if quantity > 0 and entry_price > 0:
+                    open_trade(
+                        strategy_id=strategy_id, agent_id=subscriber_id,
+                        pair=pair, side=side, entry_price=entry_price,
+                        quantity=round(quantity, 8), exchange="paper",
+                        entry_reason=f"copy:{trade.get('trade_id', '')} from {strategy_id}"
+                    )
+        except Exception as e:
+            _log.error(f"copy trade error for subscriber {subscriber_id}: {e}")
+
+
+def run_all_active_strategies() -> dict:
+    """Find all strategies with status='active' and auto-execute each.
+
+    Returns summary with results per strategy.
+    """
+    strategies = list_strategies(status="active")
+    results = []
+    total_actions = 0
+
+    for s in strategies:
+        try:
+            result = auto_execute_strategy(s["id"])
+            action_count = len(result.get("actions", []))
+            total_actions += action_count
+            results.append({
+                "strategy_id": s["id"],
+                "name": s["name"],
+                "status": result.get("status", "unknown"),
+                "action_count": action_count,
+                "actions": result.get("actions", []),
+            })
+        except Exception as e:
+            _log.error(f"run_all error for strategy {s['id']}: {e}")
+            results.append({
+                "strategy_id": s["id"],
+                "name": s["name"],
+                "status": "error",
+                "error": str(e),
+            })
+
+    return {
+        "strategies_processed": len(results),
+        "total_actions": total_actions,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "results": results,
+    }
