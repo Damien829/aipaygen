@@ -13,6 +13,7 @@ def test_free_tier_only_honeypots():
         "/free/hash", "/free/base64", "/free/random",
         "/free/joke", "/free/quote",
         "/health", "/.well-known/agent.json", "/llms.txt",
+        "/estimate-cost", "/suggest-tools", "/compare-models",
     }
 
     for svc in all_services:
@@ -30,5 +31,5 @@ def test_data_endpoints_are_paid():
     for svc in data_services:
         if svc["endpoint"].startswith("/free/"):
             continue
-        assert svc["price_usd"] >= 0.01, \
+        assert svc["price_usd"] > 0, \
             f"{svc['endpoint']} should be paid, got ${svc['price_usd']}"

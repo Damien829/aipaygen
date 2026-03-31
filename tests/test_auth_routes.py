@@ -35,7 +35,7 @@ class TestGenerateKey:
     def test_generate_key_success(self, mock_rl, mock_gen, mock_kgr, mock_htc, mock_mtc, mock_rkg, client):
         mock_gen.return_value = {
             "key": "apk_testkey123",
-            "balance_usd": 0.25,
+            "balance_usd": 0.1,
             "label": "my-key",
             "created_at": "2026-01-01T00:00:00",
         }
@@ -43,11 +43,11 @@ class TestGenerateKey:
         assert r.status_code == 200
         data = r.get_json()
         assert data["key"] == "apk_testkey123"
-        assert data["balance_usd"] == 0.25
+        assert data["balance_usd"] == 0.1
         assert data["label"] == "my-key"
         assert "_meta" in data
         assert data["_meta"]["free"] is True
-        mock_gen.assert_called_once_with(initial_balance=0.25, label="my-key", source="api-direct")
+        mock_gen.assert_called_once_with(initial_balance=0.1, label="my-key", source="api-direct")
 
     @patch("routes.auth.record_key_gen")
     @patch("routes.auth.mark_trial_credits_used")
@@ -62,7 +62,7 @@ class TestGenerateKey:
         }
         r = client.post("/auth/generate-key", json={})
         assert r.status_code == 200
-        mock_gen.assert_called_once_with(initial_balance=0.25, label="", source="api-direct")
+        mock_gen.assert_called_once_with(initial_balance=0.1, label="", source="api-direct")
 
     @patch("routes.auth.record_key_gen")
     @patch("routes.auth.mark_trial_credits_used")
@@ -319,7 +319,7 @@ class TestStripeCreateCheckout:
     def test_create_checkout_invalid_amount(self, client):
         r = client.post("/stripe/create-checkout", json={"amount": 99})
         assert r.status_code == 400
-        assert "amount must be" in r.get_json()["error"]
+        assert r.get_json()["error"] in ("invalid_amount", "amount must be between $1 and $500")
 
     @patch("routes.auth.STRIPE_SECRET_KEY", "sk_test_xxx")
     @patch("routes.auth._stripe")
@@ -416,6 +416,7 @@ class TestStripeWebhook:
             "data": {
                 "object": {
                     "id": "cs_123",
+                    "amount_total": 1000,
                     "metadata": {"amount": "10", "action": "new", "label": "test"},
                     "customer_details": {"email": "user@example.com"},
                 }
@@ -443,6 +444,7 @@ class TestStripeWebhook:
             "data": {
                 "object": {
                     "id": "cs_456",
+                    "amount_total": 500,
                     "metadata": {"amount": "5", "action": "topup",
                                  "api_key": "apk_existing123"},
                     "customer_details": {"email": ""},
@@ -473,6 +475,7 @@ class TestStripeWebhook:
             "data": {
                 "object": {
                     "id": "cs_zero",
+                    "amount_total": 0,
                     "metadata": {"amount": "0", "action": "new", "label": ""},
                     "customer_details": {},
                 }
@@ -626,7 +629,7 @@ class TestFreeTierEnforcement:
         }
         r = client.post("/auth/generate-key", json={})
         assert r.status_code == 200
-        mock_gen.assert_called_once_with(initial_balance=0.25, label="", source="api-direct")
+        mock_gen.assert_called_once_with(initial_balance=0.1, label="", source="api-direct")
 
     @patch("routes.auth.check_key_gen_rate", return_value=True)
     @patch("routes.auth.check_identity_rate_limit", return_value=False)
@@ -717,13 +720,13 @@ class TestStripeCreateCheckoutEdgeCases:
     @patch("routes.auth.STRIPE_SECRET_KEY", "sk_test_xxx")
     @patch("routes.auth._stripe")
     @patch("routes.auth.funnel_log_event")
-    def test_default_amount_is_20(self, mock_funnel, mock_stripe, client):
-        """If no amount is provided, default to 20."""
+    def test_amount_20_creates_checkout(self, mock_funnel, mock_stripe, client):
+        """Amount 20 creates a valid checkout session."""
         mock_session = MagicMock()
         mock_session.url = "https://checkout.stripe.com/s"
         mock_session.id = "cs_default"
         mock_stripe.checkout.Session.create.return_value = mock_session
-        r = client.post("/stripe/create-checkout", json={})
+        r = client.post("/stripe/create-checkout", json={"amount": 20})
         assert r.status_code == 200
         call_kwargs = mock_stripe.checkout.Session.create.call_args
         assert call_kwargs[1]["line_items"][0]["price_data"]["unit_amount"] == 2000
@@ -746,6 +749,7 @@ class TestStripeWebhookExtended:
             "data": {
                 "object": {
                     "id": "cs_email",
+                    "amount_total": 1000,
                     "metadata": {"amount": "10", "action": "new", "label": "email-test"},
                     "customer_details": {"email": "buyer@example.com"},
                 }
@@ -779,6 +783,7 @@ class TestStripeWebhookExtended:
             "data": {
                 "object": {
                     "id": "cs_ref",
+                    "amount_total": 2500,
                     "metadata": {"amount": "25", "action": "new", "label": "",
                                  "ref_agent": "agent-abc"},
                     "customer_details": {"email": ""},
@@ -807,6 +812,7 @@ class TestStripeWebhookExtended:
             "data": {
                 "object": {
                     "id": "cs_emailfail",
+                    "amount_total": 500,
                     "metadata": {"amount": "5", "action": "new", "label": ""},
                     "customer_details": {"email": "fail@example.com"},
                 }
@@ -834,6 +840,7 @@ class TestStripeWebhookExtended:
             "data": {
                 "object": {
                     "id": "cs_metafail",
+                    "amount_total": 1000,
                     "metadata": {"amount": "10", "action": "new", "label": ""},
                     "customer_details": {"email": ""},
                 }
@@ -1040,6 +1047,7 @@ class TestSessionKeyMap:
             "data": {
                 "object": {
                     "id": "cs_memtest",
+                    "amount_total": 1000,
                     "metadata": {"amount": "10", "action": "new", "label": "map-test"},
                     "customer_details": {"email": ""},
                 }

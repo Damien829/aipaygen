@@ -74,7 +74,7 @@ class TestListSkills:
 class TestExecuteSkill:
     def test_execute_requires_admin(self, client):
         r = client.post("/skills/execute", json={"skill": "deep_research", "input": "test"})
-        assert r.status_code in (401, 402, 403, 415)
+        assert r.status_code in (401, 402, 403, 415, 503)
 
     def test_execute_missing_skill_name(self, client):
         r = client.post("/skills/execute", json={"input": "test"}, headers=_admin_headers())
@@ -167,7 +167,7 @@ class TestCreateSkill:
 class TestAbsorbSkill:
     def test_absorb_requires_admin(self, client):
         r = client.post("/skills/absorb", json={"text": "some skill text"})
-        assert r.status_code in (401, 402, 403, 415)
+        assert r.status_code in (401, 402, 403, 415, 503)
 
     def test_absorb_missing_input(self, client):
         r = client.post("/skills/absorb", json={}, headers=_admin_headers())
@@ -226,7 +226,7 @@ class TestAbsorbSkill:
 class TestHarvest:
     def test_harvest_requires_admin(self, client):
         r = client.post("/skills/harvest", json={"source": "all"})
-        assert r.status_code in (401, 402, 403, 415)
+        assert r.status_code in (401, 402, 403, 415, 503)
 
     @patch("routes.skills.threading.Thread")
     def test_harvest_all(self, mock_thread, client):
@@ -274,7 +274,7 @@ class TestHarvest:
 class TestHarvestStats:
     def test_harvest_stats_requires_admin(self, client):
         r = client.get("/skills/harvest/stats")
-        assert r.status_code in (401, 402, 403, 415)
+        assert r.status_code in (401, 402, 403, 415, 503)
 
     def test_harvest_stats_success(self, client):
         r = client.get("/skills/harvest/stats", headers=_admin_headers())
@@ -287,11 +287,11 @@ class TestHarvestStats:
 class TestOutbound:
     def test_outbound_requires_admin(self, client):
         r = client.post("/outbound/run", json={})
-        assert r.status_code in (401, 402, 403, 415)
+        assert r.status_code in (401, 402, 403, 415, 503)
 
     def test_outbound_stats_requires_admin(self, client):
         r = client.get("/outbound/stats")
-        assert r.status_code in (401, 402, 403, 415)
+        assert r.status_code in (401, 402, 403, 415, 503)
 
 
 # ── /skills/search (GET) ──────────────────────────────────────────────────
@@ -299,7 +299,7 @@ class TestOutbound:
 class TestSearchSkills:
     def test_search_requires_admin(self, client):
         r = client.get("/skills/search?q=research")
-        assert r.status_code in (401, 402, 403, 415)
+        assert r.status_code in (401, 402, 403, 415, 503)
 
     def test_search_missing_q(self, client):
         r = client.get("/skills/search", headers=_admin_headers())

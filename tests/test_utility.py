@@ -309,8 +309,9 @@ class TestHttpHeaders:
         r = client.get("/data/headers")
         assert r.status_code == 400
 
+    @patch("routes.utility._ssrf_check", return_value=None)
     @patch("routes.utility._requests.head", side_effect=Exception("conn refused"))
-    def test_headers_error(self, mock_head, client):
+    def test_headers_error(self, mock_head, mock_ssrf, client):
         r = client.get("/data/headers?url=https://down.example.com")
         assert r.status_code == 502
 
@@ -888,8 +889,9 @@ class TestUnixTimestamp:
 # ─────────────────────────────────────────────────────────────────────────────
 
 class TestSecurityHeaders:
+    @patch("routes.utility._ssrf_check", return_value=None)
     @patch("routes.utility._requests.get")
-    def test_security_headers_all_present(self, mock_get, client):
+    def test_security_headers_all_present(self, mock_get, mock_ssrf, client):
         mock_resp = MagicMock()
         mock_resp.headers = {
             "Strict-Transport-Security": "max-age=31536000",
@@ -907,8 +909,9 @@ class TestSecurityHeaders:
         assert data["grade"] == "A+"
         assert data["score"] == "7/7"
 
+    @patch("routes.utility._ssrf_check", return_value=None)
     @patch("routes.utility._requests.get")
-    def test_security_headers_none_present(self, mock_get, client):
+    def test_security_headers_none_present(self, mock_get, mock_ssrf, client):
         mock_resp = MagicMock()
         mock_resp.headers = {"Content-Type": "text/html"}
         mock_get.return_value = mock_resp
@@ -954,8 +957,9 @@ class TestUptimeCheck:
         assert data["status"] == "up"
         assert data["ssl"] is True
 
+    @patch("routes.utility._ssrf_check", return_value=None)
     @patch("routes.utility._requests.get")
-    def test_uptime_down(self, mock_get, client):
+    def test_uptime_down(self, mock_get, mock_ssrf, client):
         mock_resp = MagicMock()
         mock_resp.status_code = 500
         mock_resp.content = b"Error"
@@ -966,8 +970,9 @@ class TestUptimeCheck:
         assert data["status"] == "down"
         assert data["ssl"] is False
 
+    @patch("routes.utility._ssrf_check", return_value=None)
     @patch("routes.utility._requests.get", side_effect=Exception("connection refused"))
-    def test_uptime_unreachable(self, mock_get, client):
+    def test_uptime_unreachable(self, mock_get, mock_ssrf, client):
         r = client.get("/data/security/uptime?url=https://dead.example.com")
         assert r.status_code == 200
         data = r.get_json()

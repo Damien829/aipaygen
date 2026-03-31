@@ -157,7 +157,7 @@ class TestFunnelDashboard:
 
     def test_funnel_no_auth_redirects(self, client):
         # Clear any session cookies from prior tests
-        client.delete_cookie("localhost", "session")
+        client.delete_cookie("session")
         r = client.get("/admin/funnel")
         # Should redirect to login or return 401
         assert r.status_code in (302, 401)

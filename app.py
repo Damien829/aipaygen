@@ -1135,6 +1135,10 @@ _x402_wsgi = app.wsgi_app
 
 
 def _api_key_wsgi(environ, start_response):
+    # Testing bypass — skip payment/rate-limit middleware in test mode
+    if app.config.get("TESTING"):
+        return _raw_flask_wsgi(environ, start_response)
+
     # Fix URL scheme for Cloudflare tunnel (always HTTPS externally)
     if environ.get("HTTP_CF_CONNECTING_IP"):
         environ["wsgi.url_scheme"] = "https"

@@ -2,6 +2,7 @@
 import os
 import sys
 import pytest
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 os.environ["SHOWCASE_DB"] = ":memory:"
@@ -190,45 +191,40 @@ def test_post_showcase_missing_tool(client):
 
 
 def test_admin_showcase_requires_auth(client):
-    os.environ["ADMIN_SECRET"] = "test-admin-secret"
-    resp = client.get("/admin/showcase")
-    assert resp.status_code == 401
-    del os.environ["ADMIN_SECRET"]
+    with patch.dict(os.environ, {"ADMIN_SECRET": "test-admin-secret"}):
+        resp = client.get("/admin/showcase")
+        assert resp.status_code == 401
 
 
 def test_admin_approve_requires_auth(client):
-    os.environ["ADMIN_SECRET"] = "test-admin-secret"
-    resp = client.post("/admin/showcase/1/approve")
-    assert resp.status_code == 401
-    del os.environ["ADMIN_SECRET"]
+    with patch.dict(os.environ, {"ADMIN_SECRET": "test-admin-secret"}):
+        resp = client.post("/admin/showcase/1/approve")
+        assert resp.status_code == 401
 
 
 def test_admin_reject_requires_auth(client):
-    os.environ["ADMIN_SECRET"] = "test-admin-secret"
-    resp = client.post("/admin/showcase/1/reject")
-    assert resp.status_code == 401
-    del os.environ["ADMIN_SECRET"]
+    with patch.dict(os.environ, {"ADMIN_SECRET": "test-admin-secret"}):
+        resp = client.post("/admin/showcase/1/reject")
+        assert resp.status_code == 401
 
 
 def test_admin_approve_with_auth(client):
-    os.environ["ADMIN_SECRET"] = "test-admin-secret"
-    showcase.log_showcase("code", "test", "output", 500, "model")
-    pending = showcase.get_pending()
-    entry_id = pending[0]["id"]
-    resp = client.post(f"/admin/showcase/{entry_id}/approve",
-                       headers={"Authorization": "Bearer test-admin-secret"})
-    assert resp.status_code == 200
-    assert resp.get_json()["status"] == "approved"
-    del os.environ["ADMIN_SECRET"]
+    with patch.dict(os.environ, {"ADMIN_SECRET": "test-admin-secret"}):
+        showcase.log_showcase("code", "test", "output", 500, "model")
+        pending = showcase.get_pending()
+        entry_id = pending[0]["id"]
+        resp = client.post(f"/admin/showcase/{entry_id}/approve",
+                           headers={"Authorization": "Bearer test-admin-secret"})
+        assert resp.status_code == 200
+        assert resp.get_json()["status"] == "approved"
 
 
 def test_admin_reject_with_auth(client):
-    os.environ["ADMIN_SECRET"] = "test-admin-secret"
-    showcase.log_showcase("code", "test", "output", 500, "model")
-    pending = showcase.get_pending()
-    entry_id = pending[0]["id"]
-    resp = client.post(f"/admin/showcase/{entry_id}/reject",
-                       headers={"Authorization": "Bearer test-admin-secret"})
-    assert resp.status_code == 200
-    assert resp.get_json()["status"] == "rejected"
-    del os.environ["ADMIN_SECRET"]
+    with patch.dict(os.environ, {"ADMIN_SECRET": "test-admin-secret"}):
+        showcase.log_showcase("code", "test", "output", 500, "model")
+        pending = showcase.get_pending()
+        entry_id = pending[0]["id"]
+        resp = client.post(f"/admin/showcase/{entry_id}/reject",
+                           headers={"Authorization": "Bearer test-admin-secret"})
+        assert resp.status_code == 200
+        assert resp.get_json()["status"] == "rejected"
