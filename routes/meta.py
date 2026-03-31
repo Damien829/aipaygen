@@ -3578,48 +3578,7 @@ CHANGELOG = [
 ]
 
 
-@meta_bp.route("/changelog", methods=["GET"])
-def public_changelog():
-    """Public release notes page."""
-    entries_html = ""
-    for entry in CHANGELOG:
-        items = "".join(f"<li>{ch}</li>" for ch in entry["changes"])
-        entries_html += f"""
-        <div style="margin-bottom:48px">
-          <div style="display:flex;align-items:baseline;gap:16px;flex-wrap:wrap">
-            <span style="font-family:'IBM Plex Mono',monospace;font-size:1.6rem;font-weight:700;color:#00ff9d">v{entry["version"]}</span>
-            <span style="font-size:0.9rem;color:#8b949e">{entry["date"]}</span>
-          </div>
-          <h2 style="margin:8px 0 16px;font-size:1.2rem;color:#fff;font-weight:600">{entry["title"]}</h2>
-          <ul style="padding-left:20px;color:#c9d1d9;line-height:1.9">{items}</ul>
-        </div>"""
-
-    html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Changelog — AiPayGen</title>
-<meta name="description" content="AiPayGen release notes and changelog — see what's new in every version.">
-<link rel="canonical" href="https://aipaygen.com/changelog">
-<meta property="og:title" content="AiPayGen Changelog">
-<meta property="og:url" content="https://aipaygen.com/changelog">
-<meta property="og:description" content="Release notes for AiPayGen — AI agent payments platform.">
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;700&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
-</head>
-<body style="margin:0;background:#020408;color:#e6edf3;font-family:'IBM Plex Sans',system-ui,sans-serif">
-{NAV_HTML}
-<main style="max-width:760px;margin:0 auto;padding:120px 24px 80px">
-  <h1 style="font-size:2.2rem;font-weight:700;color:#fff;margin-bottom:8px">Changelog</h1>
-  <p style="color:#8b949e;margin-bottom:48px">What's new in AiPayGen — release notes for every version.</p>
-  {entries_html}
-</main>
-{FOOTER_HTML}
-</body>
-</html>"""
-    resp = make_response(html)
-    resp.headers["Content-Type"] = "text/html"
-    return resp
+# Old inline changelog removed — now served via changelog.html template at /changelog route below
 
 
 @meta_bp.route("/playground", methods=["GET"])
@@ -3888,11 +3847,40 @@ def track_event():
 
 @meta_bp.route("/market")
 def market_home():
-    """Agent marketplace home page."""
+    """Agent marketplace home page with search and filters."""
+    q = request.args.get("q", "")
     category = request.args.get("category")
+    price_range = request.args.get("price_range", "")
+    min_rating = request.args.get("min_rating", "")
+    sort = request.args.get("sort", "popular")
+    verified_only = request.args.get("verified_only", "") == "1"
     page = max(1, int(request.args.get("page", 1)))
     per_page = 20
-    agents, total = marketplace_search(query="", category=category, sort="popular", page=page, per_page=per_page)
+
+    # Map price_range to max_price
+    max_price = None
+    price_map = {"free": 0.0, "0.01": 0.01, "0.05": 0.05, "0.10": 0.10}
+    if price_range in price_map:
+        max_price = price_map[price_range]
+
+    # Map sort param to backend sort key
+    sort_map = {"popular": "popular", "rating": "rating", "cheapest": "price_low", "newest": "newest"}
+    backend_sort = sort_map.get(sort, "popular")
+
+    agents, total = marketplace_search(query=q, category=category, max_price=max_price, sort=backend_sort, page=page, per_page=per_page)
+
+    # Post-filter: min_rating and verified_only (applied in-memory since marketplace_search doesn't support these)
+    if min_rating:
+        try:
+            mr = float(min_rating)
+            agents = [a for a in agents if (a.get("avg_rating") or 0) >= mr]
+        except (ValueError, TypeError):
+            pass
+    if verified_only:
+        agents = [a for a in agents if a.get("is_verified")]
+    if min_rating or verified_only:
+        total = len(agents)
+
     categories = marketplace_get_categories()
     trending_ids = marketplace_trending_ids()
     # Recommended: top agents from categories NOT currently shown
@@ -4214,24 +4202,67 @@ def report_agent():
     return "", 204
 
 
+_subscribe_rate = {}  # IP -> [timestamps]
+
+
 @meta_bp.route("/api/subscribe-email", methods=["POST"])
+@meta_bp.route("/subscribe-email", methods=["POST"])
 def subscribe_email():
-    """Save email subscriber from footer form."""
-    email = request.form.get("email", "")
-    if not email:
+    """Save email subscriber. Accepts JSON or form data. Rate-limited to 3/hr per IP."""
+    import re as _re
+    import sqlite3
+
+    # Parse email from JSON or form
+    email = ""
+    is_json = request.content_type and "json" in request.content_type
+    if is_json:
         data = request.get_json(silent=True) or {}
-        email = data.get("email", "")
-    if email and "@" in email:
-        import sqlite3
-        try:
-            db = sqlite3.connect(os.path.join(os.path.dirname(os.path.dirname(__file__)), "analytics.db"))
-            db.execute("CREATE TABLE IF NOT EXISTS email_subscribers (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE, source TEXT, created_at TEXT)")
-            db.execute("INSERT OR IGNORE INTO email_subscribers (email, source, created_at) VALUES (?,?,?)",
-                (email.strip().lower(), "footer", datetime.now(timezone.utc).isoformat()))
-            db.commit()
-            db.close()
-        except Exception:
-            pass
+        email = data.get("email", "").strip()
+    else:
+        email = request.form.get("email", "").strip()
+        if not email:
+            data = request.get_json(silent=True) or {}
+            email = data.get("email", "").strip()
+
+    # Validate email format
+    if not email or not _re.match(r'^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$', email):
+        if is_json:
+            return jsonify({"error": "Invalid email address"}), 400
+        from flask import redirect
+        return redirect(request.referrer or "/market")
+
+    # Rate limit: max 3 per hour per IP
+    ip = get_client_ip()
+    now = _time.time()
+    if ip in _subscribe_rate:
+        _subscribe_rate[ip] = [t for t in _subscribe_rate[ip] if now - t < 3600]
+    else:
+        _subscribe_rate[ip] = []
+    if len(_subscribe_rate[ip]) >= 3:
+        if is_json:
+            return jsonify({"error": "Rate limit exceeded. Max 3 subscriptions per hour."}), 429
+        from flask import redirect
+        return redirect(request.referrer or "/market")
+    _subscribe_rate[ip].append(now)
+
+    # Store in DB
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "email_subscribers.db")
+    try:
+        db = sqlite3.connect(db_path)
+        db.execute("CREATE TABLE IF NOT EXISTS email_subscribers (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE, source TEXT, ip TEXT, created_at TEXT)")
+        db.execute("INSERT OR IGNORE INTO email_subscribers (email, source, ip, created_at) VALUES (?,?,?,?)",
+            (email.lower(), "market", ip, datetime.now(timezone.utc).isoformat()))
+        db.commit()
+        db.close()
+    except Exception:
+        logger.exception("subscribe_email db error")
+        if is_json:
+            return jsonify({"error": "Server error"}), 500
+        from flask import redirect
+        return redirect(request.referrer or "/market")
+
+    if is_json:
+        return jsonify({"subscribed": True})
     from flask import redirect
     return redirect(request.referrer or "/market")
 
