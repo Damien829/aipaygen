@@ -933,6 +933,79 @@ def stripe_create_checkout():
         return jsonify({"error": "Payment processing failed"}), 500
 
 
+# ── Subscription Plans ────────────────────────────────────────────────────────
+
+SUBSCRIPTION_PLANS = {
+    tier: {
+        "name": tier.title(),
+        "price_usd": info["price_usd"],
+        "monthly_calls": info["monthly_calls"],
+        "credits_usd": info.get("credits_usd", info["price_usd"]),
+        "rate_limit": info.get("rate_limit", 60),
+        "model_tier": info["model_tier"],
+    }
+    for tier, info in SUBSCRIPTION_TIERS.items()
+}
+
+
+@auth_bp.route("/stripe/plans", methods=["GET"])
+def stripe_plans():
+    """List available subscription plans."""
+    return jsonify({"plans": SUBSCRIPTION_PLANS})
+
+
+@auth_bp.route("/stripe/create-subscription", methods=["POST"])
+def stripe_create_subscription():
+    """Create a Stripe subscription checkout session."""
+    if not STRIPE_SECRET_KEY:
+        return jsonify({"error": "Stripe not configured"}), 503
+
+    data = request.get_json() or {}
+    plan_id = data.get("plan", "starter")
+    if plan_id not in SUBSCRIPTION_PLANS:
+        return jsonify({"error": f"Invalid plan. Choose: {', '.join(SUBSCRIPTION_PLANS.keys())}"}), 400
+
+    plan = SUBSCRIPTION_PLANS[plan_id]
+    email = str(data.get("email", "")).strip().lower()[:120]
+    existing_key = str(data.get("existing_key", "")).strip()
+
+    try:
+        checkout_kwargs = dict(
+            payment_method_types=["card"],
+            line_items=[{
+                "price_data": {
+                    "currency": "usd",
+                    "product_data": {
+                        "name": f"AiPayGen {plan['name']} Plan",
+                        "description": f"${plan['credits_usd']}/mo credits, {plan['rate_limit']} req/min. " + ", ".join(plan["features"]),
+                    },
+                    "unit_amount": plan["price_usd"] * 100,
+                    "recurring": {"interval": "month"},
+                },
+                "quantity": 1,
+            }],
+            mode="subscription",
+            metadata={
+                "action": "subscription",
+                "tier": plan_id,
+                "credits_usd": str(plan["credits_usd"]),
+                "rate_limit": str(plan["rate_limit"]),
+                **({"api_key": existing_key} if existing_key else {}),
+            },
+            success_url=f"{BASE_URL}/subscribe/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{BASE_URL}/subscribe?abandoned=1",
+            billing_address_collection="required",
+        )
+        if email:
+            checkout_kwargs["customer_email"] = email
+
+        session = _stripe.checkout.Session.create(**checkout_kwargs)
+        return jsonify({"url": session.url, "session_id": session.id, "plan": plan_id})
+    except Exception as e:
+        logger.error("Stripe subscription creation failed: %s", e)
+        return jsonify({"error": "Subscription creation failed"}), 500
+
+
 @auth_bp.route("/stripe/webhook", methods=["POST"])
 def stripe_webhook():
     payload = request.get_data()

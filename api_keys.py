@@ -597,9 +597,9 @@ def get_tier_rate_limit(tier: str) -> int:
 # ── Subscription Management ──────────────────────────────────────────────
 
 SUBSCRIPTION_TIERS = {
-    "starter": {"price_usd": 4.99, "monthly_calls": 500, "model_tier": "standard"},
-    "pro": {"price_usd": 19.99, "monthly_calls": 2000, "model_tier": "priority"},
-    "enterprise": {"price_usd": 49.99, "monthly_calls": 10000, "model_tier": "premium"},
+    "starter": {"price_usd": 9, "monthly_calls": 2000, "credits_usd": 12, "rate_limit": 120, "model_tier": "standard"},
+    "pro": {"price_usd": 29, "monthly_calls": 7500, "credits_usd": 45, "rate_limit": 300, "model_tier": "priority"},
+    "enterprise": {"price_usd": 99, "monthly_calls": 30000, "credits_usd": 180, "rate_limit": 1000, "model_tier": "premium"},
 }
 
 

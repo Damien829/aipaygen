@@ -42,9 +42,47 @@ def init_scheduler(claude_client, call_model_fn, parse_json_fn,
 
     # API Hunter-Gatherer — DISABLED (uses claude_client hourly)
     # Auto-skill generator — DISABLED (uses call_model_fn daily)
-    # Discovery scouts — DISABLED (6 scouts using call_model_fn 10+x/day)
-    # Health checker — DISABLED (makes HTTP requests to 30 APIs every 4h)
-    logger.info("Expensive scheduled jobs DISABLED (pre-revenue mode)")
+    # Full discovery scouts — DISABLED (6 scouts using call_model_fn 10+x/day)
+    logger.info("LLM-powered jobs DISABLED (pre-revenue mode)")
+
+    # ── Lightweight discovery (FREE — HTTP only, no LLM calls) ───────────
+    def _lightweight_discovery():
+        """Ping MCP registries, submit our listing, check A2A endpoints. No LLM."""
+        import requests as _req
+        try:
+            # Submit to MCP registries (free, just HTTP POST)
+            registries = [
+                "https://registry.smithery.ai",
+                "https://glama.ai/mcp/servers",
+            ]
+            for reg in registries:
+                try:
+                    _req.post(f"{reg}/submit", json={
+                        "name": "aipaygen-mcp",
+                        "url": "https://api.aipaygen.com",
+                        "description": "65+ AI tools: research, code, trading, scraping, RAG",
+                    }, timeout=10)
+                except Exception:
+                    pass
+
+            # Ping our own A2A agents to keep them active
+            try:
+                stats = _req.get("http://127.0.0.1:5001/a2a/stats", timeout=5).json()
+                logger.info(f"discovery: A2A stats — {stats.get('live_agents', 0)} agents, {stats.get('total_transactions', 0)} txns")
+            except Exception:
+                pass
+
+            # Ping IndexNow to keep search engines updated
+            try:
+                _req.get("http://127.0.0.1:5001/indexnow", timeout=5)
+            except Exception:
+                pass
+
+        except Exception as e:
+            logger.error(f"lightweight_discovery failed: {e}")
+
+    _scheduler.add_job(_lightweight_discovery, "interval", hours=12, id="discovery_lite")
+    logger.info("Lightweight discovery started (every 12h, FREE)")
 
     # ── Email queue processor — every 5 min (FREE, uses Resend free tier) ──
     try:

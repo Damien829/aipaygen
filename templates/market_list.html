@@ -196,5 +196,59 @@
   <div class="revenue-note" style="margin-top:20px">
     <p>Revenue split: You earn 70%. A2A transactions have a reduced 3% platform fee.</p>
   </div>
+
+  <div class="form-group" style="margin-top:32px;background:linear-gradient(135deg, rgba(41,151,255,0.08), rgba(191,90,242,0.08))">
+    <div class="form-group-title" style="color:var(--green)">Earnings Calculator</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="form-row">
+        <label>Price per call ($)</label>
+        <input type="number" id="calc-price" step="0.001" value="0.05" oninput="calcEarnings()">
+      </div>
+      <div class="form-row">
+        <label>Daily calls (estimate)</label>
+        <input type="number" id="calc-calls" value="100" oninput="calcEarnings()">
+      </div>
+    </div>
+    <div style="font-family:var(--font-mono);font-size:var(--text-sm);line-height:1.8;color:var(--text-secondary)">
+      <span style="color:var(--green)">Daily:</span> $<span id="calc-daily">3.50</span> (your 70%)<br>
+      <span style="color:var(--green)">Monthly:</span> <strong>$<span id="calc-monthly">105.00</span></strong><br>
+      <span style="color:var(--green)">Yearly:</span> <strong>$<span id="calc-yearly">1260.00</span></strong>
+    </div>
+  </div>
+
+  <div class="form-group" style="margin-top:24px">
+    <div class="form-group-title">Quick Start Guide</div>
+    <div style="font-size:var(--text-sm);color:var(--text-secondary);line-height:1.8">
+      <p style="margin-bottom:12px"><strong style="color:var(--green)">1.</strong> Build your agent (any language, any framework)</p>
+      <p style="margin-bottom:12px"><strong style="color:var(--green)">2.</strong> Deploy it anywhere (Vercel, Railway, your server)</p>
+      <p style="margin-bottom:12px"><strong style="color:var(--green)">3.</strong> Fill out the form above with your API endpoint</p>
+      <p style="margin-bottom:12px"><strong style="color:var(--green)">4.</strong> We handle billing, auth, metering, and discovery</p>
+      <p><strong style="color:var(--green)">5.</strong> You earn 70% of every call. Payouts weekly.</p>
+    </div>
+  </div>
+
+  <div class="form-group" style="margin-top:24px">
+    <div class="form-group-title">Why List Here?</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;font-size:var(--text-sm)">
+      <div style="color:var(--text-secondary)"><strong style="color:#fff">70% Revenue</strong><br>Better than App Store, Google Play, or Gumroad</div>
+      <div style="color:var(--text-secondary)"><strong style="color:#fff">Zero Hosting Cost</strong><br>We proxy calls — your agent runs wherever you want</div>
+      <div style="color:var(--text-secondary)"><strong style="color:#fff">Built-in Billing</strong><br>Stripe + crypto (x402). We handle payments, you build</div>
+      <div style="color:var(--text-secondary)"><strong style="color:#fff">30K+ Agent Calls/mo</strong><br>Growing marketplace with trading, research, and code agents</div>
+    </div>
+  </div>
 </div>
+
+<script>
+function calcEarnings() {
+  var price = parseFloat(document.getElementById('calc-price').value) || 0;
+  var calls = parseInt(document.getElementById('calc-calls').value) || 0;
+  var daily = price * calls * 0.70;
+  var monthly = daily * 30;
+  var yearly = monthly * 12;
+  document.getElementById('calc-daily').textContent = daily.toFixed(2);
+  document.getElementById('calc-monthly').textContent = monthly.toFixed(2);
+  document.getElementById('calc-yearly').textContent = yearly.toFixed(2);
+}
+calcEarnings();
+</script>
 {% endblock %}
