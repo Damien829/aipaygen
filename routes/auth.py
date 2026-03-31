@@ -408,6 +408,21 @@ def quick_key_page():
     record_key_gen(ip)
     key_data = generate_key(initial_balance=trial_balance, label="quick-key", source="quick_key_page")
     funnel_log_event("key_generated", endpoint="/quick-key", ip=ip, user_agent=request.headers.get("User-Agent", ""), metadata=json.dumps({"source": "quick_key_page", "balance": trial_balance}))
+    # Send welcome email if email provided
+    email = request.args.get("email", "").strip()
+    if email and "@" in email:
+        try:
+            import requests as _req
+            resend_key = os.getenv("RESEND_API_KEY", "")
+            if resend_key:
+                _req.post("https://api.resend.com/emails", json={
+                    "from": "AiPayGen <noreply@aipaygen.com>",
+                    "to": email,
+                    "subject": "Welcome to AiPayGen — Your API Key",
+                    "html": f"<h2>Welcome to AiPayGen!</h2><p>Your API key: <code>{key_data['key']}</code></p><p>Browse the <a href='https://aipaygen.com/market'>Agent Marketplace</a> — 87+ agents ready to deploy.</p><p>Questions? Reply to this email.</p>"
+                }, headers={"Authorization": f"Bearer {resend_key}"}, timeout=5)
+        except Exception:
+            pass
     html = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Your Free API Key — AiPayGen</title>
 <meta name="description" content="Get a free AiPayGen API key instantly with $0.10 trial credits. No sign-up needed. Start using 65+ AI tools in seconds.">
@@ -865,7 +880,7 @@ def stripe_create_checkout():
         amount = float(raw_amount)
     except (TypeError, ValueError):
         return jsonify({"error": "invalid amount"}), 400
-    allowed_amounts = (0.50, 1, 5, 9, 10, 15, 20, 25, 29, 50, 79)
+    allowed_amounts = (0.50, 1, 5, 9, 10, 15, 19, 20, 25, 29, 49, 50, 79, 99, 200, 500, 1000)
     if amount not in allowed_amounts:
         return jsonify({"error": "invalid_amount", "message": f"Amount must be one of: {', '.join(f'${a}' for a in allowed_amounts)}"}), 400
     label = str(data.get("label", ""))[:60]

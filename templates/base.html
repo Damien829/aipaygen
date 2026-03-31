@@ -46,11 +46,13 @@
       <span></span><span></span><span></span>
     </button>
     <ul class="nav-links" id="navLinks">
-      <li><a href="/market" style="color:#d4a853;font-weight:600">Agent Market</a></li>
+      <li><a href="/market" style="color:#d4a853;font-weight:600">Agent Market <span id="agent-count-badge" style="background:var(--accent);color:var(--bg);font-size:9px;padding:1px 5px;border-radius:8px;font-weight:700;vertical-align:middle;"></span></a></li>
       <li><a href="/trading">Trading</a></li>
       <li><a href="/a2a">A2A</a></li>
       <li><a href="/docs">Docs</a></li>
       <li><a href="/pricing">Pricing</a></li>
+      <li><a href="/products" style="color:#00d4a1;font-weight:600">Products</a></li>
+      <li><a href="/services">Hire Us</a></li>
       <li><a href="/try">Try Free</a></li>
       <li><a href="/quick-key" class="nav-cta">Get API Key</a></li>
     </ul>
@@ -77,12 +79,15 @@
       <a href="/discover">Browse Tools</a>
       <a href="/playground">Playground</a>
       <a href="/builder">Workflow Builder</a>
+      <a href="/products">Products</a>
+      <a href="/services">Services</a>
     </div>
     <div class="footer-col">
       <h4>Developers</h4>
       <a href="/docs">API Docs</a>
       <a href="/quick-key">Get API Key</a>
       <a href="/market/list">List Your Agent</a>
+      <a href="/market/stats">Market Stats</a>
       <a href="/integrations">Integrations</a>
       <a href="/openapi.json">OpenAPI Spec</a>
       <a href="https://pypi.org/project/aipaygen-mcp/" target="_blank" rel="noopener">PyPI</a>
@@ -90,12 +95,20 @@
     <div class="footer-col">
       <h4>Company</h4>
       <a href="/blog">Blog</a>
+      <a href="/changelog">Changelog</a>
       <a href="/support">Support</a>
       <a href="/feedback">Give Feedback</a>
       <a href="https://instagram.com/aipaygen" target="_blank" rel="noopener">Instagram</a>
       <a href="https://x.com/aipaygen" target="_blank" rel="noopener">X / Twitter</a>
       <a href="/status">Status</a>
     </div>
+  </div>
+  <div style="max-width:400px;margin:0 auto 24px;text-align:center;">
+    <p style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:8px;">Get marketplace updates</p>
+    <form action="/api/subscribe-email" method="POST" style="display:flex;gap:8px;">
+      <input type="email" name="email" placeholder="you@example.com" required style="flex:1;padding:8px 12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:var(--text-xs);">
+      <button type="submit" class="btn btn-primary" style="padding:8px 16px;font-size:var(--text-xs);">Subscribe</button>
+    </form>
   </div>
   <div class="footer-bottom">
     <span>&copy; 2026 AiPayGen. All rights reserved.</span>
@@ -150,6 +163,13 @@ window.showToast = (msg, duration = 3000) => {
   t.textContent = msg; t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), duration);
 };
+</script>
+<script>
+fetch('/marketplace/categories').then(r=>r.json()).then(d=>{
+  const total=Object.values(d.categories||{}).reduce((a,b)=>a+b,0);
+  const el=document.getElementById('agent-count-badge');
+  if(el&&total>0)el.textContent=total+'+';
+}).catch(()=>{});
 </script>
 {% block scripts %}{% endblock %}
 </body>

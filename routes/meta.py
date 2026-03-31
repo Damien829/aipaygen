@@ -1385,19 +1385,27 @@ def preview():
     cached = _cache_get(ck)
     if cached:
         return jsonify(cached)
-    # Preview LLM calls count against free tier — no free rides
+    # Preview: allow 3 free calls/day per IP for marketplace demos, then require key
     from agent_network import check_and_use_free_tier, get_free_tier_remaining
     auth = request.headers.get("Authorization", "")
     if not auth.startswith("Bearer apk_"):
-        if not check_and_use_free_tier(ip):
+        _preview_daily = getattr(preview, '_daily', {})
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        pk = f"{ip}:{today}"
+        uses = _preview_daily.get(pk, 0)
+        if uses >= 3:
             return jsonify({
-                "error": "free_tier_exhausted",
-                "message": "Free preview calls exhausted for today. Get an API key to continue.",
+                "error": "free_preview_limit",
+                "message": "3 free previews used today. Get an API key for unlimited access.",
                 "upgrade": {
-                    "free_key": "POST https://aipaygen.com/auth/generate-key (includes $0.10 trial credits)",
+                    "free_key": "https://aipaygen.com/quick-key",
                     "buy_credits": "https://aipaygen.com/buy-credits",
                 },
             }), 402
+        _preview_daily[pk] = uses + 1
+        # Clean old entries
+        _preview_daily = {k: v for k, v in _preview_daily.items() if today in k}
+        preview._daily = _preview_daily
     llm_result, err = _call_llm(
         [{"role": "user", "content": f"In 2-3 sentences, briefly explain: {topic}"}],
         max_tokens=120, endpoint="/preview",
@@ -3322,6 +3330,7 @@ def sitemap():
         ("/trading", "daily", "0.8"),
         ("/a2a", "daily", "0.8"),
         ("/market/new", "daily", "0.7"),
+        ("/market/featured", "daily", "0.8"),
         ("/market/categories", "weekly", "0.75"),
         ("/market/stats", "daily", "0.7"),
         ("/feedback", "monthly", "0.5"),
@@ -4387,3 +4396,73 @@ def market_checkout_success(listing_id):
     if not agent:
         return redirect("/market")
     return render_template("market_success.html", agent=agent, listing_id=listing_id)
+
+
+@meta_bp.route("/market/featured")
+def market_featured():
+    """Featured agents — top rated with most usage."""
+    agents, total = marketplace_search(query="", sort="rating", per_page=20)
+    categories = marketplace_get_categories()
+    from agent_memory import marketplace_trending_ids
+    trending_ids = marketplace_trending_ids()
+    return render_template("market.html", agents=agents, total=total, categories=categories, current_category=None, trending_ids=trending_ids, recommended=[], page=1, per_page=20)
+
+
+# ── Products & Services Pages ─────────────────────────────────────────────────
+
+@meta_bp.route("/products")
+def products_page():
+    return render_template("products.html")
+
+
+@meta_bp.route("/products/saas-starter-kit")
+def product_saas_kit_page():
+    return render_template("product_saas_kit.html")
+
+
+@meta_bp.route("/products/course")
+def product_course_page():
+    return render_template("product_course.html")
+
+
+@meta_bp.route("/services")
+def services_page():
+    return render_template("services.html")
+
+
+_CONTACT_DB = os.path.join(os.path.dirname(os.path.dirname(__file__)), "contact_submissions.db")
+
+
+def _init_contact_db():
+    with _sqlite3.connect(_CONTACT_DB) as conn:
+        conn.execute("""CREATE TABLE IF NOT EXISTS contact_submissions (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL,
+            message TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        )""")
+
+
+_init_contact_db()
+
+
+@meta_bp.route("/api/contact", methods=["POST"])
+def api_contact():
+    data = request.get_json(force=True, silent=True) or {}
+    name = (data.get("name") or "").strip()
+    email = (data.get("email") or "").strip()
+    message = (data.get("message") or "").strip()
+    if not name or not email or not message:
+        return jsonify({"error": "name, email, and message are required"}), 400
+    now = datetime.now(timezone.utc).isoformat()
+    try:
+        with _sqlite3.connect(_CONTACT_DB) as conn:
+            conn.execute(
+                "INSERT INTO contact_submissions (name, email, message, created_at) VALUES (?, ?, ?, ?)",
+                (name, email, message, now),
+            )
+    except Exception as e:
+        logger.error("Contact form save failed: %s", e)
+        return jsonify({"error": "internal error"}), 500
+    return jsonify({"submitted": True})

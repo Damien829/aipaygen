@@ -317,7 +317,7 @@ class TestStripeCreateCheckout:
 
     @patch("routes.auth.STRIPE_SECRET_KEY", "sk_test_xxx")
     def test_create_checkout_invalid_amount(self, client):
-        r = client.post("/stripe/create-checkout", json={"amount": 99})
+        r = client.post("/stripe/create-checkout", json={"amount": 777})
         assert r.status_code == 400
         assert r.get_json()["error"] in ("invalid_amount", "amount must be between $1 and $500")
 
