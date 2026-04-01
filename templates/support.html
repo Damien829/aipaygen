@@ -1,127 +1,88 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="canonical" href="https://aipaygen.com/support">
-<title>Help & Support — AiPayGen</title>
-<meta name="description" content="Need help with AiPayGen? Browse common questions, contact our team, or report an issue. We're here to help.">
-<meta property="og:title" content="Help & Support — AiPayGen">
-<meta property="og:description" content="Need help with AiPayGen? Browse common questions, contact our team, or report an issue.">
-<meta property="og:image" content="https://aipaygen.com/og-image.png">
-<meta property="og:url" content="https://aipaygen.com/support">
-<meta property="og:site_name" content="AiPayGen">
-<meta name="twitter:card" content="summary_large_image">
-<link rel="icon" href="/static/icon.png" type="image/png">
+{% extends "base.html" %}
+
+{% block title %}Help & Support{% endblock %}
+{% block description %}Need help with AiPayGen? Browse common questions, contact our team, or report an issue. We're here to help.{% endblock %}
+{% block canonical %}/support{% endblock %}
+{% block og_title %}Help & Support — AiPayGen{% endblock %}
+{% block og_desc %}Need help with AiPayGen? Browse common questions, contact our team, or report an issue.{% endblock %}
+
+{% block head %}
 <style>
-  :root {
-    --bg: #000;
-    --bg2: #1c1c1e;
-    --green: #2997ff;
-    --blue: #0088ff;
-    --cyan: #bf5af2;
-    --text: #c8d8e8;
-    --muted: #86868b;
-    --border: rgba(28,28,30,0.72);
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    overflow-x: hidden;
-    padding-top: 70px;
-  }
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image:
-      linear-gradient(rgba(0,136,255,0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0,136,255,0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none;
-    z-index: 0;
-  }
-  .noise {
-    position: fixed; inset: -200%; width: 400%; height: 400%;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-    opacity: 0.4; pointer-events: none; z-index: 0;
-  }
-  .content { position: relative; z-index: 2; max-width: 800px; margin: 0 auto; padding: 60px 24px 100px; }
-  h1 {
+  .support-content { max-width: 800px; margin: 0 auto; padding: 60px 24px 100px; }
+  .support-content h1 {
     font-size: clamp(1.8rem, 4vw, 2.6rem);
     font-weight: 700;
-    color: #fff;
+    color: var(--text);
     margin-bottom: 12px;
     letter-spacing: -0.02em;
   }
-  h1 .accent { color: var(--green); }
-  .subtitle {
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  .support-content h1 .accent { color: var(--accent); }
+  .support-content .subtitle {
+    font-family: var(--font-sans);
     font-size: 1rem;
-    color: var(--muted);
+    color: var(--text-secondary);
     margin-bottom: 48px;
     font-weight: 300;
   }
-  h2 {
+  .support-content h2 {
     font-size: 1.1rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--text);
     margin: 48px 0 16px;
     letter-spacing: 0.02em;
   }
-  h2:first-of-type { margin-top: 0; }
+  .support-content h2:first-of-type { margin-top: 0; }
 
   /* Contact Form */
   .contact-card {
-    background: var(--bg2);
+    background: var(--bg-elevated);
     border: 1px solid var(--border);
+    border-radius: var(--radius-md);
     padding: 28px;
     margin-bottom: 32px;
   }
   .contact-card p {
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    font-family: var(--font-sans);
     font-size: 0.9rem;
     color: var(--text);
     line-height: 1.7;
     font-weight: 300;
     margin-bottom: 20px;
   }
-  .form-group {
+  .support-form-group {
     margin-bottom: 16px;
   }
-  .form-group label {
+  .support-form-group label {
     display: block;
     font-size: 0.78rem;
     font-weight: 600;
-    color: var(--muted);
+    color: var(--text-secondary);
     margin-bottom: 6px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
   }
-  .form-group input,
-  .form-group textarea {
+  .support-form-group input,
+  .support-form-group textarea {
     width: 100%;
     background: var(--bg);
     border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
     padding: 12px 14px;
     color: var(--text);
-    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-family: var(--font-mono);
     font-size: 0.88rem;
     transition: border-color 0.2s;
   }
-  .form-group input:focus,
-  .form-group textarea:focus {
+  .support-form-group input:focus,
+  .support-form-group textarea:focus {
     outline: none;
-    border-color: var(--green);
+    border-color: var(--accent);
   }
-  .form-group textarea {
+  .support-form-group textarea {
     min-height: 120px;
     resize: vertical;
   }
-  .form-row {
+  .support-form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
@@ -129,18 +90,19 @@
   .submit-btn {
     display: inline-block;
     padding: 12px 32px;
-    background: var(--green);
+    background: var(--accent);
     color: #fff;
     font-weight: 700;
     font-size: 0.88rem;
-    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-family: var(--font-mono);
     border: none;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     letter-spacing: 0.03em;
     transition: all 0.2s;
   }
   .submit-btn:hover {
-    background: #fff;
+    background: var(--accent-hover);
     transform: translateY(-2px);
     box-shadow: 0 8px 30px rgba(41,151,255,0.3);
   }
@@ -153,17 +115,18 @@
   .form-success {
     display: none;
     padding: 20px;
-    background: rgba(41,151,255,0.06);
+    background: var(--accent-dim);
     border: 1px solid rgba(41,151,255,0.2);
+    border-radius: var(--radius-sm);
     text-align: center;
   }
   .form-success h3 {
-    color: var(--green);
+    color: var(--accent);
     font-size: 1rem;
     margin-bottom: 8px;
   }
   .form-success p {
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    font-family: var(--font-sans);
     font-size: 0.88rem;
     color: var(--text);
     font-weight: 300;
@@ -172,9 +135,10 @@
   .form-error {
     display: none;
     padding: 10px 14px;
-    background: rgba(248,81,73,0.08);
-    border: 1px solid rgba(248,81,73,0.2);
-    color: #f85149;
+    background: rgba(255,69,58,0.08);
+    border: 1px solid rgba(255,69,58,0.2);
+    border-radius: var(--radius-sm);
+    color: var(--danger);
     font-size: 0.82rem;
     margin-bottom: 16px;
   }
@@ -182,21 +146,22 @@
   /* FAQ */
   .faq-item {
     border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
     margin-bottom: -1px;
     background: var(--bg);
     transition: background 0.2s;
   }
-  .faq-item:hover { background: var(--bg2); }
+  .faq-item:hover { background: var(--bg-elevated); }
   .faq-q {
     display: flex;
     width: 100%;
     background: none;
     border: none;
     padding: 18px 24px;
-    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-family: var(--font-mono);
     font-size: 0.88rem;
     font-weight: 600;
-    color: #fff;
+    color: var(--text);
     cursor: pointer;
     text-align: left;
     justify-content: space-between;
@@ -204,7 +169,7 @@
   }
   .faq-q::after {
     content: '+';
-    color: var(--green);
+    color: var(--accent);
     font-size: 1.2rem;
     font-weight: 700;
     transition: transform 0.2s;
@@ -213,25 +178,26 @@
   .faq-a {
     display: none;
     padding: 0 24px 18px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    font-family: var(--font-sans);
     font-size: 0.88rem;
-    color: var(--muted);
+    color: var(--text-secondary);
     line-height: 1.7;
     font-weight: 300;
   }
-  .faq-a a { color: var(--cyan); text-decoration: none; }
+  .faq-a a { color: var(--accent2); text-decoration: none; }
   .faq-a a:hover { text-decoration: underline; }
   .faq-item.open .faq-a { display: block; }
 
   /* Bug report */
   .bug-card {
-    background: var(--bg2);
+    background: var(--bg-elevated);
     border: 1px solid var(--border);
+    border-radius: var(--radius-md);
     padding: 28px;
     margin-top: 32px;
   }
   .bug-card p {
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    font-family: var(--font-sans);
     font-size: 0.88rem;
     color: var(--text);
     line-height: 1.7;
@@ -248,29 +214,29 @@
   .links-row a {
     display: inline-block;
     padding: 10px 22px;
-    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-family: var(--font-mono);
     font-size: 0.82rem;
     font-weight: 600;
     text-decoration: none;
-    border: 1px solid var(--green);
-    color: var(--green);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-sm);
+    color: var(--accent);
     transition: all 0.2s;
   }
   .links-row a:hover {
-    background: rgba(41,151,255,0.08);
+    background: var(--accent-dim);
     transform: translateY(-2px);
   }
 
   @media (max-width: 768px) {
-    .content { padding: 40px 16px 60px; }
-    .form-row { grid-template-columns: 1fr; }
+    .support-content { padding: 40px 16px 60px; }
+    .support-form-row { grid-template-columns: 1fr; }
   }
 </style>
-</head>
-<body>
-<div class="noise"></div>
-{{ nav|safe }}
-<div class="content">
+{% endblock %}
+
+{% block content %}
+<div class="support-content">
 
 <h1>We're Here to <span class="accent">Help</span></h1>
 <p class="subtitle">Got a question? Something not working? We'll get you sorted out.</p>
@@ -281,17 +247,17 @@
   <p>Send us a message and we'll get back to you within 24 hours.</p>
   <div id="contact-form">
     <div class="form-error" id="form-error"></div>
-    <div class="form-row">
-      <div class="form-group">
+    <div class="support-form-row">
+      <div class="support-form-group">
         <label for="cf-name">Name</label>
         <input type="text" id="cf-name" placeholder="Your name">
       </div>
-      <div class="form-group">
+      <div class="support-form-group">
         <label for="cf-email">Email *</label>
         <input type="email" id="cf-email" placeholder="you@example.com" required>
       </div>
     </div>
-    <div class="form-group">
+    <div class="support-form-group">
       <label for="cf-message">Message *</label>
       <textarea id="cf-message" placeholder="How can we help?"></textarea>
     </div>
@@ -365,8 +331,8 @@
 <!-- Report a Problem -->
 <h2>Report a Problem</h2>
 <div class="bug-card">
-  <p>Something not working right? We want to know! Use the contact form above or email <a href="mailto:support@aipaygen.com" style="color:var(--cyan)">support@aipaygen.com</a> and include:</p>
-  <ul style="margin:12px 0 0 20px;font-family:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;font-size:0.88rem;color:var(--text);line-height:2">
+  <p>Something not working right? We want to know! Use the contact form above or email <a href="mailto:support@aipaygen.com" style="color:var(--accent2)">support@aipaygen.com</a> and include:</p>
+  <ul style="margin:12px 0 0 20px;font-family:var(--font-sans);font-size:0.88rem;color:var(--text);line-height:2">
     <li>Which tool you were using</li>
     <li>What you expected to happen</li>
     <li>What actually happened (screenshots help!)</li>
@@ -388,8 +354,9 @@
 </div>
 
 </div>
-{{ footer|safe }}
+{% endblock %}
 
+{% block scripts %}
 <script>
 function submitTicket() {
   var name = document.getElementById('cf-name').value.trim();
@@ -439,5 +406,4 @@ function submitTicket() {
   });
 }
 </script>
-</body>
-</html>
+{% endblock %}

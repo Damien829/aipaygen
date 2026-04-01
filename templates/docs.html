@@ -1,54 +1,46 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="canonical" href="https://aipaygen.com/docs">
-<title>AiPayGen — Documentation</title>
-<meta name="description" content="Complete API documentation for AiPayGen — 65+ AI tools, 15 models, authentication, pricing, code examples, and integration guides.">
-<meta property="og:type" content="website">
-<meta property="og:title" content="AiPayGen Documentation — 65+ AI Tools API">
-<meta property="og:description" content="Complete API documentation for AiPayGen — 65+ AI tools, 15 models, authentication, pricing, code examples, and integration guides.">
-<meta property="og:url" content="https://aipaygen.com/docs">
-<meta property="og:image" content="https://aipaygen.com/og-image.png">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="AiPayGen Documentation">
-<meta name="twitter:description" content="Complete API docs for 65+ AI tools, 15 models. Authentication, pricing, code examples, and integration guides.">
-<link rel="icon" href="/static/icon.png" type="image/png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+{% extends "base.html" %}
+
+{% block title %}AiPayGen — Documentation{% endblock %}
+{% block description %}Complete API documentation for AiPayGen — 65+ AI tools, 15 models, authentication, pricing, code examples, and integration guides.{% endblock %}
+{% block canonical %}/docs{% endblock %}
+{% block og_title %}AiPayGen Documentation — 65+ AI Tools API{% endblock %}
+{% block og_desc %}Complete API documentation for AiPayGen — 65+ AI tools, 15 models, authentication, pricing, code examples, and integration guides.{% endblock %}
+{% block tw_title %}AiPayGen Documentation{% endblock %}
+{% block tw_desc %}Complete API docs for 65+ AI tools, 15 models. Authentication, pricing, code examples, and integration guides.{% endblock %}
+
+{% block head %}
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"TechArticle","name":"AiPayGen API Documentation","description":"Complete API documentation for AiPayGen — 65+ AI tools, authentication, pricing, and integration guides.","url":"https://aipaygen.com/docs","publisher":{"@type":"Organization","name":"AiPayGen","url":"https://aipaygen.com"}}
+</script>
 <style>
-:root{--bg:#000;--bg-elevated:#1c1c1e;--surface:rgba(28,28,30,0.72);--accent:#2997ff;--accent2:#bf5af2;--text:#f5f5f7;--text-secondary:#86868b;--text-muted:#48484a;--border:rgba(255,255,255,0.08);--success:#30d158;--font-sans:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif;--font-mono:'SF Mono','Fira Code',ui-monospace,monospace}
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:var(--font-sans);line-height:1.7;padding-top:70px}
-.layout{display:flex;max-width:1200px;margin:0 auto;min-height:calc(100vh - 70px)}
-.sidebar{width:240px;position:sticky;top:70px;height:calc(100vh - 70px);overflow-y:auto;padding:32px 16px;border-right:1px solid var(--border);flex-shrink:0}
-.sidebar a{display:block;color:var(--text-secondary);text-decoration:none;padding:6px 12px;font-size:0.85rem;border-radius:12px;margin-bottom:2px;transition:all .15s}
-.sidebar a:hover,.sidebar a.active{color:#fff;background:var(--surface)}
-.sidebar .section-title{color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;padding:16px 12px 4px;font-weight:600}
-.content{flex:1;padding:40px 48px 80px;max-width:860px}
-h1{font-family:var(--font-sans);font-size:2rem;font-weight:700;color:#fff;margin-bottom:8px;letter-spacing:-0.02em}
-.subtitle{color:var(--text-secondary);font-size:1.05rem;margin-bottom:40px}
-h2{font-family:var(--font-sans);font-size:1.3rem;font-weight:600;color:var(--accent);margin:48px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border);letter-spacing:-0.01em}
-h3{font-size:1rem;color:#fff;margin:24px 0 8px}
-p{color:var(--text-secondary);margin-bottom:16px}
-code{font-family:var(--font-mono);background:var(--surface);padding:2px 6px;border-radius:4px;font-size:0.85em;color:var(--accent)}
-pre{background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px;padding:20px;overflow-x:auto;margin:16px 0;font-size:0.85rem;line-height:1.5}
-pre code{background:none;padding:0;color:var(--text)}
-ol,ul{margin:0 0 16px 24px;color:var(--text-secondary)}
-li{margin-bottom:8px}
-a{color:var(--accent);text-decoration:none}
-a:hover{text-decoration:underline}
-.step{display:flex;gap:16px;margin:16px 0;padding:16px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px}
+.docs-layout{display:flex;max-width:1200px;margin:0 auto;min-height:calc(100vh - 70px)}
+.docs-sidebar{width:240px;position:sticky;top:70px;height:calc(100vh - 70px);overflow-y:auto;padding:32px 16px;border-right:1px solid var(--border);flex-shrink:0}
+.docs-sidebar a{display:block;color:var(--text-secondary);text-decoration:none;padding:6px 12px;font-size:0.85rem;border-radius:var(--radius-md);margin-bottom:2px;transition:all .15s}
+.docs-sidebar a:hover,.docs-sidebar a.active{color:#fff;background:var(--surface)}
+.docs-sidebar .section-title{color:var(--text-muted);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.08em;padding:16px 12px 4px;font-weight:600}
+.docs-content{flex:1;padding:40px 48px 80px;max-width:860px}
+.docs-content h1{font-family:var(--font-sans);font-size:2rem;font-weight:700;color:#fff;margin-bottom:8px;letter-spacing:-0.02em}
+.docs-content .subtitle{color:var(--text-secondary);font-size:1.05rem;margin-bottom:40px}
+.docs-content h2{font-family:var(--font-sans);font-size:1.3rem;font-weight:600;color:var(--accent);margin:48px 0 16px;padding-bottom:8px;border-bottom:1px solid var(--border);letter-spacing:-0.01em}
+.docs-content h3{font-size:1rem;color:#fff;margin:24px 0 8px}
+.docs-content p{color:var(--text-secondary);margin-bottom:16px}
+.docs-content code{font-family:var(--font-mono);background:var(--surface);padding:2px 6px;border-radius:4px;font-size:0.85em;color:var(--accent)}
+.docs-content pre{background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);padding:20px;overflow-x:auto;margin:16px 0;font-size:0.85rem;line-height:1.5}
+.docs-content pre code{background:none;padding:0;color:var(--text)}
+.docs-content ol,.docs-content ul{margin:0 0 16px 24px;color:var(--text-secondary)}
+.docs-content li{margin-bottom:8px}
+.docs-content a{color:var(--accent);text-decoration:none}
+.docs-content a:hover{text-decoration:underline}
+.step{display:flex;gap:16px;margin:16px 0;padding:16px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md)}
 .step-num{font-family:var(--font-mono);font-size:1.5rem;font-weight:700;color:var(--accent);min-width:40px}
 .step-content{flex:1}
 .step-content strong{color:#fff}
-.endpoint{background:var(--bg-elevated);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin:12px 0}
+.endpoint{background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px 20px;margin:12px 0}
 .endpoint .method{font-family:var(--font-mono);font-size:0.8rem;font-weight:600;padding:3px 8px;border-radius:4px;margin-right:8px}
-.endpoint .method.post{background:rgba(41,151,255,0.15);color:var(--accent)}
-.endpoint .method.get{background:rgba(191,90,242,0.15);color:var(--accent2)}
+.endpoint .method.post{background:var(--accent-dim);color:var(--accent)}
+.endpoint .method.get{background:var(--accent2-dim);color:var(--accent2)}
 .endpoint .method.put{background:rgba(255,165,0,0.15);color:#ffa500}
-.endpoint .method.delete{background:rgba(255,80,80,0.15);color:#ff5050}
+.endpoint .method.delete{background:rgba(255,80,80,0.15);color:var(--danger)}
 .endpoint .path{font-family:var(--font-mono);font-size:0.9rem;color:#fff}
 .endpoint .desc{color:var(--text-secondary);font-size:0.85rem;margin-top:6px}
 .pricing-table{width:100%;border-collapse:collapse;margin:16px 0}
@@ -56,38 +48,17 @@ a:hover{text-decoration:underline}
 .pricing-table td{padding:8px 12px;color:var(--text-secondary);font-size:0.85rem;border-bottom:1px solid rgba(255,255,255,0.04)}
 .pricing-table td:first-child{font-family:var(--font-mono);color:#fff}
 .badge{display:inline-block;font-size:0.7rem;padding:2px 8px;border-radius:10px;font-weight:600;margin-left:8px}
-.badge-new{background:rgba(191,90,242,0.2);color:var(--accent2)}
+.badge-new{background:var(--accent2-dim);color:var(--accent2)}
 .badge-free{background:rgba(48,209,88,0.2);color:var(--success)}
-.cta-box{background:linear-gradient(135deg,rgba(41,151,255,0.08),rgba(191,90,242,0.08));border:1px solid rgba(41,151,255,0.2);border-radius:12px;padding:24px;margin:24px 0;text-align:center}
-.cta-box a{display:inline-block;background:linear-gradient(135deg,#2997ff,#bf5af2);color:#fff;font-weight:700;padding:10px 24px;border-radius:980px;margin-top:12px;text-decoration:none;font-family:var(--font-sans)}
-@media(max-width:768px){.sidebar{display:none}.content{padding:24px 16px}}
+.docs-cta-box{background:linear-gradient(135deg,var(--accent-dim),var(--accent2-dim));border:1px solid rgba(41,151,255,0.2);border-radius:var(--radius-md);padding:24px;margin:24px 0;text-align:center}
+.docs-cta-box a{display:inline-block;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-weight:700;padding:10px 24px;border-radius:980px;margin-top:12px;text-decoration:none;font-family:var(--font-sans)}
+@media(max-width:768px){.docs-sidebar{display:none}.docs-content{padding:24px 16px}}
 </style>
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"TechArticle","name":"AiPayGen API Documentation","description":"Complete API documentation for AiPayGen — 65+ AI tools, authentication, pricing, and integration guides.","url":"https://aipaygen.com/docs","publisher":{"@type":"Organization","name":"AiPayGen","url":"https://aipaygen.com"}}
-</script>
-</head>
-<body>
-<nav style="position:fixed;top:0;width:100%;z-index:100;background:rgba(0,0,0,0.88);backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid rgba(255,255,255,0.08);padding:14px 0">
-  <div style="max-width:1200px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between">
-    <a href="/" style="font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif;font-size:1.3rem;font-weight:700;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px">
-      <span style="display:inline-block;width:8px;height:8px;background:#2997ff;border-radius:50%;box-shadow:0 0 8px #2997ff,0 0 16px rgba(41,151,255,0.4);animation:pulse-dot 2s ease-in-out infinite"></span>
-      Ai<span style="color:#2997ff">Pay</span>Gen
-    </a>
-    <div style="display:flex;gap:24px;align-items:center">
-      <a href="/try" style="color:#2997ff;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif;font-size:0.9rem;font-weight:600">Try Free</a>
-      <a href="/docs" style="color:#86868b;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif;font-size:0.9rem;transition:color .2s">Docs</a>
-      <a href="/pricing" style="color:#86868b;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif;font-size:0.9rem;transition:color .2s">Pricing</a>
-      <a href="/playground" style="color:#bf5af2;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif;font-size:0.9rem;font-weight:600">Playground</a>
-      <a href="/status" style="color:#86868b;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif;font-size:0.9rem;transition:color .2s">Status</a>
-      <a href="/buy-credits" style="color:#fff;text-decoration:none;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif;font-size:0.82rem;font-weight:700;background:linear-gradient(135deg,#2997ff,#bf5af2);padding:7px 16px;border-radius:980px;margin-left:8px;letter-spacing:0.03em;transition:all .2s;box-shadow:0 0 12px rgba(41,151,255,0.2)">GET API KEY</a>
-    </div>
-  </div>
-</nav>
-<style>
-@keyframes pulse-dot{0%,100%{opacity:1;box-shadow:0 0 8px #2997ff,0 0 16px rgba(41,151,255,0.4)}50%{opacity:0.6;box-shadow:0 0 4px #2997ff,0 0 8px rgba(41,151,255,0.2)}}
-</style>
-<div class="layout">
-<nav class="sidebar">
+{% endblock %}
+
+{% block content %}
+<div class="docs-layout">
+<nav class="docs-sidebar">
   <div class="section-title">Getting Started</div>
   <a href="#overview">Overview</a>
   <a href="#quickstart">Quick Start</a>
@@ -117,7 +88,7 @@ a:hover{text-decoration:underline}
   <a href="#errors">Error Codes</a>
   <a href="#webhooks">Webhooks</a>
 </nav>
-<div class="content">
+<div class="docs-content">
 
 <h1>Documentation</h1>
 <p class="subtitle">65+ AI tools, custom agent builder, scheduling, and 15 AI models — all in one API.</p>
@@ -126,13 +97,13 @@ a:hover{text-decoration:underline}
 <p>AiPayGen is the most comprehensive AI toolkit for developers and agents. Build custom AI agents, access 65+ tools, 15 models, 2200+ skills, and 4100+ APIs — all through a single API key or MCP connection.</p>
 
 <div style="display:flex;gap:12px;flex-wrap:wrap;margin:16px 0">
-  <a href="/openapi.json" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:0.85rem;color:var(--accent2);text-decoration:none">OpenAPI Spec</a>
-  <a href="/health" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:0.85rem;color:var(--success);text-decoration:none">Service Status</a>
-  <a href="/try" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:0.85rem;color:var(--accent);text-decoration:none">Interactive Playground</a>
-  <a href="/llms.txt" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:0.85rem;color:var(--text-secondary);text-decoration:none">llms.txt</a>
+  <a href="/openapi.json" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);font-size:0.85rem;color:var(--accent2);text-decoration:none">OpenAPI Spec</a>
+  <a href="/health" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);font-size:0.85rem;color:var(--success);text-decoration:none">Service Status</a>
+  <a href="/try" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);font-size:0.85rem;color:var(--accent);text-decoration:none">Interactive Playground</a>
+  <a href="/llms.txt" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);font-size:0.85rem;color:var(--text-secondary);text-decoration:none">llms.txt</a>
 </div>
 
-<div class="cta-box">
+<div class="docs-cta-box">
   <strong style="color:#fff">Start building in 30 seconds</strong><br>
   <span style="color:var(--text-secondary)">Get an API key and start making calls immediately.</span>
   <br><a href="/buy-credits">Get API Key ($1)</a>
@@ -184,9 +155,9 @@ curl -X POST https://api.aipaygen.com/preview \
 <p>Browse, deploy, and earn from AI agents. The marketplace lets you discover agents or list your own and earn 70% of every sale.</p>
 
 <div style="display:flex;gap:12px;flex-wrap:wrap;margin:16px 0">
-  <a href="/market" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:0.85rem;color:var(--accent);text-decoration:none">Browse Agents</a>
-  <a href="/market/list" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:0.85rem;color:var(--success);text-decoration:none">List Your Agent</a>
-  <a href="/market/leaderboard" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:0.85rem;color:var(--accent2);text-decoration:none">Leaderboard</a>
+  <a href="/market" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);font-size:0.85rem;color:var(--accent);text-decoration:none">Browse Agents</a>
+  <a href="/market/list" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);font-size:0.85rem;color:var(--success);text-decoration:none">List Your Agent</a>
+  <a href="/market/leaderboard" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);font-size:0.85rem;color:var(--accent2);text-decoration:none">Leaderboard</a>
 </div>
 
 <div class="endpoint"><span class="method get">GET</span><span class="path">/marketplace</span><div class="desc">Browse/search agents. Query params: q, category, sort (popular|newest|rating), page, per_page</div></div>
@@ -201,7 +172,7 @@ curl -X POST https://api.aipaygen.com/preview \
 <p>Deploy AI trading strategies with paper trading, live crypto prices, and P&L tracking.</p>
 
 <div style="display:flex;gap:12px;flex-wrap:wrap;margin:16px 0">
-  <a href="/trading" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:0.85rem;color:var(--accent);text-decoration:none">Trading Dashboard</a>
+  <a href="/trading" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);font-size:0.85rem;color:var(--accent);text-decoration:none">Trading Dashboard</a>
 </div>
 
 <div class="endpoint"><span class="method get">GET</span><span class="path">/trading/templates</span><div class="desc">List strategy templates (momentum, mean_reversion, sentiment, arbitrage, dca)</div></div>
@@ -217,7 +188,7 @@ curl -X POST https://api.aipaygen.com/preview \
 <p>Agent-to-agent discovery, RFQs, negotiation, and settlement. Agents hire other agents autonomously. 3% platform fee.</p>
 
 <div style="display:flex;gap:12px;flex-wrap:wrap;margin:16px 0">
-  <a href="/a2a" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:12px;font-size:0.85rem;color:var(--accent);text-decoration:none">A2A Network</a>
+  <a href="/a2a" style="display:inline-flex;align-items:center;gap:6px;padding:8px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);font-size:0.85rem;color:var(--accent);text-decoration:none">A2A Network</a>
 </div>
 
 <div class="endpoint"><span class="method get">GET</span><span class="path">/a2a/stats</span><div class="desc">Network stats: live agents, open RFQs, transactions, volume</div></div>
@@ -483,7 +454,7 @@ BASE = "https://api.aipaygen.com"
 KEY = "apk_xxx"
 headers = {"Authorization": f"Bearer {KEY}"}
 
-# Chain: research → summarize → translate
+# Chain: research -> summarize -> translate
 research = httpx.post(f"{BASE}/research", json={"topic": "quantum computing"}, headers=headers).json()
 summary = httpx.post(f"{BASE}/summarize", json={"text": research["summary"]}, headers=headers).json()
 translated = httpx.post(f"{BASE}/translate", json={"text": summary["summary"], "language": "Spanish"}, headers=headers).json()
@@ -626,19 +597,4 @@ translated = httpx.post(f"{BASE}/translate", json={"text": summary["summary"], "
 
 </div>
 </div>
-<footer style="border-top:1px solid rgba(255,255,255,0.08);padding:40px 24px;text-align:center;background:#000">
-  <div style="max-width:1200px;margin:0 auto">
-    <div style="margin-bottom:16px">
-      <a href="/discover" style="color:#86868b;text-decoration:none;margin:0 16px;font-size:0.85rem">Discover</a>
-      <a href="/docs" style="color:#86868b;text-decoration:none;margin:0 16px;font-size:0.85rem">Docs</a>
-      <a href="/llms.txt" style="color:#86868b;text-decoration:none;margin:0 16px;font-size:0.85rem">llms.txt</a>
-      <a href="/.well-known/agent.json" style="color:#86868b;text-decoration:none;margin:0 16px;font-size:0.85rem">agent.json</a>
-      <a href="/health" style="color:#86868b;text-decoration:none;margin:0 16px;font-size:0.85rem">Health</a>
-    </div>
-    <div style="color:#48484a;font-size:0.8rem;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif">
-      Powered by x402 &middot; USDC on Base &middot; Built for autonomous agents
-    </div>
-  </div>
-</footer>
-</body>
-</html>
+{% endblock %}

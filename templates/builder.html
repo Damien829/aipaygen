@@ -1,88 +1,48 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="canonical" href="https://aipaygen.com/builder">
-<title>Build Your AI Agent - AiPayGen</title>
-<meta name="description" content="AiPayGen Agent Builder — create custom AI agents visually. Pick tools, set schedules, deploy without code.">
-<meta property="og:title" content="Agent Builder — AiPayGen">
-<style>
-:root {
-  --bg: #000;
-  --bg2: #1c1c1e;
-  --bg3: rgba(28,28,30,0.72);
-  --bg4: #2c2c2e;
-  --green: #2997ff;
-  --green-dim: #0077ed;
-  --green-glow: rgba(41,151,255,0.15);
-  --blue: #0088ff;
-  --blue-dim: #0066cc;
-  --cyan: #bf5af2;
-  --cyan-dim: #9945cc;
-  --red: #ff3366;
-  --yellow: #ffcc00;
-  --text: #e0e8f0;
-  --text-dim: #7a8a9e;
-  --text-muted: #48484a;
-  --border: #48484a;
-  --border-hover: #636366;
-  --radius: 12px;
-  --radius-sm: 8px;
-  --shadow: 0 4px 24px rgba(0,0,0,0.4);
-  --shadow-lg: 0 8px 48px rgba(0,0,0,0.6);
-  --transition: 0.25s cubic-bezier(0.4,0,0.2,1);
-}
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  padding-top: 70px;
-  min-height: 100vh;
-  line-height: 1.6;
-}
-h1, h2, h3, h4, h5, h6, code, .mono {
-  font-family: 'SF Mono', 'Fira Code', monospace;
-}
+{% extends "base.html" %}
 
+{% block title %}Build Your AI Agent{% endblock %}
+{% block description %}AiPayGen Agent Builder — create custom AI agents visually. Pick tools, set schedules, deploy without code.{% endblock %}
+{% block canonical %}/builder{% endblock %}
+{% block og_title %}Agent Builder — AiPayGen{% endblock %}
+
+{% block head %}
+<style>
 /* ── Hero ─────────────────────────────────────────── */
-.hero {
+.builder-hero {
   text-align: center;
   padding: 80px 24px 60px;
   position: relative;
   overflow: hidden;
 }
-.hero::before {
+.builder-hero::before {
   content: '';
   position: absolute;
   top: -120px; left: 50%; transform: translateX(-50%);
   width: 800px; height: 800px;
-  background: radial-gradient(circle, var(--green-glow) 0%, transparent 70%);
+  background: radial-gradient(circle, var(--accent-dim) 0%, transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
-.hero h1 {
+.builder-hero h1 {
   font-size: clamp(2rem, 5vw, 3.5rem);
   font-weight: 700;
-  background: linear-gradient(135deg, var(--green), var(--cyan));
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   position: relative; z-index: 1;
   margin-bottom: 16px;
 }
-.hero p {
+.builder-hero p {
   font-size: 1.15rem;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   max-width: 560px;
   margin: 0 auto;
   position: relative; z-index: 1;
 }
 
 /* ── Container ────────────────────────────────────── */
-.container {
+.builder-container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 24px;
@@ -96,7 +56,7 @@ h1, h2, h3, h4, h5, h6, code, .mono {
   margin-bottom: 8px;
 }
 .section-subtitle {
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-size: 0.95rem;
   margin-bottom: 32px;
 }
@@ -111,9 +71,9 @@ h1, h2, h3, h4, h5, h6, code, .mono {
   gap: 16px;
 }
 .template-card {
-  background: var(--bg2);
+  background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   padding: 24px 20px;
   cursor: pointer;
   transition: all var(--transition);
@@ -125,14 +85,14 @@ h1, h2, h3, h4, h5, h6, code, .mono {
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 3px;
-  background: linear-gradient(90deg, var(--green), var(--cyan));
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
   opacity: 0;
   transition: opacity var(--transition);
 }
 .template-card:hover {
   border-color: var(--border-hover);
   transform: translateY(-4px);
-  box-shadow: var(--shadow), 0 0 30px var(--green-glow);
+  box-shadow: var(--shadow-md), 0 0 30px var(--accent-dim);
 }
 .template-card:hover::before { opacity: 1; }
 .template-icon {
@@ -141,7 +101,7 @@ h1, h2, h3, h4, h5, h6, code, .mono {
   display: block;
 }
 .template-name {
-  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-family: var(--font-mono);
   font-size: 1rem;
   font-weight: 600;
   color: var(--text);
@@ -149,16 +109,16 @@ h1, h2, h3, h4, h5, h6, code, .mono {
 }
 .template-desc {
   font-size: 0.85rem;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   line-height: 1.5;
   margin-bottom: 16px;
 }
 .template-btn {
   display: inline-block;
-  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-family: var(--font-mono);
   font-size: 0.8rem;
   font-weight: 500;
-  color: var(--green);
+  color: var(--accent);
   border: 1px solid rgba(41,151,255,0.3);
   border-radius: 6px;
   padding: 6px 14px;
@@ -167,8 +127,8 @@ h1, h2, h3, h4, h5, h6, code, .mono {
   transition: all var(--transition);
 }
 .template-btn:hover {
-  background: rgba(41,151,255,0.1);
-  border-color: var(--green);
+  background: var(--accent-dim);
+  border-color: var(--accent);
 }
 
 /* ── Builder Form ─────────────────────────────────── */
@@ -176,20 +136,20 @@ h1, h2, h3, h4, h5, h6, code, .mono {
   padding: 0 0 80px;
 }
 .builder-form {
-  background: var(--bg2);
+  background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   padding: 40px;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-md);
 }
-.form-group {
+.builder-form-group {
   margin-bottom: 32px;
 }
 .form-group-title {
-  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-family: var(--font-mono);
   font-size: 1.1rem;
   font-weight: 600;
-  color: var(--cyan);
+  color: var(--accent2);
   margin-bottom: 20px;
   display: flex;
   align-items: center;
@@ -198,51 +158,51 @@ h1, h2, h3, h4, h5, h6, code, .mono {
 .form-group-title .icon {
   font-size: 1.2rem;
 }
-.form-row {
+.builder-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   margin-bottom: 16px;
 }
-@media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .builder-form-row { grid-template-columns: 1fr; } }
 
-label {
+.builder-form label {
   display: block;
   font-size: 0.85rem;
   font-weight: 500;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   margin-bottom: 6px;
 }
-input[type="text"],
-input[type="number"],
-input[type="url"],
-textarea,
-select {
+.builder-form input[type="text"],
+.builder-form input[type="number"],
+.builder-form input[type="url"],
+.builder-form textarea,
+.builder-form select {
   width: 100%;
-  font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  font-family: var(--font-sans);
   font-size: 0.95rem;
   color: var(--text);
-  background: var(--bg3);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 12px 16px;
   transition: border-color var(--transition), box-shadow var(--transition);
   outline: none;
 }
-input:focus, textarea:focus, select:focus {
-  border-color: var(--cyan);
-  box-shadow: 0 0 0 3px rgba(191,90,242,0.1);
+.builder-form input:focus, .builder-form textarea:focus, .builder-form select:focus {
+  border-color: var(--accent2);
+  box-shadow: 0 0 0 3px var(--accent2-dim);
 }
-textarea { resize: vertical; }
-select {
+.builder-form textarea { resize: vertical; }
+.builder-form select {
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%237a8a9e'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2386868b'%3E%3Cpath d='M6 8L1 3h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 14px center;
   padding-right: 36px;
 }
-select option { background: var(--bg3); color: var(--text); }
+.builder-form select option { background: var(--bg-elevated); color: var(--text); }
 
 /* ── Toggle Switch ────────────────────────────────── */
 .toggle-wrap {
@@ -258,7 +218,7 @@ select option { background: var(--bg3); color: var(--text); }
 .toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
 .toggle-slider {
   position: absolute; inset: 0;
-  background: var(--bg4);
+  background: var(--surface-hover);
   border-radius: 26px;
   border: 1px solid var(--border);
   cursor: pointer;
@@ -269,17 +229,17 @@ select option { background: var(--bg3); color: var(--text); }
   position: absolute;
   top: 3px; left: 3px;
   width: 18px; height: 18px;
-  background: var(--text-dim);
+  background: var(--text-secondary);
   border-radius: 50%;
   transition: all var(--transition);
 }
 .toggle input:checked + .toggle-slider {
-  background: rgba(41,151,255,0.15);
-  border-color: var(--green);
+  background: var(--accent-dim);
+  border-color: var(--accent);
 }
 .toggle input:checked + .toggle-slider::before {
   transform: translateX(22px);
-  background: var(--green);
+  background: var(--accent);
 }
 .toggle-label {
   font-size: 0.9rem;
@@ -300,18 +260,18 @@ select option { background: var(--bg3); color: var(--text); }
   border-bottom: 1px solid var(--border);
 }
 .tool-category-name {
-  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-family: var(--font-mono);
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--blue);
+  color: var(--accent);
 }
 .tool-category-actions {
   display: flex; gap: 8px;
 }
 .cat-toggle-btn {
-  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-family: var(--font-mono);
   font-size: 0.7rem;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 4px;
@@ -320,8 +280,8 @@ select option { background: var(--bg3); color: var(--text); }
   transition: all var(--transition);
 }
 .cat-toggle-btn:hover {
-  color: var(--green);
-  border-color: var(--green);
+  color: var(--accent);
+  border-color: var(--accent);
 }
 .tool-grid {
   display: grid;
@@ -333,7 +293,7 @@ select option { background: var(--bg3); color: var(--text); }
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: var(--bg3);
+  background: var(--surface);
   border: 1px solid transparent;
   border-radius: 6px;
   cursor: pointer;
@@ -342,16 +302,16 @@ select option { background: var(--bg3); color: var(--text); }
 }
 .tool-item:hover {
   border-color: var(--border-hover);
-  background: var(--bg4);
+  background: var(--surface-hover);
 }
 .tool-item input[type="checkbox"] {
   width: 16px; height: 16px;
-  accent-color: var(--green);
+  accent-color: var(--accent);
   cursor: pointer;
   flex-shrink: 0;
 }
 .tool-item label {
-  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-family: var(--font-mono);
   font-size: 0.78rem;
   color: var(--text);
   margin: 0;
@@ -373,7 +333,7 @@ select option { background: var(--bg3); color: var(--text); }
   user-select: none;
 }
 .collapsible-header .arrow {
-  color: var(--text-dim);
+  color: var(--text-secondary);
   transition: transform var(--transition);
   font-size: 0.9rem;
 }
@@ -395,30 +355,30 @@ select option { background: var(--bg3); color: var(--text); }
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-family: var(--font-mono);
   font-size: 1.15rem;
   font-weight: 700;
   color: var(--bg);
-  background: linear-gradient(135deg, var(--green), var(--cyan));
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   padding: 18px 56px;
   cursor: pointer;
   transition: all var(--transition);
-  box-shadow: 0 0 30px var(--green-glow);
+  box-shadow: 0 0 30px var(--accent-dim);
   position: relative;
   overflow: hidden;
 }
 .launch-btn::before {
   content: '';
   position: absolute; inset: 0;
-  background: linear-gradient(135deg, var(--cyan), var(--green));
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
   opacity: 0;
   transition: opacity var(--transition);
 }
 .launch-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 0 50px var(--green-glow), 0 8px 32px rgba(0,0,0,0.4);
+  box-shadow: 0 0 50px var(--accent-dim), 0 8px 32px rgba(0,0,0,0.4);
 }
 .launch-btn:hover::before { opacity: 1; }
 .launch-btn span { position: relative; z-index: 1; }
@@ -436,9 +396,9 @@ select option { background: var(--bg3); color: var(--text); }
 }
 .modal-overlay.show { display: flex; }
 .modal {
-  background: var(--bg2);
+  background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   padding: 40px;
   max-width: 560px;
   width: 90%;
@@ -449,7 +409,7 @@ select option { background: var(--bg3); color: var(--text); }
   position: absolute;
   top: 16px; right: 16px;
   background: none; border: none;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   font-size: 1.5rem;
   cursor: pointer;
   transition: color var(--transition);
@@ -457,7 +417,7 @@ select option { background: var(--bg3); color: var(--text); }
 .modal-close:hover { color: var(--text); }
 .modal h2 {
   font-size: 1.4rem;
-  color: var(--green);
+  color: var(--accent);
   margin-bottom: 20px;
 }
 .modal .detail {
@@ -465,16 +425,16 @@ select option { background: var(--bg3); color: var(--text); }
 }
 .modal .detail-label {
   font-size: 0.8rem;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-bottom: 4px;
 }
 .modal .detail-value {
-  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-family: var(--font-mono);
   font-size: 0.9rem;
   color: var(--text);
-  background: var(--bg3);
+  background: var(--surface);
   padding: 10px 14px;
   border-radius: 6px;
   word-break: break-all;
@@ -490,7 +450,7 @@ select option { background: var(--bg3); color: var(--text); }
   justify-content: flex-end;
 }
 .modal-btn {
-  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-family: var(--font-mono);
   font-size: 0.85rem;
   padding: 10px 24px;
   border-radius: var(--radius-sm);
@@ -498,18 +458,18 @@ select option { background: var(--bg3); color: var(--text); }
   transition: all var(--transition);
 }
 .modal-btn-primary {
-  background: var(--green);
+  background: var(--accent);
   color: var(--bg);
   border: none;
   font-weight: 600;
 }
-.modal-btn-primary:hover { background: var(--green-dim); }
+.modal-btn-primary:hover { background: var(--accent-hover); }
 .modal-btn-secondary {
   background: transparent;
-  color: var(--text-dim);
+  color: var(--text-secondary);
   border: 1px solid var(--border);
 }
-.modal-btn-secondary:hover { border-color: var(--text-dim); color: var(--text); }
+.modal-btn-secondary:hover { border-color: var(--text-secondary); color: var(--text); }
 
 /* ── Spinner ──────────────────────────────────────── */
 .spinner {
@@ -525,39 +485,38 @@ select option { background: var(--bg3); color: var(--text); }
 /* ── Responsive ───────────────────────────────────── */
 @media (max-width: 768px) {
   .builder-form { padding: 24px 16px; }
-  .hero { padding: 50px 16px 40px; }
+  .builder-hero { padding: 50px 16px 40px; }
   .tool-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
   .launch-btn { width: 100%; justify-content: center; }
 }
 </style>
-</head>
-<body>
-{{ nav|safe }}
+{% endblock %}
 
-<!-- ── Hero ──────────────────────────────────────── -->
-<section class="hero">
+{% block content %}
+<!-- Hero -->
+<section class="builder-hero">
   <h1>Build Your AI Agent</h1>
   <p>Create a custom AI agent in minutes. Choose a template or start from scratch.</p>
 </section>
 
-<!-- ── Template Gallery ──────────────────────────── -->
-<section class="templates-section container">
+<!-- Template Gallery -->
+<section class="templates-section builder-container">
   <h2 class="section-title">Templates</h2>
   <p class="section-subtitle">Pick a starting point and customize it to your needs.</p>
   <div class="template-grid" id="templateGrid"></div>
 </section>
 
-<!-- ── Builder Form ──────────────────────────────── -->
-<section class="builder-section container">
+<!-- Builder Form -->
+<section class="builder-section builder-container">
   <h2 class="section-title">Configure Your Agent</h2>
   <p class="section-subtitle">Fine-tune every detail or just launch with the defaults.</p>
 
   <div class="builder-form" id="builderForm">
 
     <!-- Basics -->
-    <div class="form-group">
+    <div class="builder-form-group">
       <div class="form-group-title"><span class="icon">&#9881;</span> Basics</div>
-      <div class="form-row">
+      <div class="builder-form-row">
         <div>
           <label for="agentName">Agent Name</label>
           <input type="text" id="agentName" placeholder="my-research-bot">
@@ -570,20 +529,20 @@ select option { background: var(--bg3); color: var(--text); }
     </div>
 
     <!-- Personality -->
-    <div class="form-group">
+    <div class="builder-form-group">
       <div class="form-group-title"><span class="icon">&#9733;</span> Personality</div>
       <label for="systemPrompt">System Prompt</label>
       <textarea id="systemPrompt" rows="4" placeholder="You are a helpful AI agent that..."></textarea>
     </div>
 
     <!-- Tools -->
-    <div class="form-group">
+    <div class="builder-form-group">
       <div class="form-group-title"><span class="icon">&#9889;</span> Tools</div>
       <div id="toolCategories"></div>
     </div>
 
     <!-- Model -->
-    <div class="form-group">
+    <div class="builder-form-group">
       <div class="form-group-title"><span class="icon">&#9670;</span> Model</div>
       <label for="modelSelect">Select Model</label>
       <select id="modelSelect">
@@ -602,7 +561,7 @@ select option { background: var(--bg3); color: var(--text); }
     </div>
 
     <!-- Memory -->
-    <div class="form-group">
+    <div class="builder-form-group">
       <div class="form-group-title"><span class="icon">&#128200;</span> Memory</div>
       <div class="toggle-wrap">
         <label class="toggle">
@@ -614,14 +573,14 @@ select option { background: var(--bg3); color: var(--text); }
     </div>
 
     <!-- Knowledge Base -->
-    <div class="form-group">
+    <div class="builder-form-group">
       <div class="form-group-title"><span class="icon">&#128218;</span> Knowledge Base</div>
       <label for="knowledgeBase">URLs / Documents <span style="color:var(--text-muted)">(optional, comma-separated)</span></label>
       <textarea id="knowledgeBase" rows="3" placeholder="https://docs.example.com, https://api-reference.com/spec.json"></textarea>
     </div>
 
     <!-- Schedule (collapsible) -->
-    <div class="form-group">
+    <div class="builder-form-group">
       <div class="collapsible-header" onclick="toggleCollapsible(this)">
         <div class="form-group-title" style="margin:0"><span class="icon">&#9200;</span> Schedule</div>
         <span class="arrow">&#9660;</span>
@@ -647,7 +606,7 @@ select option { background: var(--bg3); color: var(--text); }
         <div id="schedCron" class="schedule-fields">
           <label for="cronExpr">Cron Expression</label>
           <input type="text" id="cronExpr" placeholder="*/15 * * * *">
-          <p style="font-size:0.8rem;color:var(--text-muted);margin-top:6px">Examples: <code style="color:var(--cyan)">0 * * * *</code> (hourly) &middot; <code style="color:var(--cyan)">0 9 * * 1-5</code> (weekdays 9am) &middot; <code style="color:var(--cyan)">*/5 * * * *</code> (every 5 min)</p>
+          <p style="font-size:0.8rem;color:var(--text-muted);margin-top:6px">Examples: <code style="color:var(--accent2)">0 * * * *</code> (hourly) &middot; <code style="color:var(--accent2)">0 9 * * 1-5</code> (weekdays 9am) &middot; <code style="color:var(--accent2)">*/5 * * * *</code> (every 5 min)</p>
         </div>
         <div id="schedEvent" class="schedule-fields">
           <label>Trigger On</label>
@@ -660,7 +619,7 @@ select option { background: var(--bg3); color: var(--text); }
     </div>
 
     <!-- Marketplace (collapsible) -->
-    <div class="form-group">
+    <div class="builder-form-group">
       <div class="collapsible-header" onclick="toggleCollapsible(this)">
         <div class="form-group-title" style="margin:0"><span class="icon">&#128722;</span> Marketplace</div>
         <span class="arrow">&#9660;</span>
@@ -673,7 +632,7 @@ select option { background: var(--bg3); color: var(--text); }
           </label>
           <span class="toggle-label" onclick="document.getElementById('marketplaceToggle').click()">List on marketplace</span>
         </div>
-        <div class="form-row">
+        <div class="builder-form-row">
           <div>
             <label for="pricePerUse">Price per use (USD) <span style="color:var(--text-muted)">- blank = free</span></label>
             <input type="number" id="pricePerUse" min="0" step="0.01" placeholder="0.00">
@@ -701,7 +660,7 @@ select option { background: var(--bg3); color: var(--text); }
   </div>
 </section>
 
-<!-- ── Success Modal ─────────────────────────────── -->
+<!-- Success Modal -->
 <div class="modal-overlay" id="successModal">
   <div class="modal">
     <button class="modal-close" onclick="closeModal()">&times;</button>
@@ -724,9 +683,9 @@ select option { background: var(--bg3); color: var(--text); }
     </div>
   </div>
 </div>
+{% endblock %}
 
-{{ footer|safe }}
-
+{% block scripts %}
 <script>
 /* ── Tool Categories Data ─────────────────────────── */
 var TOOL_CATEGORIES = {
@@ -995,7 +954,7 @@ function setScheduleType(type, btn) {
 }
 // Style active sched button
 var schedStyle = document.createElement('style');
-schedStyle.textContent = '.sched-type-btn.active { color: var(--green); border-color: var(--green); background: rgba(41,151,255,0.08); }';
+schedStyle.textContent = '.sched-type-btn.active { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }';
 document.head.appendChild(schedStyle);
 
 /* ── Get API Key ──────────────────────────────────── */
@@ -1104,5 +1063,4 @@ document.getElementById('successModal').addEventListener('click', function(e) {
   if (e.target === this) closeModal();
 });
 </script>
-</body>
-</html>
+{% endblock %}

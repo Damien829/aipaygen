@@ -1,87 +1,80 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="canonical" href="https://aipaygen.com/buy-credits">
-<title>Buy AI Credits — AiPayGen</title>
-<meta name="description" content="Buy credits and use 65+ AI tools instantly. Pay only for what you use. No subscriptions, no minimums. Credits never expire.">
-<meta property="og:type" content="website">
-<meta property="og:title" content="Buy AI Credits — AiPayGen">
-<meta property="og:description" content="Buy credits and start using 65+ AI tools instantly. Pay only for what you use. Credits never expire.">
-<meta property="og:url" content="https://aipaygen.com/buy-credits">
-<meta property="og:image" content="https://aipaygen.com/og-image.png">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Buy AI Credits — AiPayGen">
-<meta name="twitter:description" content="Buy credits and use 65+ AI tools instantly. Pay only for what you use. Credits never expire.">
+{% extends "base.html" %}
+
+{% block title %}Buy AI Credits{% endblock %}
+{% block description %}Buy credits and use 65+ AI tools instantly. Pay only for what you use. No subscriptions, no minimums. Credits never expire.{% endblock %}
+{% block canonical %}/buy-credits{% endblock %}
+{% block og_title %}Buy AI Credits — AiPayGen{% endblock %}
+{% block og_desc %}Buy credits and start using 65+ AI tools instantly. Pay only for what you use. Credits never expire.{% endblock %}
+{% block tw_title %}Buy AI Credits — AiPayGen{% endblock %}
+{% block tw_desc %}Buy credits and use 65+ AI tools instantly. Pay only for what you use. Credits never expire.{% endblock %}
+
+{% block head %}
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #000; color: #e8e8e8; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 32px 16px; }
-  a { color: #2997ff; }
-  .wrapper { max-width: 680px; width: 100%; }
+  .bc-wrapper { max-width: 680px; width: 100%; margin: 0 auto; padding: 0 16px; }
 
   /* Try it banner */
-  .try-banner { background: linear-gradient(135deg, #1c1c1e, rgba(28,28,30,0.72)); border: 1px solid #48484a; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
+  .try-banner { background: linear-gradient(135deg, var(--bg-elevated), var(--surface)); border: 1px solid var(--text-muted); border-radius: var(--radius-md); padding: 16px 20px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
   .try-banner .icon { font-size: 1.4rem; }
-  .try-banner .text { flex: 1; font-size: 0.85rem; color: #86868b; }
-  .try-banner .text strong { color: #e8e8e8; }
-  .try-banner a { background: #2997ff; color: #fff; text-decoration: none; padding: 8px 16px; border-radius: 12px; font-size: 0.85rem; font-weight: 600; white-space: nowrap; }
+  .try-banner .text { flex: 1; font-size: var(--text-sm); color: var(--text-secondary); }
+  .try-banner .text strong { color: var(--text); }
+  .try-banner a { background: var(--accent); color: #fff; text-decoration: none; padding: 8px 16px; border-radius: var(--radius-md); font-size: var(--text-sm); font-weight: 600; white-space: nowrap; }
 
   /* Tabs */
-  .tabs { display: flex; gap: 0; margin-bottom: 20px; border-radius: 980px; overflow: hidden; border: 1px solid #48484a; }
-  .tab { flex: 1; padding: 12px; text-align: center; background: #1c1c1e; color: #86868b; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.15s; border: none; }
-  .tab:hover { color: #ccc; }
-  .tab.active { background: #2997ff; color: #fff; }
+  .bc-tabs { display: flex; gap: 0; margin-bottom: 20px; border-radius: 980px; overflow: hidden; border: 1px solid var(--text-muted); }
+  .bc-tab { flex: 1; padding: 12px; text-align: center; background: var(--bg-elevated); color: var(--text-secondary); font-size: var(--text-sm); font-weight: 600; cursor: pointer; transition: all 0.15s; border: none; }
+  .bc-tab:hover { color: #ccc; }
+  .bc-tab.active { background: var(--accent); color: #fff; }
 
   /* Main card */
-  .card { background: #1c1c1e; border: 1px solid #48484a; border-radius: 20px; padding: 36px; }
-  h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 4px; }
-  .sub { color: #86868b; font-size: 0.88rem; margin-bottom: 28px; }
+  .bc-card { background: var(--bg-elevated); border: 1px solid var(--text-muted); border-radius: var(--radius-lg); padding: 36px; }
+  .bc-card h1 { font-size: var(--text-xl); font-weight: 700; margin-bottom: 4px; color: var(--text); }
+  .bc-card .sub { color: var(--text-secondary); font-size: 0.88rem; margin-bottom: 28px; }
   .plans { display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
-  .plan { flex: 1; min-width: 100px; border: 2px solid #48484a; border-radius: 12px; padding: 18px 12px; cursor: pointer; text-align: center; transition: all 0.15s; position: relative; }
-  .plan:hover, .plan.selected { border-color: #2997ff; background: rgba(28,28,30,0.72); }
-  .plan .amount { font-size: 1.5rem; font-weight: 800; color: #fff; }
-  .plan .credits { font-size: 0.78rem; color: #86868b; margin-top: 4px; }
-  .plan .per-call { font-size: 0.72rem; color: #2997ff; margin-top: 2px; }
-  .plan .badge { display: inline-block; background: #2997ff; color: #fff; font-size: 0.68rem; padding: 2px 8px; border-radius: 20px; margin-top: 8px; }
-  .plan .badge.green { background: #059669; }
+  .plan { flex: 1; min-width: 100px; border: 2px solid var(--text-muted); border-radius: var(--radius-md); padding: 18px 12px; cursor: pointer; text-align: center; transition: all 0.15s; position: relative; }
+  .plan:hover, .plan.selected { border-color: var(--accent); background: var(--surface); }
+  .plan .amount { font-size: var(--text-xl); font-weight: 800; color: var(--text); }
+  .plan .credits { font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px; }
+  .plan .per-call { font-size: 0.72rem; color: var(--accent); margin-top: 2px; }
+  .plan .badge { display: inline-block; background: var(--accent); color: #fff; font-size: 0.68rem; padding: 2px 8px; border-radius: var(--radius-lg); margin-top: 8px; }
+  .plan .badge.green { background: var(--success); }
   .plan .badge.starter { background: #f59e0b; }
 
   /* Specialty packages */
   .pkg-section { display: none; }
   .pkg-section.active { display: block; }
   .pkgs { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
-  .pkg { border: 2px solid #48484a; border-radius: 12px; padding: 18px; cursor: pointer; transition: all 0.15s; }
-  .pkg:hover, .pkg.selected { border-color: #2997ff; background: rgba(28,28,30,0.72); }
-  .pkg .pkg-name { font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 4px; }
-  .pkg .pkg-price { font-size: 1.1rem; font-weight: 800; color: #2997ff; }
-  .pkg .pkg-desc { font-size: 0.75rem; color: #86868b; margin-top: 6px; line-height: 1.4; }
-  .pkg .pkg-tools { font-size: 0.7rem; color: #636366; margin-top: 6px; }
-  .pkg .pkg-tag { display: inline-block; background: #059669; color: #fff; font-size: 0.65rem; padding: 2px 6px; border-radius: 980px; margin-top: 6px; }
+  .pkg { border: 2px solid var(--text-muted); border-radius: var(--radius-md); padding: 18px; cursor: pointer; transition: all 0.15s; }
+  .pkg:hover, .pkg.selected { border-color: var(--accent); background: var(--surface); }
+  .pkg .pkg-name { font-size: 0.95rem; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+  .pkg .pkg-price { font-size: 1.1rem; font-weight: 800; color: var(--accent); }
+  .pkg .pkg-desc { font-size: var(--text-xs); color: var(--text-secondary); margin-top: 6px; line-height: 1.4; }
+  .pkg .pkg-tools { font-size: 0.7rem; color: var(--text-muted); margin-top: 6px; }
+  .pkg .pkg-tag { display: inline-block; background: var(--success); color: #fff; font-size: 0.65rem; padding: 2px 6px; border-radius: 980px; margin-top: 6px; }
 
-  .field { margin-bottom: 16px; }
-  label { display: block; font-size: 0.82rem; color: #86868b; margin-bottom: 5px; }
-  input { width: 100%; background: #1c1c1e; border: 1px solid #48484a; border-radius: 12px; padding: 10px 14px; color: #e8e8e8; font-size: 0.9rem; outline: none; transition: border-color 0.15s; }
-  input:focus { border-color: #2997ff; }
-  input::placeholder { color: #636366; }
-  .btn { width: 100%; background: #2997ff; color: #fff; border: none; border-radius: 980px; padding: 14px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
-  .btn:hover { background: #0077ed; }
-  .btn:disabled { background: #333; color: #666; cursor: not-allowed; }
-  .error { color: #f87171; font-size: 0.85rem; margin-top: 10px; display: none; }
+  .bc-field { margin-bottom: 16px; }
+  .bc-field label { display: block; font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 5px; }
+  .bc-field input { width: 100%; background: var(--bg-elevated); border: 1px solid var(--text-muted); border-radius: var(--radius-md); padding: 10px 14px; color: var(--text); font-size: 0.9rem; outline: none; transition: border-color 0.15s; }
+  .bc-field input:focus { border-color: var(--accent); }
+  .bc-field input::placeholder { color: var(--text-muted); }
+  .bc-btn { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 980px; padding: 14px; font-size: var(--text-base); font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  .bc-btn:hover { background: var(--accent-hover); }
+  .bc-btn:disabled { background: #333; color: #666; cursor: not-allowed; }
+  .bc-error { color: var(--danger); font-size: var(--text-sm); margin-top: 10px; display: none; }
 
   /* What you get */
-  .features { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 24px; padding-top: 24px; border-top: 1px solid #48484a; }
-  .feat { font-size: 0.78rem; color: #86868b; padding: 6px 0; }
-  .feat span { color: #34d399; margin-right: 6px; }
+  .features { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--text-muted); }
+  .feat { font-size: 0.78rem; color: var(--text-secondary); padding: 6px 0; }
+  .feat span { color: var(--success); margin-right: 6px; }
 
   /* Trust */
-  .trust { margin-top: 20px; padding: 14px; background: #1c1c1e; border-radius: 12px; font-size: 0.78rem; color: #666; line-height: 1.6; text-align: center; }
-  .trust strong { color: #86868b; }
+  .trust { margin-top: 20px; padding: 14px; background: var(--bg-elevated); border-radius: var(--radius-md); font-size: 0.78rem; color: var(--text-muted); line-height: 1.6; text-align: center; }
+  .trust strong { color: var(--text-secondary); }
+  .trust a { color: var(--accent); }
 
   /* How it works */
-  .how { margin-top: 20px; padding: 14px; background: #1c1c1e; border-radius: 12px; font-size: 0.8rem; color: #86868b; line-height: 1.7; }
-  .how code { background: #48484a; padding: 1px 5px; border-radius: 4px; color: #bf5af2; font-size: 0.78rem; }
-  .how .step { color: #2997ff; font-weight: 700; margin-right: 4px; }
+  .how { margin-top: 20px; padding: 14px; background: var(--bg-elevated); border-radius: var(--radius-md); font-size: 0.8rem; color: var(--text-secondary); line-height: 1.7; }
+  .how code { background: var(--text-muted); padding: 1px 5px; border-radius: 4px; color: var(--accent2); font-size: 0.78rem; }
+  .how .step { color: var(--accent); font-weight: 700; margin-right: 4px; }
 
   @media (max-width: 500px) {
     .plans { flex-direction: column; }
@@ -89,28 +82,35 @@
     .features { grid-template-columns: 1fr; }
   }
 </style>
-</head>
-<body>
-<div class="wrapper">
-  <div style="display:flex;gap:16px;margin-bottom:20px;font-size:0.85rem;align-items:center"><a href="/" style="color:#86868b;text-decoration:none">Home</a><a href="/docs" style="color:#86868b;text-decoration:none">Docs</a><a href="/pricing" style="color:#86868b;text-decoration:none">Pricing</a><a href="/try" style="color:#86868b;text-decoration:none">Try Free</a><a href="/buy-credits" style="color:#2997ff;text-decoration:none;font-weight:600">Buy Credits</a></div>
+{% endblock %}
+
+{% block content %}
+<div class="bc-wrapper">
+  <div style="display:flex;gap:16px;margin-bottom:20px;font-size:var(--text-sm);align-items:center">
+    <a href="/" style="color:var(--text-secondary);text-decoration:none">Home</a>
+    <a href="/docs" style="color:var(--text-secondary);text-decoration:none">Docs</a>
+    <a href="/pricing" style="color:var(--text-secondary);text-decoration:none">Pricing</a>
+    <a href="/try" style="color:var(--text-secondary);text-decoration:none">Try Free</a>
+    <a href="/buy-credits" style="color:var(--accent);text-decoration:none;font-weight:600">Buy Credits</a>
+  </div>
   <div class="try-banner">
     <div class="icon">&#9889;</div>
     <div class="text"><strong>Try before you buy</strong> &mdash; use any tool free once a day, no account needed</div>
     <a href="/try">Try it free</a>
   </div>
 
-  <div class="tabs">
-    <button class="tab active" onclick="showTab('credits')">Buy Credits</button>
-    <button class="tab" onclick="showTab('monthly')">Monthly Plans</button>
-    <button class="tab" onclick="showTab('packages')">Bundles</button>
+  <div class="bc-tabs">
+    <button class="bc-tab active" onclick="showTab('credits')">Buy Credits</button>
+    <button class="bc-tab" onclick="showTab('monthly')">Monthly Plans</button>
+    <button class="bc-tab" onclick="showTab('packages')">Bundles</button>
   </div>
 
   <!-- Credits Tab -->
-  <div class="card pkg-section active" id="tab-credits">
+  <div class="bc-card pkg-section active" id="tab-credits">
     <h1>Buy AI Credits</h1>
     <p class="sub">Pay only for what you use. Pick a credit pack, get instant access to 65+ AI tools. No subscriptions required.</p>
 
-    <div style="background:rgba(28,28,30,0.72);border:1px solid #48484a;border-radius:12px;padding:10px 16px;margin-bottom:16px;font-size:0.82rem;color:#86868b">Start small &mdash; <strong style="color:#e8e8e8">$0.50 gets you ~80 uses</strong>. No commitment, and <strong style="color:#34d399;">credits never expire.</strong></div>
+    <div style="background:var(--surface);border:1px solid var(--text-muted);border-radius:var(--radius-md);padding:10px 16px;margin-bottom:16px;font-size:0.82rem;color:var(--text-secondary)">Start small &mdash; <strong style="color:var(--text)">$0.50 gets you ~80 uses</strong>. No commitment, and <strong style="color:var(--success)">credits never expire.</strong></div>
 
     <div class="plans">
       <div class="plan" data-amount="0.5" onclick="selectPlan(this)">
@@ -144,24 +144,24 @@
       </div>
     </div>
 
-    <div class="field">
+    <div class="bc-field">
       <label>Email (optional &mdash; we'll send your receipt and usage updates)</label>
       <input type="email" id="email" placeholder="you@example.com" maxlength="120">
     </div>
 
-    <div class="field">
+    <div class="bc-field">
       <label>Name your key (optional)</label>
       <input type="text" id="label" placeholder="e.g. my-project, work" maxlength="60">
     </div>
 
-    <div class="field">
+    <div class="bc-field">
       <label>Adding credits to an existing key? (optional)</label>
       <input type="text" id="existing_key" placeholder="Paste your key here, or leave blank for a new one">
     </div>
 
-    <button class="btn" id="pay-btn" onclick="checkout()">Buy Credits &mdash; Secure Checkout</button>
-    <a href="/crypto" class="btn" style="display:block;text-align:center;text-decoration:none;margin-top:10px;background:rgba(28,28,30,0.72);border:1px solid #48484a;color:#bf5af2;">Or Pay with Crypto (USDC)</a>
-    <p class="error" id="err"></p>
+    <button class="bc-btn" id="pay-btn" onclick="checkout()">Buy Credits &mdash; Secure Checkout</button>
+    <a href="/crypto" class="bc-btn" style="display:block;text-align:center;text-decoration:none;margin-top:10px;background:var(--surface);border:1px solid var(--text-muted);color:var(--accent2);">Or Pay with Crypto (USDC)</a>
+    <p class="bc-error" id="err"></p>
 
     <div class="features">
       <div class="feat"><span>&#10003;</span> Research any topic</div>
@@ -176,12 +176,12 @@
   </div>
 
   <!-- Monthly Plans Tab -->
-  <div class="card pkg-section" id="tab-monthly">
+  <div class="bc-card pkg-section" id="tab-monthly">
     <h1>Monthly Plans</h1>
     <p class="sub">Fixed monthly price, no surprises. Cancel anytime with one click.</p>
 
-    <div style="background:rgba(28,28,30,0.72);border:1px solid #48484a;border-radius:12px;padding:10px 16px;margin-bottom:16px;font-size:0.82rem;color:#86868b">
-      <strong style="color:#34d399">Save up to 40%</strong> compared to buying credits. Plus, subscribers get access to better AI models and no daily limits.
+    <div style="background:var(--surface);border:1px solid var(--text-muted);border-radius:var(--radius-md);padding:10px 16px;margin-bottom:16px;font-size:0.82rem;color:var(--text-secondary)">
+      <strong style="color:var(--success)">Save up to 40%</strong> compared to buying credits. Plus, subscribers get access to better AI models and no daily limits.
     </div>
 
     <div class="pkgs" style="grid-template-columns:1fr 1fr 1fr">
@@ -192,8 +192,8 @@
         <div class="pkg-tools">Cancel anytime &middot; Instant access</div>
       </div>
 
-      <div class="pkg selected" data-tier="pro" onclick="selectSub(this)" style="border-color:#2997ff">
-        <div class="pkg-name">Pro <span style="background:#2997ff;color:#fff;font-size:0.65rem;padding:2px 8px;border-radius:10px;margin-left:6px">POPULAR</span></div>
+      <div class="pkg selected" data-tier="pro" onclick="selectSub(this)" style="border-color:var(--accent)">
+        <div class="pkg-name">Pro <span style="background:var(--accent);color:#fff;font-size:0.65rem;padding:2px 8px;border-radius:10px;margin-left:6px">POPULAR</span></div>
         <div class="pkg-price">$19.99/mo</div>
         <div class="pkg-desc">Better AI models, agent builder, task chaining. For power users.</div>
         <div class="pkg-tools">Cancel anytime &middot; Instant access</div>
@@ -207,17 +207,17 @@
       </div>
     </div>
 
-    <div class="field">
+    <div class="bc-field">
       <label>Already have a key? (optional)</label>
       <input type="text" id="sub_existing_key" placeholder="Paste your key here, or leave blank for a new one">
     </div>
 
-    <button class="btn" id="sub-pay-btn" onclick="subCheckout()" style="background:#059669">Subscribe &mdash; Cancel Anytime</button>
-    <p class="error" id="sub-err"></p>
+    <button class="bc-btn" id="sub-pay-btn" onclick="subCheckout()" style="background:var(--success)">Subscribe &mdash; Cancel Anytime</button>
+    <p class="bc-error" id="sub-err"></p>
   </div>
 
   <!-- Specialty Packages Tab -->
-  <div class="card pkg-section" id="tab-packages">
+  <div class="bc-card pkg-section" id="tab-packages">
     <h1>Tool Bundles</h1>
     <p class="sub">Curated packs for what you do most. Credits work across all tools, not just the bundle.</p>
 
@@ -271,32 +271,32 @@
       </div>
     </div>
 
-    <div class="field">
+    <div class="bc-field">
       <label>Email (optional — for receipts &amp; weekly usage digest)</label>
       <input type="email" id="pkg_email" placeholder="you@example.com" maxlength="120">
     </div>
 
-    <div class="field">
+    <div class="bc-field">
       <label>Top up existing key (optional)</label>
       <input type="text" id="pkg_existing_key" placeholder="apk_xxx — leave blank for a new key">
     </div>
 
-    <button class="btn" id="pkg-pay-btn" onclick="pkgCheckout()">&#128274; Pay with Card</button>
-    <p class="error" id="pkg-err"></p>
+    <button class="bc-btn" id="pkg-pay-btn" onclick="pkgCheckout()">&#128274; Pay with Card</button>
+    <p class="bc-error" id="pkg-err"></p>
   </div>
 
   <!-- Shared bottom section -->
   <div class="trust">
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:12px">
-      <span style="background:#059669;color:#fff;padding:4px 12px;border-radius:20px;font-size:0.75rem;font-weight:600">30-day money-back guarantee</span>
-      <span style="background:#2997ff;color:#fff;padding:4px 12px;border-radius:20px;font-size:0.75rem;font-weight:600">Credits never expire</span>
-      <span style="background:#48484a;color:#e8e8e8;padding:4px 12px;border-radius:20px;font-size:0.75rem;font-weight:600">Secure via Stripe</span>
+      <span style="background:var(--success);color:#fff;padding:4px 12px;border-radius:var(--radius-lg);font-size:var(--text-xs);font-weight:600">30-day money-back guarantee</span>
+      <span style="background:var(--accent);color:#fff;padding:4px 12px;border-radius:var(--radius-lg);font-size:var(--text-xs);font-weight:600">Credits never expire</span>
+      <span style="background:var(--text-muted);color:var(--text);padding:4px 12px;border-radius:var(--radius-lg);font-size:var(--text-xs);font-weight:600">Secure via Stripe</span>
     </div>
     <strong>65+ AI tools, one simple purchase</strong><br>
-    <span id="trust-stats" style="color:#86868b">Loading stats...</span><br>
+    <span id="trust-stats" style="color:var(--text-secondary)">Loading stats...</span><br>
     Pay only for what you use &middot; No subscriptions required &middot; No minimums &middot; <a href="/security">Security</a><br>
     Listed on <strong>MCP Registry</strong> &middot; <strong>Smithery</strong> &middot; <strong>Glama.ai</strong> &middot; <strong>PyPI</strong> (2,000+ downloads/month)<br>
-    <span style="margin-top:8px;display:inline-block">&#128241; <strong>Get the AiPayGen app for iOS &amp; Android</strong> &mdash; <a href="/app" style="color:#2997ff">Download now</a></span>
+    <span style="margin-top:8px;display:inline-block">&#128241; <strong>Get the AiPayGen app for iOS &amp; Android</strong> &mdash; <a href="/app" style="color:var(--accent)">Download now</a></span>
   </div>
 
   <div class="how">
@@ -306,22 +306,25 @@
   </div>
 
   <div class="how" style="margin-top:12px">
-    <strong style="color:#fff;font-size:0.85rem">Why pay-per-call?</strong><br>
+    <strong style="color:var(--text);font-size:var(--text-sm)">Why pay-per-call?</strong><br>
     <table style="width:100%;margin-top:8px;font-size:0.78rem;border-collapse:collapse">
-      <tr style="color:#86868b"><td></td><td style="padding:4px 8px;color:#bf5af2;font-weight:600">AiPayGen</td><td style="padding:4px 8px">ChatGPT Plus</td><td style="padding:4px 8px">Anthropic Pro</td></tr>
-      <tr style="border-top:1px solid #48484a"><td style="padding:4px 0;color:#86868b">50 calls/mo</td><td style="padding:4px 8px;color:#2997ff;font-weight:600">~$0.30</td><td style="padding:4px 8px">$20/mo</td><td style="padding:4px 8px">$20/mo</td></tr>
-      <tr style="border-top:1px solid #48484a"><td style="padding:4px 0;color:#86868b">200 calls/mo</td><td style="padding:4px 8px;color:#2997ff;font-weight:600">~$1.20</td><td style="padding:4px 8px">$20/mo</td><td style="padding:4px 8px">$20/mo</td></tr>
-      <tr style="border-top:1px solid #48484a"><td style="padding:4px 0;color:#86868b">No usage?</td><td style="padding:4px 8px;color:#2997ff;font-weight:600">$0</td><td style="padding:4px 8px">$20/mo</td><td style="padding:4px 8px">$20/mo</td></tr>
+      <tr style="color:var(--text-secondary)"><td></td><td style="padding:4px 8px;color:var(--accent2);font-weight:600">AiPayGen</td><td style="padding:4px 8px">ChatGPT Plus</td><td style="padding:4px 8px">Anthropic Pro</td></tr>
+      <tr style="border-top:1px solid var(--text-muted)"><td style="padding:4px 0;color:var(--text-secondary)">50 calls/mo</td><td style="padding:4px 8px;color:var(--accent);font-weight:600">~$0.30</td><td style="padding:4px 8px">$20/mo</td><td style="padding:4px 8px">$20/mo</td></tr>
+      <tr style="border-top:1px solid var(--text-muted)"><td style="padding:4px 0;color:var(--text-secondary)">200 calls/mo</td><td style="padding:4px 8px;color:var(--accent);font-weight:600">~$1.20</td><td style="padding:4px 8px">$20/mo</td><td style="padding:4px 8px">$20/mo</td></tr>
+      <tr style="border-top:1px solid var(--text-muted)"><td style="padding:4px 0;color:var(--text-secondary)">No usage?</td><td style="padding:4px 8px;color:var(--accent);font-weight:600">$0</td><td style="padding:4px 8px">$20/mo</td><td style="padding:4px 8px">$20/mo</td></tr>
     </table>
-    <div style="color:#636366;font-size:0.72rem;margin-top:6px">Credits never expire &middot; No monthly commitment &middot; Cancel nothing</div>
+    <div style="color:var(--text-muted);font-size:0.72rem;margin-top:6px">Credits never expire &middot; No monthly commitment &middot; Cancel nothing</div>
   </div>
 
-  <div style="max-width:600px;margin:32px auto 0;padding:24px;border-radius:12px;background:#1c1c1e;border:1px solid #48484a;text-align:center">
-    <p style="font-size:1.05rem;font-weight:600;color:#e8e8e8;margin-bottom:8px">Use credits on the Agent Marketplace</p>
-    <p style="font-size:0.85rem;color:#86868b;margin-bottom:16px">72+ AI agents ready to deploy — trading, research, code, content. Your credits work on any marketplace agent.</p>
-    <a href="/market" style="display:inline-block;background:#2997ff;color:#fff;text-decoration:none;padding:12px 28px;border-radius:980px;font-size:0.9rem;font-weight:600">Browse Agents &rarr;</a>
+  <div style="max-width:600px;margin:32px auto 0;padding:24px;border-radius:var(--radius-md);background:var(--bg-elevated);border:1px solid var(--text-muted);text-align:center">
+    <p style="font-size:1.05rem;font-weight:600;color:var(--text);margin-bottom:8px">Use credits on the Agent Marketplace</p>
+    <p style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:16px">72+ AI agents ready to deploy — trading, research, code, content. Your credits work on any marketplace agent.</p>
+    <a href="/market" style="display:inline-block;background:var(--accent);color:#fff;text-decoration:none;padding:12px 28px;border-radius:980px;font-size:0.9rem;font-weight:600">Browse Agents &rarr;</a>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
 <script>
 // Load live stats for social proof
 fetch('/api/stats').then(r=>r.json()).then(d=>{
@@ -340,7 +343,7 @@ let pkgAmount = 25;
 let pkgLabel = 'full-access';
 
 function showTab(tab) {
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.bc-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.pkg-section').forEach(s => s.classList.remove('active'));
   var target = document.getElementById('tab-' + tab);
   if (target) target.classList.add('active');
@@ -378,7 +381,7 @@ async function checkout() {
     const data = await res.json();
     if (data.url) { window.location.href = data.url; }
     else { err.textContent = data.error || 'Something went wrong'; err.style.display = 'block'; btn.disabled = false; btn.textContent = '\u{1F512} Pay with Card'; }
-  } catch(e) { err.textContent = 'Network error — please try again'; err.style.display = 'block'; btn.disabled = false; btn.textContent = '\u{1F512} Pay with Card'; }
+  } catch(e) { err.textContent = 'Network error \u2014 please try again'; err.style.display = 'block'; btn.disabled = false; btn.textContent = '\u{1F512} Pay with Card'; }
 }
 
 let selectedTier = 'pro';
@@ -426,8 +429,7 @@ async function pkgCheckout() {
     const data = await res.json();
     if (data.url) { window.location.href = data.url; }
     else { err.textContent = data.error || 'Something went wrong'; err.style.display = 'block'; btn.disabled = false; btn.textContent = '\u{1F512} Pay with Card'; }
-  } catch(e) { err.textContent = 'Network error — please try again'; err.style.display = 'block'; btn.disabled = false; btn.textContent = '\u{1F512} Pay with Card'; }
+  } catch(e) { err.textContent = 'Network error \u2014 please try again'; err.style.display = 'block'; btn.disabled = false; btn.textContent = '\u{1F512} Pay with Card'; }
 }
 </script>
-</body>
-</html>
+{% endblock %}

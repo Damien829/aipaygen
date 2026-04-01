@@ -754,13 +754,11 @@ class TestListTemplates:
 
 class TestBuilderPage:
 
-    @patch("routes.builder.render_template_string", return_value="<html>builder</html>")
-    def test_builder_page_renders(self, mock_rts, client):
+    def test_builder_page_renders(self, client):
         r = client.get("/builder")
         assert r.status_code == 200
 
-    @patch("routes.builder.render_template_string", return_value="<html>builder</html>")
-    def test_builder_page_no_auth_required(self, mock_rts, client):
+    def test_builder_page_no_auth_required(self, client):
         """Builder page should be publicly accessible."""
         r = client.get("/builder")
         assert r.status_code == 200
