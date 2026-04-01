@@ -438,9 +438,11 @@ def funnel_dashboard():
 
     # Stripe live data
     _stripe_html = ""
+    _checkout_pills = ""
     _stripe_revenue = 0
     _stripe_pending = 0
     _stripe_failed = 0
+    _subscription_count = 0
     try:
         import stripe as _stripe_mod
         _stripe_mod.api_key = os.environ.get("STRIPE_SECRET_KEY")
@@ -450,33 +452,105 @@ def funnel_dashboard():
             _stripe_pending_amt = sum(b.get("amount", 0) for b in _bal.get("pending", [])) / 100
             _sessions = _stripe_mod.checkout.Session.list(limit=15)
             _completed = _abandoned = _open_sess = 0
-            _sess_rows = ""
+            _pill_count = 0
             for _ss in _sessions.data:
                 _amt = (_ss.amount_total or 0) / 100
                 if _ss.status == "complete":
                     _completed += 1
-                    _sc = "#34d399"
                 elif _ss.status == "expired":
                     _abandoned += 1
-                    _sc = "#f87171"
                 else:
                     _open_sess += 1
-                    _sc = "#fbbf24"
                 import time as _time_mod
-                _ts = _time_mod.strftime("%b %d %H:%M", _time_mod.gmtime(_ss.created))
-                _sess_rows += (
-                    f'<tr><td style="color:{_sc};font-weight:600;text-transform:uppercase;font-size:0.72rem">{_ss.status}</td>'
-                    f'<td>${_amt:.2f}</td>'
-                    f'<td style="color:#666;font-size:0.72rem">{_ts}</td></tr>'
-                )
-            _stripe_html = _sess_rows
+                _ts = _time_mod.strftime("%b %d", _time_mod.gmtime(_ss.created))
+                if _pill_count < 5:
+                    _checkout_pills += (
+                        f'<div class="pill"><span class="amt">${_amt:.2f}</span>'
+                        f'<span class="st {_ss.status}">{_ss.status}</span>'
+                        f'<span class="dt">{_ts}</span></div>'
+                    )
+                    _pill_count += 1
             _stripe_pending = _open_sess
             _stripe_failed = _abandoned
+            # Subscription count
+            try:
+                _subs = _stripe_mod.Subscription.list(limit=1)
+                _subscription_count = _subs.get("total_count", len(_subs.data))
+            except Exception:
+                pass
     except Exception as _se:
-        _stripe_html = f'<tr><td colspan="3" style="color:#f87171">Stripe error: {_se}</td></tr>'
+        _checkout_pills = f'<div class="pill" style="color:#f87171">Stripe error: {_se}</div>'
+
+    if not _checkout_pills:
+        _checkout_pills = '<div style="color:#555;font-size:0.82rem">No checkout sessions yet</div>'
 
     def _usd(v):
         return f"${v:,.2f}" if v else "$0.00"
+
+    # Calls today
+    try:
+        _calls_today = _query_one(_tool_usage_db, "SELECT COALESCE(SUM(count), 0) as v FROM tool_usage WHERE date(timestamp) = date('now')").get("v", 0)
+    except Exception:
+        _calls_today = 0
+
+    # Top 5 tools (v2 — horizontal bars for new template)
+    _top5 = _top_tools[:5]
+    _max5 = max((t["total_calls"] for t in _top5), default=1) or 1
+    _tool_bars_v2 = ""
+    for _t in _top5:
+        _pct = round(100 * _t["total_calls"] / _max5)
+        _tool_bars_v2 += (
+            f'<div class="bar-row">'
+            f'<span class="bar-name">{_t["tool_name"]}</span>'
+            f'<div class="bar-track"><div class="bar-fill" style="width:{_pct}%"></div></div>'
+            f'<span class="bar-val">{_t["total_calls"]}</span></div>'
+        )
+    if not _tool_bars_v2:
+        _tool_bars_v2 = '<div style="color:#555;font-size:0.82rem">No tool usage yet</div>'
+
+    # Daily chart — last 7 days of API calls
+    _daily_chart = []
+    try:
+        _dc_rows = _query_db(_tool_usage_db, "SELECT date(timestamp) as day, SUM(count) as total FROM tool_usage WHERE timestamp >= date('now', '-7 days') GROUP BY day ORDER BY day")
+        _dc_max = max((r["total"] for r in _dc_rows), default=1) or 1
+        for r in _dc_rows:
+            _daily_chart.append({
+                "label": r["day"],
+                "short": r["day"][-5:],  # MM-DD
+                "count": r["total"],
+                "pct": max(2, round(100 * r["total"] / _dc_max)),
+            })
+    except Exception:
+        pass
+    # Pad to 7 days if needed
+    while len(_daily_chart) < 7:
+        _daily_chart.insert(0, {"label": "", "short": "--", "count": 0, "pct": 2})
+
+    # Inactive keys count
+    _inactive_keys = _users_total - _users_active
+
+    # Marketplace data
+    _mp_total_agents = 0
+    _mp_total_calls = 0
+    _mp_new_week = 0
+    _mp_top_agents = []
+    try:
+        _mp_db = os.path.join(_base_dir, "seller_marketplace.db")
+        _mp_total_agents = _query_one(_mp_db, "SELECT COUNT(*) as v FROM seller_apis").get("v", 0)
+        _mp_total_calls = _query_one(_mp_db, "SELECT COALESCE(SUM(call_count), 0) as v FROM seller_apis").get("v", 0) if _mp_total_agents else 0
+        _mp_new_week = _query_one(_mp_db, "SELECT COUNT(*) as v FROM seller_apis WHERE created_at >= ?", (_week_ago,)).get("v", 0) if _mp_total_agents else 0
+        _mp_top_rows = _query_db(_mp_db, "SELECT name, call_count FROM seller_apis ORDER BY call_count DESC LIMIT 3") if _mp_total_agents else []
+        _mp_top_agents = [{"name": r["name"], "calls": r.get("call_count", 0)} for r in _mp_top_rows]
+    except Exception:
+        pass
+
+    # Contact form submissions count
+    _contact_count = 0
+    try:
+        _contact_db = os.path.join(_base_dir, "contact_submissions.db")
+        _contact_count = _query_one(_contact_db, "SELECT COUNT(*) as v FROM contact_submissions").get("v", 0)
+    except Exception:
+        pass
 
     # System health data
     import shutil as _shutil
@@ -510,6 +584,19 @@ def funnel_dashboard():
         _health["api_status"] = "error"
         _health["api_ms"] = "N/A"
 
+    # Service status checks
+    try:
+        _requests.get("http://localhost:8082/health", timeout=2)
+        _health["alpha_scout"] = "up"
+    except Exception:
+        _health["alpha_scout"] = "down"
+    try:
+        import subprocess as _sp
+        _tun = _sp.run(["pgrep", "-f", "cloudflared"], capture_output=True, timeout=3)
+        _health["tunnel"] = "up" if _tun.returncode == 0 else "down"
+    except Exception:
+        _health["tunnel"] = "down"
+
     return render_template("admin_hq.html",
         ts=_now.strftime("%b %d %H:%M UTC"), days=days,
         rev_total=_usd(_stripe_revenue) if _stripe_revenue else _usd(_rev_total),
@@ -519,10 +606,15 @@ def funnel_dashboard():
         paid_keys=_paid_keys, seed_keys=_seed_keys,
         total_events=f"{stats['total_events']:,}", checkouts=by_type.get('checkout_started', 0),
         tickets_open=_tickets_open, tickets_total=_tickets_total, tickets_resolved=_tickets_total - _tickets_open,
-        tool_bars=_tool_bars, alerts=alerts_html, bars=bars_html, other=other_html,
+        tool_bars=_tool_bars, tool_bars_v2=_tool_bars_v2,
+        alerts=alerts_html, bars=bars_html, other=other_html,
         key_stats=key_stats_html, median_label=median_label,
         daily_rows=daily_rows if daily_rows else '<tr><td colspan="3" style="color:#555">No events yet</td></tr>',
         tickets=_tickets_html, recent_keys=_recent_keys, stripe_sessions=_stripe_html,
+        checkout_pills=_checkout_pills, subscription_count=_subscription_count,
+        calls_today=f"{_calls_today:,}", daily_chart=_daily_chart, inactive_keys=_inactive_keys,
+        mp_total_agents=_mp_total_agents, mp_total_calls=f"{_mp_total_calls:,}",
+        mp_new_week=_mp_new_week, mp_top_agents=_mp_top_agents, contact_count=_contact_count,
         health=_health,
     )
 
