@@ -1,51 +1,143 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Payment Successful — AiPayGen</title>
-<link rel="canonical" href="https://aipaygen.com/buy-credits/success">
-<meta name="description" content="Your AiPayGen payment was successful. Your API key is ready to use.">
-<meta property="og:title" content="Payment Successful — AiPayGen">
-<meta property="og:description" content="Your AiPayGen payment was successful. Your API key is ready to use.">
-<meta property="og:image" content="https://aipaygen.com/og-image.png">
-<meta property="og:url" content="https://aipaygen.com/buy-credits/success">
-<meta property="og:site_name" content="AiPayGen">
-<meta name="twitter:card" content="summary_large_image">
+{% extends "base.html" %}
+{% block title %}Payment Successful{% endblock %}
+{% block description %}Your AiPayGen payment was successful. Your API key is ready to use.{% endblock %}
+{% block canonical %}/buy-credits/success{% endblock %}
+
+{% block head %}
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; background: #000; color: #e8e8e8; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
-  .card { background: #1c1c1e; border: 1px solid #48484a; border-radius: 20px; padding: 40px; max-width: 600px; width: 100%; }
-  .icon { font-size: 3rem; margin-bottom: 16px; text-align: center; }
-  h1 { font-size: 1.6rem; margin-bottom: 8px; text-align: center; }
-  .sub { color: #86868b; margin-bottom: 28px; text-align: center; }
-  .key-box { background: #000; border: 2px solid #2997ff; border-radius: 12px; padding: 20px; margin-bottom: 24px; }
-  .key-label { font-size: 0.8rem; color: #86868b; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
-  .key-val { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 1.05rem; color: #bf5af2; word-break: break-all; cursor: pointer; padding: 8px; background: #1c1c1e; border-radius: 8px; }
+  .success-card {
+    background: var(--bg-elevated);
+    border: 1px solid var(--text-muted);
+    border-radius: var(--radius-lg);
+    padding: 40px;
+    max-width: 600px;
+    width: 100%;
+    margin: 40px auto;
+  }
+  .success-card .icon { font-size: 3rem; margin-bottom: 16px; text-align: center; }
+  .success-card h1 { font-size: 1.6rem; margin-bottom: 8px; text-align: center; }
+  .success-card .sub { color: var(--text-secondary); margin-bottom: 28px; text-align: center; }
+  .key-box {
+    background: var(--bg);
+    border: 2px solid var(--accent);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    margin-bottom: 24px;
+  }
+  .key-label {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .key-val {
+    font-family: var(--font-mono);
+    font-size: 1.05rem;
+    color: var(--accent2);
+    word-break: break-all;
+    cursor: pointer;
+    padding: 8px;
+    background: var(--bg-elevated);
+    border-radius: var(--radius-sm);
+  }
   .key-val:hover { color: #d4a0ff; }
   .balance { font-size: 1.1rem; margin-bottom: 24px; text-align: center; }
-  .balance span { color: #34d399; font-weight: 700; }
-  .copy-btn { display: inline-block; background: #2997ff; color: #fff; border: none; border-radius: 980px; padding: 8px 16px; font-size: 0.85rem; font-weight: 600; cursor: pointer; margin-top: 8px; }
-  .copy-btn:hover { background: #0077ed; }
+  .balance span { color: var(--green); font-weight: 700; }
+  .copy-btn-key {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 980px;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+  .copy-btn-key:hover { background: var(--accent-hover); }
   .next-steps { margin-top: 28px; }
-  .next-steps h2 { font-size: 1.1rem; margin-bottom: 16px; color: #e8e8e8; }
-  .step { background: rgba(28,28,30,0.72); border: 1px solid #48484a; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
-  .step-num { display: inline-block; background: #2997ff; color: #fff; width: 24px; height: 24px; border-radius: 50%; text-align: center; line-height: 24px; font-size: 0.8rem; font-weight: 700; margin-right: 8px; }
+  .next-steps h2 { font-size: 1.1rem; margin-bottom: 16px; color: var(--text); }
+  .step {
+    background: var(--surface);
+    border: 1px solid var(--text-muted);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .step-num {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 24px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-right: 8px;
+  }
   .step-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 8px; }
-  .step pre { background: #000; border-radius: 12px; padding: 12px; font-size: 0.78rem; color: #86868b; overflow-x: auto; margin-top: 8px; white-space: pre-wrap; word-break: break-all; position: relative; }
-  .step pre .copy-pre { position: absolute; top: 6px; right: 6px; background: #48484a; color: #86868b; border: none; border-radius: 4px; padding: 3px 8px; font-size: 0.7rem; cursor: pointer; }
-  .step pre .copy-pre:hover { color: #e8e8e8; }
-  .actions { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
-  .btn { display: inline-block; text-decoration: none; border-radius: 980px; padding: 12px 24px; font-weight: 600; text-align: center; flex: 1; min-width: 140px; }
-  .btn-primary { background: #2997ff; color: #fff; }
-  .btn-secondary { background: rgba(28,28,30,0.72); border: 1px solid #48484a; color: #bf5af2; }
-  .guarantee { margin-top: 20px; padding: 12px; background: rgba(28,28,30,0.72); border-radius: 12px; font-size: 0.78rem; color: #636366; text-align: center; }
-  .guarantee strong { color: #34d399; }
-  #loading { color: #86868b; margin-bottom: 24px; text-align: center; }
+  .step pre {
+    background: var(--bg);
+    border-radius: var(--radius-md);
+    padding: 12px;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    overflow-x: auto;
+    margin-top: 8px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    position: relative;
+  }
+  .step pre .copy-pre {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: var(--text-muted);
+    color: var(--text-secondary);
+    border: none;
+    border-radius: 4px;
+    padding: 3px 8px;
+    font-size: 0.7rem;
+    cursor: pointer;
+  }
+  .step pre .copy-pre:hover { color: var(--text); }
+  .success-actions { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
+  .success-actions .btn-act {
+    display: inline-block;
+    text-decoration: none;
+    border-radius: 980px;
+    padding: 12px 24px;
+    font-weight: 600;
+    text-align: center;
+    flex: 1;
+    min-width: 140px;
+  }
+  .success-actions .btn-act-primary { background: var(--accent); color: #fff; }
+  .success-actions .btn-act-secondary {
+    background: var(--surface);
+    border: 1px solid var(--text-muted);
+    color: var(--accent2);
+  }
+  .guarantee {
+    margin-top: 20px;
+    padding: 12px;
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .guarantee strong { color: var(--green); }
+  #loading { color: var(--text-secondary); margin-bottom: 24px; text-align: center; }
 </style>
-</head>
-<body>
-<div class="card">
+{% endblock %}
+
+{% block content %}
+<div class="success-card">
   <div class="icon">&#10003;</div>
   <h1>Payment Successful</h1>
   <p class="sub">Your API key is ready to use.</p>
@@ -53,7 +145,7 @@
   <div class="key-box" id="key-box" style="display:none">
     <div class="key-label">Your API Key -- save this somewhere safe</div>
     <div class="key-val" id="key-display" title="Click to copy"></div>
-    <button class="copy-btn" id="copy-key-btn">Copy API Key</button>
+    <button class="copy-btn-key" id="copy-key-btn">Copy API Key</button>
   </div>
   <div id="loading">Confirming payment... this may take a few seconds.</div>
 
@@ -78,16 +170,19 @@
     </div>
   </div>
 
-  <div class="actions" id="actions" style="display:none">
-    <a href="/dashboard" class="btn btn-primary" id="dashboard-link">View Dashboard</a>
-    <a href="/docs" class="btn btn-secondary">API Docs</a>
-    <a href="/playground" class="btn btn-secondary">Playground</a>
+  <div class="success-actions" id="actions" style="display:none">
+    <a href="/dashboard" class="btn-act btn-act-primary" id="dashboard-link">View Dashboard</a>
+    <a href="/docs" class="btn-act btn-act-secondary">API Docs</a>
+    <a href="/playground" class="btn-act btn-act-secondary">Playground</a>
   </div>
 
   <div class="guarantee">
     <strong>30-day money-back guarantee</strong> &middot; Credits never expire &middot; Secure via Stripe
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
 <script>
 var sid = new URLSearchParams(window.location.search).get('session_id');
 
@@ -160,5 +255,4 @@ function poll() {
 }
 poll();
 </script>
-</body>
-</html>
+{% endblock %}

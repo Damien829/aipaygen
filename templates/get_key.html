@@ -1,32 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<link rel="canonical" href="https://aipaygen.com/get-key">
-<title>Get API Key — AiPayGen</title>
-<meta name="description" content="Get a free AiPayGen API key with $0.10 trial credits. No credit card required.">
-<meta property="og:title" content="Get API Key — AiPayGen">
-<link rel="icon" href="/static/icon.png" type="image/png">
+{% extends "base.html" %}
+{% block title %}Get API Key{% endblock %}
+{% block description %}Get a free AiPayGen API key with $0.10 trial credits. No credit card required.{% endblock %}
+{% block canonical %}/get-key{% endblock %}
+{% block og_title %}Get API Key{% endblock %}
+
+{% block head %}
 <style>
-  :root {
-    --bg: #000;
-    --bg2: #1c1c1e;
-    --green: #2997ff;
-    --cyan: #bf5af2;
-    --text: #c8d8e8;
-    --muted: #86868b;
-    --border: rgba(28,28,30,0.72);
-  }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'SF Mono', 'Fira Code', monospace;
-    overflow-x: hidden;
-    padding-top: 70px;
-  }
-  body::before {
+  .gk-bg-grid::before {
     content: '';
     position: fixed;
     inset: 0;
@@ -42,22 +22,21 @@
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
     opacity: 0.4; pointer-events: none; z-index: 0;
   }
-  .content {
+  .gk-content {
     position: relative; z-index: 2;
     max-width: 520px; margin: 0 auto; padding: 80px 24px 120px;
     text-align: center;
   }
-  h1 {
+  .gk-content h1 {
     font-size: clamp(1.6rem, 4vw, 2.4rem);
     font-weight: 700;
     color: #fff;
     margin-bottom: 12px;
   }
-  h1 .accent { color: var(--green); }
-  .subtitle {
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  .gk-content h1 .accent { color: var(--accent); }
+  .gk-subtitle {
     font-size: 0.95rem;
-    color: var(--muted);
+    color: var(--text-secondary);
     margin-bottom: 40px;
     font-weight: 300;
     line-height: 1.6;
@@ -70,20 +49,20 @@
   .key-form input {
     flex: 1;
     padding: 14px 18px;
-    background: var(--bg2);
+    background: var(--bg-elevated);
     border: 1px solid var(--border);
     color: var(--text);
     font-size: 0.9rem;
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    font-family: var(--font-sans);
     outline: none;
     transition: border-color 0.2s;
   }
-  .key-form input:focus { border-color: var(--green); }
+  .key-form input:focus { border-color: var(--accent); }
   .key-form button {
     padding: 14px 28px;
-    background: var(--green);
+    background: var(--accent);
     color: #fff;
-    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-family: var(--font-mono);
     font-size: 0.85rem;
     font-weight: 700;
     border: none;
@@ -105,15 +84,15 @@
   }
   .key-result {
     display: none;
-    background: var(--bg2);
-    border: 1px solid var(--green);
+    background: var(--bg-elevated);
+    border: 1px solid var(--accent);
     padding: 20px;
     text-align: left;
     margin-bottom: 20px;
   }
   .key-result .label {
     font-size: 0.72rem;
-    color: var(--muted);
+    color: var(--text-secondary);
     letter-spacing: 0.1em;
     text-transform: uppercase;
     margin-bottom: 6px;
@@ -126,42 +105,40 @@
   .key-result code {
     flex: 1;
     font-size: 0.88rem;
-    color: var(--green);
+    color: var(--accent);
     word-break: break-all;
   }
   .key-result .copy-btn {
-    background: var(--green);
+    background: var(--accent);
     color: #fff;
     border: none;
     padding: 6px 16px;
     font-size: 0.75rem;
     font-weight: 700;
     cursor: pointer;
-    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-family: var(--font-mono);
   }
   .key-result .info {
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     font-size: 0.78rem;
-    color: var(--muted);
+    color: var(--text-secondary);
     margin-top: 10px;
   }
-  .key-result .info a { color: var(--cyan); text-decoration: none; }
+  .key-result .info a { color: var(--accent2); text-decoration: none; }
   .key-result .info a:hover { text-decoration: underline; }
   .error-msg {
     display: none;
     font-size: 0.82rem;
-    color: #ef4444;
+    color: var(--danger);
     margin-bottom: 16px;
   }
-  .links {
+  .gk-links {
     margin-top: 32px;
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     font-size: 0.88rem;
-    color: var(--muted);
+    color: var(--text-secondary);
     line-height: 2;
   }
-  .links a { color: var(--cyan); text-decoration: none; }
-  .links a:hover { text-decoration: underline; }
+  .gk-links a { color: var(--accent2); text-decoration: none; }
+  .gk-links a:hover { text-decoration: underline; }
 
   /* Try it now section */
   .try-now {
@@ -172,7 +149,7 @@
     border: 1px solid transparent;
     border-radius: 16px;
     padding: 28px 24px;
-    background: var(--bg2);
+    background: var(--bg-elevated);
     position: relative;
     overflow: hidden;
   }
@@ -182,7 +159,7 @@
     inset: -1px;
     border-radius: 17px;
     padding: 1px;
-    background: linear-gradient(135deg, var(--green), var(--cyan), var(--green));
+    background: linear-gradient(135deg, var(--accent), var(--accent2), var(--accent));
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
@@ -196,35 +173,34 @@
   .try-now h2 {
     font-size: 1.1rem;
     font-weight: 700;
-    color: #f5f5f7;
+    color: var(--text);
     margin-bottom: 6px;
   }
-  .try-now h2 .accent { color: var(--green); }
+  .try-now h2 .accent { color: var(--accent); }
   .try-now .try-subtitle {
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     font-size: 0.82rem;
-    color: #86868b;
+    color: var(--text-secondary);
     margin-bottom: 18px;
     font-weight: 300;
   }
   .curl-box {
-    background: #000;
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
     padding: 16px;
     position: relative;
     margin-bottom: 14px;
   }
   .curl-box pre {
-    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-family: var(--font-mono);
     font-size: 0.78rem;
-    color: #f5f5f7;
+    color: var(--text);
     white-space: pre-wrap;
     word-break: break-all;
     line-height: 1.6;
     margin: 0;
   }
-  .curl-box pre .curl-key { color: var(--green); }
+  .curl-box pre .curl-key { color: var(--accent); }
   .curl-actions {
     display: flex;
     gap: 10px;
@@ -235,7 +211,7 @@
   }
   .curl-actions button {
     padding: 6px 16px;
-    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-family: var(--font-mono);
     font-size: 0.72rem;
     font-weight: 700;
     border: none;
@@ -245,14 +221,14 @@
     letter-spacing: 0.02em;
   }
   .btn-copy-curl {
-    background: rgba(255,255,255,0.08);
-    color: #f5f5f7;
+    background: var(--border);
+    color: var(--text);
   }
   .btn-copy-curl:hover {
-    background: rgba(255,255,255,0.15);
+    background: var(--border-hover);
   }
   .btn-run {
-    background: var(--green);
+    background: var(--accent);
     color: #fff;
   }
   .btn-run:hover {
@@ -269,32 +245,31 @@
   }
   .api-result {
     display: none;
-    background: #000;
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
     padding: 18px;
     margin-top: 14px;
   }
   .api-result .result-label {
     font-size: 0.68rem;
-    color: #86868b;
+    color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.1em;
     margin-bottom: 8px;
   }
   .api-result .result-body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     font-size: 0.85rem;
-    color: #f5f5f7;
+    color: var(--text);
     line-height: 1.7;
     white-space: pre-wrap;
     word-break: break-word;
   }
   .api-result .result-meta {
     font-size: 0.72rem;
-    color: #86868b;
+    color: var(--text-secondary);
     margin-top: 10px;
-    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-family: var(--font-mono);
   }
 
   /* What's next section */
@@ -307,7 +282,7 @@
   .whats-next h3 {
     font-size: 0.92rem;
     font-weight: 700;
-    color: #f5f5f7;
+    color: var(--text);
     margin-bottom: 16px;
   }
   .next-links {
@@ -319,18 +294,18 @@
     display: flex;
     align-items: center;
     gap: 14px;
-    background: var(--bg2);
-    border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 12px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
     padding: 16px 18px;
     text-decoration: none;
     transition: all 0.2s;
     cursor: pointer;
   }
   .next-link:hover {
-    border-color: var(--green);
+    border-color: var(--accent);
     transform: translateY(-1px);
-    box-shadow: 0 4px 20px rgba(41,151,255,0.1);
+    box-shadow: 0 4px 20px var(--accent-dim);
   }
   .next-link .nl-icon {
     font-size: 1.3rem;
@@ -339,35 +314,31 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(41,151,255,0.1);
+    background: var(--accent-dim);
     border-radius: 10px;
     flex-shrink: 0;
   }
-  .next-link .nl-text {
-    flex: 1;
-  }
+  .next-link .nl-text { flex: 1; }
   .next-link .nl-title {
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     font-size: 0.88rem;
     font-weight: 600;
-    color: #f5f5f7;
+    color: var(--text);
   }
   .next-link .nl-desc {
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
     font-size: 0.76rem;
-    color: #86868b;
+    color: var(--text-secondary);
     font-weight: 300;
     margin-top: 2px;
   }
   .next-link .nl-arrow {
-    color: #86868b;
+    color: var(--text-secondary);
     font-size: 0.9rem;
     flex-shrink: 0;
   }
   .mcp-cmd {
     display: none;
-    background: #000;
-    border: 1px solid rgba(255,255,255,0.08);
+    background: var(--bg);
+    border: 1px solid var(--border);
     border-radius: 10px;
     padding: 12px 16px;
     margin-top: 8px;
@@ -375,27 +346,27 @@
     position: relative;
   }
   .mcp-cmd code {
-    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-family: var(--font-mono);
     font-size: 0.74rem;
-    color: #f5f5f7;
+    color: var(--text);
     word-break: break-all;
   }
   .mcp-cmd .mcp-copy {
     position: absolute;
     top: 8px;
     right: 8px;
-    background: rgba(255,255,255,0.08);
-    color: #f5f5f7;
+    background: var(--border);
+    color: var(--text);
     border: none;
     padding: 4px 10px;
     font-size: 0.68rem;
-    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-family: var(--font-mono);
     font-weight: 700;
     cursor: pointer;
     border-radius: 980px;
   }
-  .mcp-cmd .mcp-copy:hover { background: rgba(255,255,255,0.15); }
-  .features {
+  .mcp-cmd .mcp-copy:hover { background: var(--border-hover); }
+  .gk-features {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 1px;
@@ -404,35 +375,34 @@
     margin-top: 40px;
     text-align: left;
   }
-  .feature {
+  .gk-feature {
     background: var(--bg);
     padding: 20px;
   }
-  .feature h3 {
+  .gk-feature h3 {
     font-size: 0.82rem;
     font-weight: 600;
     color: #fff;
     margin-bottom: 4px;
   }
-  .feature p {
-    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+  .gk-feature p {
     font-size: 0.78rem;
-    color: var(--muted);
+    color: var(--text-secondary);
     font-weight: 300;
   }
   @media (max-width: 600px) {
     .key-form { flex-direction: column; }
-    .features { grid-template-columns: 1fr; }
+    .gk-features { grid-template-columns: 1fr; }
   }
 </style>
-</head>
-<body>
-<div class="noise"></div>
-{{ nav|safe }}
-<div class="content">
+{% endblock %}
+
+{% block content %}
+<div class="noise gk-bg-grid"></div>
+<div class="gk-content">
 
 <h1>Get your <span class="accent">free API key</span></h1>
-<p class="subtitle">Enter your email to generate a key instantly. Includes $0.10 trial credits (~16 AI calls). No credit card required.</p>
+<p class="gk-subtitle">Enter your email to generate a key instantly. Includes $0.10 trial credits (~16 AI calls). No credit card required.</p>
 
 <form id="keyForm" onsubmit="return generateKey(event)">
   <div class="key-form">
@@ -508,33 +478,34 @@
   </div>
 </div>
 
-<div class="links">
+<div class="gk-links">
   Already have a key? <a href="/buy-credits">Top up credits</a><br>
   Need more? <a href="/pricing">See pricing</a>
 </div>
 
-<div class="features">
-  <div class="feature">
+<div class="gk-features">
+  <div class="gk-feature">
     <h3>65+ Tools</h3>
     <p>Research, write, code, scrape, translate, and more</p>
   </div>
-  <div class="feature">
+  <div class="gk-feature">
     <h3>15 AI Models</h3>
     <p>Claude, GPT-4o, Gemini, DeepSeek, Grok, Mistral, Llama</p>
   </div>
-  <div class="feature">
+  <div class="gk-feature">
     <h3>$0.10 Free</h3>
     <p>Trial credits loaded instantly on key creation</p>
   </div>
-  <div class="feature">
+  <div class="gk-feature">
     <h3>No Expiry</h3>
     <p>Credits never expire. Use at your own pace</p>
   </div>
 </div>
 
 </div>
-{{ footer|safe }}
+{% endblock %}
 
+{% block scripts %}
 <script>
 var generatedKey = '';
 
@@ -654,5 +625,4 @@ function copyMcp() {
   });
 }
 </script>
-</body>
-</html>
+{% endblock %}
