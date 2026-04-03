@@ -4430,6 +4430,11 @@ def services_page():
     return render_template("services.html")
 
 
+@meta_bp.route("/contact")
+def contact_page():
+    return render_template("services.html")
+
+
 _CONTACT_DB = os.path.join(os.path.dirname(os.path.dirname(__file__)), "contact_submissions.db")
 
 
@@ -4466,3 +4471,81 @@ def api_contact():
         logger.error("Contact form save failed: %s", e)
         return jsonify({"error": "internal error"}), 500
     return jsonify({"submitted": True})
+
+
+# ── SLA Status Page ──────────────────────────────────────────────────────
+import sla_monitor as _sla
+
+_COMPONENT_LABELS = {
+    "api": "API",
+    "website": "Website",
+    "mcp": "MCP Server",
+    "trading": "Trading Engine",
+}
+
+
+@meta_bp.route("/status/sla")
+def sla_status_page():
+    """Enterprise SLA status page."""
+    comp_status = _sla.get_component_status()
+    # Enrich with uptime % and labels
+    enriched = {}
+    has_outage = False
+    has_degraded = False
+    for key, data in comp_status.items():
+        data["label"] = _COMPONENT_LABELS.get(key, key.title())
+        data["uptime_pct"] = _sla.get_uptime_percent(key, 30)
+        enriched[key] = data
+        if data["status"] == "outage":
+            has_outage = True
+        elif data["status"] == "degraded":
+            has_degraded = True
+
+    if has_outage:
+        overall = "outage"
+    elif has_degraded:
+        overall = "degraded"
+    else:
+        overall = "operational"
+
+    incidents = _sla.get_incidents(days=90)
+    # Attach updates to each incident
+    for inc in incidents:
+        detail = _sla.get_incident(inc["id"])
+        inc["updates"] = detail.get("updates", [])
+
+    return render_template(
+        "status_enterprise.html",
+        overall=overall,
+        components=enriched,
+        incidents=incidents,
+    )
+
+
+@meta_bp.route("/api/status/components")
+def api_status_components():
+    """JSON component status."""
+    comp = _sla.get_component_status()
+    for key, data in comp.items():
+        data["label"] = _COMPONENT_LABELS.get(key, key.title())
+        data["uptime_30d"] = _sla.get_uptime_percent(key, 30)
+    return jsonify(comp)
+
+
+@meta_bp.route("/api/status/incidents")
+def api_status_incidents():
+    """JSON incident list."""
+    days = request.args.get("days", 90, type=int)
+    status = request.args.get("status", "")
+    return jsonify(_sla.get_incidents(days=days, status=status))
+
+
+@meta_bp.route("/api/status/subscribe", methods=["POST"])
+def api_status_subscribe():
+    """Subscribe email to status updates."""
+    data = request.get_json(force=True, silent=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    if not email or "@" not in email:
+        return jsonify({"error": "valid email required"}), 400
+    is_new = _sla.subscribe_email(email)
+    return jsonify({"subscribed": True, "new": is_new})

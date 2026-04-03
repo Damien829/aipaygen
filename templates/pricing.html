@@ -1,996 +1,296 @@
 {% extends "base.html" %}
 
 {% block title %}Pricing{% endblock %}
-{% block description %}Start free, upgrade when you need more. 65+ AI tools, 15 models. Free tier: 1 free call/day, no account needed. Plans from $4.99/mo. Credit packs from $0.50.{% endblock %}
+{% block description %}Simple, transparent pricing. Pay per call or subscribe monthly. 65+ AI tools, 15 models. Free trial credits included.{% endblock %}
 {% block canonical %}/pricing{% endblock %}
 
 {% block head %}
-<meta property="og:type" content="website">
 <meta property="og:title" content="Pricing — AiPayGen">
-<meta property="og:description" content="Start free with 1 free call/day. No account needed. 65+ tools, 15 AI models. Plans from $4.99/mo. Credit packs from $0.50.">
-<meta property="og:url" content="https://aipaygen.com/pricing">
-<meta property="og:image" content="https://aipaygen.com/og-image.png">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Pricing — AiPayGen">
-<meta name="twitter:description" content="Start free, upgrade when you need more. 65+ AI tools. 15 models. Plans from $4.99/mo.">
+<meta property="og:description" content="Simple, transparent pricing. Pay per call from $1 or subscribe from $9/mo. 65+ AI tools, 15 models.">
 <style>
-  /* Pricing Hero */
-  .pricing-hero {
-    text-align: center;
-    padding: 100px 24px 48px;
-    max-width: 800px;
-    margin: 0 auto;
-  }
-  .pricing-hero h1 {
-    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
-    font-size: clamp(2rem, 5vw, 3.2rem);
-    font-weight: 700;
-    color: var(--text, #f5f5f7);
-    margin-bottom: 16px;
-    letter-spacing: -0.03em;
-  }
-  .pricing-hero h1 .accent { color: var(--accent, #2997ff); }
-  .pricing-hero p {
-    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
-    font-size: 1.1rem;
-    color: var(--text-secondary, #86868b);
-    line-height: 1.7;
-    font-weight: 400;
-  }
-  .pricing-hero .hero-sub {
-    font-size: 0.95rem;
-    margin-top: 8px;
-    color: var(--text-secondary, #86868b);
-    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
-    font-weight: 400;
-  }
+/* ── Pricing Page ─────────────────────────────────────────────────────── */
+.pr-hero { text-align:center; padding:80px 24px 40px; max-width:700px; margin:0 auto; }
+.pr-hero h1 { font-size:clamp(2rem,5vw,3rem); font-weight:700; color:var(--text); letter-spacing:-0.03em; margin-bottom:12px; }
+.pr-hero h1 .gr { background:linear-gradient(135deg,var(--green),#00d4a1); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.pr-hero p { color:var(--text-secondary); font-size:1.05rem; line-height:1.6; }
 
-  /* Tier cards */
-  .tiers {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    max-width: 1200px;
-    margin: 48px auto 80px;
-    padding: 0 24px;
-  }
-  .tier {
-    background: var(--bg-elevated, #1c1c1e);
-    padding: 48px 28px;
-    text-align: center;
-    position: relative;
-    transition: background 0.25s, border-color 0.25s;
-    border-radius: var(--radius-lg, 20px);
-    border: 1px solid var(--border, rgba(255,255,255,0.08));
-  }
-  .tier:hover {
-    background: var(--surface, rgba(28,28,30,0.72));
-    border-color: var(--border-hover, rgba(255,255,255,0.16));
-  }
-  .tier.featured {
-    border: 1px solid var(--accent, #2997ff);
-    z-index: 1;
-  }
-  .tier-badge {
-    position: absolute;
-    top: 0; left: 50%;
-    transform: translate(-50%, -50%);
-    background: var(--accent, #2997ff);
-    color: #fff;
-    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
-    font-size: 0.7rem;
-    font-weight: 600;
-    padding: 5px 18px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    border-radius: 980px;
-  }
-  .tier-name {
-    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: var(--text-secondary, #86868b);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 16px;
-  }
-  .tier-tagline {
-    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
-    font-size: 0.82rem;
-    color: var(--accent, #2997ff);
-    margin-bottom: 12px;
-    font-weight: 500;
-  }
-  .tier-price {
-    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
-    font-size: 3rem;
-    font-weight: 700;
-    color: var(--text, #f5f5f7);
-    line-height: 1;
-    margin-bottom: 4px;
-    letter-spacing: -0.03em;
-  }
-  .tier-price .currency { font-size: 1.4rem; vertical-align: super; color: var(--accent, #2997ff); }
-  .tier-price .period {
-    font-size: 0.85rem;
-    font-weight: 400;
-    color: var(--text-secondary, #86868b);
-  }
-  .tier-desc {
-    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
-    font-size: 0.85rem;
-    color: var(--text-secondary, #86868b);
-    margin: 12px 0 28px;
-    font-weight: 400;
-  }
-  .tier-features {
-    list-style: none;
-    text-align: left;
-    margin-bottom: 32px;
-  }
-  .tier-features li {
-    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
-    font-size: 0.85rem;
-    color: var(--text, #f5f5f7);
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
-    font-weight: 400;
-  }
-  .tier-features li::before {
-    content: '\2713';
-    color: var(--success, #30d158);
-    font-weight: 700;
-    margin-right: 10px;
-  }
-  .tier-features li.disabled {
-    color: var(--text-muted, #48484a);
-    opacity: 0.5;
-  }
-  .tier-features li.disabled::before {
-    content: '\2014';
-    color: var(--text-muted, #48484a);
-  }
-  .btn-tier {
-    display: inline-block;
-    padding: 14px 32px;
-    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-decoration: none;
-    letter-spacing: 0.01em;
-    transition: all 0.2s;
-    width: 100%;
-    border-radius: 980px;
-  }
-  .btn-tier.primary {
-    background: var(--accent, #2997ff);
-    color: #fff;
-  }
-  .btn-tier.primary:hover {
-    background: var(--accent-hover, #0077ed);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(41,151,255,0.2);
-  }
-  .btn-tier.secondary {
-    background: transparent;
-    color: var(--accent, #2997ff);
-    border: 1px solid var(--accent, #2997ff);
-  }
-  .btn-tier.secondary:hover {
-    background: var(--accent-dim, rgba(41,151,255,0.1));
-    transform: translateY(-2px);
-  }
-  .btn-tier.outline {
-    background: transparent;
-    color: var(--accent2, #bf5af2);
-    border: 1px solid var(--accent2, #bf5af2);
-  }
-  .btn-tier.outline:hover {
-    background: rgba(191,90,242,0.1);
-    transform: translateY(-2px);
-  }
+/* ── Toggle ───────────────────────────────────────────────────────────── */
+.pr-toggle { display:flex; justify-content:center; margin:0 auto 40px; gap:0; }
+.pr-toggle input { display:none; }
+.pr-toggle label {
+  padding:10px 28px; font-size:var(--text-sm); font-weight:600; cursor:pointer;
+  color:var(--text-secondary); border:1px solid var(--border);
+  transition:all 0.25s; background:transparent;
+}
+.pr-toggle label:first-of-type { border-radius:var(--radius-sm) 0 0 var(--radius-sm); }
+.pr-toggle label:last-of-type { border-radius:0 var(--radius-sm) var(--radius-sm) 0; border-left:none; }
+.pr-toggle input:checked + label {
+  background:var(--green); color:#000; border-color:var(--green);
+}
+/* second label needs adjacent fix */
+#tog-sub:checked ~ label[for="tog-sub"] {
+  background:var(--green); color:#000; border-color:var(--green);
+}
 
-  /* Comparison table */
-  .compare-section {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 24px 80px;
-  }
-  .section-header {
-    display: flex;
-    align-items: baseline;
-    gap: 20px;
-    margin-bottom: 32px;
-  }
-  .section-header span {
-    font-family: var(--font-mono, 'SF Mono', 'Fira Code', ui-monospace, monospace);
-    font-size: 0.7rem;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--text-secondary, #86868b);
-  }
-  .section-header-line {
-    flex: 1;
-    height: 1px;
-    background: var(--border, rgba(255,255,255,0.08));
-  }
-  .compare-table {
-    width: 100%;
-    border-collapse: collapse;
-    border: 1px solid var(--border, rgba(255,255,255,0.08));
-    border-radius: var(--radius-md, 12px);
-    overflow: hidden;
-  }
-  .compare-table th,
-  .compare-table td {
-    padding: 16px 20px;
-    text-align: center;
-    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
-    font-size: 0.85rem;
-    font-weight: 400;
-    border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
-  }
-  .compare-table th {
-    background: var(--bg-elevated, #1c1c1e);
-    color: var(--text, #f5f5f7);
-    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
-    font-weight: 600;
-    font-size: 0.8rem;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-  }
-  .compare-table td:first-child {
-    text-align: left;
-    color: var(--text, #f5f5f7);
-    font-weight: 500;
-  }
-  .compare-table tr:hover td {
-    background: var(--bg-elevated, #1c1c1e);
-  }
-  .compare-table .check { color: var(--accent, #2997ff); font-weight: 600; }
-  .compare-table .dash { color: var(--text-muted, #48484a); opacity: 0.5; }
+.pr-section { display:none; max-width:1100px; margin:0 auto; padding:0 24px; }
+.pr-section.active { display:block; }
 
-  /* Payment methods */
-  .methods-section {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 0 24px 80px;
-  }
-  .methods-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-  }
-  .method-card {
-    background: var(--bg-elevated, #1c1c1e);
-    padding: 36px 28px;
-    transition: background 0.25s, border-color 0.25s;
-    border-radius: var(--radius-lg, 20px);
-    border: 1px solid var(--border, rgba(255,255,255,0.08));
-  }
-  .method-card:hover {
-    background: var(--surface, rgba(28,28,30,0.72));
-    border-color: var(--border-hover, rgba(255,255,255,0.16));
-  }
-  .method-card h3 {
-    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--text, #f5f5f7);
-    margin-bottom: 12px;
-    letter-spacing: -0.01em;
-  }
-  .method-card p {
-    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
-    font-size: 0.85rem;
-    color: var(--text-secondary, #86868b);
-    line-height: 1.7;
-    font-weight: 400;
-  }
+/* ── Glass Card ───────────────────────────────────────────────────────── */
+.gl-card {
+  background:rgba(255,255,255,0.04);
+  backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+  border:1px solid var(--border); border-radius:var(--radius-lg);
+  padding:32px 24px; text-align:center;
+  transition:border-color 0.25s, transform 0.25s;
+}
+.gl-card:hover { border-color:var(--border-hover); transform:translateY(-2px); }
 
-  /* FAQ */
-  .faq-section {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 0 24px 100px;
-  }
-  .faq-item {
-    border: 1px solid var(--border, rgba(255,255,255,0.08));
-    margin-bottom: 8px;
-    background: var(--bg-elevated, #1c1c1e);
-    transition: background 0.2s, border-color 0.2s;
-    border-radius: var(--radius-md, 12px);
-    overflow: hidden;
-  }
-  .faq-item:hover {
-    background: var(--surface, rgba(28,28,30,0.72));
-    border-color: var(--border-hover, rgba(255,255,255,0.16));
-  }
-  .faq-q {
-    display: block;
-    width: 100%;
-    background: none;
-    border: none;
-    padding: 22px 24px;
-    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--text, #f5f5f7);
-    cursor: pointer;
-    text-align: left;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-  .faq-q::after {
-    content: '+';
-    color: var(--accent, #2997ff);
-    font-size: 1.2rem;
-    font-weight: 700;
-    transition: transform 0.2s;
-  }
-  .faq-item.open .faq-q::after {
-    transform: rotate(45deg);
-  }
-  .faq-a {
-    display: none;
-    padding: 0 24px 22px;
-    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
-    font-size: 0.88rem;
-    color: var(--text-secondary, #86868b);
-    line-height: 1.7;
-    font-weight: 400;
-  }
-  .faq-a a {
-    color: var(--accent2, #bf5af2);
-    text-decoration: none;
-  }
-  .faq-a a:hover { text-decoration: underline; }
-  .faq-item.open .faq-a { display: block; }
+/* ── Credit Packs ─────────────────────────────────────────────────────── */
+.cr-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:16px; margin-bottom:48px; }
+.cr-card .cr-price { font-size:var(--text-2xl); font-weight:700; color:var(--text); margin-bottom:4px; }
+.cr-card .cr-calls { font-size:var(--text-sm); color:var(--text-secondary); margin-bottom:2px; }
+.cr-card .cr-unit { font-size:var(--text-xs); color:var(--text-muted); margin-bottom:16px; }
+.cr-card .btn-cr {
+  display:inline-block; padding:8px 20px; border-radius:var(--radius-sm);
+  background:var(--green); color:#000; font-weight:600; font-size:var(--text-sm);
+  transition:opacity 0.2s; cursor:pointer; text-decoration:none;
+}
+.cr-card .btn-cr:hover { opacity:0.85; color:#000; }
 
-  /* Bottom CTA */
-  .bottom-cta {
-    text-align: center;
-    padding: 72px 24px 100px;
-    border-top: 1px solid var(--border, rgba(255,255,255,0.08));
-    max-width: 700px;
-    margin: 0 auto;
-  }
-  .bottom-cta h2 {
-    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
-    font-size: 1.6rem;
-    font-weight: 700;
-    color: var(--text, #f5f5f7);
-    margin-bottom: 12px;
-    letter-spacing: -0.03em;
-  }
-  .bottom-cta p {
-    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
-    font-size: 0.95rem;
-    color: var(--text-secondary, #86868b);
-    margin-bottom: 32px;
-    font-weight: 400;
-  }
-  .bottom-cta .btn-group {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  .bottom-cta .btn-group a {
-    display: inline-block;
-    padding: 14px 32px;
-    font-family: var(--font-sans, -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif);
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-decoration: none;
-    letter-spacing: 0.01em;
-    transition: all 0.2s;
-    border-radius: 980px;
-  }
+/* ── Subscription Tiers ───────────────────────────────────────────────── */
+.sub-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; margin-bottom:48px; }
+.sub-card { position:relative; padding:36px 28px; }
+.sub-card.pop { border-color:rgba(212,168,83,0.5); }
+.sub-badge {
+  position:absolute; top:0; left:50%; transform:translate(-50%,-50%);
+  background:linear-gradient(135deg,#d4a853,#f0c060); color:#000;
+  font-size:0.65rem; font-weight:700; padding:4px 14px;
+  border-radius:980px; text-transform:uppercase; letter-spacing:0.08em;
+}
+.sub-name { font-size:var(--text-xs); font-weight:600; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.1em; margin-bottom:8px; }
+.sub-price { font-size:var(--text-2xl); font-weight:700; color:var(--text); }
+.sub-price span { font-size:var(--text-sm); font-weight:400; color:var(--text-secondary); }
+.sub-feat { list-style:none; text-align:left; margin:20px 0; padding:0; }
+.sub-feat li { font-size:var(--text-sm); color:var(--text-secondary); padding:6px 0; border-bottom:1px solid rgba(255,255,255,0.04); display:flex; align-items:center; gap:8px; }
+.sub-feat li::before { content:""; display:inline-block; width:6px; height:6px; border-radius:50%; background:var(--green); flex-shrink:0; }
+.btn-sub {
+  display:block; width:100%; padding:10px 0; border-radius:var(--radius-sm);
+  font-weight:600; font-size:var(--text-sm); text-align:center;
+  transition:opacity 0.2s; cursor:pointer; text-decoration:none;
+}
+.btn-sub-primary { background:var(--green); color:#000; }
+.btn-sub-primary:hover { opacity:0.85; color:#000; }
+.btn-sub-outline { background:transparent; border:1px solid var(--border); color:var(--text); }
+.btn-sub-outline:hover { border-color:var(--green); color:var(--green); }
 
-  /* Animations */
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .fade-up { animation: fadeUp 0.6s ease both; }
-  .delay-1 { animation-delay: 0.1s; }
-  .delay-2 { animation-delay: 0.2s; }
-  .delay-3 { animation-delay: 0.3s; }
+/* ── Feature Table ────────────────────────────────────────────────────── */
+.feat-table { width:100%; border-collapse:collapse; margin:0 auto 48px; max-width:800px; }
+.feat-table th, .feat-table td { padding:10px 16px; font-size:var(--text-sm); text-align:center; border-bottom:1px solid rgba(255,255,255,0.04); }
+.feat-table th:first-child, .feat-table td:first-child { text-align:left; color:var(--text-secondary); }
+.feat-table th { color:var(--text-muted); font-weight:600; text-transform:uppercase; font-size:var(--text-xs); letter-spacing:0.06em; }
+.feat-table td { color:var(--text); }
+.ck { color:var(--green); }
 
-  /* Mobile */
-  @media (max-width: 1024px) {
-    .tiers { grid-template-columns: repeat(2, 1fr); }
-  }
-  @media (max-width: 768px) {
-    .pricing-hero { padding: 72px 20px 36px; }
-    .pricing-hero p { font-size: 0.95rem; }
-    .tiers { grid-template-columns: 1fr; margin: 32px 16px 60px; padding: 0; }
-    .tier { padding: 36px 24px; }
-    .tier.featured { border: 1px solid var(--accent, #2997ff); }
-    .compare-table { font-size: 0.78rem; }
-    .compare-table th, .compare-table td { padding: 12px 10px; }
-    .compare-section { padding: 0 16px 60px; }
-    .methods-grid { grid-template-columns: 1fr; }
-    .faq-section { padding: 0 16px 60px; }
-    .bottom-cta { padding: 48px 16px 60px; }
-    .bottom-cta .btn-group a { width: 100%; text-align: center; min-height: 48px; }
-  }
-  @media (max-width: 480px) {
-    .pricing-hero h1 { font-size: clamp(1.5rem, 5vw, 2rem); }
-    .tier-price { font-size: 2.4rem; }
-    .compare-table { display: block; overflow-x: auto; }
-  }
+/* ── FAQ ──────────────────────────────────────────────────────────────── */
+.faq-wrap { max-width:700px; margin:0 auto 48px; padding:0 24px; }
+.faq-wrap h2 { text-align:center; font-size:var(--text-xl); font-weight:700; color:var(--text); margin-bottom:24px; }
+.faq-item { border-bottom:1px solid var(--border); }
+.faq-q {
+  width:100%; background:none; border:none; color:var(--text); font-size:var(--text-sm);
+  font-weight:600; padding:16px 0; text-align:left; cursor:pointer;
+  display:flex; justify-content:space-between; align-items:center; font-family:var(--font-sans);
+}
+.faq-q::after { content:"+"; font-size:1.2rem; color:var(--text-muted); transition:transform 0.25s; }
+.faq-item.open .faq-q::after { content:"-"; }
+.faq-a { max-height:0; overflow:hidden; transition:max-height 0.3s ease; }
+.faq-item.open .faq-a { max-height:200px; }
+.faq-a p { padding:0 0 16px; font-size:var(--text-sm); color:var(--text-secondary); line-height:1.6; }
+
+/* ── CTA ──────────────────────────────────────────────────────────────── */
+.pr-cta {
+  text-align:center; padding:48px 24px 64px; max-width:600px; margin:0 auto;
+}
+.pr-cta h2 { font-size:var(--text-xl); font-weight:700; color:var(--text); margin-bottom:8px; }
+.pr-cta p { color:var(--text-secondary); font-size:var(--text-sm); margin-bottom:20px; }
+.btn-cta {
+  display:inline-block; padding:12px 32px; border-radius:var(--radius-sm);
+  background:var(--green); color:#000; font-weight:700; font-size:var(--text-base);
+  transition:opacity 0.2s; cursor:pointer; text-decoration:none;
+}
+.btn-cta:hover { opacity:0.85; color:#000; }
+
+/* ── Responsive ───────────────────────────────────────────────────────── */
+@media(max-width:768px){
+  .sub-grid { grid-template-columns:1fr; max-width:400px; margin-left:auto; margin-right:auto; }
+  .cr-grid { grid-template-columns:repeat(2,1fr); }
+  .feat-table { font-size:var(--text-xs); }
+  .feat-table th, .feat-table td { padding:8px 8px; }
+}
+@media(max-width:480px){
+  .cr-grid { grid-template-columns:1fr; max-width:300px; margin-left:auto; margin-right:auto; }
+}
 </style>
 {% endblock %}
 
 {% block content %}
-
 <!-- Hero -->
-<section class="pricing-hero fade-up">
-  <h1>Start <span class="accent">free</span>, upgrade when you need more</h1>
-  <p>65+ AI tools. 15 models. One simple price. Try everything free &mdash; no account needed.</p>
-  <p class="hero-sub">Write, research, translate, code, analyze, scrape &mdash; all from one place.</p>
+<section class="pr-hero fade-in">
+  <h1>Simple, <span class="gr">transparent</span> pricing</h1>
+  <p>Pay only for what you use. No hidden fees, no surprises. Start with free trial credits.</p>
 </section>
 
-<!-- Billing Toggle -->
-<div style="display:flex;justify-content:center;margin-bottom:24px;gap:4px">
-  <button id="toggle-monthly" onclick="showBilling('monthly')" style="padding:12px 28px;font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif);font-size:0.82rem;font-weight:600;background:var(--accent,#2997ff);color:#fff;border:1px solid var(--accent,#2997ff);cursor:pointer;letter-spacing:0.01em;transition:all 0.2s;border-radius:980px">Monthly Plans</button>
-  <button id="toggle-credits" onclick="showBilling('credits')" style="padding:12px 28px;font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif);font-size:0.82rem;font-weight:600;background:transparent;color:var(--accent,#2997ff);border:1px solid var(--accent,#2997ff);cursor:pointer;letter-spacing:0.01em;transition:all 0.2s;border-radius:980px">Credit Packs</button>
+<!-- Toggle -->
+<div class="pr-toggle fade-in">
+  <input type="radio" name="mode" id="tog-credits" checked>
+  <label for="tog-credits" onclick="switchMode('credits')">Pay per call</label>
+  <input type="radio" name="mode" id="tog-sub">
+  <label for="tog-sub" onclick="switchMode('sub')">Monthly subscription</label>
 </div>
 
-<!-- Monthly Plans -->
-<div id="billing-monthly">
-<div class="tiers">
-  <!-- Free -->
-  <div class="tier fade-up">
-    <div class="tier-name">Free</div>
-    <div class="tier-tagline">Try everything free</div>
-    <div class="tier-price"><span class="currency">$</span>0</div>
-    <div class="tier-desc">1 free call/day, no signup needed</div>
-    <ul class="tier-features">
-      <li>1 free call/day</li>
-      <li>Access all 65+ tools</li>
-      <li>15 AI models (ChatGPT, Claude, Gemini&hellip;)</li>
-      <li>No sign-up or credit card</li>
-      <li>Use from any device</li>
-      <li class="disabled">Unlimited calls</li>
-      <li class="disabled">Priority speed</li>
-    </ul>
-    <a href="/try" class="btn-tier secondary">Try Free &mdash; No Sign Up</a>
+<!-- Pay Per Call Section -->
+<section id="sec-credits" class="pr-section active fade-in">
+  <div class="cr-grid">
+    <div class="gl-card cr-card">
+      <div class="cr-price">$1</div>
+      <div class="cr-calls">~50 calls</div>
+      <div class="cr-unit">$0.020 / call</div>
+      <a href="/buy-credits" class="btn-cr">Buy Credits</a>
+    </div>
+    <div class="gl-card cr-card">
+      <div class="cr-price">$5</div>
+      <div class="cr-calls">~275 calls</div>
+      <div class="cr-unit">$0.018 / call</div>
+      <a href="/buy-credits" class="btn-cr">Buy Credits</a>
+    </div>
+    <div class="gl-card cr-card">
+      <div class="cr-price">$10</div>
+      <div class="cr-calls">~600 calls</div>
+      <div class="cr-unit">$0.017 / call</div>
+      <a href="/buy-credits" class="btn-cr">Buy Credits</a>
+    </div>
+    <div class="gl-card cr-card">
+      <div class="cr-price">$25</div>
+      <div class="cr-calls">~1,600 calls</div>
+      <div class="cr-unit">$0.016 / call</div>
+      <a href="/buy-credits" class="btn-cr">Buy Credits</a>
+    </div>
+    <div class="gl-card cr-card">
+      <div class="cr-price">$50</div>
+      <div class="cr-calls">~3,500 calls</div>
+      <div class="cr-unit">$0.014 / call</div>
+      <a href="/buy-credits" class="btn-cr">Buy Credits</a>
+    </div>
+  </div>
+  <p style="text-align:center;color:var(--text-muted);font-size:var(--text-xs);">Credits never expire. Estimated calls based on average tool usage.</p>
+</section>
+
+<!-- Subscription Section -->
+<section id="sec-sub" class="pr-section fade-in">
+  <div class="sub-grid">
+    <!-- Starter -->
+    <div class="gl-card sub-card">
+      <div class="sub-name">Starter</div>
+      <div class="sub-price">$9<span>/mo</span></div>
+      <ul class="sub-feat">
+        <li>2,000 API calls / month</li>
+        <li>120 requests / min</li>
+        <li>All 65+ tools</li>
+        <li>15 AI models</li>
+        <li>Email support</li>
+      </ul>
+      <a href="/buy-credits" class="btn-sub btn-sub-outline">Get Started</a>
+    </div>
+    <!-- Pro -->
+    <div class="gl-card sub-card pop">
+      <div class="sub-badge">Most Popular</div>
+      <div class="sub-name">Pro</div>
+      <div class="sub-price">$29<span>/mo</span></div>
+      <ul class="sub-feat">
+        <li>7,500 API calls / month</li>
+        <li>300 requests / min</li>
+        <li>All 65+ tools</li>
+        <li>15 AI models</li>
+        <li>Priority support</li>
+        <li>Webhook integrations</li>
+      </ul>
+      <a href="/buy-credits" class="btn-sub btn-sub-primary">Get Started</a>
+    </div>
+    <!-- Enterprise -->
+    <div class="gl-card sub-card">
+      <div class="sub-name">Enterprise</div>
+      <div class="sub-price">$99<span>/mo</span></div>
+      <ul class="sub-feat">
+        <li>30,000 API calls / month</li>
+        <li>1,000 requests / min</li>
+        <li>All 65+ tools</li>
+        <li>15 AI models</li>
+        <li>Dedicated support</li>
+        <li>SLA guarantee</li>
+        <li>Custom integrations</li>
+      </ul>
+      <a href="/buy-credits" class="btn-sub btn-sub-outline">Contact Sales</a>
+    </div>
   </div>
 
-  <!-- Starter -->
-  <div class="tier fade-up delay-1">
-    <div class="tier-name">Starter</div>
-    <div class="tier-tagline">For regular users</div>
-    <div class="tier-price"><span class="currency">$</span>4.99 <span class="period">/mo</span></div>
-    <div class="tier-desc">All 65+ tools &middot; All 15 AI models</div>
-    <ul class="tier-features">
-      <li>Unlimited AI calls</li>
-      <li>All 65+ tools unlocked</li>
-      <li>15 AI models to choose from</li>
-      <li>Save your history &amp; favorites</li>
-      <li>Email support</li>
-      <li class="disabled">Priority speed</li>
-      <li class="disabled">Workflow builder</li>
-    </ul>
-    <a href="/subscribe" class="btn-tier primary">Get Starter &rarr;</a>
-  </div>
-
-  <!-- Pro -->
-  <div class="tier featured fade-up delay-2">
-    <div class="tier-badge">Most Popular</div>
-    <div class="tier-name">Pro</div>
-    <div class="tier-tagline">For power users</div>
-    <div class="tier-price"><span class="currency">$</span>19.99 <span class="period">/mo</span></div>
-    <div class="tier-desc">Pro tools &middot; Workflow builder &middot; Priority speed</div>
-    <ul class="tier-features">
-      <li>Everything in Starter</li>
-      <li>Priority speed on all requests</li>
-      <li>Pro AI models (Claude Sonnet)</li>
-      <li>Workflow builder &mdash; chain tools together</li>
-      <li>Save &amp; reuse custom workflows</li>
-      <li>Priority support</li>
-      <li>Higher usage limits</li>
-    </ul>
-    <a href="/subscribe" class="btn-tier primary">Get Pro &rarr;</a>
-  </div>
-
-  <!-- Enterprise -->
-  <div class="tier fade-up delay-3">
-    <div class="tier-badge" style="background:var(--accent2,#bf5af2);color:#fff">Best Value</div>
-    <div class="tier-name">Enterprise</div>
-    <div class="tier-tagline">For teams</div>
-    <div class="tier-price"><span class="currency">$</span>49.99 <span class="period">/mo</span></div>
-    <div class="tier-desc">Higher limits &middot; Batch processing &middot; Dedicated support</div>
-    <ul class="tier-features">
-      <li>Everything in Pro</li>
-      <li>Premium AI models (Claude Opus)</li>
-      <li>Batch processing &mdash; run 20 tasks at once</li>
-      <li>Custom tool configurations</li>
-      <li>Dedicated support</li>
-      <li>No daily usage limits</li>
-      <li>Team-ready features</li>
-    </ul>
-    <a href="/subscribe" class="btn-tier primary">Get Enterprise &rarr;</a>
-  </div>
-</div>
-</div>
-
-<!-- Credit Packs -->
-<div id="billing-credits" style="display:none">
-<div class="tiers">
-  <!-- $0.50 -->
-  <div class="tier fade-up">
-    <div class="tier-name">Micro</div>
-    <div class="tier-tagline">Just want to try it</div>
-    <div class="tier-price"><span class="currency">$</span>0.50</div>
-    <div class="tier-desc">~80 calls &middot; Perfect for trying out</div>
-    <ul class="tier-features">
-      <li>~80 AI calls</li>
-      <li>All 65+ tools unlocked</li>
-      <li>15 AI models</li>
-      <li>Credits never expire</li>
-      <li>Use anytime, at your pace</li>
-      <li class="disabled">Priority support</li>
-      <li class="disabled">Higher speed</li>
-    </ul>
-    <a href="/buy-credits" class="btn-tier secondary">Buy $0.50 &rarr;</a>
-  </div>
-
-  <!-- $5 -->
-  <div class="tier fade-up delay-1">
-    <div class="tier-name">Starter Pack</div>
-    <div class="tier-tagline">For regular use</div>
-    <div class="tier-price"><span class="currency">$</span>5</div>
-    <div class="tier-desc">~830 calls &middot; Great value</div>
-    <ul class="tier-features">
-      <li>~830 AI calls</li>
-      <li>All 65+ tools unlocked</li>
-      <li>15 AI models</li>
-      <li>Credits never expire</li>
-      <li>Use anytime, at your pace</li>
-      <li class="disabled">Priority support</li>
-      <li class="disabled">Higher speed</li>
-    </ul>
-    <a href="/buy-credits" class="btn-tier primary">Buy $5 &rarr;</a>
-  </div>
-
-  <!-- $20 -->
-  <div class="tier featured fade-up delay-2">
-    <div class="tier-badge">Most Popular</div>
-    <div class="tier-name">Pro Pack</div>
-    <div class="tier-tagline">For power users</div>
-    <div class="tier-price"><span class="currency">$</span>20</div>
-    <div class="tier-desc">~3,300 calls &middot; Bulk discount</div>
-    <ul class="tier-features">
-      <li>~3,300 AI calls</li>
-      <li>All 65+ tools unlocked</li>
-      <li>15 AI models</li>
-      <li>Credits never expire</li>
-      <li>Use anytime, at your pace</li>
-      <li>Priority support</li>
-      <li>Higher speed</li>
-    </ul>
-    <a href="/buy-credits" class="btn-tier primary">Buy $20 &rarr;</a>
-  </div>
-
-  <!-- $50 -->
-  <div class="tier fade-up delay-3">
-    <div class="tier-badge" style="background:var(--accent2,#bf5af2);color:#fff">Best Value</div>
-    <div class="tier-name">Team Pack</div>
-    <div class="tier-tagline">Best rate per call</div>
-    <div class="tier-price"><span class="currency">$</span>50</div>
-    <div class="tier-desc">~8,300 calls &middot; Lowest price</div>
-    <ul class="tier-features">
-      <li>~8,300 AI calls</li>
-      <li>All 65+ tools unlocked</li>
-      <li>15 AI models</li>
-      <li>Credits never expire</li>
-      <li>Use anytime, at your pace</li>
-      <li>Premium support</li>
-      <li>Higher speed</li>
-    </ul>
-    <a href="/buy-credits" class="btn-tier primary">Buy $50 &rarr;</a>
-  </div>
-</div>
-</div><!-- end billing-credits -->
-
-</div>
-
-<!-- What's Included -->
-<section class="compare-section">
-  <div class="section-header">
-    <span>// What You Get</span>
-    <div class="section-header-line"></div>
-  </div>
-  <table class="compare-table">
+  <!-- Feature Comparison -->
+  <table class="feat-table fade-in">
     <thead>
-      <tr>
-        <th style="text-align:left">What's included</th>
-        <th>Free</th>
-        <th>Starter ($4.99)</th>
-        <th>Pro ($19.99)</th>
-        <th>Enterprise ($49.99)</th>
-      </tr>
+      <tr><th>Feature</th><th>Starter</th><th>Pro</th><th>Enterprise</th></tr>
     </thead>
     <tbody>
-      <tr>
-        <td>AI calls</td>
-        <td>1/day</td>
-        <td class="check">Unlimited</td>
-        <td class="check">Unlimited</td>
-        <td class="check">Unlimited</td>
-      </tr>
-      <tr>
-        <td>AI tools</td>
-        <td class="check">All 65+</td>
-        <td class="check">All 65+</td>
-        <td class="check">All 65+</td>
-        <td class="check">All 65+</td>
-      </tr>
-      <tr>
-        <td>AI models (ChatGPT, Claude, Gemini&hellip;)</td>
-        <td class="check">15 models</td>
-        <td class="check">15 models</td>
-        <td class="check">15 models</td>
-        <td class="check">15 models</td>
-      </tr>
-      <tr>
-        <td>Workflow builder</td>
-        <td class="dash">&mdash;</td>
-        <td class="dash">&mdash;</td>
-        <td class="check">&#10003;</td>
-        <td class="check">&#10003;</td>
-      </tr>
-      <tr>
-        <td>Save history &amp; favorites</td>
-        <td class="dash">&mdash;</td>
-        <td class="check">&#10003;</td>
-        <td class="check">&#10003;</td>
-        <td class="check">&#10003;</td>
-      </tr>
-      <tr>
-        <td>Speed</td>
-        <td>Standard</td>
-        <td>Standard</td>
-        <td class="check">Priority</td>
-        <td class="check">Priority</td>
-      </tr>
-      <tr>
-        <td>Support</td>
-        <td>Community</td>
-        <td>Email</td>
-        <td>Priority</td>
-        <td>Dedicated</td>
-      </tr>
-      <tr>
-        <td>Batch processing (run many at once)</td>
-        <td class="dash">&mdash;</td>
-        <td class="dash">&mdash;</td>
-        <td class="dash">&mdash;</td>
-        <td class="check">20 at once</td>
-      </tr>
+      <tr><td>Monthly calls</td><td>2,000</td><td>7,500</td><td>30,000</td></tr>
+      <tr><td>Rate limit</td><td>120/min</td><td>300/min</td><td>1,000/min</td></tr>
+      <tr><td>AI models</td><td>15</td><td>15</td><td>15</td></tr>
+      <tr><td>Webhook integrations</td><td>&mdash;</td><td class="ck">&#10003;</td><td class="ck">&#10003;</td></tr>
+      <tr><td>Priority support</td><td>&mdash;</td><td class="ck">&#10003;</td><td class="ck">&#10003;</td></tr>
+      <tr><td>SLA guarantee</td><td>&mdash;</td><td>&mdash;</td><td class="ck">&#10003;</td></tr>
+      <tr><td>Custom integrations</td><td>&mdash;</td><td>&mdash;</td><td class="ck">&#10003;</td></tr>
     </tbody>
   </table>
-  <p style="color:var(--text-secondary,#86868b);font-size:0.78rem;margin-top:12px;font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif)">Monthly plans include the subscription fee. Individual calls cost $0.01&ndash;$0.50 depending on the tool. Credit packs are also available for pay-as-you-go.</p>
-</section>
-
-<!-- What Things Cost -->
-<section class="compare-section">
-  <div class="section-header">
-    <span>// What Things Cost</span>
-    <div class="section-header-line"></div>
-  </div>
-  <table class="compare-table">
-    <thead>
-      <tr>
-        <th style="text-align:left">What you want to do</th>
-        <th>Cost per use</th>
-        <th>Uses per $1</th>
-        <th>Category</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Ask AI a question</td>
-        <td class="check">$0.01</td>
-        <td>100</td>
-        <td>Chat</td>
-      </tr>
-      <tr>
-        <td>Analyze sentiment or keywords</td>
-        <td class="check">$0.006</td>
-        <td>166</td>
-        <td>Analysis</td>
-      </tr>
-      <tr>
-        <td>Summarize text</td>
-        <td>$0.02</td>
-        <td>50</td>
-        <td>Writing</td>
-      </tr>
-      <tr>
-        <td>Translate to any language</td>
-        <td>$0.02</td>
-        <td>50</td>
-        <td>Writing</td>
-      </tr>
-      <tr>
-        <td>Scrape a website</td>
-        <td>$0.03</td>
-        <td>33</td>
-        <td>Data</td>
-      </tr>
-      <tr>
-        <td>Generate or fix code</td>
-        <td>$0.05</td>
-        <td>20</td>
-        <td>Coding</td>
-      </tr>
-      <tr>
-        <td>Deep research (multiple sources)</td>
-        <td>$0.15</td>
-        <td>6</td>
-        <td>Research</td>
-      </tr>
-    </tbody>
-  </table>
-  <p style="color:var(--text-secondary,#86868b);font-size:0.78rem;margin-top:12px;font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif)">Most things cost just 1&ndash;2 cents. Research and scraping cost more because they pull from multiple sources behind the scenes.</p>
-</section>
-
-<!-- Save vs Doing It Yourself -->
-<section class="compare-section">
-  <div class="section-header">
-    <span>// How Much You Save</span>
-    <div class="section-header-line"></div>
-  </div>
-  <table class="compare-table">
-    <thead>
-      <tr>
-        <th style="text-align:left">Task</th>
-        <th>AiPayGen</th>
-        <th>Paying AI Companies Directly</th>
-        <th>You Save</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td>Summarize a document</td>
-        <td class="check">$0.02</td>
-        <td>$0.10&ndash;$0.15</td>
-        <td class="check">5&ndash;7x cheaper</td>
-      </tr>
-      <tr>
-        <td>Analyze sentiment</td>
-        <td class="check">$0.01</td>
-        <td>$0.05&ndash;$0.08</td>
-        <td class="check">5&ndash;8x cheaper</td>
-      </tr>
-      <tr>
-        <td>Generate code</td>
-        <td class="check">$0.05</td>
-        <td>$0.30&ndash;$0.50</td>
-        <td class="check">6&ndash;10x cheaper</td>
-      </tr>
-      <tr>
-        <td>Translate text</td>
-        <td class="check">$0.02</td>
-        <td>$0.10&ndash;$0.15</td>
-        <td class="check">5&ndash;7x cheaper</td>
-      </tr>
-      <tr>
-        <td>Deep research</td>
-        <td class="check">$0.15</td>
-        <td>$1.00&ndash;$2.00</td>
-        <td class="check">7&ndash;13x cheaper</td>
-      </tr>
-      <tr>
-        <td>Scrape a website</td>
-        <td class="check">$0.03</td>
-        <td>$0.15&ndash;$0.30</td>
-        <td class="check">5&ndash;10x cheaper</td>
-      </tr>
-    </tbody>
-  </table>
-  <p style="color:var(--text-secondary,#86868b);font-size:0.78rem;margin-top:12px;font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',sans-serif)">AiPayGen automatically picks the best model for your task and caches results, so you pay less than going directly to OpenAI, Anthropic, or Google.</p>
-</section>
-
-<!-- Marketplace Seller Earnings -->
-<section class="section">
-  <h2 class="section-title">Marketplace Seller Earnings</h2>
-  <p class="section-subtitle">List your agent and earn from every call</p>
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:980px;margin:0 auto;padding-top:32px;">
-    <div class="card" style="padding:32px;text-align:center;">
-      <div style="font-size:var(--text-3xl);font-weight:700;color:var(--accent);">70%</div>
-      <div style="font-size:var(--text-sm);color:var(--text-secondary);margin-top:8px;">Your share of every marketplace sale</div>
-      <div style="font-size:var(--text-xs);color:var(--text-muted);margin-top:16px;">AiPayGen handles billing, escrow, and discovery. You build great agents.</div>
-    </div>
-    <div class="card" style="padding:32px;text-align:center;">
-      <div style="font-size:var(--text-3xl);font-weight:700;color:var(--green);">3%</div>
-      <div style="font-size:var(--text-sm);color:var(--text-secondary);margin-top:8px;">A2A Commerce platform fee</div>
-      <div style="font-size:var(--text-xs);color:var(--text-muted);margin-top:16px;">When agents hire your agent directly, you keep 97% of every transaction.</div>
-    </div>
-    <div class="card" style="padding:32px;text-align:center;">
-      <div style="font-size:var(--text-3xl);font-weight:700;color:var(--text);">$0</div>
-      <div style="font-size:var(--text-sm);color:var(--text-secondary);margin-top:8px;">Free to list</div>
-      <div style="font-size:var(--text-xs);color:var(--text-muted);margin-top:16px;">No listing fees, no monthly charges. You only pay when you earn.</div>
-    </div>
-  </div>
-  <div style="text-align:center;margin-top:32px;">
-    <a href="/market/list" class="btn btn-primary" style="padding:14px 32px;">List Your Agent &rarr;</a>
-  </div>
-</section>
-
-<!-- How to Pay -->
-<section class="methods-section">
-  <div class="section-header">
-    <span>// Ways to Pay</span>
-    <div class="section-header-line"></div>
-  </div>
-  <div class="methods-grid">
-    <div class="method-card">
-      <h3>Credit Card (Stripe)</h3>
-      <p>Subscribe to a monthly plan or buy a credit pack with any major credit or debit card. Instant access. Cancel anytime.</p>
-    </div>
-    <div class="method-card">
-      <h3>Credit Packs</h3>
-      <p>Buy credits from $0.50 to $50. Use them whenever you want &mdash; credits never expire. No subscription required. Top up anytime.</p>
-    </div>
-    <div class="method-card">
-      <h3>Free Tier</h3>
-      <p>No payment needed. Get 1 free AI call every day. No account, no credit card, no strings attached. Just use it.</p>
-    </div>
-  </div>
 </section>
 
 <!-- FAQ -->
-<section class="faq-section">
-  <div class="section-header">
-    <span>// Frequently Asked Questions</span>
-    <div class="section-header-line"></div>
-  </div>
-
-  <div class="faq-item open">
-    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Is it really free?</button>
-    <div class="faq-a">
-      Yes. You get 1 free AI call every single day, forever. No sign-up, no credit card, no account needed. Just open the app and use it. When you need more, upgrade to a plan or buy a credit pack.
-    </div>
-  </div>
-
+<section class="faq-wrap fade-in">
+  <h2>Frequently Asked Questions</h2>
   <div class="faq-item">
-    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What can I do with the free trial?</button>
-    <div class="faq-a">
-      Anything! Your $0.10 trial credits give you ~16 full-powered calls to all 65+ tools and all 15 AI models. Summarize a document, translate text, generate code, research a topic, analyze data, scrape a website &mdash; whatever you need. Plus 1 free call/day, no account needed.
-    </div>
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What counts as an API call?</button>
+    <div class="faq-a"><p>Each request to any of our 65+ tools counts as one API call. Batch operations count as one call per item in the batch.</p></div>
   </div>
-
-  <div class="faq-item">
-    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Do I need a credit card?</button>
-    <div class="faq-a">
-      Not for the free tier. You get 1 free call/day without any payment info or account. If you want more calls, you can subscribe to a monthly plan or buy a credit pack starting at just $0.50 using any major credit or debit card.
-    </div>
-  </div>
-
-  <div class="faq-item">
-    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">How do credits work?</button>
-    <div class="faq-a">
-      Credits are like a prepaid balance. Buy a credit pack ($0.50, $5, $20, or $50), and each time you use a tool, a small amount is deducted &mdash; most tools cost just 1&ndash;2 cents per use. Credits never expire, so you can use them at your own pace. No recurring charges, no surprise bills.
-    </div>
-  </div>
-
-  <div class="faq-item">
-    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What happens when my credits run out?</button>
-    <div class="faq-a">
-      You can still use the free tier (1 call/day). Nothing is lost &mdash; your saved history, favorites, and settings all stay. Just top up with a new credit pack or subscribe to a plan whenever you're ready.
-    </div>
-  </div>
-
   <div class="faq-item">
     <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Do credits expire?</button>
-    <div class="faq-a">
-      No. Credits never expire. Use them whenever you want, at your own pace.
-    </div>
+    <div class="faq-a"><p>No. Credits you purchase never expire. Use them at your own pace.</p></div>
   </div>
-
   <div class="faq-item">
-    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What AI models can I use?</button>
-    <div class="faq-a">
-      All 15 models from 7 providers: ChatGPT (GPT-4o, GPT-4o-mini), Claude (Anthropic), Gemini (Google), DeepSeek, Llama, Mistral, and more. AiPayGen automatically picks the best model for your task, or you can choose yourself.
-    </div>
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Can I switch between pay-per-call and subscription?</button>
+    <div class="faq-a"><p>Yes. You can use credit packs alongside a subscription. Credits are consumed after your monthly quota is used up.</p></div>
   </div>
-
   <div class="faq-item">
-    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What's the difference between a plan and credits?</button>
-    <div class="faq-a">
-      Monthly plans ($4.99&ndash;$49.99/mo) give you a subscription with extra features like priority speed, workflow builder, and dedicated support. Credit packs ($0.50&ndash;$50) are one-time purchases with no commitment &mdash; just prepaid balance that never expires. Both give you access to all 65+ tools and 15 models.
-    </div>
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Is there a free tier?</button>
+    <div class="faq-a"><p>Every new API key comes with $0.10 in trial credits — enough for several calls. No credit card required.</p></div>
   </div>
-
   <div class="faq-item">
-    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Can I cancel anytime?</button>
-    <div class="faq-a">
-      Yes. Monthly plans can be canceled anytime &mdash; no contracts, no cancellation fees. Credit packs are one-time purchases and never expire, so there's nothing to cancel.
-    </div>
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">What payment methods do you accept?</button>
+    <div class="faq-a"><p>We accept all major credit/debit cards and crypto payments via our secure payment gateway.</p></div>
   </div>
-
   <div class="faq-item">
-    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">I'm a developer &mdash; do you have an API?</button>
-    <div class="faq-a">
-      Yes! AiPayGen has a full REST API and supports MCP (Model Context Protocol) for integration with AI coding tools. Check out our <a href="/docs">API documentation</a> or install the Python package with <code>pip install aipaygen-mcp</code>. The same pricing applies &mdash; free tier, credit packs, and monthly plans all work with the API.
-    </div>
-  </div>
-
-  <div class="faq-item">
-    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">How is AiPayGen different from OpenRouter?</button>
-    <div class="faq-a">
-      OpenRouter gives you raw access to LLMs &mdash; you send prompts, you get completions. AiPayGen gives you <strong>65+ pre-built tools</strong> with structured output. Call <code>/research</code>, <code>/scrape_website</code>, <code>/sentiment</code>, <code>/translate</code> and get structured JSON results back &mdash; no prompt engineering needed. AiPayGen also has MCP support (works natively in Claude Code, Cursor, and Windsurf), agent-to-agent messaging, persistent memory, a 500+ API catalog, and x402 crypto micropayments for autonomous agents. Think of it as: OpenRouter = model access. AiPayGen = pre-built AI tools with smart model routing under the hood.
-    </div>
-  </div>
-
-  <div class="faq-item">
-    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Can I choose which AI model to use?</button>
-    <div class="faq-a">
-      Yes. Every tool accepts an optional <code>model</code> parameter. If you don't specify one, AiPayGen's router automatically picks the best model for the task (e.g., Haiku for simple summarization, Sonnet for research synthesis). You can override this anytime: <code>"model": "gpt-4o"</code> or <code>"model": "claude-sonnet"</code>.
-    </div>
+    <button class="faq-q" onclick="this.parentElement.classList.toggle('open')">Can I get a refund?</button>
+    <div class="faq-a"><p>Unused credits can be refunded within 30 days of purchase. Subscriptions can be cancelled anytime — no refunds for partial months.</p></div>
   </div>
 </section>
 
-<!-- Bottom CTA -->
-<section class="bottom-cta">
-  <h2>Ready to try it?</h2>
-  <p>Get $0.10 free trial credits (~16 calls). No credit card needed. Upgrade whenever you want.</p>
-  <div class="btn-group">
-    <a href="/try" style="background:transparent;color:var(--accent,#2997ff);border:1px solid var(--accent,#2997ff);border-radius:980px">Try Free</a>
-    <a href="/buy-credits" style="background:var(--accent,#2997ff);color:#fff;border-radius:980px">Buy Credits &rarr;</a>
-    <a href="/subscribe" style="background:transparent;color:var(--accent2,#bf5af2);border:1px solid var(--accent2,#bf5af2);border-radius:980px">Monthly Plans &rarr;</a>
-  </div>
+<!-- CTA -->
+<section class="pr-cta fade-in">
+  <h2>Start building for free</h2>
+  <p>Get $0.10 in trial credits with your API key. No credit card required.</p>
+  <a href="/quick-key" class="btn-cta">Get Free API Key</a>
 </section>
-
-<!-- FAQ Schema for SEO -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {"@type": "Question", "name": "Is it really free?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. You get 1 free call every day, forever. No sign-up, no credit card, no account needed."}},
-    {"@type": "Question", "name": "What can I do with the free trial?", "acceptedAnswer": {"@type": "Answer", "text": "Anything. Your $0.10 trial credits give you ~16 calls to all 65+ tools and 15 AI models. Summarize, translate, code, research, scrape — full-powered calls. Plus 1 free call/day, no account needed."}},
-    {"@type": "Question", "name": "Do I need a credit card?", "acceptedAnswer": {"@type": "Answer", "text": "Not for the free tier. You get 1 free call/day with no payment info. For more, plans start at $4.99/mo or credit packs from $0.50."}},
-    {"@type": "Question", "name": "How do credits work?", "acceptedAnswer": {"@type": "Answer", "text": "Credits are prepaid balance. Buy a pack ($0.50–$50), each tool use deducts 1–2 cents. Credits never expire. No recurring charges."}},
-    {"@type": "Question", "name": "Do credits expire?", "acceptedAnswer": {"@type": "Answer", "text": "No. Credits never expire. Use them at your own pace."}},
-    {"@type": "Question", "name": "What AI models can I use?", "acceptedAnswer": {"@type": "Answer", "text": "15 models from 7 providers: ChatGPT, Claude, Gemini, DeepSeek, Llama, Mistral, and more."}},
-    {"@type": "Question", "name": "Can I cancel anytime?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Monthly plans can be canceled anytime. Credit packs are one-time purchases that never expire."}},
-    {"@type": "Question", "name": "How is AiPayGen different from OpenRouter?", "acceptedAnswer": {"@type": "Answer", "text": "OpenRouter gives you raw LLM access. AiPayGen gives you 65+ pre-built tools with structured output — call /research, /scrape_website, /sentiment and get JSON back. Plus MCP support, agent messaging, persistent memory, and x402 crypto payments."}},
-    {"@type": "Question", "name": "Can I choose which AI model to use?", "acceptedAnswer": {"@type": "Answer", "text": "Yes. Every tool accepts an optional model parameter. The router auto-picks the best model for each task, or you can override with any of the 15 available models."}}
-  ]
-}
-</script>
 {% endblock %}
 
 {% block scripts %}
 <script>
-function showBilling(mode) {
-  var monthly = document.getElementById('billing-monthly');
-  var credits = document.getElementById('billing-credits');
-  var btnMon = document.getElementById('toggle-monthly');
-  var btnCred = document.getElementById('toggle-credits');
-  if (mode === 'credits') {
-    monthly.style.display = 'none';
-    credits.style.display = 'block';
-    btnCred.style.background = 'var(--accent,#2997ff)';
-    btnCred.style.color = '#fff';
-    btnMon.style.background = 'transparent';
-    btnMon.style.color = 'var(--accent,#2997ff)';
-  } else {
-    monthly.style.display = 'block';
-    credits.style.display = 'none';
-    btnMon.style.background = 'var(--accent,#2997ff)';
-    btnMon.style.color = '#fff';
-    btnCred.style.background = 'transparent';
-    btnCred.style.color = 'var(--accent,#2997ff)';
-  }
+function switchMode(m){
+  document.getElementById('sec-credits').classList.toggle('active',m==='credits');
+  document.getElementById('sec-sub').classList.toggle('active',m==='sub');
 }
 </script>
 {% endblock %}
