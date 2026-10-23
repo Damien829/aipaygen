@@ -2,7 +2,59 @@ import { z } from "zod";
 import { fetchPage } from "../lib/net";
 import { parseHtml } from "../lib/html";
 import { defineTool } from "./types";
+import { resolve } from "./dns";
 import { TECH_SIGNATURES, type TechSignature } from "./techSignatures";
+
+// https://www.cloudflare.com/ips-v4
+const CLOUDFLARE_V4 = [
+  "173.245.48.0/20", "103.21.244.0/22", "103.22.200.0/22", "103.31.4.0/22", "141.101.64.0/18", "108.162.192.0/18",
+  "190.93.240.0/20", "188.114.96.0/20", "197.234.240.0/22", "198.41.128.0/17", "162.158.0.0/15", "104.16.0.0/13",
+  "104.24.0.0/14", "172.64.0.0/13", "131.0.72.0/22",
+];
+
+function ipToInt(ip: string): number {
+  return ip.split(".").reduce((acc, p) => (acc << 8) + Number(p), 0) >>> 0;
+}
+
+export function isCloudflareIp(ip: string): boolean {
+  if (ip.includes(":")) return /^2606:4700:|^2803:f800:|^2405:b500:|^2405:8100:|^2a06:98c|^2c0f:f248:|^2400:cb00:/i.test(ip);
+  const n = ipToInt(ip);
+  return CLOUDFLARE_V4.some((cidr) => {
+    const [base, bits] = cidr.split("/") as [string, string];
+    const mask = Number(bits) === 0 ? 0 : (~0 << (32 - Number(bits))) >>> 0;
+    return (n & mask) === (ipToInt(base) & mask);
+  });
+}
+
+/**
+ * Responses fetched from inside a Worker carry Cloudflare's own `server` and
+ * `cf-*` headers even when the site is not on Cloudflare. Strip those unless
+ * the site's addresses really are Cloudflare's.
+ */
+export async function siteHeaders(url: string, headers: Headers): Promise<{ headers: Headers; onCloudflare: boolean }> {
+  const host = new URL(url).hostname;
+  let onCloudflare = false;
+  try {
+    const [a, aaaa] = await Promise.all([resolve(host, "A"), resolve(host, "AAAA")]);
+    onCloudflare = [...a, ...aaaa].some((r) => isCloudflareIp(r.value));
+  } catch {
+    onCloudflare = false;
+  }
+  const cleaned = new Headers(headers);
+  if (!onCloudflare) {
+    if (/cloudflare/i.test(cleaned.get("server") ?? "")) cleaned.delete("server");
+    for (const h of ["cf-ray", "cf-cache-status", "cf-apo-via", "cf-edge-cache"]) cleaned.delete(h);
+  }
+  return { headers: cleaned, onCloudflare };
+}
+
+/** Full detection for a fetched page, including the IP-based Cloudflare check. */
+export async function detectTechForPage(url: string, html: string, headers: Headers): Promise<DetectedTech[]> {
+  const site = await siteHeaders(url, headers);
+  const techs = detectTech(html, site.headers);
+  if (site.onCloudflare) techs.push({ name: "Cloudflare", category: "CDN", evidence: "IP address" });
+  return techs.sort((a, b) => a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
+}
 
 export interface DetectedTech {
   name: string;
@@ -72,7 +124,7 @@ export const techStack = defineTool({
   example: { url: "https://linear.app" },
   async run({ url }) {
     const page = await fetchPage(url);
-    const technologies = detectTech(page.body, page.headers);
+    const technologies = await detectTechForPage(page.url, page.body, page.headers);
     return {
       url: page.url,
       status: page.status,

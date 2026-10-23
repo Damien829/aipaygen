@@ -45,8 +45,9 @@ export const TECH_SIGNATURES: TechSignature[] = [
 
   // CMS / site builders / e-commerce
   { name: "WordPress", category: "CMS", html: [/\/wp-content\//, /\/wp-includes\//], meta: { generator: /wordpress/i }, implies: ["PHP"] },
-  { name: "WooCommerce", category: "E-commerce", html: [/woocommerce/], implies: ["WordPress"] },
-  { name: "Shopify", category: "E-commerce", html: [/cdn\.shopify\.com/, /Shopify\.theme/], headers: { "x-shopid": /./, "x-shopify-stage": /./ } },
+  { name: "WooCommerce", category: "E-commerce", html: [/\/wp-content\/plugins\/woocommerce\//, /class="[^"]*\bwoocommerce-(?:page|cart|checkout|no-js)\b/], implies: ["WordPress"] },
+  // Only store-specific markers: other sites often embed images from cdn.shopify.com.
+  { name: "Shopify", category: "E-commerce", html: [/Shopify\.theme\s*=/, /\bshopify-section\b/, /cdn\.shopify\.com\/s\/files\/[^"']+\/(?:t|assets)\//], headers: { "x-shopid": /./, "x-shopify-stage": /./, powered_by: /shopify/i } },
   { name: "Wix", category: "Site builder", html: [/static\.wixstatic\.com/, /wix-warmup-data/], headers: { "x-wix-request-id": /./ } },
   { name: "Squarespace", category: "Site builder", html: [/static1\.squarespace\.com/, /Squarespace\.Constants/] },
   { name: "Webflow", category: "Site builder", html: [/data-wf-page=/, /assets\.website-files\.com|cdn\.prod\.website-files\.com/] },
@@ -64,7 +65,9 @@ export const TECH_SIGNATURES: TechSignature[] = [
   { name: "GitBook", category: "Documentation", html: [/gitbook/i] },
 
   // Hosting / CDN / infrastructure
-  { name: "Cloudflare", category: "CDN", headers: { server: /cloudflare/i, "cf-ray": /./ } },
+  // Cloudflare is detected from the site's IP addresses (see tech.ts): fetches made
+  // from a Worker carry Cloudflare's own server/cf-ray headers for every site.
+  { name: "Cloudflare", category: "CDN" },
   { name: "Vercel", category: "Hosting", headers: { server: /vercel/i, "x-vercel-id": /./ } },
   { name: "Netlify", category: "Hosting", headers: { server: /netlify/i, "x-nf-request-id": /./ } },
   { name: "Fastly", category: "CDN", headers: { "x-served-by": /cache-/, via: /varnish|fastly/i, "x-fastly-request-id": /./ } },

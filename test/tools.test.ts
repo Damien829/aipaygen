@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { detectDnsProvider, detectMailProvider, unquoteTxt } from "../src/tools/dns";
 import { gradeEmailSecurity } from "../src/tools/emailsec";
 import { gradeHeaders } from "../src/tools/headers";
-import { detectTech } from "../src/tools/tech";
+import { detectTech, isCloudflareIp } from "../src/tools/tech";
 import { summarizeCerts } from "../src/tools/certs";
 import { summarizeRdap } from "../src/tools/whois";
 import { extractMetadata, htmlToMarkdown } from "../src/tools/page";
@@ -78,10 +78,26 @@ describe("tech detection", () => {
     const html = `<html><head><meta name="generator" content="WordPress 6.6"><script src="https://www.googletagmanager.com/gtag/js?id=G-1"></script>
       <script src="https://js.stripe.com/v3"></script></head><body><div id="__next"></div><script id="__NEXT_DATA__">{}</script>
       <link href="/wp-content/themes/x.css"></body></html>`;
-    const names = detectTech(html, new Headers({ server: "cloudflare", "cf-ray": "1" })).map((t) => t.name);
-    expect(names).toEqual(expect.arrayContaining(["Next.js", "React", "WordPress", "PHP", "Google Analytics", "Stripe", "Cloudflare"]));
+    const names = detectTech(html, new Headers({ server: "nginx/1.25", "x-vercel-id": "1" })).map((t) => t.name);
+    expect(names).toEqual(expect.arrayContaining(["Next.js", "React", "WordPress", "PHP", "Google Analytics", "Stripe", "Nginx", "Vercel"]));
+  });
+  it("only flags WooCommerce from its plugin files", () => {
+    expect(detectTech('<a data-label="hero_carousel__woocommerce">Woo</a>', new Headers()).map((t) => t.name)).not.toContain("WooCommerce");
+    expect(detectTech('<link href="/wp-content/plugins/woocommerce/style.css">', new Headers()).map((t) => t.name)).toContain("WooCommerce");
+  });
+  it("recognizes Cloudflare IP ranges", () => {
+    expect(isCloudflareIp("104.21.41.248")).toBe(true);
+    expect(isCloudflareIp("172.67.167.212")).toBe(true);
+    expect(isCloudflareIp("2606:4700:3032::6815:29f8")).toBe(true);
+    expect(isCloudflareIp("140.82.112.3")).toBe(false);
+    expect(isCloudflareIp("8.8.8.8")).toBe(false);
   });
   it("returns nothing for a bare page", () => expect(detectTech("<html><body>hi</body></html>", new Headers())).toEqual([]));
+  it("does not mistake an embedded Shopify image for a store", () => {
+    const names = detectTech('<img src="https://cdn.shopify.com/static/logo.png">', new Headers()).map((t) => t.name);
+    expect(names).not.toContain("Shopify");
+    expect(detectTech('<div class="shopify-section"></div>', new Headers()).map((t) => t.name)).toContain("Shopify");
+  });
 });
 
 describe("certificate summary", () => {

@@ -5,12 +5,19 @@
   "compatibility_date": "2026-10-20",
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  "workers_dev": true,
 
-  // Point aipaygen.com at this Worker once the domain's DNS is on this account.
-  // "routes": [{ "pattern": "aipaygen.com", "custom_domain": true }],
+  // Routes run the Worker in front of the existing proxied DNS records (no DNS changes needed).
+  // mcp.* and api.* keep the hostnames used by existing directory listings working.
+  "routes": [
+    { "pattern": "aipaygen.com/*", "zone_name": "aipaygen.com" },
+    { "pattern": "www.aipaygen.com/*", "zone_name": "aipaygen.com" },
+    { "pattern": "mcp.aipaygen.com/*", "zone_name": "aipaygen.com" },
+    { "pattern": "api.aipaygen.com/*", "zone_name": "aipaygen.com" }
+  ],
 
   "vars": {
-    "PUBLIC_URL": "http://localhost:8787",
+    "PUBLIC_URL": "https://aipaygen.com",
     // CAIP-2 network for x402. Base Sepolia testnet by default; Base mainnet is eip155:8453.
     "X402_NETWORK": "eip155:84532",
     "FACILITATOR_URL": "https://x402.org/facilitator",
@@ -24,7 +31,7 @@
     {
       "binding": "DB",
       "database_name": "aipaygen",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "1b445efe-c3e4-4c65-9a9f-b04c145a9968",
       "migrations_dir": "migrations"
     }
   ],

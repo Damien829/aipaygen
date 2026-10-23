@@ -33,11 +33,13 @@ export type ChargeOutcome =
   | { kind: "error"; status: number; code: string; message: string; paymentRequired?: PaymentRequiredBody };
 
 const CACHE_ORIGIN = "https://cache.aipaygen.internal";
+/** Bump whenever a tool's output changes so stale cached results are not served. */
+const CACHE_VERSION = 2;
 
 async function cacheKey(tool: ToolDef, args: unknown): Promise<Request> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(args)));
   const hex = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-  return new Request(`${CACHE_ORIGIN}/${tool.name}/${hex}`);
+  return new Request(`${CACHE_ORIGIN}/v${CACHE_VERSION}/${tool.name}/${hex}`);
 }
 
 function cacheStore(): Cache | null {

@@ -7,7 +7,7 @@ import { domainWhois } from "./whois";
 import { emailSecurity } from "./emailsec";
 import { sslCertificates } from "./certs";
 import { gradeHeaders } from "./headers";
-import { detectTech, groupByCategory } from "./tech";
+import { detectTechForPage, groupByCategory } from "./tech";
 import { extractMetadata } from "./page";
 
 type Settled<T> = { ok: true; value: T } | { ok: false; error: string };
@@ -76,7 +76,7 @@ export const companyProfile = defineTool({
     if (!page.ok && !whois.ok) throw new ToolError(`Could not reach ${d} or find registration data.`, "NOT_FOUND", 404);
 
     const meta = page.ok ? extractMetadata(page.value.body, page.value.url) : null;
-    const tech = page.ok ? detectTech(page.value.body, page.value.headers) : [];
+    const tech = page.ok ? await detectTechForPage(page.value.url, page.value.body, page.value.headers).catch(() => []) : [];
     const w = val(whois) as Record<string, unknown> | null;
     const n = val(dns) as Record<string, unknown> | null;
     const ageDays = typeof w?.age_days === "number" ? w.age_days : null;
@@ -139,7 +139,7 @@ export const domainReport = defineTool({
     if (Object.values(sections).every((s) => !s.ok)) throw new ToolError(`No data could be collected for ${d}.`, "NOT_FOUND", 404);
 
     const headers = page.ok ? { url: page.value.url, ...gradeHeaders(page.value.headers, page.value.url) } : null;
-    const tech = page.ok ? detectTech(page.value.body, page.value.headers) : null;
+    const tech = page.ok ? await detectTechForPage(page.value.url, page.value.body, page.value.headers).catch(() => null) : null;
     const metadata = page.ok ? extractMetadata(page.value.body, page.value.url) : null;
     const e = val(email) as { grade?: string; spoofable?: boolean } | null;
     const c = val(certs) as { current_certificate?: { days_remaining?: number } | null; subdomain_count?: number } | null;
