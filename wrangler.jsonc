@@ -18,13 +18,13 @@
 
   "vars": {
     "PUBLIC_URL": "https://aipaygen.com",
-    // CAIP-2 network for x402. Base Sepolia testnet by default; Base mainnet is eip155:8453.
-    "X402_NETWORK": "eip155:84532",
+    // CAIP-2 network for x402: Base mainnet (real USDC). Base Sepolia testnet is eip155:84532.
+    "X402_NETWORK": "eip155:8453",
     // PayAI: free, supports Base Sepolia and Base mainnet. (x402.org failed to settle on 2026-10-23.)
     "FACILITATOR_URL": "https://facilitator.payai.network",
     // Wallet that receives USDC. Leave empty to disable x402 (API-key credits still work).
-    // Currently a throwaway TESTNET receiver; replace with the owner's Base address before mainnet.
-    "PAY_TO": "0xb6a55A2DEca28c307567814220Edbb50e430cE04",
+    // Owner's wallet (also v1's payout wallet).
+    "PAY_TO": "0x366D488a48de1B2773F3a21F1A6972715056Cb30",
     // Free trial balance for new API keys, in micro-USD (50000 = $0.05).
     "TRIAL_CREDITS_MICRO": "50000"
   },
