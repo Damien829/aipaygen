@@ -70,7 +70,13 @@ export function discoveryExtension(tool: ToolDef, channel: "mcp" | "http"): Reco
         example: tool.example as Record<string, unknown>,
       });
     }
-    return declareDiscoveryExtension({ input: tool.example as Record<string, unknown>, inputSchema: toolJsonSchema(tool) });
+    const ext = declareDiscoveryExtension({ input: tool.example as Record<string, unknown>, inputSchema: toolJsonSchema(tool) }) as {
+      bazaar?: { info?: { input?: Record<string, unknown> } };
+    };
+    // Normally injected per-route by the HTTP middleware; we build 402s ourselves, so set it here.
+    // Without it facilitators reject the listing ("Invalid input at info.input").
+    if (ext.bazaar?.info?.input) ext.bazaar.info.input.method = "GET";
+    return ext;
   } catch {
     return {};
   }

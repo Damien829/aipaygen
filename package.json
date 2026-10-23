@@ -26,7 +26,9 @@
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20261023.1",
+    "@x402/fetch": "^2.28.0",
     "typescript": "^5.9.3",
+    "viem": "^2.57.10",
     "vitest": "^5.0.5",
     "wrangler": "^4.152.0"
   },
