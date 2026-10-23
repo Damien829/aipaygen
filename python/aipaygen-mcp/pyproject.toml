@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aipaygen-mcp"
+version = "2.0.0"
+description = "AIPayGen Site Intel for stdio MCP clients: DNS, WHOIS, SSL, tech stack, email security and company profiles for AI agents."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+authors = [{ name = "AiPayGen", email = "hello@aipaygen.com" }]
+keywords = ["mcp", "model-context-protocol", "claude", "cursor", "dns", "whois", "osint", "company-enrichment", "tech-stack", "x402"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Internet :: Name Service (DNS)",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://aipaygen.com"
+Documentation = "https://aipaygen.com/docs"
+Repository = "https://github.com/Damien829/aipaygen"
+
+[project.scripts]
+aipaygen-mcp = "aipaygen_mcp.bridge:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

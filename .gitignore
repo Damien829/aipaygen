@@ -6,3 +6,6 @@ dist/
 coverage/
 .DS_Store
 .secrets.local
+.venv/
+__pycache__/
+*.egg-info/
