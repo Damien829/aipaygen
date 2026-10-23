@@ -1,0 +1,26 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Damien829/aipaygen",
+  "title": "AIPayGen Site Intel",
+  "description": "Pay-per-call website and company intelligence: DNS, WHOIS/RDAP, SSL certs and subdomains, tech stack, email security, company profiles.",
+  "version": "2.0.0",
+  "repository": {
+    "url": "https://github.com/Damien829/aipaygen",
+    "source": "github"
+  },
+  "websiteUrl": "https://aipaygen.com",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.aipaygen.com/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Bearer apg_... API key (free trial key at https://aipaygen.com). Optional when paying per call with x402.",
+          "isRequired": false,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}

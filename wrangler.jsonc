@@ -1,0 +1,41 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "aipaygen",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+
+  // Point aipaygen.com at this Worker once the domain's DNS is on this account.
+  // "routes": [{ "pattern": "aipaygen.com", "custom_domain": true }],
+
+  "vars": {
+    "PUBLIC_URL": "http://localhost:8787",
+    // CAIP-2 network for x402. Base Sepolia testnet by default; Base mainnet is eip155:8453.
+    "X402_NETWORK": "eip155:84532",
+    "FACILITATOR_URL": "https://x402.org/facilitator",
+    // Wallet that receives USDC. Leave empty to disable x402 (API-key credits still work).
+    "PAY_TO": "",
+    // Free trial balance for new API keys, in micro-USD (50000 = $0.05).
+    "TRIAL_CREDITS_MICRO": "50000"
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "aipaygen",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  "ratelimits": [
+    { "name": "TOOL_LIMITER", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } },
+    { "name": "KEY_LIMITER", "namespace_id": "1002", "simple": { "limit": 3, "period": 60 } }
+  ]
+
+  // Secrets (set with `wrangler secret put NAME`, never committed):
+  //   ADMIN_TOKEN            - protects /admin/stats
+  //   STRIPE_SECRET_KEY      - enables card top-ups
+  //   STRIPE_WEBHOOK_SECRET  - verifies Stripe webhooks
+}

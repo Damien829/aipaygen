@@ -1,0 +1,37 @@
+{
+  "name": "aipaygen",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "AIPayGen Site Intel: pay-per-call website and company intelligence for AI agents (MCP + HTTP, x402 + credits).",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "db:migrate:local": "wrangler d1 migrations apply aipaygen --local",
+    "db:migrate:remote": "wrangler d1 migrations apply aipaygen --remote",
+    "cf-typegen": "wrangler types"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/server": "2.3.1",
+    "@x402/core": "^2.28.0",
+    "@x402/evm": "^2.28.0",
+    "@x402/extensions": "^2.28.0",
+    "agents": "0.30.0",
+    "hono": "^4.13.13",
+    "node-html-markdown": "^2.0.0",
+    "node-html-parser": "^9.0.5",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261023.1",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.5",
+    "wrangler": "^4.152.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "workerd@1.20261019.1": true
+  }
+}
