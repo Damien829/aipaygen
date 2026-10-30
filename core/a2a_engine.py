@@ -2,11 +2,12 @@
 import sqlite3
 import json
 import os
+from paths import DATA_DIR
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "a2a.db")
+DB_PATH = os.path.join(DATA_DIR, "a2a.db")
 
 
 def _conn():

@@ -4,11 +4,12 @@ import time
 import logging
 import sqlite3
 import os
+from paths import DATA_DIR
 from datetime import datetime, timezone
 
 _log = logging.getLogger("react_agent")
 
-SKILLS_DB_PATH = os.path.join(os.path.dirname(__file__), "skills.db")
+SKILLS_DB_PATH = os.path.join(DATA_DIR, "skills.db")
 
 # Tool descriptions for the agent
 _TOOL_DESCRIPTIONS = {

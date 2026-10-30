@@ -3,9 +3,10 @@ import sqlite3
 import uuid
 import json
 import os
+from paths import DATA_DIR
 from datetime import datetime, timezone
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "referral.db")
+DB_PATH = os.path.join(DATA_DIR, "referral.db")
 
 
 def _conn():

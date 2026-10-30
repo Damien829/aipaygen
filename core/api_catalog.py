@@ -1,9 +1,10 @@
 """SQLite catalog for discovered APIs."""
 import sqlite3
 import os
+from paths import DATA_DIR
 from datetime import datetime, timezone
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "api_catalog.db")
+DB_PATH = os.path.join(DATA_DIR, "api_catalog.db")
 
 
 def _conn():

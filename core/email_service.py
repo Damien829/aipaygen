@@ -3,6 +3,7 @@
 import html as _html
 import logging
 import os
+from paths import DATA_DIR
 import resend
 
 logger = logging.getLogger(__name__)
@@ -137,7 +138,7 @@ def send_deposit_confirmation(api_key: str, amount: float, network: str, tx_hash
     """Send deposit confirmation email (if account has email on file)."""
     try:
         import sqlite3
-        accounts_db = os.path.join(os.path.dirname(__file__), "accounts.db")
+        accounts_db = os.path.join(DATA_DIR, "accounts.db")
         with sqlite3.connect(accounts_db) as conn:
             conn.row_factory = sqlite3.Row
             row = conn.execute("SELECT email FROM accounts WHERE api_key = ?", (api_key,)).fetchone()
@@ -181,7 +182,7 @@ def send_usage_digest(email: str, api_key: str) -> bool:
         top_tools = []
         try:
             import sqlite3
-            db_path = os.path.join(os.path.dirname(__file__), "usage_log.db")
+            db_path = os.path.join(DATA_DIR, "usage_log.db")
             if os.path.exists(db_path):
                 conn = sqlite3.connect(db_path)
                 rows = conn.execute(

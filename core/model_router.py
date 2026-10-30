@@ -63,6 +63,50 @@ def clear_cache():
 
 
 # ---------------------------------------------------------------------------
+# Current Claude models (as of 2026-10). Exact IDs: never add date suffixes.
+# ---------------------------------------------------------------------------
+
+CLAUDE_HAIKU = "claude-haiku-5-5"
+CLAUDE_SONNET = "claude-sonnet-5-5"
+CLAUDE_OPUS = "claude-opus-5-5"
+
+# Claude 5.5 models think by default and reject non-default sampling parameters.
+# v1's prompts and small max_tokens were written for models without thinking, so
+# turn thinking off where the model allows it (Haiku) and keep effort low where
+# it can't be turned off (Sonnet, Opus) so thinking doesn't eat the token budget.
+_CLAUDE_REQUEST_DEFAULTS = {
+    CLAUDE_HAIKU: {"thinking": {"type": "disabled"}},
+    CLAUDE_SONNET: {"output_config": {"effort": "low"}},
+    CLAUDE_OPUS: {"output_config": {"effort": "low"}},
+}
+_CLAUDE_SAMPLING_PARAMS = ("temperature", "top_p", "top_k")
+
+
+def prepare_claude_request(kwargs: dict) -> dict:
+    """Adjust Messages API kwargs for the model they name (in place, and returned):
+    drop sampling parameters current models reject and apply per-model defaults."""
+    defaults = _CLAUDE_REQUEST_DEFAULTS.get(kwargs.get("model"))
+    if defaults is not None:
+        for p in _CLAUDE_SAMPLING_PARAMS:
+            kwargs.pop(p, None)
+        for k, v in defaults.items():
+            kwargs.setdefault(k, dict(v))
+    return kwargs
+
+
+class ClaudeRefusal(Exception):
+    """The model declined the request (stop_reason == "refusal")."""
+
+
+def response_text(msg) -> str:
+    """Text of a Messages API response. The first block is not always text:
+    thinking blocks can come first, so read every text block."""
+    if getattr(msg, "stop_reason", None) == "refusal":
+        raise ClaudeRefusal(getattr(getattr(msg, "stop_details", None), "category", None) or "refusal")
+    return "".join(b.text for b in msg.content if getattr(b, "type", None) == "text")
+
+
+# ---------------------------------------------------------------------------
 # Model registry
 # ---------------------------------------------------------------------------
 
@@ -71,9 +115,9 @@ MODEL_REGISTRY = {
     "llama-local": {
         "canonical_name": "claude-haiku",
         "provider": "anthropic",
-        "model_id": "claude-haiku-4-5-20251001",
-        "input_cost_per_m": 0.80,
-        "output_cost_per_m": 4.0,
+        "model_id": CLAUDE_HAIKU,
+        "input_cost_per_m": 0.10,
+        "output_cost_per_m": 0.50,
         "max_tokens": 1024,
         "vision": False,
         "streaming": True,
@@ -83,9 +127,9 @@ MODEL_REGISTRY = {
     "claude-haiku": {
         "canonical_name": "claude-haiku",
         "provider": "anthropic",
-        "model_id": "claude-haiku-4-5-20251001",
-        "input_cost_per_m": 0.80,
-        "output_cost_per_m": 4.00,
+        "model_id": CLAUDE_HAIKU,
+        "input_cost_per_m": 0.10,   # prompts up to 100K tokens; $0.50 / $2.50 beyond
+        "output_cost_per_m": 0.50,
         "max_tokens": 8192,
         "vision": True,
         "streaming": True,
@@ -95,9 +139,9 @@ MODEL_REGISTRY = {
     "claude-sonnet": {
         "canonical_name": "claude-sonnet",
         "provider": "anthropic",
-        "model_id": "claude-sonnet-4-6-20260320",
-        "input_cost_per_m": 3.00,
-        "output_cost_per_m": 15.00,
+        "model_id": CLAUDE_SONNET,
+        "input_cost_per_m": 2.00,
+        "output_cost_per_m": 10.00,
         "max_tokens": 8192,
         "vision": True,
         "streaming": True,
@@ -107,9 +151,9 @@ MODEL_REGISTRY = {
     "claude-opus": {
         "canonical_name": "claude-opus",
         "provider": "anthropic",
-        "model_id": "claude-opus-4-6-20260320",
-        "input_cost_per_m": 15.00,
-        "output_cost_per_m": 75.00,
+        "model_id": CLAUDE_OPUS,
+        "input_cost_per_m": 4.00,
+        "output_cost_per_m": 20.00,
         "max_tokens": 4096,
         "vision": True,
         "streaming": True,
@@ -1119,9 +1163,9 @@ def _call_anthropic(model_id, messages, system, max_tokens, temperature):
     }
     if system:
         kwargs["system"] = system
-    resp = client.messages.create(**kwargs)
+    resp = client.messages.create(**prepare_claude_request(kwargs))
     return {
-        "text": resp.content[0].text if resp.content else "",
+        "text": response_text(resp),
         "input_tokens": resp.usage.input_tokens,
         "output_tokens": resp.usage.output_tokens,
     }

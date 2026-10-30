@@ -4,14 +4,15 @@ import json
 import uuid
 import threading
 import os
+from paths import DATA_DIR
 import logging
 import requests
 from datetime import datetime, timezone
 
 _log = logging.getLogger("async_jobs")
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "async_jobs.db")
-UPLOADS_DIR = os.path.join(os.path.dirname(__file__), "uploads")
+DB_PATH = os.path.join(DATA_DIR, "async_jobs.db")
+UPLOADS_DIR = os.path.join(DATA_DIR, "uploads")
 
 
 def _conn():

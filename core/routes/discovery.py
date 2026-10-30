@@ -3,6 +3,7 @@ Inspired by APIToll's discovery API and x402 protocol standards."""
 
 import json
 import os
+from paths import DATA_DIR
 import re
 import sqlite3
 from datetime import datetime, timedelta, timezone
@@ -292,7 +293,7 @@ def wallet_analytics():
     if not wallet_id:
         return jsonify({"error": "X-Wallet-ID header or wallet_id param required"}), 400
 
-    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "seller_marketplace.db")
+    db_path = os.path.join(DATA_DIR, "seller_marketplace.db")
     try:
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row

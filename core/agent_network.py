@@ -4,9 +4,10 @@ import sqlite3
 import json
 import uuid
 import os
+from paths import DATA_DIR
 from datetime import datetime, timezone
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "agent_network.db")
+DB_PATH = os.path.join(DATA_DIR, "agent_network.db")
 
 
 def _conn():

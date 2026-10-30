@@ -13,6 +13,7 @@ Usage: python3 security_monitor.py
 import json
 import logging
 import os
+from paths import DATA_DIR
 import sqlite3
 import sys
 import time
@@ -21,8 +22,8 @@ from datetime import datetime, timedelta, timezone
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
 
-ALERTS_DB = os.path.join(SCRIPT_DIR, "alerts.db")
-FUNNEL_DB = os.path.join(SCRIPT_DIR, "funnel.db")
+ALERTS_DB = os.path.join(DATA_DIR, "alerts.db")
+FUNNEL_DB = os.path.join(DATA_DIR, "funnel.db")
 ACCESS_LOG = os.path.join(SCRIPT_DIR, "access.log")
 
 # Thresholds

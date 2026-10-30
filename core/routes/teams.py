@@ -3,6 +3,7 @@
 import csv
 import io
 import os
+from paths import DATA_DIR
 import sqlite3
 from datetime import datetime, timezone
 
@@ -222,7 +223,7 @@ def team_usage_route(team_id):
 
 # ── Usage Export Helpers ─────────────────────────────────────────────────────
 
-_BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+_BASE_DIR = DATA_DIR
 _TOOL_USAGE_DB = os.path.join(_BASE_DIR, "tool_usage.db")
 _COST_PER_CALL = 0.001  # USD
 

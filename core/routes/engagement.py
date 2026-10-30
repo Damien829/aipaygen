@@ -2,6 +2,7 @@
 import logging
 import json
 import os
+from paths import DATA_DIR
 import sqlite3
 import time as _time
 from datetime import datetime, date
@@ -12,7 +13,7 @@ from helpers import require_api_key, call_llm
 _log = logging.getLogger(__name__)
 engagement_bp = Blueprint("engagement", __name__)
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "engagement.db")
+DB_PATH = os.path.join(DATA_DIR, "engagement.db")
 
 
 def _conn():

@@ -4,6 +4,7 @@ import hmac
 import json
 import logging
 import os
+from paths import DATA_DIR
 import secrets
 import sqlite3
 import threading
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 webhooks_bp = Blueprint("webhooks", __name__)
 
-_DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "webhooks.db")
+_DB_PATH = os.path.join(DATA_DIR, "webhooks.db")
 
 SUPPORTED_EVENTS = [
     "trade.opened",

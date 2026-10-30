@@ -3,6 +3,7 @@ import hmac
 import json
 import os
 
+from paths import DATA_DIR
 APP_VERSION = "1.9.5"
 import time as _time
 import hashlib as _hashlib
@@ -141,7 +142,7 @@ def get_client_ip():
 
 
 # ── Payment Logging ──────────────────────────────────────────────────────────
-PAYMENTS_LOG = os.path.join(os.path.dirname(__file__), "payments.jsonl")
+PAYMENTS_LOG = os.path.join(DATA_DIR, "payments.jsonl")
 _payment_log_lock = threading.Lock()
 
 
@@ -187,7 +188,7 @@ def parse_json_from_claude(text):
 
 # ── Response Helpers ─────────────────────────────────────────────────────────
 
-def agent_response(data: dict, endpoint: str, network: str = "eip155:8453", model: str = "claude-haiku-4-5-20251001") -> dict:
+def agent_response(data: dict, endpoint: str, network: str = "eip155:8453", model: str = "claude-haiku-5-5") -> dict:
     """Wrap result with standard agent-friendly metadata."""
     data["_meta"] = {
         "endpoint": endpoint,

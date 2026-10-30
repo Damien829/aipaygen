@@ -3,10 +3,11 @@ import re
 import sqlite3
 import uuid
 import os
+from paths import DATA_DIR
 from datetime import datetime, timezone
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "file_storage.db")
-FILES_DIR = os.path.join(os.path.dirname(__file__), "uploads")
+DB_PATH = os.path.join(DATA_DIR, "file_storage.db")
+FILES_DIR = os.path.join(DATA_DIR, "uploads")
 MAX_FILE_SIZE = 10 * 1024 * 1024   # 10 MB per file
 MAX_TOTAL_MB = 500                  # 500 MB total storage
 

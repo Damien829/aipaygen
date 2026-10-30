@@ -1,6 +1,7 @@
 """APScheduler job definitions — extracted from app.py for modularity."""
 import logging
 import os
+from paths import DATA_DIR
 import time as _time
 import re as _re
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -96,7 +97,7 @@ def init_scheduler(claude_client, call_model_fn, parse_json_fn,
     def _daily_cleanup():
         import sqlite3 as _sql
         try:
-            db = _sql.connect(os.path.join(os.path.dirname(__file__), "billing_audit.db"))
+            db = _sql.connect(os.path.join(DATA_DIR, "billing_audit.db"))
             db.execute("DELETE FROM billing_audit WHERE created_at < datetime('now', '-7 days')")
             db.commit()
             db.execute("VACUUM")

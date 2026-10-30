@@ -3,9 +3,10 @@ import sqlite3
 import uuid
 import json
 import os
+from paths import DATA_DIR
 from datetime import datetime, timezone
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "webhook_relay.db")
+DB_PATH = os.path.join(DATA_DIR, "webhook_relay.db")
 MAX_EVENTS_PER_WEBHOOK = 500
 
 

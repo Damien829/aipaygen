@@ -2,6 +2,7 @@
 import sqlite3
 import json
 import os
+from paths import DATA_DIR
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -12,7 +13,7 @@ import exchange_connectors
 
 _log = logging.getLogger(__name__)
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "trading.db")
+DB_PATH = os.path.join(DATA_DIR, "trading.db")
 
 
 def _conn():

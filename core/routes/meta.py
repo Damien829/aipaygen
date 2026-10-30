@@ -2,6 +2,7 @@
 import hashlib as _hashlib
 import json
 import os
+from paths import DATA_DIR
 import psutil as _psutil
 import requests as _requests
 import time as _time
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 import sqlite3 as _sqlite3
 
-_tool_usage_db = os.path.join(os.path.dirname(os.path.dirname(__file__)), "tool_usage.db")
+_tool_usage_db = os.path.join(DATA_DIR, "tool_usage.db")
 
 def _log_tool_usage(tool_name: str, api_key: str = "free"):
     """Increment usage counter for a tool in tool_usage.db (same schema as mcp_server)."""
@@ -604,7 +605,7 @@ _app_start_time = _time.time()
 _health_cache = {"data": None, "ts": 0}
 
 # Core DBs to check in health endpoints
-_PROJECT_ROOT = os.path.dirname(os.path.dirname(__file__))
+_PROJECT_ROOT = DATA_DIR
 _CORE_DBS = ["api_keys", "skills", "agent_network", "agent_memory", "funnel"]
 
 
@@ -924,7 +925,7 @@ def status_page():
     unique_ips = 0
     count_402 = 0
     try:
-        _project_root = os.path.dirname(os.path.dirname(__file__))
+        _project_root = DATA_DIR
         fdb = os.path.join(_project_root, "funnel.db")
         cutoff = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
         c = _sq.connect(fdb, timeout=2)
@@ -1207,7 +1208,7 @@ def live_stats():
         return jsonify(_stats_cache["data"])
 
     import sqlite3 as _sq
-    _root = os.path.dirname(os.path.dirname(__file__))
+    _root = DATA_DIR
     stats = {"mcp_tools": _MCP_TOOL_COUNT}
 
     # Baseline: 351 keys existed before test suite wiped api_keys.db (session 34)
@@ -1276,7 +1277,7 @@ def api_subscribe():
     if not email or "@" not in email or len(email) > 200:
         return jsonify({"error": "valid email required"}), 400
 
-    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "agent_network.db")
+    db_path = os.path.join(DATA_DIR, "agent_network.db")
     try:
         conn = _sq.connect(db_path, timeout=2)
         conn.execute("""CREATE TABLE IF NOT EXISTS subscribers (
@@ -1323,7 +1324,7 @@ def usage_stats():
     if cached and (now - cached["ts"]) < 60:
         return jsonify(cached["data"])
 
-    _root = os.path.dirname(os.path.dirname(__file__))
+    _root = DATA_DIR
     result: dict = {"key_prefix": api_key[:8] + "..."}
 
     # ── Key metadata from api_keys.db ──────────────────────────────────
@@ -1634,7 +1635,7 @@ def serve_app_assets(path):
     """Serve Expo app assets — fonts go through /static/fonts/ to avoid @ in Cloudflare paths."""
     import os
     from flask import send_from_directory, abort
-    base_dir = os.path.dirname(os.path.dirname(__file__))
+    base_dir = DATA_DIR
     # Font files: serve from clean /static/fonts/ dir (Cloudflare blocks @ in URL paths)
     if path.endswith(".ttf") or path.endswith(".woff") or path.endswith(".woff2"):
         font_name = os.path.basename(path)
@@ -2748,7 +2749,7 @@ tools = [{
 
 <span class="comment"># Claude will autonomously call /research and use the result</span>
 response = client.messages.<span class="fn">create</span>(
-    model=<span class="str">"claude-sonnet-4-6"</span>, max_tokens=<span class="num">1024</span>, tools=tools,
+    model=<span class="str">"claude-sonnet-5-5"</span>, max_tokens=<span class="num">1024</span>, tools=tools,
     messages=[{<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: <span class="str">"Research the latest in fusion energy"</span>}]
 )</code></pre>
   </div>
@@ -3167,7 +3168,7 @@ print(resp.json())'''
             "result": f"<{name} output>",
             "_meta": {
                 "endpoint": endpoint,
-                "model": "claude-sonnet-4-20250514",
+                "model": "claude-haiku-5-5",
                 "cost_usd": price,
             }
         }, indent=2)
@@ -3253,7 +3254,7 @@ def referrals_page():
         from funnel_tracker import _conn as funnel_conn
         import sqlite3 as _sql3
         # Count referral_signup events matching this code
-        fdb = os.path.join(os.path.dirname(os.path.dirname(__file__)), "funnel.db")
+        fdb = os.path.join(DATA_DIR, "funnel.db")
         conn = _sql3.connect(fdb)
         conn.row_factory = _sql3.Row
         row = conn.execute(
@@ -3665,7 +3666,7 @@ def showcase_submit():
 
 # ── Support Ticket System ─────────────────────────────────────────────────────
 
-_support_db = os.path.join(os.path.dirname(os.path.dirname(__file__)), "support.db")
+_support_db = os.path.join(DATA_DIR, "support.db")
 
 
 def _init_support_db():
@@ -3755,7 +3756,7 @@ def support_reply_ticket(ticket_id):
 
 # ── Frontend Conversion Tracking ─────────────────────────────────────────────
 
-_analytics_db = os.path.join(os.path.dirname(os.path.dirname(__file__)), "analytics.db")
+_analytics_db = os.path.join(DATA_DIR, "analytics.db")
 _track_rate = {}  # ip -> (count, window_start)
 
 
@@ -4021,7 +4022,7 @@ def market_list_agent_submit():
     # Telegram notification for new listing
     try:
         telegram_token = open(os.path.expanduser("~/.secrets/telegram_bot_token")).read().strip()
-        owner_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), ".telegram_owner_id")
+        owner_file = os.path.join(DATA_DIR, ".telegram_owner_id")
         if os.path.exists(owner_file):
             chat_id = open(owner_file).read().strip()
             _requests.post(f"https://api.telegram.org/bot{telegram_token}/sendMessage", json={
@@ -4200,7 +4201,7 @@ def report_agent():
     import sqlite3
     data = request.get_json() or {}
     try:
-        db = sqlite3.connect(os.path.join(os.path.dirname(os.path.dirname(__file__)), "support.db"))
+        db = sqlite3.connect(os.path.join(DATA_DIR, "support.db"))
         db.execute("CREATE TABLE IF NOT EXISTS agent_reports (id INTEGER PRIMARY KEY AUTOINCREMENT, listing_id TEXT, reason TEXT, ip TEXT, created_at TEXT)")
         db.execute("INSERT INTO agent_reports (listing_id, reason, ip, created_at) VALUES (?,?,?,?)",
             (data.get("listing_id", ""), data.get("reason", "")[:500], request.remote_addr, datetime.now(timezone.utc).isoformat()))
@@ -4255,7 +4256,7 @@ def subscribe_email():
     _subscribe_rate[ip].append(now)
 
     # Store in DB
-    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "email_subscribers.db")
+    db_path = os.path.join(DATA_DIR, "email_subscribers.db")
     try:
         db = sqlite3.connect(db_path)
         db.execute("CREATE TABLE IF NOT EXISTS email_subscribers (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE, source TEXT, ip TEXT, created_at TEXT)")
@@ -4353,7 +4354,7 @@ def feedback_submit():
     import sqlite3
     data = request.get_json() or {}
     try:
-        db = sqlite3.connect(os.path.join(os.path.dirname(os.path.dirname(__file__)), "analytics.db"))
+        db = sqlite3.connect(os.path.join(DATA_DIR, "analytics.db"))
         db.execute("""CREATE TABLE IF NOT EXISTS user_feedback (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             rating INTEGER, use_cases TEXT, improvement TEXT, review TEXT,
@@ -4378,7 +4379,7 @@ def agent_health_api():
     """Get latest agent health check results."""
     import sqlite3
     try:
-        db = sqlite3.connect(os.path.join(os.path.dirname(os.path.dirname(__file__)), "agent_memory.db"))
+        db = sqlite3.connect(os.path.join(DATA_DIR, "agent_memory.db"))
         db.row_factory = sqlite3.Row
         row = db.execute("SELECT * FROM agent_health_checks ORDER BY id DESC LIMIT 1").fetchone()
         if row:
@@ -4436,7 +4437,7 @@ def contact_page():
     return render_template("services.html")
 
 
-_CONTACT_DB = os.path.join(os.path.dirname(os.path.dirname(__file__)), "contact_submissions.db")
+_CONTACT_DB = os.path.join(DATA_DIR, "contact_submissions.db")
 
 
 def _init_contact_db():

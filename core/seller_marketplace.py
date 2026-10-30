@@ -1,6 +1,7 @@
 """Seller marketplace: third-party API registration, agent wallets with budget
 policies, escrow holds, and settlement. Backed by SQLite."""
 import os
+from paths import DATA_DIR
 import re
 import sqlite3
 import json
@@ -8,7 +9,7 @@ import uuid
 from datetime import datetime, timezone
 from contextlib import contextmanager
 
-_DB_PATH = os.path.join(os.path.dirname(__file__), "seller_marketplace.db")
+_DB_PATH = os.path.join(DATA_DIR, "seller_marketplace.db")
 
 PLATFORM_FEE = 0.03  # 3%
 

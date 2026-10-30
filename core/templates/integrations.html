@@ -156,7 +156,7 @@ def aipaygen_summarize(text: str) -> str:
 from langchain_anthropic import ChatAnthropic
 from langgraph.prebuilt import create_react_agent
 
-llm = ChatAnthropic(model="claude-sonnet-4-20250514")
+llm = ChatAnthropic(model="claude-sonnet-5-5")
 agent = create_react_agent(llm, [aipaygen_research, aipaygen_summarize])
 
 result = agent.invoke({"messages": [("user", "Research quantum computing and summarize")]})
@@ -230,7 +230,7 @@ def aipaygen_analyze(content: str) -> str:
     r = requests.post(f"{BASE}/analyze", json={"content": content}, headers=HEADERS)
     return r.json().get("result", r.text)
 
-config_list = [{"model": "claude-sonnet-4-20250514", "api_type": "anthropic"}]
+config_list = [{"model": "claude-sonnet-5-5", "api_type": "anthropic"}]
 
 assistant = autogen.AssistantAgent(
     name="assistant",

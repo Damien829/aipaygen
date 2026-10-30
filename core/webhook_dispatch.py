@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+from paths import DATA_DIR
 import sqlite3
 import threading
 import time
@@ -11,7 +12,7 @@ import requests
 
 logger = logging.getLogger(__name__)
 
-_DB_PATH = os.environ.get("WEBHOOKS_DB") or os.path.join(os.path.dirname(__file__), "webhook_dispatch.db")
+_DB_PATH = os.environ.get("WEBHOOKS_DB") or os.path.join(DATA_DIR, "webhook_dispatch.db")
 _shared_conn = None  # used for :memory: databases
 
 

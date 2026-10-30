@@ -1,6 +1,7 @@
 """Payment settlement executor — batch settlement for marketplace, A2A, and trading commissions."""
 import sqlite3
 import os
+from paths import DATA_DIR
 import uuid
 import logging
 from datetime import datetime, timezone
@@ -8,7 +9,7 @@ from typing import Optional
 
 _log = logging.getLogger(__name__)
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "settlement.db")
+DB_PATH = os.path.join(DATA_DIR, "settlement.db")
 
 MARKETPLACE_FEE_PCT = 0.05  # 5%
 A2A_FEE_PCT = 0.03          # 3%

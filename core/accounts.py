@@ -1,10 +1,11 @@
 """AiPayGen accounts database — links emails to API keys."""
 
 import os
+from paths import DATA_DIR
 import sqlite3
 from datetime import datetime, timezone
 
-_DB_PATH = os.getenv("ACCOUNTS_DB", os.path.join(os.path.dirname(__file__), "accounts.db"))
+_DB_PATH = os.getenv("ACCOUNTS_DB", os.path.join(DATA_DIR, "accounts.db"))
 _conn = None
 
 

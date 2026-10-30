@@ -3,10 +3,11 @@ import hashlib
 import json
 import sqlite3
 import os
+from paths import DATA_DIR
 import secrets
 from datetime import datetime, timezone
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "api_keys.db")
+DB_PATH = os.path.join(DATA_DIR, "api_keys.db")
 
 _key_cache = {}
 _KEY_CACHE_TTL = 30

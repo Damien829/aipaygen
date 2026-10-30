@@ -1,6 +1,18 @@
 """Global test fixtures — reset shared state between test modules."""
+import atexit
 import os
-import pytest
+import shutil
+import tempfile
+
+# Must run before any app module is imported: every database path is built from
+# AIPAYGEN_DATA_DIR at import time. Tests used to write into the live databases
+# (the 2026-03-30 snapshot has 4,243 fake "credited" deposits from this).
+_TEST_DATA_DIR = tempfile.mkdtemp(prefix="aipaygen-test-data-")
+os.environ["AIPAYGEN_DATA_DIR"] = _TEST_DATA_DIR
+os.environ.pop("AIPAYGEN_RUN_SCHEDULER", None)
+atexit.register(shutil.rmtree, _TEST_DATA_DIR, ignore_errors=True)
+
+import pytest  # noqa: E402
 
 
 # Save original DB paths at import time so we can restore after tests that override them

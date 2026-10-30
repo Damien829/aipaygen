@@ -8,6 +8,7 @@ Runs every 2 hours. 20 actions per run (240/day max).
 All actions are rate-limited, idempotent, and logged.
 """
 import os
+from paths import DATA_DIR
 import json
 import re
 import sqlite3
@@ -20,7 +21,7 @@ from datetime import datetime, timedelta, timezone
 BASE_URL = os.getenv("BASE_URL", "https://api.aipaygen.com")
 WALLET = os.getenv("WALLET_ADDRESS", "0x366D488a48de1B2773F3a21F1A6972715056Cb30")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
-DB_PATH = os.path.join(os.path.dirname(__file__), "discovery_engine.db")
+DB_PATH = os.path.join(DATA_DIR, "discovery_engine.db")
 USER_AGENT = "AiPayGen-OutboundAgent/2.0 (+https://api.aipaygen.com)"
 FETCH_TIMEOUT = 15
 MAX_ACTIONS_PER_RUN = 20

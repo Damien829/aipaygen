@@ -1,9 +1,10 @@
 """In-app notification system. SQLite-backed, per API key."""
 import sqlite3
 import os
+from paths import DATA_DIR
 from datetime import datetime, timezone
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "notifications.db")
+DB_PATH = os.path.join(DATA_DIR, "notifications.db")
 
 
 def _conn():
@@ -66,7 +67,7 @@ def get_unread(api_key: str, limit: int = 20) -> list[dict]:
 def broadcast(event_type: str, message: str):
     """Send a notification to every API key in the system."""
     try:
-        keys_db = os.path.join(os.path.dirname(__file__), "api_keys.db")
+        keys_db = os.path.join(DATA_DIR, "api_keys.db")
         kc = sqlite3.connect(keys_db)
         rows = kc.execute("SELECT key FROM api_keys").fetchall()
         kc.close()

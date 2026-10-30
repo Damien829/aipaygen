@@ -16,7 +16,7 @@ Usage:
     from llama_index.core.agent import ReActAgent
     from llama_index.llms.anthropic import Anthropic
 
-    llm = Anthropic(model="claude-haiku-4-5-20251001")
+    llm = Anthropic(model="claude-haiku-5-5")
     agent = ReActAgent.from_tools(tools, llm=llm, verbose=True)
 
     response = agent.chat("Research quantum computing and give me a summary")

@@ -1,12 +1,14 @@
 """11 autonomous discovery agents that find and catalog APIs."""
 import os
+from model_router import CLAUDE_HAIKU, response_text
+from paths import DATA_DIR
 import re
 import time
 import sqlite3
 from security import guarded_http as requests  # SSRF-safe drop-in for requests
 from api_catalog import upsert_api, log_run_start, log_run_end, DB_PATH as CATALOG_DB
 
-OUTBOUND_DB = os.path.join(os.path.dirname(__file__), "discovery_engine.db")
+OUTBOUND_DB = os.path.join(DATA_DIR, "discovery_engine.db")
 
 APIFY_TOKEN = os.getenv("APIFY_TOKEN")
 
@@ -15,7 +17,7 @@ def score_api_with_claude(claude_client, name, desc, base_url, auth_required, do
     """Ask Claude Haiku to score an API's utility (0-10)."""
     try:
         msg = claude_client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model=CLAUDE_HAIKU,
             max_tokens=100,
             system="You are an API quality evaluator. Reply with a single number 0-10 only.",
             messages=[{
@@ -28,7 +30,7 @@ def score_api_with_claude(claude_client, name, desc, base_url, auth_required, do
                 ),
             }],
         )
-        return float(msg.content[0].text.strip().split()[0])
+        return float(response_text(msg).strip().split()[0])
     except Exception:
         return 5.0
 

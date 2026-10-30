@@ -6,6 +6,7 @@ Scheduled via APScheduler. Each scout logs to scout_outreach table
 in discovery_engine.db with dedup/cooldown.
 """
 import os
+from paths import DATA_DIR
 import json
 import logging
 import sqlite3
@@ -20,8 +21,8 @@ from datetime import datetime, timedelta, timezone
 
 BASE_URL = os.getenv("BASE_URL", "https://api.aipaygen.com")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
-DB_PATH = os.path.join(os.path.dirname(__file__), "discovery_engine.db")
-SKILLS_DB_PATH = os.path.join(os.path.dirname(__file__), "skills.db")
+DB_PATH = os.path.join(DATA_DIR, "discovery_engine.db")
+SKILLS_DB_PATH = os.path.join(DATA_DIR, "skills.db")
 USER_AGENT = "AiPayGen-DiscoveryScout/1.0 (+https://api.aipaygen.com)"
 FETCH_TIMEOUT = 15
 
@@ -1180,6 +1181,7 @@ def record_scout_conversion(ref_code, caller_ip="", user_agent="", endpoint=""):
 
 def get_scout_stats():
     """Aggregated stats across all scouts."""
+    init_scout_db()  # a fresh deployment has no tables until a scout has run
     with _scout_conn() as c:
         total = c.execute("SELECT COUNT(*) FROM scout_outreach").fetchone()[0]
         by_scout = c.execute(
@@ -1200,6 +1202,7 @@ def get_scout_stats():
 
 def get_scout_status():
     """Current status of all scouts (last run, next scheduled, etc.)."""
+    init_scout_db()  # a fresh deployment has no tables until a scout has run
     with _scout_conn() as c:
         scouts = c.execute(
             "SELECT scout, MAX(created_at) as last_run, COUNT(*) as total_actions "

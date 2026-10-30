@@ -1,4 +1,6 @@
 """TF-IDF Skills Search Engine — lightweight, no dependencies beyond stdlib"""
+import os
+from paths import DATA_DIR
 import math
 import re
 import sqlite3
@@ -29,7 +31,7 @@ def _tokenize(text):
 
 
 class SkillsSearchEngine:
-    def __init__(self, db_path="skills.db"):
+    def __init__(self, db_path=os.path.join(DATA_DIR, "skills.db")):
         self.db_path = db_path
         self.index = {}          # term -> {doc_id: tf-idf weight}
         self.doc_norms = {}      # doc_id -> L2 norm of doc vector

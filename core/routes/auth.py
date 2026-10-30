@@ -2,6 +2,7 @@
 
 import json
 import os
+from paths import DATA_DIR
 import re
 import subprocess
 import threading
@@ -36,7 +37,7 @@ BASE_URL = os.getenv("BASE_URL", "https://api.aipaygen.com")
 if STRIPE_SECRET_KEY:
     _stripe.api_key = STRIPE_SECRET_KEY
 
-_NOTIFY_LOG = os.path.join(os.path.dirname(os.path.dirname(__file__)), "checkout_alerts.log")
+_NOTIFY_LOG = os.path.join(DATA_DIR, "checkout_alerts.log")
 
 # In-memory mapping of Stripe session_id -> api_key for race-condition-free key retrieval.
 # Written AFTER DB insert but BEFORE Stripe metadata update, so /auth/key-status
@@ -50,7 +51,7 @@ _SESSION_KEY_TTL = 86400  # 24 hours
 # Simple table: (id, email, api_key, email_type, send_after, sent, created_at)
 # Processed by cron calling /auth/_process-email-queue every 30 min.
 
-_EMAIL_QUEUE_DB = os.path.join(os.path.dirname(os.path.dirname(__file__)), "email_queue.db")
+_EMAIL_QUEUE_DB = os.path.join(DATA_DIR, "email_queue.db")
 
 
 def _init_email_queue():
@@ -176,7 +177,7 @@ import sqlite3
 import jwt as _jwt
 
 _JWT_SECRET = os.environ.get("JWT_SECRET", "aipaygen-jwt-2026")
-_ACCOUNTS_DB = os.getenv("ACCOUNTS_DB", os.path.join(os.path.dirname(os.path.dirname(__file__)), "accounts.db"))
+_ACCOUNTS_DB = os.getenv("ACCOUNTS_DB", os.path.join(DATA_DIR, "accounts.db"))
 
 
 def _ensure_password_columns():
@@ -1237,7 +1238,7 @@ def redeem_refund():
         return jsonify({"error": "code and api_key required"}), 400
 
     import sqlite3 as _sq
-    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "refunds.db")
+    db_path = os.path.join(DATA_DIR, "refunds.db")
     conn = _sq.connect(db_path)
     conn.row_factory = _sq.Row
     row = conn.execute("SELECT * FROM refund_credits WHERE code = ? AND redeemed = 0", (code,)).fetchone()
@@ -1419,7 +1420,7 @@ def auth_usage_digest():
     if not email:
         try:
             import sqlite3
-            accounts_db = os.path.join(os.path.dirname(os.path.dirname(__file__)), "accounts.db")
+            accounts_db = os.path.join(DATA_DIR, "accounts.db")
             conn = sqlite3.connect(accounts_db)
             conn.row_factory = sqlite3.Row
             row = conn.execute(
@@ -1466,7 +1467,7 @@ def _get_usage_data(api_key):
     if not status:
         return None
 
-    base_dir = os.path.dirname(os.path.dirname(__file__))
+    base_dir = DATA_DIR
     tool_usage_db = os.path.join(base_dir, "tool_usage.db")
 
     # Top tools for this key

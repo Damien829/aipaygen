@@ -1,12 +1,13 @@
 """Uptime tracker — records health check results in SQLite, provides uptime stats."""
 import os
+from paths import DATA_DIR
 import sqlite3
 import time
 import logging
 
 logger = logging.getLogger(__name__)
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "uptime.db")
+DB_PATH = os.path.join(DATA_DIR, "uptime.db")
 
 
 def _conn():

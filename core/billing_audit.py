@@ -1,10 +1,11 @@
 """Billing audit log — every billing event recorded for dispute resolution."""
 import sqlite3
 import os
+from paths import DATA_DIR
 import hashlib
 from datetime import datetime, timezone
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "billing_audit.db")
+DB_PATH = os.path.join(DATA_DIR, "billing_audit.db")
 
 
 def _conn():

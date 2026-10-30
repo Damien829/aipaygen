@@ -2,12 +2,13 @@
 import hashlib
 import logging
 import os
+from paths import DATA_DIR
 import sqlite3
 from datetime import datetime, timedelta, timezone
 
 _log = logging.getLogger(__name__)
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "ab_tests.db")
+DB_PATH = os.path.join(DATA_DIR, "ab_tests.db")
 
 
 def _conn():

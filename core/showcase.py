@@ -1,10 +1,11 @@
 """Showcase DB — captures and serves notable API usage as social proof."""
 import os
+from paths import DATA_DIR
 import sqlite3
 import time
 from datetime import datetime, timezone
 
-DB_PATH = os.environ.get("SHOWCASE_DB", os.path.join(os.path.dirname(__file__), "showcase.db"))
+DB_PATH = os.environ.get("SHOWCASE_DB", os.path.join(DATA_DIR, "showcase.db"))
 
 # For in-memory DBs, keep a single connection alive
 _memory_conn = None

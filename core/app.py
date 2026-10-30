@@ -1,5 +1,6 @@
 import logging
 import os
+from paths import DATA_DIR
 import json
 import uuid
 import threading
@@ -79,7 +80,7 @@ from discovery_engine import (
     track_cost, get_daily_cost, is_cost_throttled,
 )
 from funnel_tracker import log_event as funnel_log_event, get_funnel_stats
-from model_router import call_model, list_models, get_model_config, calculate_cost, resolve_model_name, ModelNotFoundError
+from model_router import call_model, list_models, get_model_config, calculate_cost, resolve_model_name, ModelNotFoundError, CLAUDE_HAIKU, prepare_claude_request
 from agent_identity import (
     generate_challenge, verify_challenge, verify_jwt,
     InvalidSignatureError, ChallengeExpiredError,
@@ -132,8 +133,8 @@ def _is_ip_banned(ip: str) -> bool:
 
 # ── Cost-Aware Model Selection ────────────────────────────────────────────────
 DAILY_COST_LIMIT_USD = float(os.getenv("DAILY_COST_LIMIT_USD", "10.0"))
-_DEFAULT_MODEL = "claude-haiku-4-5-20251001"
-_THROTTLE_MODEL = "claude-haiku-4-5-20251001"  # already haiku; future: could cap max_tokens
+_DEFAULT_MODEL = CLAUDE_HAIKU
+_THROTTLE_MODEL = CLAUDE_HAIKU  # already haiku; future: could cap max_tokens
 
 def _get_model(preferred: str = None) -> str:
     """Return the model to use. Falls back to haiku if daily cost exceeded."""
@@ -168,7 +169,7 @@ app.config["PREFERRED_URL_SCHEME"] = "https"
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024  # 10MB max request body
 def _get_or_create_secret():
-    secret_file = os.path.join(os.path.dirname(__file__), '.flask_secret')
+    secret_file = os.path.join(DATA_DIR, '.flask_secret')
     if os.path.exists(secret_file):
         with open(secret_file) as f:
             return f.read().strip()
@@ -206,7 +207,7 @@ app.logger.setLevel(_logging.INFO)
 _logging.root.handlers = [_handler]
 _logging.root.setLevel(_logging.INFO)
 
-PAYMENTS_LOG = os.path.join(os.path.dirname(__file__), "payments.jsonl")
+PAYMENTS_LOG = os.path.join(DATA_DIR, "payments.jsonl")
 ADMIN_SECRET = os.getenv("ADMIN_SECRET", "")
 
 import functools
@@ -215,7 +216,7 @@ import re as _re
 
 
 # ── Refund credits table (for 500 errors after payment) ──────────────────────
-_refund_db_path = os.path.join(os.path.dirname(__file__), "refunds.db")
+_refund_db_path = os.path.join(DATA_DIR, "refunds.db")
 
 def _init_refund_db():
     import sqlite3
@@ -1631,9 +1632,9 @@ class _TrackedMessages:
     def __init__(self, messages):
         self._messages = messages
     def create(self, *args, **kwargs):
-        msg = self._messages.create(*args, **kwargs)
+        endpoint = kwargs.pop("_endpoint", "unknown")  # ours, not an API parameter
+        msg = self._messages.create(*args, **prepare_claude_request(kwargs))
         try:
-            endpoint = kwargs.get("_endpoint", "unknown")
             track_cost(endpoint, msg.model, msg.usage.input_tokens, msg.usage.output_tokens)
         except Exception:
             pass
@@ -1686,7 +1687,7 @@ bootstrap_all_agents()
 
 # Register all DB paths for weekly maintenance vacuum
 import glob as _glob
-_db_files = _glob.glob(os.path.join(os.path.dirname(__file__), "*.db"))
+_db_files = _glob.glob(os.path.join(DATA_DIR, "*.db"))
 register_db_paths(_db_files)
 
 # Enable WAL mode on all SQLite databases for better concurrent read performance
@@ -1699,20 +1700,25 @@ for _dbf in _db_files:
     except Exception as e:
         _logging.getLogger(__name__).warning("Failed to enable WAL on %s: %s", _dbf, e)
 
-# Scheduler now in scheduler.py — all jobs registered there
+# Scheduler now in scheduler.py — all jobs registered there.
+# Background jobs (settlements, renewals, trading, webhooks) must run in exactly
+# one process. Web workers never start them: every gunicorn worker used to run its
+# own copy, so jobs like settlement ran in parallel. Run `python run_scheduler.py`
+# once per deployment instead; it sets AIPAYGEN_RUN_SCHEDULER=1.
 from scheduler import init_scheduler, get_scheduler
 _scheduler = get_scheduler()
-init_scheduler(
-    claude_client=claude,
-    call_model_fn=call_model,
-    parse_json_fn=parse_json_from_claude,
-    run_hourly_fn=None,       # DISABLED — costs API credits with $0 revenue
-    run_daily_fn=None,        # DISABLED — re-enable when revenue covers costs
-    run_weekly_fn=None,       # DISABLED — re-enable when revenue covers costs
-    run_canary_fn=run_canary, # Keep — lightweight health check
-    generate_blog_fn=None,    # DISABLED — costs API credits
-    run_economy_fn=None,
-)
+if os.getenv("AIPAYGEN_RUN_SCHEDULER") == "1":
+    init_scheduler(
+        claude_client=claude,
+        call_model_fn=call_model,
+        parse_json_fn=parse_json_from_claude,
+        run_hourly_fn=None,       # DISABLED — costs API credits with $0 revenue
+        run_daily_fn=None,        # DISABLED — re-enable when revenue covers costs
+        run_weekly_fn=None,       # DISABLED — re-enable when revenue covers costs
+        run_canary_fn=run_canary, # Keep — lightweight health check
+        generate_blog_fn=None,    # DISABLED — costs API credits
+        run_economy_fn=None,
+    )
 
 
 # agent_response now in helpers.py (imported at top)
@@ -2328,7 +2334,7 @@ def models_outcomes():
 
 
 # ── Skills DB + Search Engine (shared state for blueprints) ────────────────
-_skills_db_path = os.path.join(os.path.dirname(__file__), "skills.db")
+_skills_db_path = os.path.join(DATA_DIR, "skills.db")
 from skills_search import SkillsSearchEngine
 _skills_engine = SkillsSearchEngine(_skills_db_path)
 _discovery_jobs: dict = {}

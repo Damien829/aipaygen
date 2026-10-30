@@ -2,11 +2,12 @@
 
 import json
 import os
+from paths import DATA_DIR
 import sqlite3
 import uuid
 from datetime import datetime, timedelta, timezone
 
-SESSIONS_DB = os.environ.get("SESSIONS_DB", os.path.join(os.path.dirname(os.path.abspath(__file__)), "sessions.db"))
+SESSIONS_DB = os.environ.get("SESSIONS_DB", os.path.join(DATA_DIR, "sessions.db"))
 
 _conn = None
 

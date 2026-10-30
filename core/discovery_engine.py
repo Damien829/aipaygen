@@ -10,6 +10,8 @@ All actions are rate-limited, idempotent, and logged.
 """
 import logging
 import os
+from model_router import CLAUDE_HAIKU, response_text
+from paths import DATA_DIR
 import json
 import sqlite3
 import time
@@ -20,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 BASE_URL = os.getenv("BASE_URL", "https://api.aipaygen.com")
-DB_PATH = os.path.join(os.path.dirname(__file__), "discovery_engine.db")
+DB_PATH = os.path.join(DATA_DIR, "discovery_engine.db")
 
 MAX_PRS_PER_DAY = 3      # don't spam GitHub
 MAX_PINGS_PER_HOUR = 10  # directory pings
@@ -401,11 +403,11 @@ Focus on the "{endpoint}" endpoint category. Make examples concrete and copy-pas
 Return only the blog post content in clean HTML (no doctype, just article body tags)."""
 
     msg = claude_client.messages.create(
-        model="claude-haiku-4-5-20251001",
+        model=CLAUDE_HAIKU,
         max_tokens=2000,
         messages=[{"role": "user", "content": prompt}]
     )
-    return msg.content[0].text
+    return response_text(msg)
 
 
 def generate_all_blog_posts(claude_client, force: bool = False):
@@ -646,11 +648,11 @@ End with: "Try it free at https://api.aipaygen.com — 1 free call/day, no signu
 Return only clean HTML article body (no doctype/head tags)."""
 
             msg = claude_client.messages.create(
-                model="claude-haiku-4-5-20251001",
+                model=CLAUDE_HAIKU,
                 max_tokens=1500,
                 messages=[{"role": "user", "content": prompt}]
             )
-            content = msg.content[0].text
+            content = response_text(msg)
             now = datetime.now(timezone.utc).isoformat()
             blog_title = f"{title} — How to Use AI Agents for This"
             with _conn() as c:

@@ -4,13 +4,14 @@ import logging
 import re as _re
 import sqlite3
 import os
+from paths import DATA_DIR
 from datetime import datetime, timedelta, timezone
 
 import requests
 
 _log = logging.getLogger(__name__)
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "funnel.db")
+DB_PATH = os.path.join(DATA_DIR, "funnel.db")
 
 # IPs to exclude from tracking (localhost / cron noise)
 _IGNORE_IPS = {"127.0.0.1", "::1", "localhost", ""}

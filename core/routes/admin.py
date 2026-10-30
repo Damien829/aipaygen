@@ -5,6 +5,8 @@ costs, and miscellaneous admin endpoints — extracted from app.py as a Blueprin
 
 import hmac
 import os
+from model_router import CLAUDE_HAIKU, response_text
+from paths import DATA_DIR
 import re as _re
 import json
 import time
@@ -71,10 +73,10 @@ claude = None
 call_model = None
 parse_json = None
 
-PAYMENTS_LOG = os.path.join(os.path.dirname(os.path.dirname(__file__)), "payments.jsonl")
+PAYMENTS_LOG = os.path.join(DATA_DIR, "payments.jsonl")
 DAILY_COST_LIMIT_USD = float(os.getenv("DAILY_COST_LIMIT_USD", "10.0"))
-_DEFAULT_MODEL = "claude-haiku-4-5-20251001"
-_THROTTLE_MODEL = "claude-haiku-4-5-20251001"
+_DEFAULT_MODEL = CLAUDE_HAIKU
+_THROTTLE_MODEL = CLAUDE_HAIKU
 
 INDEXNOW_KEY = os.getenv("INDEXNOW_KEY", "aipaygen2026indexnow")
 DEVTO_API_KEY = os.getenv("DEVTO_API_KEY", "")
@@ -301,7 +303,7 @@ def funnel_dashboard():
         key_stats_html = '<tr><td colspan="5" style="color:#555">Error loading key stats</td></tr>'
 
     # Read checkout alerts
-    alert_log = os.path.join(os.path.dirname(os.path.dirname(__file__)), "checkout_alerts.log")
+    alert_log = os.path.join(DATA_DIR, "checkout_alerts.log")
     alerts_html = ""
     try:
         with open(alert_log) as f:
@@ -360,7 +362,7 @@ def funnel_dashboard():
 
     # ── Fetch extra data for unified dashboard ────────────────────────────
     from datetime import timedelta as _td
-    _base_dir = os.path.dirname(os.path.dirname(__file__))
+    _base_dir = DATA_DIR
     _keys_db = os.path.join(_base_dir, "api_keys.db")
     _tool_usage_db = os.path.join(_base_dir, "tool_usage.db")
     _now = datetime.now(timezone.utc)
@@ -1200,7 +1202,7 @@ def admin_funnel_enhanced():
     import sqlite3 as _sq
 
     days = min(max(request.args.get("days", 30, type=int), 1), 365)
-    base_dir = os.path.dirname(os.path.dirname(__file__))
+    base_dir = DATA_DIR
     funnel_db = os.path.join(base_dir, "funnel.db")
     keys_db = os.path.join(base_dir, "api_keys.db")
 
@@ -1596,7 +1598,7 @@ def _auto_complete_tasks():
                     "content": f"Complete this task as {agent_id}:\n\nTitle: {title}\n\nDescription: {desc}\n\nProvide a concise, useful result."
                 }]
             )
-            result_text = msg.content[0].text
+            result_text = response_text(msg)
             # Track cost
             track_cost(f"economy/{agent_id}", msg.model, msg.usage.input_tokens, msg.usage.output_tokens)
             complete_task(task_id, agent_id, result_text)
@@ -2059,7 +2061,7 @@ def admin_export_data():
     import io
 
     export_type = request.args.get("type", "all")
-    base_dir = os.path.dirname(os.path.dirname(__file__))
+    base_dir = DATA_DIR
     output = io.StringIO()
 
     if export_type in ("keys", "all"):
@@ -2144,7 +2146,7 @@ def admin_analytics():
     """Comprehensive analytics dashboard with revenue, users, usage, funnel, tools, activity, response times, and geo."""
     from datetime import timedelta
 
-    base_dir = os.path.dirname(os.path.dirname(__file__))
+    base_dir = DATA_DIR
     keys_db = os.path.join(base_dir, "api_keys.db")
     funnel_db = os.path.join(base_dir, "funnel.db")
     tool_usage_db = os.path.join(base_dir, "tool_usage.db")

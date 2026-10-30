@@ -1,6 +1,7 @@
 # eas_reputation.py
 """On-chain reputation attestations via Ethereum Attestation Service on Base."""
 import os
+from paths import DATA_DIR
 import json
 import sqlite3
 from datetime import datetime, timezone
@@ -14,7 +15,7 @@ REPUTATION_SCHEMA_UID = os.environ.get("EAS_SCHEMA_UID", "")
 
 BASE_RPC = os.environ.get("BASE_RPC_URL", "https://mainnet.base.org")
 
-_DB_PATH = os.path.join(os.path.dirname(__file__), "eas_reputation.db")
+_DB_PATH = os.path.join(DATA_DIR, "eas_reputation.db")
 
 
 def _conn():

@@ -1,10 +1,11 @@
 """Encrypted credential vault for external API keys. Stored in api_catalog.db."""
 import os
+from paths import DATA_DIR
 import sqlite3
 import hashlib
 import base64
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "api_catalog.db")
+DB_PATH = os.path.join(DATA_DIR, "api_catalog.db")
 
 
 def _get_fernet():

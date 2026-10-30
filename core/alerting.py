@@ -1,5 +1,6 @@
 """Alerting system — tracks service issues and sends notifications."""
 import os
+from paths import DATA_DIR
 import sqlite3
 import time
 import logging
@@ -7,7 +8,7 @@ import threading
 
 logger = logging.getLogger(__name__)
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "alerts.db")
+DB_PATH = os.path.join(DATA_DIR, "alerts.db")
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "")
 _consecutive_failures = 0
 _alert_lock = threading.Lock()

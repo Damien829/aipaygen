@@ -1,11 +1,12 @@
 """SQLite-backed crypto deposit records, addresses, and pending intents."""
 
 import os
+from paths import DATA_DIR
 import sqlite3
 import time
 from datetime import datetime, timezone
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "crypto_deposits.db")
+DB_PATH = os.path.join(DATA_DIR, "crypto_deposits.db")
 
 # ---------------------------------------------------------------------------
 # Config from env

@@ -9,6 +9,7 @@ __version__ = "1.9.0"
 
 import sys
 import os
+from paths import DATA_DIR
 import functools
 import hashlib
 import json as _json
@@ -59,7 +60,7 @@ from notifications import create_notification as _create_notification
 from skills_search import SkillsSearchEngine
 
 # ── Skills search engine (direct, no HTTP round-trip) ────────────────────────
-_skills_db_path = os.path.join(os.path.dirname(__file__), "..", "skills.db")
+_skills_db_path = os.path.join(DATA_DIR, "skills.db")
 _skills_engine = SkillsSearchEngine(_skills_db_path)
 
 # ── FastMCP instance ─────────────────────────────────────────────────────────
@@ -89,7 +90,7 @@ mcp = FastMCP(
 )
 
 # ── Tool Usage Tracking ──────────────────────────────────────────────────────
-_tool_usage_db = os.path.join(os.path.dirname(__file__), "..", "tool_usage.db")
+_tool_usage_db = os.path.join(DATA_DIR, "tool_usage.db")
 
 
 def _init_tool_usage_db():

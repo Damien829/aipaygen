@@ -2,6 +2,7 @@
 """AiPayGen Marketplace Telegram Bot — manage your marketplace from your phone."""
 import json
 import os
+from paths import DATA_DIR
 import signal
 import subprocess
 import sys
@@ -18,7 +19,7 @@ TOKEN_FILE = os.path.expanduser("~/.secrets/telegram_bot_token")
 TOKEN = open(TOKEN_FILE).read().strip() if os.path.exists(TOKEN_FILE) else os.getenv("TELEGRAM_BOT_TOKEN", "")
 API = f"https://api.telegram.org/bot{TOKEN}"
 BASE = "http://127.0.0.1:5001"
-DB_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_DIR = DATA_DIR
 
 # Only allow your Telegram user ID (set on first /start)
 OWNER_FILE = os.path.join(DB_DIR, ".telegram_owner_id")

@@ -3,13 +3,14 @@ import json
 import uuid
 import sqlite3
 import os
+from paths import DATA_DIR
 from datetime import datetime, timezone
 from typing import Optional
 
 import ta_indicators
 import exchange_connectors
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "trading.db")
+DB_PATH = os.path.join(DATA_DIR, "trading.db")
 
 
 def _conn():

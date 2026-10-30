@@ -2,6 +2,7 @@
 
 import json
 import os
+from paths import DATA_DIR
 import sqlite3
 import uuid
 from datetime import datetime, timezone
@@ -23,7 +24,7 @@ _BATCH_HANDLERS = None
 _skills_db_path = None
 _skills_engine = None
 
-DB_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "agent_builder.db")
+DB_PATH = os.path.join(DATA_DIR, "agent_builder.db")
 
 
 def init_builder_bp(skills_db_path, skills_engine, batch_handlers):

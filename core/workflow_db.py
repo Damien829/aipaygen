@@ -1,12 +1,13 @@
 """Workflow and marketplace database."""
 import sqlite3
 import os
+from paths import DATA_DIR
 import json
 import logging
 from datetime import datetime
 
 _log = logging.getLogger(__name__)
-_DB_PATH = os.path.join(os.path.dirname(__file__), "workflows.db")
+_DB_PATH = os.path.join(DATA_DIR, "workflows.db")
 
 
 def _connect():

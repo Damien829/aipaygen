@@ -6,7 +6,8 @@ import json
 import sqlite3
 import os
 
-DB_PATH = "/home/damien809/agent-service/skills.db"
+from paths import DATA_DIR
+DB_PATH = os.path.join(DATA_DIR, "skills.db")
 
 def schema(desc):
     return json.dumps({

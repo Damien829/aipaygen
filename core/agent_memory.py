@@ -2,9 +2,10 @@
 import sqlite3
 import json
 import os
+from paths import DATA_DIR
 from datetime import datetime, timedelta, timezone
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "agent_memory.db")
+DB_PATH = os.path.join(DATA_DIR, "agent_memory.db")
 
 
 def _conn():

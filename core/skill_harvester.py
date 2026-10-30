@@ -18,6 +18,7 @@ import argparse
 import json
 import logging
 import os
+from paths import DATA_DIR
 import re
 import sqlite3
 import time
@@ -29,8 +30,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 log = logging.getLogger("skill_harvester")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SKILLS_DB = os.path.join(BASE_DIR, "skills.db")
-HARVEST_DB = os.path.join(BASE_DIR, "harvest_log.db")
+SKILLS_DB = os.path.join(DATA_DIR, "skills.db")
+HARVEST_DB = os.path.join(DATA_DIR, "harvest_log.db")
 
 RATE_LIMIT_DELAY = 1.0  # seconds between requests per domain
 FETCH_TIMEOUT = 30
