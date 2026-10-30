@@ -1,6 +1,7 @@
 """Billing audit log — every billing event recorded for dispute resolution."""
 import sqlite3
 import os
+from security import hash_ip
 from paths import DATA_DIR
 import hashlib
 from datetime import datetime, timezone
@@ -47,7 +48,7 @@ def _mask_key(key: str) -> str:
 
 
 def _hash_ip(ip: str) -> str:
-    return hashlib.sha256((ip or "unknown").encode()).hexdigest()[:16]
+    return hash_ip(ip)
 
 
 def log_audit(event_type: str, api_key: str = "", amount_usd: float = 0.0,

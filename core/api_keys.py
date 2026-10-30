@@ -3,6 +3,7 @@ import hashlib
 import json
 import sqlite3
 import os
+from security import hash_ip
 from paths import DATA_DIR
 import secrets
 from datetime import datetime, timezone
@@ -505,7 +506,7 @@ def mark_stripe_event_processed(event_id: str):
 
 def has_received_trial_credits(ip: str) -> bool:
     """Check if an IP has already received trial credits."""
-    ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:32]
+    ip_hash = hash_ip(ip, 32)
     with _conn() as c:
         row = c.execute(
             "SELECT ip_hash FROM trial_credits_used WHERE ip_hash = ?",
@@ -516,7 +517,7 @@ def has_received_trial_credits(ip: str) -> bool:
 
 def mark_trial_credits_used(ip: str):
     """Mark that an IP has received trial credits."""
-    ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:32]
+    ip_hash = hash_ip(ip, 32)
     now = datetime.now(timezone.utc).isoformat()
     with _conn() as c:
         c.execute(
@@ -529,7 +530,7 @@ def mark_trial_credits_used(ip: str):
 
 def check_key_gen_rate(ip: str, max_per_day: int = 5) -> bool:
     """Check if IP can generate another key today. Returns True if allowed."""
-    ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:32]
+    ip_hash = hash_ip(ip, 32)
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     with _conn() as c:
         row = c.execute(
@@ -543,7 +544,7 @@ def check_key_gen_rate(ip: str, max_per_day: int = 5) -> bool:
 
 def record_key_gen(ip: str):
     """Record a key generation for rate limiting."""
-    ip_hash = hashlib.sha256(ip.encode()).hexdigest()[:32]
+    ip_hash = hash_ip(ip, 32)
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     with _conn() as c:
         c.execute(

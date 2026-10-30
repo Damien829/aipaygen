@@ -3,6 +3,7 @@ import hmac
 import json
 import os
 
+from security import hash_ip
 from paths import DATA_DIR
 APP_VERSION = "1.9.5"
 import time as _time
@@ -151,7 +152,7 @@ def log_payment(endpoint, amount_usd, caller_ip, request_id="", payment_type="x4
         "ts": datetime.now(timezone.utc).isoformat(),
         "endpoint": endpoint,
         "amount_usd": amount_usd,
-        "ip": _hashlib.sha256(caller_ip.encode()).hexdigest()[:16],
+        "ip": hash_ip(caller_ip),
         "request_id": request_id,
         "payment_type": payment_type,
         "tx_hash": tx_hash,
@@ -288,7 +289,7 @@ def call_llm(messages, system="", max_tokens=1024, endpoint="unknown", model_ove
 
     # ── Response cache: same prompt → same result within 60s ──────────────
     cache_input = f"{model_name}:{system}:{str(messages)}"
-    cache_key = f"llm:{hashlib.md5(cache_input.encode()).hexdigest()}"
+    cache_key = f"llm:{hashlib.md5(cache_input.encode(), usedforsecurity=False).hexdigest()}"
     cached = cache_get(cache_key)
     if cached is not None:
         cached["_cached"] = True

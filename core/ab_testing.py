@@ -44,7 +44,7 @@ def get_variant(test_name: str, visitor_id: str) -> str:
     """Return 'A' or 'B' deterministically based on hash of test_name + visitor_id."""
     if not visitor_id:
         return "A"
-    h = hashlib.md5(f"{test_name}:{visitor_id}".encode()).hexdigest()
+    h = hashlib.md5(f"{test_name}:{visitor_id}".encode(), usedforsecurity=False).hexdigest()
     return "B" if int(h, 16) % 2 == 1 else "A"
 
 

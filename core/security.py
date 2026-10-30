@@ -382,6 +382,38 @@ def safe_fetch(url: str, headers: dict = None, timeout: int = 15,
 
 # ── Input Sanitization ─────────────────────────────────────────────────
 
+def mask_secret(value: str) -> str:
+    """API keys and tokens for logs: enough to recognise, not enough to use."""
+    if not value or len(value) < 12:
+        return "***"
+    return f"{value[:6]}…{value[-4:]}"
+
+
+_ip_hash_warned = False
+
+
+def hash_ip(ip: str, length: int = 16) -> str:
+    """Pseudonymous IP for logs and abuse tracking.
+
+    A plain SHA-256 of an IPv4 address is reversible by trying all 2^32 of them,
+    so set AIPAYGEN_IP_HASH_SECRET (a long random string) in production to key the
+    hash. Without it this falls back to the unkeyed hash v1 used, so existing
+    trial-abuse records still match until the secret is set.
+    """
+    global _ip_hash_warned
+    data = (ip or "unknown").encode()
+    secret = os.getenv("AIPAYGEN_IP_HASH_SECRET", "")
+    if secret:
+        import hmac
+        digest = hmac.new(secret.encode(), data, "sha256").hexdigest()
+    else:
+        if not _ip_hash_warned:
+            logger.warning("AIPAYGEN_IP_HASH_SECRET is not set; IP hashes are reversible")
+            _ip_hash_warned = True
+        digest = __import__("hashlib").sha256(data).hexdigest()
+    return digest[:length]
+
+
 def sanitize_html(text: str) -> str:
     """Escape HTML special characters."""
     return html.escape(str(text), quote=True)

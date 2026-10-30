@@ -27,7 +27,7 @@ def data_wikipedia():
     q = request.args.get("q", "").strip()
     if not q:
         return jsonify({"error": "q required (search term or article title)"}), 400
-    ck = f"wiki:{_hashlib.md5(q.encode()).hexdigest()}"
+    ck = f"wiki:{_hashlib.md5(q.encode(), usedforsecurity=False).hexdigest()}"
     cached = _cache_get(ck)
     if cached:
         return jsonify(cached)
@@ -79,7 +79,7 @@ def data_arxiv():
     limit = min(int(request.args.get("limit", 5)), 20)
     if not q:
         return jsonify({"error": "q required"}), 400
-    ck = f"arxiv:{_hashlib.md5(f'{q}{limit}'.encode()).hexdigest()}"
+    ck = f"arxiv:{_hashlib.md5(f'{q}{limit}'.encode(), usedforsecurity=False).hexdigest()}"
     cached = _cache_get(ck)
     if cached:
         return jsonify(cached)
@@ -159,7 +159,7 @@ def data_reddit():
     limit = min(int(request.args.get("limit", 10)), 25)
     if not q and not sub:
         return jsonify({"error": "q (search query) or sub (subreddit) required"}), 400
-    ck = f"reddit:{_hashlib.md5(f'{q}{sub}{sort}{limit}'.encode()).hexdigest()}"
+    ck = f"reddit:{_hashlib.md5(f'{q}{sub}{sort}{limit}'.encode(), usedforsecurity=False).hexdigest()}"
     cached = _cache_get(ck)
     if cached:
         return jsonify(cached)
@@ -237,7 +237,7 @@ def data_qr():
     size = min(int(request.args.get("size", 200)), 600)
     if not text:
         return jsonify({"error": "text required"}), 400
-    ck = f"qr:{_hashlib.md5(f'{text}{size}'.encode()).hexdigest()}"
+    ck = f"qr:{_hashlib.md5(f'{text}{size}'.encode(), usedforsecurity=False).hexdigest()}"
     cached = _cache_get(ck)
     if cached:
         return jsonify(cached)
@@ -441,7 +441,7 @@ def data_screenshot():
         return jsonify({"error": "url required"}), 400
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
-    ck = f"screenshot:{_hashlib.md5(url.encode()).hexdigest()}"
+    ck = f"screenshot:{_hashlib.md5(url.encode(), usedforsecurity=False).hexdigest()}"
     cached = _cache_get(ck)
     if cached:
         return jsonify(cached)
@@ -520,8 +520,8 @@ def free_hash():
     text_bytes = text.encode("utf-8")
     return jsonify({
         "input": text,
-        "md5": hashlib.md5(text_bytes).hexdigest(),
-        "sha1": hashlib.sha1(text_bytes).hexdigest(),
+        "md5": hashlib.md5(text_bytes, usedforsecurity=False).hexdigest(),
+        "sha1": hashlib.sha1(text_bytes, usedforsecurity=False).hexdigest(),
         "sha256": hashlib.sha256(text_bytes).hexdigest(),
         "sha512": hashlib.sha512(text_bytes).hexdigest(),
         "_meta": {"free": True, "note": "Visit /discover for 65+ AI tools"}

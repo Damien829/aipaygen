@@ -117,7 +117,25 @@ Why this shape:
 > - **17 crash bugs (undefined names) fixed:** the IP auto-ban logger, the browser 404 page, the seller allowlist warning, 4 meta routes missing `parse_json_from_claude`, and the MCP tools `compare_models`, `estimate_cost` and `suggest_tools`, which always crashed.
 > - **Dependencies (step 8):** ~250 advisories across 26 packages patched. `PyPDF2` (abandoned) is replaced by `pypdf`. MCP stays on 1.30 (all its advisories fixed); 2.x comes with Phase 5. On Linux, production resolves with **zero known vulnerabilities**. Intel macOS can't install `cryptography` 49+, so local dev runs 48.0.1, with 3 certificate-chain/PKCS#7 advisories that v1 doesn't hit. `requirements.lock` picks per platform.
 > - **Tests:** 1,483 passed, the same 5 baseline failures, no regressions.
-> - **Still to do in Phase 2:** steps 9–13 and 15–18; stop tests from writing live DBs and stop `import app` starting the scheduler; Bandit's 28 SQL-string and 12 MD5 findings; and AI model IDs, since `claude-haiku` and other v1 model names no longer exist (see the research update).
+>
+> **Second pass, also 2026-10-30:**
+> - **One job process:** each gunicorn worker used to start its own scheduler, so settlements, renewals and trading jobs ran in parallel (a double-payout risk). Web workers now never run jobs. `python run_scheduler.py` is the single job process (deploy exactly one).
+> - **Data isolation:** every database and runtime file resolves through `AIPAYGEN_DATA_DIR` (`paths.py`, 75+ paths). Tests use a throwaway directory, and a test proves it. Scout stats now create their tables on a fresh deployment instead of crashing.
+> - **Claude models:** `claude-haiku-5-5` / `claude-sonnet-5-5` / `claude-opus-5-5` at current prices ($0.10/$0.50, $2/$10, $4/$20 per M tokens). One place (`model_router.prepare_claude_request`) strips `temperature`/`top_p`/`top_k`, which these models reject; it keeps thinking off on Haiku and effort low on Sonnet and Opus, so small `max_tokens` budgets aren't spent on thinking. Responses are read from every text block, not `content[0]` (which can be a thinking block), and refusals raise `ClaudeRefusal` so the router falls back. All direct calls go through the app-wide wrapper, which applies the same rules.
+> - **Step 9 (dynamic SQL):** all 28 sites audited. Every interpolated column or sort name already comes from a hard-coded allowlist or mapping, so no change was needed. The 13 MD5/SHA1 uses are cache keys, A/B buckets and a hash tool, now marked `usedforsecurity=False`. Bandit high-severity findings: **0**.
+> - **Step 12 (CORS):** it already used an allowlist (the audit overstated this). Localhost origins are now dev-only (`AIPAYGEN_DEV=1`), `Vary: Origin` is added so Cloudflare can't cache one site's CORS answer for another, and the x402 v2 headers are allowed and exposed. **Step 13:** HSTS preload, `X-Frame-Options`, `nosniff`, `Referrer-Policy` and `Permissions-Policy` were already set. The page CSP still allows inline script and `eval`; fixing that needs nonces in all 63 templates, so it moves to Phase 6.
+> - **Step 17 (logs):** the one full API key in a log (`crypto_poller`) is masked. IP hashes use HMAC with `AIPAYGEN_IP_HASH_SECRET`, since plain SHA-256 of an IPv4 address is reversible; without the secret they fall back to the v1 hash so existing trial-abuse records still match.
+> - **Step 18 (CI):** `.github/workflows/ci.yml` (actions pinned to commit SHAs) runs core tests, pip-audit, Bandit (high), the undefined-name lint, Worker typecheck/tests/npm audit, and gitleaks over full history. The 5 baseline failures are deselected so any new failure fails CI. The old `core/.github` workflows (which never ran, and whose `publish.yml` would have pushed v1's `aipaygen-mcp` 1.9.5 over 2.0.0) are removed.
+> - **Live v2 Worker:** a high-severity `zod` advisory was patched (`npm audit fix`, 68/68 tests). **Not deployed yet.**
+> - **Tests:** 1,495 passed, the same 5 baseline failures.
+>
+> **Still open in Phase 2:**
+> - **Step 10:** admin sign-in. Put Cloudflare Access in front of `/admin` (needs the Cloudflare dashboard) and verify its JWT in the app.
+> - **Step 11:** move secrets and rotate every key (**owner action**). New: set `AIPAYGEN_IP_HASH_SECRET`.
+> - **Step 15:** webhook signing and replay protection.
+> - **Step 16:** edge rate limits (with Phase 4).
+> - **Decide:** moving the Anthropic SDK 0.84 → 2.x switches the API version to `2026-10-21`. The current models already ignore `temperature`, so this is mostly mechanical.
+> - **Unverified:** gitleaks is untested until the first CI run; it may flag test fixtures that need an allowlist.
 
 ### Phase 3: Data layer
 19. Move ~30 SQLite files into **one managed Postgres** with migrations (Alembic). Each old file becomes its own schema so the migration stays mechanical.

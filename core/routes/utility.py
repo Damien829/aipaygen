@@ -605,7 +605,7 @@ def identicon_avatar():
     if not input_str:
         return jsonify({"error": "input parameter required"}), 400
     size = int(request.args.get("size", 80))
-    h = hashlib.md5(input_str.encode()).hexdigest()
+    h = hashlib.md5(input_str.encode(), usedforsecurity=False).hexdigest()
     color = f"#{h[:6]}"
     grid = []
     for i in range(25):

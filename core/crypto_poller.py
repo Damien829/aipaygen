@@ -2,6 +2,7 @@
 
 import logging
 import os
+from security import mask_secret
 import threading
 import time
 
@@ -97,7 +98,7 @@ def _process_transfers(transfers: list, wallet_address: str, network: str):
 
         topup_key(api_key, amount_usd)
         mark_deposit_credited(tx_hash)
-        log.info("Credited $%.2f to %s from %s tx %s", amount_usd, api_key, network, tx_hash)
+        log.info("Credited $%.2f to %s from %s tx %s", amount_usd, mask_secret(api_key), network, tx_hash)
 
         try:
             from email_service import send_deposit_confirmation

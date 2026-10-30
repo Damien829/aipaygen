@@ -1923,8 +1923,9 @@ def set_cache_headers(response):
 
 _ALLOWED_ORIGINS = {
     "https://aipaygen.com", "https://api.aipaygen.com", "https://mcp.aipaygen.com", "https://app.aipaygen.com",
-    "http://localhost:8081", "http://localhost:19006",  # Expo dev servers
 }
+if os.getenv("AIPAYGEN_DEV") == "1":
+    _ALLOWED_ORIGINS |= {"http://localhost:8081", "http://localhost:19006"}  # Expo dev servers
 
 @app.after_request
 def add_cors(response):
@@ -1934,13 +1935,19 @@ def add_cors(response):
     else:
         # Allow agent-to-agent calls (no browser origin) but block random browser origins
         response.headers["Access-Control-Allow-Origin"] = "https://aipaygen.com"
+    # The allowed origin depends on the request, so shared caches must key on it.
+    vary = [v.strip() for v in response.headers.get("Vary", "").split(",") if v.strip()]
+    if "Origin" not in vary:
+        response.headers["Vary"] = ", ".join(vary + ["Origin"])
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Payment, Authorization, Accept, X-Idempotency-Key, X-Request-Id"
+    # PAYMENT-SIGNATURE / PAYMENT-REQUIRED / PAYMENT-RESPONSE are the x402 v2 headers.
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Payment, PAYMENT-SIGNATURE, Authorization, Accept, X-Idempotency-Key, X-Request-Id"
     response.headers["Access-Control-Expose-Headers"] = (
         "X-Request-Id, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset, "
         "X-API-Version, X-Powered-By, "
         "X-Payment-Info, X-Payment-Receipt, X-Free-Calls-Remaining, X-Upgrade-Hint, "
         "X-Payment-Required, X-Price-USDC, X-Pay-To, X-Network, X-Facilitator-URL, "
+        "PAYMENT-REQUIRED, PAYMENT-RESPONSE, "
         "Deprecation, Sunset, Link"
     )
 

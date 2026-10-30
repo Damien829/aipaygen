@@ -2,6 +2,7 @@
 import hashlib as _hashlib
 import json
 import os
+from security import hash_ip
 from paths import DATA_DIR
 import psutil as _psutil
 import requests as _requests
@@ -1382,7 +1383,7 @@ def preview():
     data = request.get_json(silent=True) or {}
     topic = data.get("topic", request.args.get("topic", "x402 payment protocol for AI agents"))
     topic = topic[:200]  # cap input length
-    ck = f"preview:{_hashlib.md5(topic.encode()).hexdigest()}"
+    ck = f"preview:{_hashlib.md5(topic.encode(), usedforsecurity=False).hexdigest()}"
     cached = _cache_get(ck)
     if cached:
         return jsonify(cached)
@@ -3426,7 +3427,7 @@ def try_tool(tool):
 
     data = request.get_json() or {}
     # Check cache first to avoid duplicate LLM costs
-    _cache_key = (tool, _hashlib.md5(json.dumps(data, sort_keys=True).encode()).hexdigest()[:16])
+    _cache_key = (tool, _hashlib.md5(json.dumps(data, sort_keys=True).encode(), usedforsecurity=False).hexdigest()[:16])
     _cached = _demo_cache.get(_cache_key)
     if _cached:
         return jsonify(_cached[0])
@@ -3800,7 +3801,7 @@ def _check_rate_limit(ip: str) -> bool:
 def _session_id_from_ip(ip: str) -> str:
     """Generate a deterministic session id from IP + date."""
     day = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    return _hashlib.sha256(f"{ip}:{day}".encode()).hexdigest()[:16]
+    return hash_ip(f"{ip}:{day}")
 
 
 @meta_bp.route("/api/track", methods=["POST"])

@@ -124,7 +124,7 @@ def _fetch(url, headers=None, timeout=FETCH_TIMEOUT, method="GET", data=None):
 
 
 def _ref_code(scout, target_id):
-    h = hashlib.md5(f"{scout}:{target_id}".encode()).hexdigest()[:8]
+    h = hashlib.md5(f"{scout}:{target_id}".encode(), usedforsecurity=False).hexdigest()[:8]
     return f"{scout[:2]}_{h}"
 
 
