@@ -13,7 +13,7 @@ import uuid
 from contextlib import contextmanager
 from datetime import datetime, timezone
 
-import requests as _requests
+from security import guarded_http as _requests, webhook_signature_headers  # SSRF-safe drop-in for requests
 from flask import Blueprint, request, jsonify, render_template
 
 from helpers import require_api_key
@@ -166,8 +166,11 @@ def deliver_webhook(delivery_id: str) -> bool:
             time.sleep(wait)
 
         try:
+            # Fresh timestamped signature per attempt; X-Webhook-Signature (no
+            # timestamp) stays for existing receivers but can be replayed.
+            attempt_headers = {**headers, **webhook_signature_headers(row["secret"], payload_bytes)}
             resp = _requests.post(
-                row["url"], data=payload_bytes, headers=headers, timeout=DELIVERY_TIMEOUT
+                row["url"], data=payload_bytes, headers=attempt_headers, timeout=DELIVERY_TIMEOUT
             )
             now = datetime.now(timezone.utc).isoformat()
             with _conn() as c:

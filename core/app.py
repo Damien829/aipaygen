@@ -1618,6 +1618,18 @@ def _api_key_wsgi(environ, start_response):
 
 app.wsgi_app = _api_key_wsgi
 
+# Admin pages (session-cookie logins included) also need Cloudflare Access once
+# it is configured; require_admin covers admin API routes elsewhere.
+@app.before_request
+def _admin_cf_access_gate():
+    if request.path == "/admin" or request.path.startswith("/admin/"):
+        from security import admin_access_problem
+        problem = admin_access_problem(request)
+        if problem:
+            return jsonify({"error": "forbidden", "message": problem[1]}), problem[0]
+    return None
+
+
 # OAuth direct handler — bypass all WSGI middleware
 @app.before_request
 def _oauth_bypass():

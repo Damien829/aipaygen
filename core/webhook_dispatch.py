@@ -8,7 +8,9 @@ import sqlite3
 import threading
 import time
 
-import requests
+import secrets
+
+from security import guarded_http as requests, mask_secret, webhook_signature_headers  # SSRF-safe drop-in for requests
 
 logger = logging.getLogger(__name__)
 
@@ -66,23 +68,37 @@ def init_webhooks_dispatch_db():
         conn.execute("ALTER TABLE user_webhooks ADD COLUMN threshold REAL DEFAULT 0.0")
     except sqlite3.OperationalError:
         pass
+    # Migration: per-webhook signing secret (webhooks registered before this are unsigned)
+    try:
+        conn.execute("ALTER TABLE user_webhooks ADD COLUMN secret TEXT")
+    except sqlite3.OperationalError:
+        pass
     conn.commit()
     _close_conn(conn)
 
 
 def register_webhook(api_key, url, events, threshold=0.0):
-    """Register a webhook. Returns ID or None if URL is not HTTPS."""
+    """Register a webhook. Returns ID or None if URL is not HTTPS.
+    The signing secret is read back with get_webhook_secret()."""
     if not url or not url.startswith("https://"):
         return None
     conn = _get_conn()
     cur = conn.execute(
-        "INSERT INTO user_webhooks (api_key, url, events, threshold) VALUES (?, ?, ?, ?)",
-        (api_key, url, json.dumps(events), float(threshold)),
+        "INSERT INTO user_webhooks (api_key, url, events, threshold, secret) VALUES (?, ?, ?, ?, ?)",
+        (api_key, url, json.dumps(events), float(threshold), secrets.token_hex(32)),
     )
     conn.commit()
     wh_id = cur.lastrowid
     _close_conn(conn)
     return wh_id
+
+
+def get_webhook_secret(webhook_id, api_key):
+    """Signing secret for one of this key's webhooks (shown to the owner once, at registration)."""
+    conn = _get_conn()
+    row = conn.execute("SELECT secret FROM user_webhooks WHERE id = ? AND api_key = ?", (webhook_id, api_key)).fetchone()
+    _close_conn(conn)
+    return row["secret"] if row else None
 
 
 def list_webhooks(api_key):
@@ -174,19 +190,23 @@ def dispatch_event(event_type, api_key, payload=None):
     def _dispatch():
         try:
             conn = _get_conn()
-            rows = conn.execute("SELECT id, url, events FROM user_webhooks WHERE api_key = ?", (api_key,)).fetchall()
+            rows = conn.execute("SELECT id, url, events, secret FROM user_webhooks WHERE api_key = ?", (api_key,)).fetchall()
             _close_conn(conn)
             for row in rows:
                 events = json.loads(row["events"])
                 if event_type not in events:
                     continue
-                body = {"event": event_type, "api_key": api_key, "payload": payload or {}}
+                # Never send the full API key: whoever sees the webhook URL would get it.
+                body = json.dumps({"event": event_type, "api_key": mask_secret(api_key), "payload": payload or {}}).encode()
                 status_code = None
                 resp_body = ""
                 backoff = [1, 2, 4]
                 for attempt, wait in enumerate(backoff):
                     try:
-                        resp = requests.post(row["url"], json=body, timeout=10)
+                        headers = {"Content-Type": "application/json", "X-Webhook-Event": event_type}
+                        if row["secret"]:
+                            headers.update(webhook_signature_headers(row["secret"], body))
+                        resp = requests.post(row["url"], data=body, headers=headers, timeout=10)
                         status_code = resp.status_code
                         resp_body = resp.text[:2000]
                         if resp.status_code < 500:
@@ -205,18 +225,21 @@ def dispatch_event(event_type, api_key, payload=None):
 def dispatch_test_event(event_type, api_key, payload=None):
     """Dispatch a test event synchronously and return the count of webhooks notified."""
     conn = _get_conn()
-    rows = conn.execute("SELECT id, url, events FROM user_webhooks WHERE api_key = ?", (api_key,)).fetchall()
+    rows = conn.execute("SELECT id, url, events, secret FROM user_webhooks WHERE api_key = ?", (api_key,)).fetchall()
     _close_conn(conn)
     count = 0
     for row in rows:
         events = json.loads(row["events"])
         if event_type not in events:
             continue
-        body = {"event": event_type, "api_key": api_key, "payload": payload or {}, "_test": True}
+        body = json.dumps({"event": event_type, "api_key": mask_secret(api_key), "payload": payload or {}, "_test": True}).encode()
         status_code = None
         resp_body = ""
         try:
-            resp = requests.post(row["url"], json=body, timeout=10)
+            headers = {"Content-Type": "application/json", "X-Webhook-Event": event_type}
+            if row["secret"]:
+                headers.update(webhook_signature_headers(row["secret"], body))
+            resp = requests.post(row["url"], data=body, headers=headers, timeout=10)
             status_code = resp.status_code
             resp_body = resp.text[:2000]
         except Exception as exc:

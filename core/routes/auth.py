@@ -768,11 +768,17 @@ def register_user_webhook():
     if _wh_host in ("localhost", "127.0.0.1", "0.0.0.0", "::1") or _wh_host.startswith("10.") or _wh_host.startswith("192.168.") or _wh_host.startswith("172."):
         return jsonify({"error": "Internal URLs not allowed"}), 400
     threshold = float(data.get("threshold", 0.50))
-    from webhook_dispatch import register_webhook
+    from webhook_dispatch import register_webhook, get_webhook_secret
     wh_id = register_webhook(api_key, url, events, threshold=threshold)
     if wh_id is None:
         return jsonify({"error": "Failed to register webhook"}), 400
-    return jsonify({"webhook_id": wh_id, "url": url, "events": events, "threshold": threshold})
+    return jsonify({
+        "webhook_id": wh_id, "url": url, "events": events, "threshold": threshold,
+        # Shown once. Verify X-Webhook-Signature-V2 "t=<unix>,v1=<hex>":
+        # v1 == HMAC-SHA256(secret, f"{t}.{raw_body}"), and reject t older than 5 minutes.
+        "signing_secret": get_webhook_secret(wh_id, api_key),
+        "signature_header": "X-Webhook-Signature-V2",
+    })
 
 
 @auth_bp.route("/api/webhooks", methods=["POST"])
@@ -791,11 +797,17 @@ def api_register_webhook():
     if not url.startswith("https://"):
         return jsonify({"error": "Invalid URL — must be HTTPS"}), 400
     threshold = float(data.get("threshold", 0.50))
-    from webhook_dispatch import register_webhook
+    from webhook_dispatch import register_webhook, get_webhook_secret
     wh_id = register_webhook(api_key, url, events, threshold=threshold)
     if wh_id is None:
         return jsonify({"error": "Failed to register webhook"}), 400
-    return jsonify({"webhook_id": wh_id, "url": url, "events": events, "threshold": threshold})
+    return jsonify({
+        "webhook_id": wh_id, "url": url, "events": events, "threshold": threshold,
+        # Shown once. Verify X-Webhook-Signature-V2 "t=<unix>,v1=<hex>":
+        # v1 == HMAC-SHA256(secret, f"{t}.{raw_body}"), and reject t older than 5 minutes.
+        "signing_secret": get_webhook_secret(wh_id, api_key),
+        "signature_header": "X-Webhook-Signature-V2",
+    })
 
 
 @auth_bp.route("/webhooks", methods=["GET"])

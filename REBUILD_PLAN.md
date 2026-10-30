@@ -129,11 +129,16 @@ Why this shape:
 > - **Live v2 Worker:** a high-severity `zod` advisory was patched (`npm audit fix`, 68/68 tests). **Not deployed yet.**
 > - **Tests:** 1,495 passed, the same 5 baseline failures.
 >
+> **Third pass, also 2026-10-30:**
+> - **Step 15 (webhooks):** both outbound systems now send `X-Webhook-Signature-V2: t=<unix>,v1=HMAC-SHA256(secret, "<t>.<body>")`, freshly signed per attempt so receivers can reject replays older than 5 minutes (`security.verify_webhook_signature`). `webhook_dispatch` had no signing at all and **sent the customer's full API key in every body**: the key is now masked, each webhook gets its own secret (shown once at registration), and webhooks registered before this go unsigned until re-registered. Both use the SSRF-safe client (`routes/webhooks.py` had been missed). Inbound Stripe was already correct: fails closed, verified, deduplicated.
+> - **Step 10, app side (admin):** with `CF_ACCESS_TEAM_DOMAIN` + `CF_ACCESS_AUD` set, every `/admin` page, every `require_admin` route and the admin secret used as an API key also need a valid Cloudflare Access JWT (RS256, audience, issuer and expiry checked against Cloudflare's published keys). `ADMIN_REQUIRE_CF_ACCESS=1` fails closed until it's configured. The admin-secret check in `require_api_key` is now timing-safe. 8 tests.
+> - **Tests:** 1,506 passed, the same 5 baseline failures. Bandit high: 0.
+>
 > **Still open in Phase 2:**
-> - **Step 10:** admin sign-in. Put Cloudflare Access in front of `/admin` (needs the Cloudflare dashboard) and verify its JWT in the app.
+> - **Step 10, dashboard side (owner):** in Cloudflare Zero Trust, add an Access application for `aipaygen.com/admin*` (and the admin API paths), with your email and a second factor. Copy its team domain and Application Audience (AUD) tag into `CF_ACCESS_TEAM_DOMAIN` / `CF_ACCESS_AUD`, then set `ADMIN_REQUIRE_CF_ACCESS=1`.
 > - **Step 11:** move secrets and rotate every key (**owner action**). New: set `AIPAYGEN_IP_HASH_SECRET`.
-> - **Step 15:** webhook signing and replay protection.
 > - **Step 16:** edge rate limits (with Phase 4).
+> - **Push:** the `rebuild` branch can't be pushed until the GitHub login has the `workflow` scope (`gh auth refresh -h github.com -s workflow`, then press Enter in that terminal).
 > - **Decide:** moving the Anthropic SDK 0.84 → 2.x switches the API version to `2026-10-21`. The current models already ignore `temperature`, so this is mostly mechanical.
 > - **Unverified:** gitleaks is untested until the first CI run; it may flag test fixtures that need an allowlist.
 

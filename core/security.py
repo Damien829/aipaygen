@@ -382,6 +382,77 @@ def safe_fetch(url: str, headers: dict = None, timeout: int = 15,
 
 # ── Input Sanitization ─────────────────────────────────────────────────
 
+# ── Admin: Cloudflare Access ───────────────────────────────────────────
+# With Cloudflare Access in front of the admin pages, Cloudflare signs in the
+# operator (SSO + second factor) and forwards a signed JWT. Verifying it here
+# means a leaked ADMIN_SECRET alone is no longer enough, and requests that
+# bypass Cloudflare can't get in.
+
+_cf_jwk_clients = {}
+
+
+def cf_access_configured() -> bool:
+    return bool(os.getenv("CF_ACCESS_TEAM_DOMAIN") and os.getenv("CF_ACCESS_AUD"))
+
+
+def admin_access_problem(req):
+    """None if this request may use admin powers as far as Cloudflare Access is
+    concerned, else (status, message). Call in addition to the ADMIN_SECRET check."""
+    if not cf_access_configured():
+        if os.getenv("ADMIN_REQUIRE_CF_ACCESS") == "1":
+            return 503, "Cloudflare Access is required but CF_ACCESS_TEAM_DOMAIN / CF_ACCESS_AUD are not set"
+        return None
+    token = req.headers.get("Cf-Access-Jwt-Assertion") or req.cookies.get("CF_Authorization", "")
+    if not token:
+        return 403, "Cloudflare Access sign-in required"
+    try:
+        import jwt
+        team = os.environ["CF_ACCESS_TEAM_DOMAIN"].removeprefix("https://").rstrip("/")
+        issuer = f"https://{team}"
+        client = _cf_jwk_clients.get(issuer)
+        if client is None:
+            client = _cf_jwk_clients[issuer] = jwt.PyJWKClient(f"{issuer}/cdn-cgi/access/certs", timeout=10)
+        key = client.get_signing_key_from_jwt(token).key
+        jwt.decode(token, key, algorithms=["RS256"], audience=os.environ["CF_ACCESS_AUD"], issuer=issuer)
+    except Exception as e:
+        logger.warning("Cloudflare Access token rejected: %s", type(e).__name__)
+        return 403, "Cloudflare Access token invalid"
+    return None
+
+
+# ── Webhook signing ────────────────────────────────────────────────────
+# Receivers verify X-Webhook-Signature-V2 = "t=<unix>,v1=<hex>", where v1 is
+# HMAC-SHA256(secret, "<t>.<raw body>"). Binding the timestamp into the MAC lets
+# receivers reject replays: refuse anything older than a few minutes.
+
+WEBHOOK_TOLERANCE_SECONDS = 300
+
+
+def webhook_signature_headers(secret: str, body: bytes, now: float = None) -> dict:
+    import hmac
+    import time
+    ts = str(int(now if now is not None else time.time()))
+    mac = hmac.new(secret.encode(), ts.encode() + b"." + body, "sha256").hexdigest()
+    return {"X-Webhook-Timestamp": ts, "X-Webhook-Signature-V2": f"t={ts},v1={mac}"}
+
+
+def verify_webhook_signature(secret: str, body: bytes, header: str,
+                             tolerance: int = WEBHOOK_TOLERANCE_SECONDS, now: float = None) -> bool:
+    """Receiver-side check for X-Webhook-Signature-V2 (used by tests and the SDK docs)."""
+    import hmac
+    import time
+    try:
+        parts = dict(p.split("=", 1) for p in (header or "").split(","))
+        ts = int(parts["t"])
+        given = parts["v1"]
+    except (KeyError, ValueError):
+        return False
+    if abs((now if now is not None else time.time()) - ts) > tolerance:
+        return False
+    expected = hmac.new(secret.encode(), str(ts).encode() + b"." + body, "sha256").hexdigest()
+    return hmac.compare_digest(expected, given)
+
+
 def mask_secret(value: str) -> str:
     """API keys and tokens for logs: enough to recognise, not enough to use."""
     if not value or len(value) < 12:

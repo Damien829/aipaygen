@@ -234,6 +234,10 @@ def require_admin(f):
             return jsonify({"error": "misconfigured", "message": "ADMIN_SECRET not set"}), 503
         if not token or not hmac.compare_digest(token, admin_secret):
             return jsonify({"error": "unauthorized", "message": "Admin authentication required"}), 401
+        from security import admin_access_problem
+        problem = admin_access_problem(request)
+        if problem:
+            return jsonify({"error": "forbidden", "message": problem[1]}), problem[0]
         return f(*args, **kwargs)
     return wrapper
 
@@ -252,7 +256,11 @@ def require_api_key(f):
                 return f(*args, **kwargs)
         # Also allow admin key
         admin_secret = os.getenv("ADMIN_SECRET", "")
-        if admin_secret and auth == f"Bearer {admin_secret}":
+        if admin_secret and hmac.compare_digest(auth, f"Bearer {admin_secret}"):
+            from security import admin_access_problem
+            problem = admin_access_problem(request)
+            if problem:
+                return jsonify({"error": "forbidden", "message": problem[1]}), problem[0]
             request.api_key = None
             request.key_data = {"admin": True}
             return f(*args, **kwargs)
