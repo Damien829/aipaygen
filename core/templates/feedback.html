@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}Feedback{% endblock %}
+{% block description %}Help us improve AiPayGen. Share your experience and leave a review.{% endblock %}
+
+{% block content %}
+<section class="section" style="max-width:640px;margin:0 auto;padding-top:120px;">
+  <h1 style="font-size:var(--text-3xl);text-align:center;margin-bottom:8px;">How's your experience?</h1>
+  <p class="section-subtitle" style="text-align:center;margin-bottom:40px;">Your feedback helps us build a better agent marketplace.</p>
+
+  <form id="feedbackForm" style="display:flex;flex-direction:column;gap:24px;">
+    <div>
+      <label style="display:block;font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:8px;">Overall satisfaction</label>
+      <div id="stars" style="display:flex;gap:8px;font-size:32px;cursor:pointer;">
+        <span data-rating="1" onclick="setRating(1)">&#9734;</span>
+        <span data-rating="2" onclick="setRating(2)">&#9734;</span>
+        <span data-rating="3" onclick="setRating(3)">&#9734;</span>
+        <span data-rating="4" onclick="setRating(4)">&#9734;</span>
+        <span data-rating="5" onclick="setRating(5)">&#9734;</span>
+      </div>
+      <input type="hidden" id="ratingValue" value="0">
+    </div>
+
+    <div>
+      <label style="display:block;font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:8px;">What do you use AiPayGen for?</label>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;">
+        <label class="card" style="padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" name="use_case" value="api_tools"> API Tools
+        </label>
+        <label class="card" style="padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" name="use_case" value="mcp_server"> MCP Server
+        </label>
+        <label class="card" style="padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" name="use_case" value="marketplace"> Agent Marketplace
+        </label>
+        <label class="card" style="padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" name="use_case" value="trading"> Trading Agents
+        </label>
+        <label class="card" style="padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" name="use_case" value="a2a"> A2A Commerce
+        </label>
+        <label class="card" style="padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" name="use_case" value="scraping"> Web Scraping
+        </label>
+      </div>
+    </div>
+
+    <div>
+      <label style="display:block;font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:8px;">What would you improve?</label>
+      <textarea name="improvement" rows="3" style="width:100%;padding:12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text);font-family:var(--font-sans);font-size:var(--text-sm);resize:vertical;" placeholder="Tell us what's working and what isn't..."></textarea>
+    </div>
+
+    <div>
+      <label style="display:block;font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:8px;">Leave a review (public)</label>
+      <textarea name="review" rows="3" style="width:100%;padding:12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text);font-family:var(--font-sans);font-size:var(--text-sm);resize:vertical;" placeholder="Share your experience for other users to see..."></textarea>
+    </div>
+
+    <div>
+      <label style="display:block;font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:8px;">Email (optional — for follow-up)</label>
+      <input type="email" name="email" style="width:100%;padding:12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text);font-size:var(--text-sm);" placeholder="you@example.com">
+    </div>
+
+    <div>
+      <label style="display:block;font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:8px;">API Key (optional — helps us match feedback to usage)</label>
+      <input type="text" name="api_key" style="width:100%;padding:12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-md);color:var(--text);font-family:var(--font-mono);font-size:var(--text-xs);" placeholder="apk_...">
+    </div>
+
+    <button type="submit" class="btn btn-primary" style="padding:14px;font-size:var(--text-base);width:100%;" id="submitBtn">Submit Feedback</button>
+
+    <div id="thankYou" style="display:none;text-align:center;padding:24px;">
+      <p style="font-size:var(--text-xl);color:var(--green);font-weight:600;">Thank you!</p>
+      <p style="color:var(--text-secondary);margin-top:8px;">Your feedback helps us improve. <a href="/market" style="color:var(--accent);">Back to Marketplace</a></p>
+    </div>
+  </form>
+</section>
+
+<script>
+let currentRating = 0;
+function setRating(n) {
+  currentRating = n;
+  document.getElementById('ratingValue').value = n;
+  document.querySelectorAll('#stars span').forEach((s, i) => {
+    s.textContent = i < n ? '\u2605' : '\u2606';
+    s.style.color = i < n ? 'var(--warning)' : 'var(--text-muted)';
+  });
+}
+
+document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  const formData = new FormData(this);
+  const useCases = [];
+  formData.getAll('use_case').forEach(v => useCases.push(v));
+
+  try {
+    await fetch('/api/feedback', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        rating: currentRating,
+        use_cases: useCases,
+        improvement: formData.get('improvement'),
+        review: formData.get('review'),
+        email: formData.get('email'),
+        api_key: formData.get('api_key'),
+      })
+    });
+  } catch(e) {}
+
+  document.getElementById('feedbackForm').style.display = 'none';
+  document.getElementById('thankYou').style.display = 'block';
+});
+</script>
+{% endblock %}

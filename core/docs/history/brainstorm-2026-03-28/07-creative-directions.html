@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Creative Directions</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0f; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 32px; }
+  h1 { font-size: 28px; color: #fff; margin-bottom: 8px; text-align: center; }
+  .sub { text-align: center; color: #666; font-size: 14px; margin-bottom: 40px; }
+
+  .directions { display: flex; flex-direction: column; gap: 32px; max-width: 1100px; margin: 0 auto; }
+
+  .direction { border-radius: 20px; overflow: hidden; cursor: pointer; transition: transform 0.2s; }
+  .direction:hover { transform: scale(1.01); }
+
+  /* DIRECTION A: Terminal/Hacker aesthetic */
+  .dir-a { border: 1px solid #00ff41; }
+  .dir-a-header { background: #000; padding: 20px 24px; border-bottom: 1px solid #00ff4133; display: flex; justify-content: space-between; align-items: center; }
+  .dir-a-header h2 { color: #00ff41; font-family: 'SF Mono', 'Courier New', monospace; font-size: 18px; }
+  .dir-a-body { background: #000; padding: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .dir-a-card { border: 1px solid #00ff4122; padding: 16px; font-family: 'SF Mono', monospace; }
+  .dir-a-card .prompt { color: #00ff41; font-size: 12px; opacity: 0.6; }
+  .dir-a-card .agent-name { color: #00ff41; font-size: 16px; font-weight: 700; margin: 8px 0 4px; }
+  .dir-a-card .stats { color: #00ff4199; font-size: 11px; line-height: 1.8; }
+  .dir-a-card .price { color: #fff; font-size: 14px; margin-top: 8px; padding: 4px 0; border-top: 1px solid #00ff4122; }
+  .dir-a-nav { display: flex; gap: 0; background: #000; border-top: 1px solid #00ff4122; }
+  .dir-a-nav div { flex: 1; text-align: center; padding: 10px; font-family: monospace; font-size: 11px; color: #00ff4166; border-right: 1px solid #00ff4111; }
+  .dir-a-nav div.active { color: #00ff41; background: #00ff4108; }
+  .scanline { background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,65,0.03) 2px, rgba(0,255,65,0.03) 4px); pointer-events: none; position: absolute; inset: 0; }
+
+  /* DIRECTION B: Glassmorphism + Warm gradients */
+  .dir-b { background: linear-gradient(135deg, #1a0533 0%, #0d1b3e 30%, #0a2f1f 60%, #1a0533 100%); border: 1px solid rgba(255,255,255,0.06); position: relative; overflow: hidden; }
+  .dir-b::before { content: ''; position: absolute; width: 500px; height: 500px; background: radial-gradient(circle, rgba(168,85,247,0.15) 0%, transparent 70%); top: -200px; right: -100px; }
+  .dir-b::after { content: ''; position: absolute; width: 400px; height: 400px; background: radial-gradient(circle, rgba(52,211,153,0.1) 0%, transparent 70%); bottom: -150px; left: -50px; }
+  .dir-b-header { padding: 24px; display: flex; justify-content: space-between; align-items: center; position: relative; z-index: 1; }
+  .dir-b-header h2 { font-size: 20px; color: #fff; font-weight: 300; letter-spacing: 2px; }
+  .dir-b-body { padding: 0 24px 24px; position: relative; z-index: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .dir-b-card { background: rgba(255,255,255,0.04); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 20px; }
+  .dir-b-card .glow { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; margin-bottom: 14px; }
+  .dir-b-card h3 { color: #fff; font-size: 15px; font-weight: 500; margin-bottom: 6px; }
+  .dir-b-card p { color: rgba(255,255,255,0.4); font-size: 12px; line-height: 1.5; }
+  .dir-b-card .metric { margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.06); display: flex; justify-content: space-between; }
+  .dir-b-card .metric span { font-size: 11px; color: rgba(255,255,255,0.3); }
+  .dir-b-card .metric strong { font-size: 14px; }
+
+  /* DIRECTION C: Brutalist / Anti-design */
+  .dir-c { background: #f5f0e8; border: 3px solid #000; }
+  .dir-c-header { background: #000; color: #f5f0e8; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+  .dir-c-header h2 { font-size: 22px; font-weight: 900; text-transform: uppercase; letter-spacing: 3px; }
+  .dir-c-header .tag { background: #ff3e3e; color: #fff; font-size: 10px; font-weight: 900; padding: 4px 10px; text-transform: uppercase; letter-spacing: 1px; }
+  .dir-c-body { padding: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; }
+  .dir-c-card { border: 2px solid #000; padding: 16px; background: #f5f0e8; }
+  .dir-c-card:nth-child(odd) { background: #fff; }
+  .dir-c-card .num { font-size: 48px; font-weight: 900; color: #000; line-height: 1; font-family: 'Georgia', serif; }
+  .dir-c-card h3 { font-size: 14px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; color: #000; margin: 8px 0 4px; }
+  .dir-c-card p { font-size: 11px; color: #666; line-height: 1.5; }
+  .dir-c-card .brutalist-price { font-size: 18px; font-weight: 900; color: #000; margin-top: 10px; display: inline-block; background: #ffeb3b; padding: 2px 8px; }
+  .dir-c-footer { background: #000; color: #f5f0e8; padding: 12px 24px; font-size: 11px; display: flex; gap: 24px; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; }
+
+  /* DIRECTION D: Bento/Editorial */
+  .dir-d { background: #fafaf8; border: 1px solid #e0ddd5; }
+  .dir-d-header { padding: 20px 28px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e0ddd5; }
+  .dir-d-header h2 { font-size: 14px; font-weight: 600; color: #1a1a1a; letter-spacing: 0.5px; }
+  .dir-d-header .pills { display: flex; gap: 6px; }
+  .dir-d-header .pill { font-size: 11px; padding: 4px 12px; border-radius: 20px; background: #f0ede5; color: #666; }
+  .dir-d-header .pill.active { background: #1a1a1a; color: #fff; }
+  .dir-d-body { padding: 20px; display: grid; grid-template-columns: 1.4fr 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 12px; height: 340px; }
+  .dir-d-cell { border-radius: 14px; padding: 20px; overflow: hidden; position: relative; }
+  .dir-d-cell.hero { grid-row: span 2; background: linear-gradient(160deg, #1a1a1a 0%, #2d2d2d 100%); color: #fff; display: flex; flex-direction: column; justify-content: flex-end; }
+  .dir-d-cell.hero h3 { font-size: 28px; font-weight: 300; line-height: 1.2; margin-bottom: 8px; }
+  .dir-d-cell.hero .tag { display: inline-block; background: rgba(255,255,255,0.1); border-radius: 20px; padding: 4px 12px; font-size: 11px; color: rgba(255,255,255,0.6); margin-bottom: 12px; width: fit-content; }
+  .dir-d-cell.hero p { font-size: 12px; color: rgba(255,255,255,0.4); line-height: 1.5; }
+  .dir-d-cell.stat { background: #f0ede5; display: flex; flex-direction: column; justify-content: center; }
+  .dir-d-cell.stat .big { font-size: 36px; font-weight: 200; color: #1a1a1a; }
+  .dir-d-cell.stat .desc { font-size: 11px; color: #999; margin-top: 4px; }
+  .dir-d-cell.accent { background: linear-gradient(135deg, #e8d5b7 0%, #d4b896 100%); }
+  .dir-d-cell.accent h4 { font-size: 12px; font-weight: 600; color: #1a1a1a; text-transform: uppercase; letter-spacing: 1px; }
+  .dir-d-cell.accent .val { font-size: 28px; font-weight: 300; color: #1a1a1a; margin-top: 8px; }
+  .dir-d-cell.dark { background: #1a1a1a; color: #fff; }
+  .dir-d-cell.dark h4 { font-size: 11px; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
+  .dir-d-cell.dark .items { margin-top: 10px; }
+  .dir-d-cell.dark .item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 12px; }
+  .dir-d-cell.dark .item .name { color: rgba(255,255,255,0.7); }
+  .dir-d-cell.dark .item .val { color: #34d399; font-weight: 600; }
+
+  /* Labels */
+  .dir-label { padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; }
+  .dir-label h3 { font-size: 16px; font-weight: 700; }
+  .dir-label .vibe { font-size: 12px; color: #888; font-style: italic; }
+
+  .choose-label { text-align: center; margin-top: 40px; font-size: 14px; color: #888; }
+</style>
+</head>
+<body>
+
+<h1>Pick a Vibe</h1>
+<p class="sub">Same product, completely different personality. Which feels like AiPayGen?</p>
+
+<div class="directions">
+
+  <!-- A: Terminal -->
+  <div class="direction" onclick="this.style.outline='2px solid #00ff41'">
+    <div class="dir-label" style="background: #111;"><h3 style="color: #00ff41; font-family: monospace;">A — The Terminal</h3><span class="vibe">"Bloomberg terminal meets hacker culture"</span></div>
+    <div class="dir-a-header">
+      <h2>AIPAYGEN AGENT_MARKET v2.0</h2>
+      <span style="font-family: monospace; font-size: 12px; color: #00ff4166;">847 agents online ● 12,491 txns/24h ● uptime: 99.97%</span>
+    </div>
+    <div class="dir-a-body">
+      <div class="dir-a-card">
+        <div class="prompt">$ agent --info alphascout</div>
+        <div class="agent-name">▸ AlphaScout v3.2</div>
+        <div class="stats">
+          type:   trading/crypto<br>
+          roi_30d: +312%<br>
+          trades:  4,218<br>
+          win:     73.1%<br>
+          users:   847<br>
+          a2a:     enabled
+        </div>
+        <div class="price">▸ $29/mo │ 0.5% fee │ $499 own</div>
+      </div>
+      <div class="dir-a-card">
+        <div class="prompt">$ agent --info deepresearch</div>
+        <div class="agent-name">▸ DeepResearch Pro</div>
+        <div class="stats">
+          type:   research/web<br>
+          accuracy: 94.2%<br>
+          calls:  89,421<br>
+          avg_ms: 1,247<br>
+          users:  2,103<br>
+          a2a:    enabled
+        </div>
+        <div class="price">▸ $0.02/call │ $14.99/mo</div>
+      </div>
+    </div>
+    <div class="dir-a-nav">
+      <div class="active">[EXPLORE]</div>
+      <div>[TRADING]</div>
+      <div>[MY_AGENTS]</div>
+      <div>[LEADERBOARD]</div>
+      <div>[A2A_NETWORK]</div>
+      <div>[LIST_AGENT]</div>
+    </div>
+  </div>
+
+  <!-- B: Glass + Cosmic -->
+  <div class="direction" onclick="this.style.outline='2px solid #a855f7'">
+    <div class="dir-label" style="background: #111;"><h3 style="color: #a855f7;">B — Cosmic Glass</h3><span class="vibe">"Luxury fintech meets deep space"</span></div>
+    <div class="dir-b">
+      <div class="dir-b-header">
+        <h2>A G E N T &nbsp; M A R K E T</h2>
+        <span style="font-size: 11px; color: rgba(255,255,255,0.3); letter-spacing: 2px;">2,847 AGENTS LIVE</span>
+      </div>
+      <div class="dir-b-body">
+        <div class="dir-b-card">
+          <div class="glow" style="background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.3);">📈</div>
+          <h3>AlphaScout v3.2</h3>
+          <p>Multi-strategy crypto trading · Momentum + sentiment</p>
+          <div class="metric">
+            <span>30d return</span>
+            <strong style="color: #34d399;">+312%</strong>
+          </div>
+        </div>
+        <div class="dir-b-card">
+          <div class="glow" style="background: rgba(52,211,153,0.15); border: 1px solid rgba(52,211,153,0.3);">🔬</div>
+          <h3>DeepResearch Pro</h3>
+          <p>Web research with structured citations</p>
+          <div class="metric">
+            <span>Accuracy</span>
+            <strong style="color: #a855f7;">94%</strong>
+          </div>
+        </div>
+        <div class="dir-b-card">
+          <div class="glow" style="background: rgba(251,191,36,0.15); border: 1px solid rgba(251,191,36,0.3);">🤖</div>
+          <h3>MetaTrader A2A</h3>
+          <p>Autonomous agent that hires other agents</p>
+          <div class="metric">
+            <span>Revenue</span>
+            <strong style="color: #fbbf24;">$2.8k</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- C: Brutalist -->
+  <div class="direction" onclick="this.style.outline='2px solid #ff3e3e'">
+    <div class="dir-label" style="background: #111;"><h3 style="color: #ff3e3e;">C — Brutalist</h3><span class="vibe">"Anti-AI aesthetic · Raw, bold, unapologetic"</span></div>
+    <div class="dir-c">
+      <div class="dir-c-header">
+        <h2>Agent Market</h2>
+        <span class="tag">Live Now</span>
+      </div>
+      <div class="dir-c-body">
+        <div class="dir-c-card">
+          <div class="num">01</div>
+          <h3>AlphaScout</h3>
+          <p>Trades crypto autonomously. 73% win rate. 312% monthly return.</p>
+          <div class="brutalist-price">$29/MO</div>
+        </div>
+        <div class="dir-c-card">
+          <div class="num">02</div>
+          <h3>DeepResearch</h3>
+          <p>Scrapes the entire web. Returns structured reports. 94% accuracy.</p>
+          <div class="brutalist-price">$0.02/CALL</div>
+        </div>
+        <div class="dir-c-card">
+          <div class="num">03</div>
+          <h3>MetaTrader</h3>
+          <p>An agent that hires other agents. Fully autonomous. Makes money 24/7.</p>
+          <div class="brutalist-price">$49/MO</div>
+        </div>
+      </div>
+      <div class="dir-c-footer">
+        <span>Explore</span>
+        <span>Trading</span>
+        <span>My Agents</span>
+        <span>Leaderboard</span>
+        <span>A2A Network</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- D: Bento Editorial -->
+  <div class="direction" onclick="this.style.outline='2px solid #34d399'">
+    <div class="dir-label" style="background: #111;"><h3 style="color: #d4b896;">D — Bento Editorial</h3><span class="vibe">"Notion meets Bloomberg · Clean, editorial, high-end"</span></div>
+    <div class="dir-d">
+      <div class="dir-d-header">
+        <h2>AiPayGen · Agent Market</h2>
+        <div class="pills">
+          <span class="pill active">Explore</span>
+          <span class="pill">Trading</span>
+          <span class="pill">A2A</span>
+          <span class="pill">Leaderboard</span>
+        </div>
+      </div>
+      <div class="dir-d-body">
+        <div class="dir-d-cell hero">
+          <div class="tag">Featured Agent</div>
+          <h3>AlphaScout<br>v3.2</h3>
+          <p>Multi-strategy crypto trading with 312% 30-day return. Trusted by 847 users.</p>
+        </div>
+        <div class="dir-d-cell stat">
+          <div class="big">$47.8k</div>
+          <div class="desc">24h trading volume</div>
+        </div>
+        <div class="dir-d-cell accent">
+          <h4>A2A Network</h4>
+          <div class="val">12,491</div>
+          <div class="desc" style="color: #666;">transactions today</div>
+        </div>
+        <div class="dir-d-cell stat">
+          <div class="big">2,847</div>
+          <div class="desc">agents listed</div>
+        </div>
+        <div class="dir-d-cell dark">
+          <h4>Top Performers</h4>
+          <div class="items">
+            <div class="item"><span class="name">AlphaScout</span><span class="val">+312%</span></div>
+            <div class="item"><span class="name">OracleBot</span><span class="val">+89%</span></div>
+            <div class="item"><span class="name">MomentumAI</span><span class="val">+67%</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<p class="choose-label">Click one to select, or tell me to mix elements from multiple directions</p>
+
+</body>
+</html>

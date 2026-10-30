@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}Deploy {{ template.get("name", template_name|title) }} Strategy{% endblock %}
+{% block description %}Configure and deploy the {{ template.get("name", template_name|title) }} trading strategy on AiPayGen.{% endblock %}
+
+{% block head %}
+<style>
+.deploy-page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 100px 24px 80px;
+}
+.deploy-page h1 {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin-bottom: 8px;
+}
+.deploy-page .sub {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  margin-bottom: 32px;
+  line-height: 1.6;
+}
+.deploy-form .field {
+  margin-bottom: 20px;
+}
+.deploy-form label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.deploy-form .hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+.deploy-form input, .deploy-form select {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+}
+.deploy-form input:focus, .deploy-form select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.deploy-form .row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.deploy-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 32px;
+}
+.tmpl-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  margin-bottom: 16px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="deploy-page">
+  <span class="tmpl-badge">{{ template_name }}</span>
+  <h1>Deploy {{ template.get("name", template_name|title) }} Strategy</h1>
+  <p class="sub">{{ template.get("description", "Configure your trading strategy parameters and deploy.") }}</p>
+
+  <form class="deploy-form" method="POST" action="/trading/deploy" id="deployForm">
+    <div class="field">
+      <label for="name">Strategy Name</label>
+      <input type="text" id="name" name="name" placeholder="My {{ template.get('name', template_name|title) }} Bot" required>
+    </div>
+
+    <div class="field">
+      <label for="pairs">Trading Pairs</label>
+      <input type="text" id="pairs" name="pairs" value="{{ template.get('config', {}).get('pairs', ['BTC/USD'])|join(', ') }}" placeholder="BTC/USD, ETH/USD, SOL/USD">
+      <div class="hint">Comma-separated. e.g. BTC/USD, ETH/USD</div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="position_size">Position Size (USD)</label>
+        <input type="number" id="position_size" name="position_size" value="{{ template.get('config', {}).get('position_size_usd', 100) }}" min="10" step="10">
+      </div>
+      <div class="field">
+        <label for="max_positions">Max Positions</label>
+        <input type="number" id="max_positions" name="max_positions" value="{{ template.get('config', {}).get('max_positions', 3) }}" min="1" max="20">
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label for="stop_loss">Stop Loss (%)</label>
+        <input type="number" id="stop_loss" name="stop_loss" value="{{ (template.get('config', {}).get('stop_loss_pct', 0.03) * 100)|round(1) }}" min="0.5" max="50" step="0.5">
+      </div>
+      <div class="field">
+        <label for="take_profit">Take Profit (%)</label>
+        <input type="number" id="take_profit" name="take_profit" value="{{ (template.get('config', {}).get('take_profit_pct', 0.08) * 100)|round(1) }}" min="0.5" max="100" step="0.5">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="interval">Check Interval</label>
+      <select id="interval" name="interval">
+        <option value="1m">Every minute</option>
+        <option value="5m" selected>Every 5 minutes</option>
+        <option value="15m">Every 15 minutes</option>
+        <option value="1h">Every hour</option>
+        <option value="4h">Every 4 hours</option>
+      </select>
+    </div>
+
+    <input type="hidden" name="template" value="{{ template_name }}">
+    <input type="hidden" name="api_key" id="apiKeyField" value="">
+
+    <div class="deploy-actions">
+      <button type="submit" class="btn btn-primary" style="padding:14px 32px;">Deploy Strategy</button>
+      <a href="/trading" class="btn btn-secondary" style="padding:14px 32px;">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<script>
+document.getElementById('deployForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const form = e.target;
+  const btn = form.querySelector('button[type=submit]');
+  btn.textContent = 'Deploying...';
+  btn.disabled = true;
+
+  const key = localStorage.getItem('api_key') || '';
+  document.getElementById('apiKeyField').value = key;
+
+  const body = {
+    strategy_type: form.template.value,
+    name: form.name.value,
+    pairs: form.pairs.value.split(',').map(s => s.trim()).filter(Boolean),
+    config: {
+      position_size_usd: parseFloat(form.position_size.value),
+      max_positions: parseInt(form.max_positions.value),
+      stop_loss_pct: parseFloat(form.stop_loss.value) / 100,
+      take_profit_pct: parseFloat(form.take_profit.value) / 100,
+      interval: form.interval.value
+    }
+  };
+
+  try {
+    const resp = await fetch('/trading/deploy', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'X-API-Key': key},
+      body: JSON.stringify(body)
+    });
+    const data = await resp.json();
+    if (resp.ok && data.strategy_id) {
+      window.location.href = '/trading/' + data.strategy_id;
+    } else {
+      alert(data.error || 'Deployment failed. Please check your API key and try again.');
+      btn.textContent = 'Deploy Strategy';
+      btn.disabled = false;
+    }
+  } catch (err) {
+    alert('Network error. Please try again.');
+    btn.textContent = 'Deploy Strategy';
+    btn.disabled = false;
+  }
+});
+</script>
+{% endblock %}

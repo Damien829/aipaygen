@@ -1,0 +1,628 @@
+{% extends "base.html" %}
+{% block title %}Get API Key{% endblock %}
+{% block description %}Get a free AiPayGen API key with $0.10 trial credits. No credit card required.{% endblock %}
+{% block canonical %}/get-key{% endblock %}
+{% block og_title %}Get API Key{% endblock %}
+
+{% block head %}
+<style>
+  .gk-bg-grid::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,136,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,136,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .noise {
+    position: fixed; inset: -200%; width: 400%; height: 400%;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.4; pointer-events: none; z-index: 0;
+  }
+  .gk-content {
+    position: relative; z-index: 2;
+    max-width: 520px; margin: 0 auto; padding: 80px 24px 120px;
+    text-align: center;
+  }
+  .gk-content h1 {
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 12px;
+  }
+  .gk-content h1 .accent { color: var(--accent); }
+  .gk-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    margin-bottom: 40px;
+    font-weight: 300;
+    line-height: 1.6;
+  }
+  .key-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .key-form input {
+    flex: 1;
+    padding: 14px 18px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.9rem;
+    font-family: var(--font-sans);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .key-form input:focus { border-color: var(--accent); }
+  .key-form button {
+    padding: 14px 28px;
+    background: var(--accent);
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .key-form button:hover {
+    background: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(41,151,255,0.3);
+  }
+  .key-form button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  .key-result {
+    display: none;
+    background: var(--bg-elevated);
+    border: 1px solid var(--accent);
+    padding: 20px;
+    text-align: left;
+    margin-bottom: 20px;
+  }
+  .key-result .label {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .key-result .key-value {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .key-result code {
+    flex: 1;
+    font-size: 0.88rem;
+    color: var(--accent);
+    word-break: break-all;
+  }
+  .key-result .copy-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 6px 16px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: var(--font-mono);
+  }
+  .key-result .info {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    margin-top: 10px;
+  }
+  .key-result .info a { color: var(--accent2); text-decoration: none; }
+  .key-result .info a:hover { text-decoration: underline; }
+  .error-msg {
+    display: none;
+    font-size: 0.82rem;
+    color: var(--danger);
+    margin-bottom: 16px;
+  }
+  .gk-links {
+    margin-top: 32px;
+    font-size: 0.88rem;
+    color: var(--text-secondary);
+    line-height: 2;
+  }
+  .gk-links a { color: var(--accent2); text-decoration: none; }
+  .gk-links a:hover { text-decoration: underline; }
+
+  /* Try it now section */
+  .try-now {
+    display: none;
+    margin-top: 28px;
+    margin-bottom: 28px;
+    text-align: left;
+    border: 1px solid transparent;
+    border-radius: 16px;
+    padding: 28px 24px;
+    background: var(--bg-elevated);
+    position: relative;
+    overflow: hidden;
+  }
+  .try-now::before {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 17px;
+    padding: 1px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2), var(--accent));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    animation: borderGlow 3s ease-in-out infinite;
+  }
+  @keyframes borderGlow {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+  .try-now h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .try-now h2 .accent { color: var(--accent); }
+  .try-now .try-subtitle {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin-bottom: 18px;
+    font-weight: 300;
+  }
+  .curl-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    position: relative;
+    margin-bottom: 14px;
+  }
+  .curl-box pre {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-all;
+    line-height: 1.6;
+    margin: 0;
+  }
+  .curl-box pre .curl-key { color: var(--accent); }
+  .curl-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 2px;
+    position: absolute;
+    top: 12px;
+    right: 12px;
+  }
+  .curl-actions button {
+    padding: 6px 16px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    border-radius: 980px;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .btn-copy-curl {
+    background: var(--border);
+    color: var(--text);
+  }
+  .btn-copy-curl:hover {
+    background: var(--border-hover);
+  }
+  .btn-run {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-run:hover {
+    background: #fff;
+    color: #000;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(41,151,255,0.3);
+  }
+  .btn-run:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  .api-result {
+    display: none;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 18px;
+    margin-top: 14px;
+  }
+  .api-result .result-label {
+    font-size: 0.68rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  .api-result .result-body {
+    font-size: 0.85rem;
+    color: var(--text);
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .api-result .result-meta {
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    margin-top: 10px;
+    font-family: var(--font-mono);
+  }
+
+  /* What's next section */
+  .whats-next {
+    display: none;
+    margin-top: 28px;
+    margin-bottom: 28px;
+    text-align: left;
+  }
+  .whats-next h3 {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+  .next-links {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .next-link {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    text-decoration: none;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .next-link:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px var(--accent-dim);
+  }
+  .next-link .nl-icon {
+    font-size: 1.3rem;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-dim);
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+  .next-link .nl-text { flex: 1; }
+  .next-link .nl-title {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .next-link .nl-desc {
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+    font-weight: 300;
+    margin-top: 2px;
+  }
+  .next-link .nl-arrow {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+  .mcp-cmd {
+    display: none;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    margin-top: 8px;
+    margin-left: 50px;
+    position: relative;
+  }
+  .mcp-cmd code {
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    color: var(--text);
+    word-break: break-all;
+  }
+  .mcp-cmd .mcp-copy {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--border);
+    color: var(--text);
+    border: none;
+    padding: 4px 10px;
+    font-size: 0.68rem;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 980px;
+  }
+  .mcp-cmd .mcp-copy:hover { background: var(--border-hover); }
+  .gk-features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    margin-top: 40px;
+    text-align: left;
+  }
+  .gk-feature {
+    background: var(--bg);
+    padding: 20px;
+  }
+  .gk-feature h3 {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 4px;
+  }
+  .gk-feature p {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-weight: 300;
+  }
+  @media (max-width: 600px) {
+    .key-form { flex-direction: column; }
+    .gk-features { grid-template-columns: 1fr; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="noise gk-bg-grid"></div>
+<div class="gk-content">
+
+<h1>Get your <span class="accent">free API key</span></h1>
+<p class="gk-subtitle">Enter your email to generate a key instantly. Includes $0.10 trial credits (~16 AI calls). No credit card required.</p>
+
+<form id="keyForm" onsubmit="return generateKey(event)">
+  <div class="key-form">
+    <input type="email" id="emailInput" required placeholder="you@example.com" autocomplete="email">
+    <button type="submit" id="genBtn">Generate Key</button>
+  </div>
+</form>
+
+<div class="error-msg" id="errorMsg"></div>
+
+<div class="key-result" id="keyResult">
+  <div class="label">Your API Key</div>
+  <div class="key-value">
+    <code id="keyValue"></code>
+    <button class="copy-btn" onclick="copyKey()">Copy</button>
+  </div>
+  <div class="info">$0.10 trial credits loaded. <a href="/docs">Read the docs</a> or <a href="/playground">open the playground</a>.</div>
+</div>
+
+<!-- Try it now section -->
+<div class="try-now" id="tryNow">
+  <h2><span class="accent">Try it now</span> — make your first call</h2>
+  <p class="try-subtitle">Your key is live. Run this command to call the research tool instantly.</p>
+  <div class="curl-box">
+    <div class="curl-actions">
+      <button class="btn-copy-curl" onclick="copyCurl()">Copy</button>
+      <button class="btn-run" id="runBtn" onclick="runFirstCall()">Run it</button>
+    </div>
+    <pre>curl -X POST https://aipaygen.com/research \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: <span class="curl-key" id="curlKey">YOUR_KEY</span>" \
+  -d '{"query": "What is MCP?"}'</pre>
+  </div>
+  <div class="api-result" id="apiResult">
+    <div class="result-label">Response</div>
+    <div class="result-body" id="resultBody"></div>
+    <div class="result-meta" id="resultMeta"></div>
+  </div>
+</div>
+
+<!-- What's next section -->
+<div class="whats-next" id="whatsNext">
+  <h3>What's next?</h3>
+  <div class="next-links">
+    <a href="/docs" class="next-link">
+      <div class="nl-icon">📖</div>
+      <div class="nl-text">
+        <div class="nl-title">Read the docs</div>
+        <div class="nl-desc">Full API reference, authentication, and examples</div>
+      </div>
+      <div class="nl-arrow">→</div>
+    </a>
+    <a href="/try" class="next-link">
+      <div class="nl-icon">⚡</div>
+      <div class="nl-text">
+        <div class="nl-title">Try all 65+ tools</div>
+        <div class="nl-desc">Research, write, code, scrape, translate, and more</div>
+      </div>
+      <div class="nl-arrow">→</div>
+    </a>
+    <div class="next-link" onclick="toggleMcpCmd()" style="cursor:pointer;">
+      <div class="nl-icon">🔌</div>
+      <div class="nl-text">
+        <div class="nl-title">Add to Claude Code</div>
+        <div class="nl-desc">One command to connect all 65+ tools to your IDE</div>
+        <div class="mcp-cmd" id="mcpCmd">
+          <code id="mcpInstallCmd">npx @anthropic-ai/claude-code mcp add aipaygen -- npx -y aipaygen-mcp@latest --key YOUR_KEY</code>
+          <button class="mcp-copy" onclick="event.stopPropagation(); copyMcp()">Copy</button>
+        </div>
+      </div>
+      <div class="nl-arrow" id="mcpArrow">→</div>
+    </div>
+  </div>
+</div>
+
+<div class="gk-links">
+  Already have a key? <a href="/buy-credits">Top up credits</a><br>
+  Need more? <a href="/pricing">See pricing</a>
+</div>
+
+<div class="gk-features">
+  <div class="gk-feature">
+    <h3>65+ Tools</h3>
+    <p>Research, write, code, scrape, translate, and more</p>
+  </div>
+  <div class="gk-feature">
+    <h3>15 AI Models</h3>
+    <p>Claude, GPT-4o, Gemini, DeepSeek, Grok, Mistral, Llama</p>
+  </div>
+  <div class="gk-feature">
+    <h3>$0.10 Free</h3>
+    <p>Trial credits loaded instantly on key creation</p>
+  </div>
+  <div class="gk-feature">
+    <h3>No Expiry</h3>
+    <p>Credits never expire. Use at your own pace</p>
+  </div>
+</div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var generatedKey = '';
+
+function generateKey(e) {
+  e.preventDefault();
+  var email = document.getElementById('emailInput').value.trim();
+  if (!email) return false;
+  var btn = document.getElementById('genBtn');
+  var errEl = document.getElementById('errorMsg');
+  btn.disabled = true; btn.textContent = 'Generating...';
+  errEl.style.display = 'none';
+  fetch('/auth/generate-key', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({email: email, source: 'get_key_page'})
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if (d.key) {
+      generatedKey = d.key;
+      document.getElementById('keyValue').textContent = d.key;
+      document.getElementById('keyResult').style.display = 'block';
+      document.getElementById('keyForm').style.display = 'none';
+      // Populate and show Try it now section
+      document.getElementById('curlKey').textContent = d.key;
+      document.getElementById('tryNow').style.display = 'block';
+      // Populate and show What's next section
+      document.getElementById('mcpInstallCmd').textContent =
+        'npx @anthropic-ai/claude-code mcp add aipaygen -- npx -y aipaygen-mcp@latest --key ' + d.key;
+      document.getElementById('whatsNext').style.display = 'block';
+      // Smooth scroll to the try-now section
+      setTimeout(function(){
+        document.getElementById('tryNow').scrollIntoView({behavior: 'smooth', block: 'center'});
+      }, 300);
+    } else {
+      errEl.textContent = d.error || d.message || 'Something went wrong';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Generate Key';
+    }
+  }).catch(function(){
+    errEl.textContent = 'Network error. Please try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Generate Key';
+  });
+  return false;
+}
+
+function copyKey() {
+  var key = document.getElementById('keyValue').textContent;
+  navigator.clipboard.writeText(key).then(function(){
+    var btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(function(){ btn.textContent = 'Copy'; }, 2000);
+  });
+}
+
+function copyCurl() {
+  var cmd = 'curl -X POST https://aipaygen.com/research \\\n  -H "Content-Type: application/json" \\\n  -H "X-API-Key: ' + generatedKey + '" \\\n  -d \'{"query": "What is MCP?"}\'';
+  navigator.clipboard.writeText(cmd).then(function(){
+    var btn = document.querySelector('.btn-copy-curl');
+    btn.textContent = 'Copied!';
+    setTimeout(function(){ btn.textContent = 'Copy'; }, 2000);
+  });
+}
+
+function runFirstCall() {
+  var btn = document.getElementById('runBtn');
+  var resultEl = document.getElementById('apiResult');
+  var bodyEl = document.getElementById('resultBody');
+  var metaEl = document.getElementById('resultMeta');
+  btn.disabled = true;
+  btn.textContent = 'Running...';
+  bodyEl.textContent = '';
+  metaEl.textContent = '';
+  resultEl.style.display = 'block';
+  bodyEl.textContent = 'Calling /research...';
+  var startTime = Date.now();
+  fetch('/research', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-API-Key': generatedKey
+    },
+    body: JSON.stringify({query: 'What is MCP?'})
+  }).then(function(r){ return r.json(); }).then(function(d){
+    var elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+    var text = d.result || d.answer || d.response || d.data || JSON.stringify(d, null, 2);
+    bodyEl.textContent = text;
+    metaEl.textContent = 'Completed in ' + elapsed + 's';
+    btn.textContent = 'Run it';
+    btn.disabled = false;
+  }).catch(function(err){
+    var elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+    bodyEl.textContent = 'Error: ' + (err.message || 'Request failed. Check your connection and try again.');
+    metaEl.textContent = 'Failed after ' + elapsed + 's';
+    btn.textContent = 'Run it';
+    btn.disabled = false;
+  });
+}
+
+function toggleMcpCmd() {
+  var el = document.getElementById('mcpCmd');
+  var arrow = document.getElementById('mcpArrow');
+  if (el.style.display === 'block') {
+    el.style.display = 'none';
+    arrow.textContent = '→';
+  } else {
+    el.style.display = 'block';
+    arrow.textContent = '↓';
+  }
+}
+
+function copyMcp() {
+  var cmd = document.getElementById('mcpInstallCmd').textContent;
+  navigator.clipboard.writeText(cmd).then(function(){
+    var btn = document.querySelector('.mcp-copy');
+    btn.textContent = 'Copied!';
+    setTimeout(function(){ btn.textContent = 'Copy'; }, 2000);
+  });
+}
+</script>
+{% endblock %}

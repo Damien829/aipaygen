@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}{{ agent.name }} Analytics{% endblock %}
+{% block description %}Performance analytics for {{ agent.name }} on AiPayGen Agent Market{% endblock %}
+
+{% block content %}
+<section class="section" style="max-width:900px;margin:0 auto;padding-top:120px;">
+  <a href="/market/agent/{{ listing_id }}" style="font-size:var(--text-sm);color:var(--text-muted);text-decoration:none;display:inline-block;margin-bottom:24px">&larr; Back to {{ agent.name }}</a>
+
+  <h1 style="font-size:var(--text-3xl);font-weight:700;margin-bottom:8px;">{{ agent.name }} — Analytics</h1>
+  <p style="color:var(--text-secondary);margin-bottom:32px;">Performance data and review history.</p>
+
+  <!-- Stats cards -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:40px;">
+    <div class="card" style="padding:20px;text-align:center;">
+      <div style="font-family:var(--font-mono);font-size:var(--text-2xl);font-weight:700;color:var(--text);">{{ agent.call_count|default(0) }}</div>
+      <div style="font-size:var(--text-xs);color:var(--text-muted);margin-top:4px;">Total Calls</div>
+    </div>
+    <div class="card" style="padding:20px;text-align:center;">
+      <div style="font-family:var(--font-mono);font-size:var(--text-2xl);font-weight:700;color:var(--green);">{{ "%.1f"|format(agent.avg_rating|default(0)|float) }}</div>
+      <div style="font-size:var(--text-xs);color:var(--text-muted);margin-top:4px;">Avg Rating</div>
+    </div>
+    <div class="card" style="padding:20px;text-align:center;">
+      <div style="font-family:var(--font-mono);font-size:var(--text-2xl);font-weight:700;color:var(--text);">{{ agent.review_count|default(0) }}</div>
+      <div style="font-size:var(--text-xs);color:var(--text-muted);margin-top:4px;">Reviews</div>
+    </div>
+    <div class="card" style="padding:20px;text-align:center;">
+      <div style="font-family:var(--font-mono);font-size:var(--text-2xl);font-weight:700;color:var(--accent);">${{ "%.2f"|format(agent.total_revenue|default(0)|float) }}</div>
+      <div style="font-size:var(--text-xs);color:var(--text-muted);margin-top:4px;">Revenue</div>
+    </div>
+  </div>
+
+  <!-- Performance data -->
+  <h3 style="font-size:var(--text-sm);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;">Performance History</h3>
+  {% if performance %}
+  <div class="card" style="padding:20px;margin-bottom:32px;overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:var(--text-sm);">
+      <thead>
+        <tr style="border-bottom:2px solid var(--border);">
+          <th style="text-align:left;padding:8px 12px;color:var(--text-muted);font-size:var(--text-xs);text-transform:uppercase;">Metric</th>
+          <th style="text-align:right;padding:8px 12px;color:var(--text-muted);font-size:var(--text-xs);text-transform:uppercase;">Value</th>
+          <th style="text-align:right;padding:8px 12px;color:var(--text-muted);font-size:var(--text-xs);text-transform:uppercase;">Recorded</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in performance %}
+        <tr style="border-bottom:1px solid var(--border);{% if loop.index is odd %}background:var(--surface);{% endif %}">
+          <td style="padding:8px 12px;color:var(--text);">{{ p.metric_name }}</td>
+          <td style="padding:8px 12px;color:var(--text);font-family:var(--font-mono);text-align:right;">{{ "%.4f"|format(p.metric_value|float) }}</td>
+          <td style="padding:8px 12px;color:var(--text-muted);font-family:var(--font-mono);font-size:var(--text-xs);text-align:right;">{{ p.recorded_at[:16] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="card" style="padding:32px;text-align:center;margin-bottom:32px;">
+    <p style="color:var(--text-muted);font-size:var(--text-sm);">No performance data recorded yet. Data appears as the agent processes calls.</p>
+  </div>
+  {% endif %}
+
+  <!-- Reviews -->
+  <h3 style="font-size:var(--text-sm);color:var(--text-muted);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:16px;">Recent Reviews</h3>
+  {% if reviews %}
+  <div style="margin-bottom:32px;">
+    {% for r in reviews %}
+    <div style="padding:16px 0;border-bottom:1px solid var(--border);">
+      <div style="font-size:var(--text-sm);color:var(--warning);">{{ '\u2605' * r.rating }}{{ '\u2606' * (5 - r.rating) }}</div>
+      <div style="font-size:var(--text-sm);color:var(--text-secondary);margin-top:6px;line-height:1.6;">{{ r.review_text|default('') }}</div>
+      <div style="font-family:var(--font-mono);font-size:var(--text-xs);color:var(--text-muted);margin-top:6px;">{{ r.reviewer_id }} &middot; {{ r.created_at[:10] }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card" style="padding:32px;text-align:center;margin-bottom:32px;">
+    <p style="color:var(--text-muted);font-size:var(--text-sm);">No reviews yet.</p>
+  </div>
+  {% endif %}
+
+  <div style="display:flex;gap:12px;">
+    <a href="/market/agent/{{ listing_id }}" class="btn btn-primary" style="padding:10px 24px;">View Agent</a>
+    <a href="/market/compare?agents={{ listing_id }}" class="btn btn-secondary" style="padding:10px 24px;">Compare</a>
+  </div>
+</section>
+
+<style>
+@media (max-width: 600px) {
+  section > div:first-of-type { grid-template-columns: repeat(2, 1fr) !important; }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,578 @@
+{% extends "base.html" %}
+{% block title %}AiPayGen vs OpenRouter — Detailed Comparison 2026{% endblock %}
+{% block description %}AiPayGen vs OpenRouter: honest comparison of features, pricing, and use cases. 65+ built-in tools vs model routing. x402 crypto vs credit-only. Find which AI API fits your needs.{% endblock %}
+{% block canonical %}/compare/openrouter{% endblock %}
+
+{% block head %}
+<meta property="og:type" content="article">
+<meta property="og:title" content="AiPayGen vs OpenRouter — Detailed Comparison 2026">
+<meta property="og:description" content="Honest comparison: AiPayGen's 65+ built-in tools vs OpenRouter's model routing. Pricing, features, crypto payments, MCP support, and more.">
+<meta property="og:url" content="https://aipaygen.com/compare/openrouter">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="AiPayGen vs OpenRouter — 2026 Comparison">
+<meta name="twitter:description" content="AiPayGen vs OpenRouter: built-in tools vs model routing. x402 crypto vs credit-only. Full feature comparison.">
+<meta name="robots" content="index, follow">
+<meta name="keywords" content="OpenRouter alternative, AiPayGen vs OpenRouter, AI API comparison, OpenRouter competitor, AI model routing, MCP server, x402 crypto payments, AI API 2026">
+
+<script type="application/ld+json">
+[{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "AiPayGen vs OpenRouter — Detailed Comparison",
+  "description": "Head-to-head comparison of AiPayGen and OpenRouter AI APIs covering features, pricing, tools, and payment options.",
+  "url": "https://aipaygen.com/compare/openrouter",
+  "dateModified": "2026-03-26",
+  "publisher": {
+    "@type": "Organization",
+    "name": "AiPayGen",
+    "url": "https://aipaygen.com"
+  }
+},{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Is AiPayGen a good alternative to OpenRouter?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "AiPayGen and OpenRouter serve different needs. AiPayGen provides 65+ pre-built tools (scraping, RAG, vision, sentiment analysis) with per-call pricing and crypto payments. OpenRouter focuses on model routing with access to 200+ models across providers. Choose AiPayGen for built-in tools and crypto; choose OpenRouter for maximum model selection."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Does AiPayGen support MCP like OpenRouter?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "AiPayGen has native MCP (Model Context Protocol) server support, allowing AI assistants like Claude to call AiPayGen tools directly. OpenRouter does not currently offer MCP server support."
+      }
+    }
+  ]
+}]
+</script>
+
+<style>
+/* Versus page styles */
+.vs-hero {
+  text-align: center;
+  padding: 100px 24px 60px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.vs-hero h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 16px;
+  letter-spacing: -0.02em;
+}
+.vs-hero h1 .accent { color: var(--accent, #2997ff); }
+.vs-hero h1 .dim { color: var(--text-secondary, #86868b); }
+.vs-hero .subtitle {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  max-width: 640px;
+  margin: 0 auto 12px;
+}
+.vs-hero .updated {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* Breadcrumb-style nav */
+.vs-nav {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  flex-wrap: wrap;
+  padding: 0 24px 48px;
+}
+.vs-nav a {
+  padding: 8px 20px;
+  border: 1px solid var(--border, rgba(41,151,255,0.1));
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  transition: all var(--transition, 0.3s);
+}
+.vs-nav a:hover, .vs-nav a.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim, rgba(41,151,255,0.08));
+}
+
+/* TLDR box */
+.tldr-box {
+  max-width: 800px;
+  margin: 0 auto 60px;
+  padding: 0 24px;
+}
+.tldr-card {
+  background: var(--bg-elevated, #1c1c1e);
+  border: 1px solid var(--accent, #2997ff);
+  border-radius: 20px;
+  padding: 32px;
+}
+.tldr-card h2 {
+  font-size: 1rem;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+}
+.tldr-card p {
+  color: var(--text);
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+.tldr-card p strong { color: #fff; }
+
+/* Feature comparison table */
+.feature-section {
+  max-width: 900px;
+  margin: 0 auto 60px;
+  padding: 0 24px;
+  overflow-x: auto;
+}
+.feature-section h2 {
+  font-size: 1.5rem;
+  color: #fff;
+  margin-bottom: 24px;
+}
+.feature-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+  min-width: 600px;
+}
+.feature-table thead {
+  background: var(--bg-elevated);
+}
+.feature-table th {
+  padding: 14px 20px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 1px solid var(--border);
+}
+.feature-table th:first-child { width: 40%; }
+.feature-table td {
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  color: var(--text);
+}
+.feature-table tbody tr:hover {
+  background: rgba(41,151,255,0.03);
+}
+.feature-table .cat-row td {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding-top: 24px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(41,151,255,0.02);
+}
+.yes { color: var(--accent, #2997ff); font-weight: 600; }
+.no { color: var(--text-muted, #48484a); }
+.partial { color: var(--warning, #d29922); }
+
+/* Pricing examples */
+.pricing-examples {
+  max-width: 900px;
+  margin: 0 auto 60px;
+  padding: 0 24px;
+}
+.pricing-examples h2 {
+  font-size: 1.5rem;
+  color: #fff;
+  margin-bottom: 8px;
+}
+.pricing-examples .section-desc {
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  font-size: 0.92rem;
+}
+.pricing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.pricing-example-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px;
+}
+.pricing-example-card h3 {
+  font-size: 0.95rem;
+  color: #fff;
+  margin-bottom: 16px;
+}
+.pricing-example-card .line {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  font-size: 0.85rem;
+}
+.pricing-example-card .line .label { color: var(--text-secondary); }
+.pricing-example-card .line .value { color: var(--text); font-family: var(--font-mono); }
+.pricing-example-card .total {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+.pricing-example-card .total .label { color: #fff; }
+.pricing-example-card .total .value { color: var(--accent); font-family: var(--font-mono); }
+
+/* When to use sections */
+.when-to-use {
+  max-width: 900px;
+  margin: 0 auto 60px;
+  padding: 0 24px;
+}
+.when-to-use h2 {
+  font-size: 1.5rem;
+  color: #fff;
+  margin-bottom: 24px;
+}
+.when-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+.when-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 28px;
+}
+.when-card h3 {
+  font-size: 1rem;
+  color: #fff;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.when-card h3 .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.when-card ul {
+  list-style: none;
+  padding: 0;
+}
+.when-card ul li {
+  padding: 6px 0;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  padding-left: 16px;
+  position: relative;
+}
+.when-card ul li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 14px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border-hover);
+}
+
+/* CTA */
+.cta-section {
+  text-align: center;
+  padding: 80px 24px;
+  max-width: 700px;
+  margin: 0 auto;
+}
+.cta-section h2 {
+  font-size: 1.8rem;
+  color: #fff;
+  margin-bottom: 12px;
+}
+.cta-section p {
+  color: var(--text-secondary);
+  margin-bottom: 28px;
+  font-size: 1rem;
+}
+.cta-buttons {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.btn-primary {
+  display: inline-block;
+  padding: 14px 32px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 980px;
+  font-size: 0.95rem;
+  transition: all var(--transition);
+}
+.btn-primary:hover { background: #fff; color: #000; transform: translateY(-1px); }
+.btn-secondary {
+  display: inline-block;
+  padding: 14px 32px;
+  background: transparent;
+  color: var(--text);
+  font-weight: 600;
+  border: 1px solid var(--border);
+  border-radius: 980px;
+  font-size: 0.95rem;
+  transition: all var(--transition);
+}
+.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+@media (max-width: 768px) {
+  .vs-hero { padding: 80px 20px 40px; }
+  .vs-hero h1 { font-size: 1.7rem; }
+  .pricing-grid, .when-grid { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<section class="vs-hero">
+  <h1><span class="accent">AiPayGen</span> <span class="dim">vs</span> OpenRouter</h1>
+  <p class="subtitle">An honest comparison of two different approaches to AI APIs. Built-in tools vs model routing. Per-call pricing vs token pass-through.</p>
+  <p class="updated">Last updated: March 2026</p>
+</section>
+
+<!-- Nav -->
+<div class="vs-nav">
+  <a href="/compare">All Providers</a>
+  <a href="/compare/openai">vs OpenAI</a>
+  <a href="/compare/openrouter" class="active">vs OpenRouter</a>
+</div>
+
+<!-- TL;DR -->
+<section class="tldr-box">
+  <div class="tldr-card">
+    <h2>TL;DR</h2>
+    <p><strong>AiPayGen</strong> gives you 65+ pre-built tools (scraping, RAG, vision, sentiment, code gen) with per-call pricing and x402 crypto payments. <strong>OpenRouter</strong> gives you access to 200+ AI models from multiple providers with token-based pass-through pricing. They solve different problems: AiPayGen is a toolbox, OpenRouter is a model router. If you need built-in capabilities like web scraping or MCP server support, choose AiPayGen. If you need access to many models through a single API, OpenRouter is hard to beat.</p>
+  </div>
+</section>
+
+<!-- Feature Comparison -->
+<section class="feature-section">
+  <h2>Feature Comparison</h2>
+  <table class="feature-table" role="table" aria-label="AiPayGen vs OpenRouter Feature Comparison">
+    <thead>
+      <tr>
+        <th scope="col">Feature</th>
+        <th scope="col">AiPayGen</th>
+        <th scope="col">OpenRouter</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="cat-row"><td colspan="3">Core Capabilities</td></tr>
+      <tr>
+        <td>AI Model Access</td>
+        <td>15 models, 7 providers</td>
+        <td class="yes">200+ models, 20+ providers</td>
+      </tr>
+      <tr>
+        <td>Built-in Tools</td>
+        <td class="yes">65+ tools (scraping, RAG, vision, etc.)</td>
+        <td class="no">Inference only</td>
+      </tr>
+      <tr>
+        <td>Web Scraping</td>
+        <td class="yes">Built-in (websites, YouTube, Twitter, maps)</td>
+        <td class="no">Not available</td>
+      </tr>
+      <tr>
+        <td>RAG / Knowledge Base</td>
+        <td class="yes">Built-in</td>
+        <td class="no">Not available</td>
+      </tr>
+      <tr>
+        <td>Vision / Image Analysis</td>
+        <td class="yes">Built-in tool</td>
+        <td class="partial">Via vision models only</td>
+      </tr>
+      <tr>
+        <td>Sentiment Analysis</td>
+        <td class="yes">Dedicated tool, $0.01/call</td>
+        <td class="no">Requires prompt engineering</td>
+      </tr>
+      <tr>
+        <td>Code Generation</td>
+        <td class="yes">Dedicated tool, $0.02/call</td>
+        <td class="partial">Via code-capable models</td>
+      </tr>
+
+      <tr class="cat-row"><td colspan="3">Developer Experience</td></tr>
+      <tr>
+        <td>MCP Server Support</td>
+        <td class="yes">Native MCP server</td>
+        <td class="no">No MCP support</td>
+      </tr>
+      <tr>
+        <td>REST API</td>
+        <td class="yes">Yes</td>
+        <td class="yes">Yes</td>
+      </tr>
+      <tr>
+        <td>OpenAI-compatible API</td>
+        <td class="no">Custom API</td>
+        <td class="yes">Drop-in OpenAI replacement</td>
+      </tr>
+      <tr>
+        <td>Python SDK</td>
+        <td class="yes">PyPI package</td>
+        <td class="yes">Community SDKs</td>
+      </tr>
+      <tr>
+        <td>Playground / UI</td>
+        <td class="yes">Built-in playground + app</td>
+        <td class="yes">Web playground</td>
+      </tr>
+      <tr>
+        <td>Workflow Builder</td>
+        <td class="yes">Visual builder</td>
+        <td class="no">No</td>
+      </tr>
+
+      <tr class="cat-row"><td colspan="3">Pricing &amp; Payments</td></tr>
+      <tr>
+        <td>Pricing Model</td>
+        <td>Per-call (flat rate per tool)</td>
+        <td>Per-token (pass-through + 5% markup)</td>
+      </tr>
+      <tr>
+        <td>Minimum Purchase</td>
+        <td class="yes">$0.50</td>
+        <td>$1.00</td>
+      </tr>
+      <tr>
+        <td>Free Tier</td>
+        <td class="yes">$0.10 trial + ad-supported calls</td>
+        <td class="partial">Some free models available</td>
+      </tr>
+      <tr>
+        <td>Crypto Payments (x402)</td>
+        <td class="yes">USDC via x402 protocol</td>
+        <td class="no">No</td>
+      </tr>
+      <tr>
+        <td>Subscription Plans</td>
+        <td class="yes">$4.99 / $19.99 / $49.99 per month</td>
+        <td class="no">Credit-based only</td>
+      </tr>
+
+      <tr class="cat-row"><td colspan="3">Ecosystem</td></tr>
+      <tr>
+        <td>Documentation</td>
+        <td>Growing docs</td>
+        <td class="yes">Comprehensive docs</td>
+      </tr>
+      <tr>
+        <td>Community Size</td>
+        <td>Early-stage, growing</td>
+        <td class="yes">Large, established community</td>
+      </tr>
+      <tr>
+        <td>Funding / Backing</td>
+        <td>Bootstrapped</td>
+        <td class="yes">VC-backed</td>
+      </tr>
+      <tr>
+        <td>Uptime Track Record</td>
+        <td>Solid, single-operator</td>
+        <td class="yes">Enterprise-grade</td>
+      </tr>
+      <tr>
+        <td>Tool Marketplace</td>
+        <td class="yes">Seller marketplace for custom tools</td>
+        <td class="no">No</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- Pricing Examples -->
+<section class="pricing-examples">
+  <h2>Pricing Examples</h2>
+  <p class="section-desc">Real-world cost comparisons for common workloads.</p>
+  <div class="pricing-grid">
+    <div class="pricing-example-card">
+      <h3>AiPayGen Cost</h3>
+      <div class="line"><span class="label">1,000 sentiment calls</span><span class="value">$10.00</span></div>
+      <div class="line"><span class="label">500 code gen calls</span><span class="value">$10.00</span></div>
+      <div class="line"><span class="label">200 research calls</span><span class="value">$10.00</span></div>
+      <div class="line"><span class="label">300 web scraping calls</span><span class="value">$12.00</span></div>
+      <div class="total"><span class="label">Total monthly</span><span class="value">$42.00</span></div>
+    </div>
+    <div class="pricing-example-card">
+      <h3>OpenRouter Cost (estimate)</h3>
+      <div class="line"><span class="label">1,000 sentiment calls</span><span class="value">~$6.30</span></div>
+      <div class="line"><span class="label">500 code gen calls</span><span class="value">~$15.75</span></div>
+      <div class="line"><span class="label">200 research calls</span><span class="value">~$12.60</span></div>
+      <div class="line"><span class="label">300 web scraping calls</span><span class="value">N/A</span></div>
+      <div class="total"><span class="label">Total monthly</span><span class="value">~$34.65*</span></div>
+    </div>
+  </div>
+  <p style="font-size:0.78rem;color:var(--text-muted);margin-top:12px;">* OpenRouter estimate based on Claude 3.5 Sonnet pricing with 5% markup. Does not include scraping (unavailable). Actual costs vary by model and token usage.</p>
+</section>
+
+<!-- When to Use -->
+<section class="when-to-use">
+  <h2>When to Use Each</h2>
+  <div class="when-grid">
+    <div class="when-card">
+      <h3><span class="dot" style="background:var(--accent)"></span>Choose AiPayGen when you need:</h3>
+      <ul>
+        <li>Pre-built tools without prompt engineering (sentiment, scraping, RAG, vision)</li>
+        <li>Web scraping (websites, YouTube, Twitter, Instagram, Google Maps)</li>
+        <li>MCP server integration for AI assistants like Claude</li>
+        <li>Crypto payments via x402 / USDC</li>
+        <li>Predictable per-call pricing (no token math)</li>
+        <li>A low entry point ($0.50 minimum vs $1.00)</li>
+        <li>Visual workflow builder for chaining tools</li>
+        <li>A tool marketplace to sell or buy custom tools</li>
+      </ul>
+    </div>
+    <div class="when-card">
+      <h3><span class="dot" style="background:var(--accent2, #bf5af2)"></span>Choose OpenRouter when you need:</h3>
+      <ul>
+        <li>Access to 200+ models from 20+ providers through one API</li>
+        <li>OpenAI-compatible API (drop-in replacement for existing code)</li>
+        <li>The latest models on launch day from multiple providers</li>
+        <li>Enterprise-grade reliability with VC-backed infrastructure</li>
+        <li>Automatic model fallback and routing</li>
+        <li>A large community with extensive documentation</li>
+        <li>Pure inference without needing built-in tools</li>
+        <li>Free models for prototyping</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2>Try AiPayGen Free</h2>
+  <p>Get $0.10 in trial credits. 65+ tools, 15 models, MCP support, crypto payments. No credit card required.</p>
+  <div class="cta-buttons">
+    <a href="/get-key" class="btn-primary">Get Free API Key</a>
+    <a href="/compare" class="btn-secondary">See All Comparisons</a>
+  </div>
+</section>
+{% endblock %}

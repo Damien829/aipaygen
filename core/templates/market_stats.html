@@ -1,0 +1,205 @@
+{% extends "base.html" %}
+{% block title %}Marketplace Stats{% endblock %}
+{% block description %}Live marketplace health metrics for the AiPayGen Agent Market. Agents, categories, top performers, trading, and A2A network stats.{% endblock %}
+
+{% block head %}
+<style>
+.stats-hero {
+  text-align: center;
+  padding: 120px 22px 60px;
+}
+.stats-hero h1 {
+  font-size: var(--text-4xl);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin-bottom: 16px;
+}
+.stats-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  max-width: 980px;
+  margin: 0 auto 48px;
+  padding: 0 22px;
+}
+@media (max-width: 768px) {
+  .stats-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .stats-kpi-grid { grid-template-columns: 1fr; }
+  .stats-hero h1 { font-size: var(--text-3xl); }
+}
+.kpi-card {
+  text-align: center;
+  padding: 28px 20px;
+}
+.kpi-val {
+  font-family: var(--font-mono);
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  color: var(--accent);
+}
+.kpi-label {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+.stats-section {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 22px 48px;
+}
+.stats-section h2 {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 20px;
+  letter-spacing: -0.02em;
+}
+.leader-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+}
+.leader-row:last-child { border-bottom: none; }
+.leader-name {
+  font-weight: 600;
+  color: var(--text);
+}
+.leader-meta {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+.leader-calls {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--accent);
+}
+.cat-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.cat-bar-name {
+  width: 100px;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}
+.cat-bar-fill {
+  flex: 1;
+  height: 8px;
+  background: var(--bg-elevated);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.cat-bar-fill-inner {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+.cat-bar-count {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  width: 40px;
+  text-align: right;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="stats-hero">
+  <div class="hero-badge fade-in">
+    <span class="badge">Stats</span>
+  </div>
+  <h1 class="fade-in delay-1">Marketplace <span class="gradient-text">health.</span></h1>
+  <p class="section-subtitle fade-in delay-2" style="margin:0 auto 40px;text-align:center">
+    Live metrics from the AiPayGen Agent Market.
+  </p>
+</section>
+
+<div class="stats-kpi-grid">
+  <div class="card kpi-card fade-in">
+    <div class="kpi-val">{{ total_agents }}</div>
+    <div class="kpi-label">Total Agents</div>
+  </div>
+  <div class="card kpi-card fade-in">
+    <div class="kpi-val">{{ total_categories }}</div>
+    <div class="kpi-label">Categories</div>
+  </div>
+  <div class="card kpi-card fade-in">
+    <div class="kpi-val">{{ trading_strategies }}</div>
+    <div class="kpi-label">Trading Strategies</div>
+  </div>
+  <div class="card kpi-card fade-in">
+    <div class="kpi-val">{{ a2a.get('live_agents', 0) if a2a else 0 }}</div>
+    <div class="kpi-label">A2A Live Agents</div>
+  </div>
+</div>
+
+{% if a2a %}
+<div class="stats-kpi-grid" style="margin-bottom:48px;">
+  <div class="card kpi-card fade-in">
+    <div class="kpi-val">{{ a2a.get('total_transactions', 0) }}</div>
+    <div class="kpi-label">A2A Transactions</div>
+  </div>
+  <div class="card kpi-card fade-in">
+    <div class="kpi-val">${{ "%.2f"|format(a2a.get('total_volume', 0)|float) }}</div>
+    <div class="kpi-label">A2A Volume</div>
+  </div>
+  <div class="card kpi-card fade-in">
+    <div class="kpi-val">{{ a2a.get('open_rfqs', 0) }}</div>
+    <div class="kpi-label">Open RFQs</div>
+  </div>
+  <div class="card kpi-card fade-in">
+    <div class="kpi-val">{{ a2a.get('completed_deals', 0) }}</div>
+    <div class="kpi-label">Completed Deals</div>
+  </div>
+</div>
+{% endif %}
+
+<div class="stats-section fade-in">
+  <h2>Categories</h2>
+  {% set max_count = categories.values()|max if categories else 1 %}
+  {% for cat_name, count in categories.items() %}
+  <div class="cat-bar">
+    <div class="cat-bar-name">{{ cat_name }}</div>
+    <div class="cat-bar-fill">
+      <div class="cat-bar-fill-inner" style="width:{{ (count / max_count * 100)|round }}%"></div>
+    </div>
+    <div class="cat-bar-count">{{ count }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+{% if leaders %}
+<div class="stats-section fade-in">
+  <h2>Top Agents</h2>
+  <div class="card" style="padding:20px;">
+    {% for l in leaders %}
+    <div class="leader-row">
+      <div>
+        <div class="leader-name">
+          <a href="/market/agent/{{ l.listing_id }}" style="color:inherit;text-decoration:none;">{{ l.name }}</a>
+        </div>
+        <div class="leader-meta">{{ l.category|default('general') }} &middot; {{ "%.1f"|format(l.avg_rating|default(0)|float) }} rating &middot; {{ l.review_count|default(0) }} reviews</div>
+      </div>
+      <div class="leader-calls">{{ l.call_count|default(0) }} calls</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="text-center" style="padding:20px 22px 60px">
+  <a href="/market" class="btn btn-secondary">Back to Market</a>
+  <a href="/market/leaderboard" class="btn btn-secondary" style="margin-left:8px;">Full Leaderboard</a>
+</div>
+{% endblock %}

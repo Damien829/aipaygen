@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Detail — AlphaScout v3.2</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0f; color: #e0e0e0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+  .topnav { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; background: #111118; border-bottom: 1px solid #1e1e2e; }
+  .logo { font-weight: 800; font-size: 20px; color: #fff; }
+  .logo span { color: #6c5ce7; }
+  .back { color: #888; text-decoration: none; font-size: 13px; }
+
+  .hero { display: flex; gap: 24px; padding: 24px; }
+  .hero-left { flex: 1; }
+  .hero-right { width: 340px; }
+
+  .agent-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+  .agent-icon { width: 64px; height: 64px; border-radius: 14px; background: linear-gradient(135deg, #6c5ce7, #a29bfe); display: flex; align-items: center; justify-content: center; font-size: 32px; }
+  .agent-title h1 { font-size: 24px; color: #fff; }
+  .agent-title .meta { font-size: 13px; color: #666; margin-top: 4px; }
+  .agent-title .meta a { color: #6c5ce7; text-decoration: none; }
+  .badge-row { display: flex; gap: 8px; margin-top: 8px; }
+  .badge { font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 12px; }
+  .badge-verified { background: rgba(35,134,54,0.2); color: #2ecc71; }
+  .badge-trading { background: rgba(155,89,182,0.2); color: #9b59b6; }
+  .badge-audited { background: rgba(88,166,255,0.2); color: #58a6ff; }
+
+  .desc { font-size: 14px; color: #aaa; line-height: 1.6; margin-bottom: 20px; }
+
+  /* Performance chart area */
+  .chart-section { background: #111118; border: 1px solid #1e1e2e; border-radius: 14px; padding: 20px; margin-bottom: 20px; }
+  .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .chart-header h3 { font-size: 14px; color: #fff; }
+  .time-tabs { display: flex; gap: 4px; }
+  .time-tab { background: #1a1a2e; border: 1px solid #2d2d44; border-radius: 6px; padding: 4px 10px; font-size: 11px; color: #888; cursor: pointer; }
+  .time-tab.active { background: #6c5ce7; color: white; border-color: #6c5ce7; }
+
+  /* Fake chart */
+  .chart-area { height: 200px; position: relative; overflow: hidden; background: linear-gradient(180deg, rgba(108,92,231,0.05) 0%, transparent 100%); border-radius: 8px; }
+  .chart-line { position: absolute; bottom: 20px; left: 0; right: 0; height: 160px; }
+  .chart-svg { width: 100%; height: 100%; }
+  .chart-value { position: absolute; top: 12px; right: 12px; font-size: 28px; font-weight: 700; color: #2ecc71; }
+  .chart-label { position: absolute; top: 44px; right: 12px; font-size: 11px; color: #666; }
+
+  /* Stats grid */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+  .stat-box { background: #111118; border: 1px solid #1e1e2e; border-radius: 10px; padding: 14px; }
+  .stat-box .label { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-box .val { font-size: 20px; font-weight: 700; color: #fff; margin-top: 4px; }
+  .stat-box .sub { font-size: 11px; color: #238636; margin-top: 2px; }
+  .stat-box .sub.neg { color: #e94560; }
+
+  /* Trades table */
+  .trades-section { background: #111118; border: 1px solid #1e1e2e; border-radius: 14px; padding: 20px; }
+  .trades-section h3 { font-size: 14px; color: #fff; margin-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 0; border-bottom: 1px solid #1e1e2e; }
+  td { font-size: 12px; padding: 10px 0; border-bottom: 1px solid #0d0d14; color: #ccc; }
+  .td-pair { font-weight: 600; color: #fff; }
+  .td-buy { color: #2ecc71; }
+  .td-sell { color: #e94560; }
+  .td-profit { font-weight: 700; }
+
+  /* Right sidebar */
+  .sidebar-card { background: #111118; border: 1px solid #1e1e2e; border-radius: 14px; padding: 20px; margin-bottom: 16px; }
+  .sidebar-card h3 { font-size: 14px; color: #fff; margin-bottom: 16px; }
+
+  .pricing-option { background: #0d0d14; border: 1px solid #1e1e2e; border-radius: 10px; padding: 14px; margin-bottom: 10px; cursor: pointer; transition: border-color 0.2s; }
+  .pricing-option:hover { border-color: #6c5ce7; }
+  .pricing-option.selected { border-color: #6c5ce7; background: rgba(108,92,231,0.08); }
+  .pricing-name { font-size: 13px; font-weight: 700; color: #fff; }
+  .pricing-price { font-size: 18px; font-weight: 700; color: #6c5ce7; margin-top: 4px; }
+  .pricing-desc { font-size: 11px; color: #666; margin-top: 4px; }
+
+  .btn-deploy { width: 100%; background: #6c5ce7; color: white; border: none; border-radius: 10px; padding: 14px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 8px; }
+  .btn-deploy:hover { background: #5a4bd1; }
+
+  .risk-warning { background: rgba(233,69,96,0.08); border: 1px solid rgba(233,69,96,0.2); border-radius: 8px; padding: 12px; font-size: 11px; color: #e94560; line-height: 1.5; }
+
+  .creator-info { display: flex; align-items: center; gap: 12px; }
+  .creator-avatar { width: 40px; height: 40px; border-radius: 50%; background: #1e1e2e; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+  .creator-name { font-size: 13px; font-weight: 600; color: #fff; }
+  .creator-stats { font-size: 11px; color: #666; }
+
+  .strategy-tag { display: inline-block; background: #1a1a2e; border: 1px solid #2d2d44; border-radius: 6px; padding: 4px 10px; font-size: 11px; color: #aaa; margin: 2px; }
+
+  .mockup-label { text-align: center; padding: 12px; font-size: 11px; color: #444; border-top: 1px solid #1e1e2e; margin-top: 24px; }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div style="display: flex; align-items: center; gap: 16px;">
+    <div class="logo">AiPay<span>Gen</span></div>
+    <a href="#" class="back">← Back to Marketplace</a>
+  </div>
+  <div style="display: flex; gap: 12px;">
+    <button style="background: transparent; border: 1px solid #2d2d44; color: #888; border-radius: 8px; padding: 6px 14px; font-size: 12px; cursor: pointer;">⚑ Report</button>
+    <button style="background: transparent; border: 1px solid #2d2d44; color: #888; border-radius: 8px; padding: 6px 14px; font-size: 12px; cursor: pointer;">♡ Save</button>
+    <button style="background: transparent; border: 1px solid #2d2d44; color: #888; border-radius: 8px; padding: 6px 14px; font-size: 12px; cursor: pointer;">↗ Share</button>
+  </div>
+</nav>
+
+<div class="hero">
+  <div class="hero-left">
+    <!-- Agent header -->
+    <div class="agent-header">
+      <div class="agent-icon">📈</div>
+      <div class="agent-title">
+        <h1>AlphaScout v3.2</h1>
+        <div class="meta">by <a href="#">@cryptowhale</a> · 847 active users · Listed 3 months ago</div>
+        <div class="badge-row">
+          <span class="badge badge-verified">✓ Verified</span>
+          <span class="badge badge-trading">Trading Agent</span>
+          <span class="badge badge-audited">🛡 Audited</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="desc">
+      Multi-strategy autonomous trading agent specializing in DEX trades on Ethereum and Solana. Uses a combination of momentum indicators, on-chain whale tracking, and LLM-powered sentiment analysis from Twitter/Reddit to identify high-probability entries. Auto-manages positions with dynamic stop-losses and take-profit targets.
+    </div>
+
+    <!-- Strategy tags -->
+    <div style="margin-bottom: 20px;">
+      <div class="strategy-tag">Momentum</div>
+      <div class="strategy-tag">Sentiment Analysis</div>
+      <div class="strategy-tag">Whale Tracking</div>
+      <div class="strategy-tag">DEX (Uniswap/Raydium)</div>
+      <div class="strategy-tag">Auto Stop-Loss</div>
+      <div class="strategy-tag">BTC/ETH/SOL</div>
+    </div>
+
+    <!-- Performance chart -->
+    <div class="chart-section">
+      <div class="chart-header">
+        <h3>Portfolio Performance</h3>
+        <div class="time-tabs">
+          <div class="time-tab">24H</div>
+          <div class="time-tab">7D</div>
+          <div class="time-tab active">30D</div>
+          <div class="time-tab">90D</div>
+          <div class="time-tab">ALL</div>
+        </div>
+      </div>
+      <div class="chart-area">
+        <div class="chart-value">+312%</div>
+        <div class="chart-label">30-day return</div>
+        <svg class="chart-svg" viewBox="0 0 800 160" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#6c5ce7" stop-opacity="0.3"/>
+              <stop offset="100%" stop-color="#6c5ce7" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path d="M0,140 L30,135 L60,130 L90,125 L120,128 L150,110 L180,100 L210,95 L240,80 L270,85 L300,70 L330,60 L360,55 L390,50 L420,45 L450,40 L480,35 L510,42 L540,30 L570,25 L600,22 L630,28 L660,18 L690,15 L720,12 L750,10 L780,8 L800,5" fill="url(#grad)" stroke="none"/>
+          <path d="M0,140 L30,135 L60,130 L90,125 L120,128 L150,110 L180,100 L210,95 L240,80 L270,85 L300,70 L330,60 L360,55 L390,50 L420,45 L450,40 L480,35 L510,42 L540,30 L570,25 L600,22 L630,28 L660,18 L690,15 L720,12 L750,10 L780,8 L800,5" fill="none" stroke="#6c5ce7" stroke-width="2"/>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Stats grid -->
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="label">Total Return</div>
+        <div class="val" style="color: #2ecc71;">+312%</div>
+        <div class="sub">30-day period</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Win Rate</div>
+        <div class="val">73%</div>
+        <div class="sub">1,847 of 2,530 trades</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Max Drawdown</div>
+        <div class="val" style="color: #e94560;">-18%</div>
+        <div class="sub neg">Worst single day</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">Sharpe Ratio</div>
+        <div class="val">2.4</div>
+        <div class="sub">Risk-adjusted return</div>
+      </div>
+    </div>
+
+    <!-- Recent trades -->
+    <div class="trades-section">
+      <h3>Recent Trades</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Pair</th>
+            <th>Side</th>
+            <th>Entry</th>
+            <th>Exit</th>
+            <th>P&L</th>
+            <th>Duration</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="td-pair">SOL/USDC</td>
+            <td class="td-buy">LONG</td>
+            <td>$142.30</td>
+            <td>$148.75</td>
+            <td class="td-profit" style="color: #2ecc71;">+$64.50</td>
+            <td>2h 14m</td>
+            <td style="color: #666;">12 min ago</td>
+          </tr>
+          <tr>
+            <td class="td-pair">ETH/USDC</td>
+            <td class="td-sell">SHORT</td>
+            <td>$3,842</td>
+            <td>$3,790</td>
+            <td class="td-profit" style="color: #2ecc71;">+$52.00</td>
+            <td>45m</td>
+            <td style="color: #666;">1h ago</td>
+          </tr>
+          <tr>
+            <td class="td-pair">BTC/USDC</td>
+            <td class="td-buy">LONG</td>
+            <td>$97,240</td>
+            <td>$96,850</td>
+            <td class="td-profit" style="color: #e94560;">-$39.00</td>
+            <td>18m</td>
+            <td style="color: #666;">2h ago</td>
+          </tr>
+          <tr>
+            <td class="td-pair">SOL/USDC</td>
+            <td class="td-buy">LONG</td>
+            <td>$139.80</td>
+            <td>$143.20</td>
+            <td class="td-profit" style="color: #2ecc71;">+$34.00</td>
+            <td>1h 30m</td>
+            <td style="color: #666;">4h ago</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Right sidebar -->
+  <div class="hero-right">
+    <!-- Pricing -->
+    <div class="sidebar-card">
+      <h3>Choose a Plan</h3>
+
+      <div class="pricing-option">
+        <div class="pricing-name">Free Trial</div>
+        <div class="pricing-price">$0</div>
+        <div class="pricing-desc">Paper trading only · 7 days · See live signals</div>
+      </div>
+
+      <div class="pricing-option selected">
+        <div class="pricing-name">Monthly Subscription</div>
+        <div class="pricing-price">$29/mo</div>
+        <div class="pricing-desc">Live trading · All strategies · Priority execution</div>
+      </div>
+
+      <div class="pricing-option">
+        <div class="pricing-name">Revenue Share</div>
+        <div class="pricing-price">Free + 5% of profits</div>
+        <div class="pricing-desc">No upfront cost · Pay only when you profit</div>
+      </div>
+
+      <div class="pricing-option">
+        <div class="pricing-name">Buy Outright</div>
+        <div class="pricing-price">$499 one-time</div>
+        <div class="pricing-desc">Own the agent · Self-host · No fees ever</div>
+      </div>
+
+      <button class="btn-deploy">Deploy Agent →</button>
+    </div>
+
+    <!-- Risk warning -->
+    <div class="risk-warning" style="margin-bottom: 16px;">
+      ⚠️ Trading agents involve real financial risk. Past performance does not guarantee future results. Never trade more than you can afford to lose. AiPayGen does not provide financial advice.
+    </div>
+
+    <!-- Creator -->
+    <div class="sidebar-card">
+      <h3>Creator</h3>
+      <div class="creator-info">
+        <div class="creator-avatar">🐋</div>
+        <div>
+          <div class="creator-name">@cryptowhale</div>
+          <div class="creator-stats">12 agents listed · 2.4k total users · Joined 6 months ago</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A2A compatibility -->
+    <div class="sidebar-card">
+      <h3>A2A Compatible</h3>
+      <p style="font-size: 12px; color: #888; line-height: 1.5; margin-bottom: 12px;">
+        This agent can be hired by other agents via the A2A commerce protocol. Other agents can request trade signals, strategy analysis, or copy trades.
+      </p>
+      <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+        <div class="strategy-tag">📡 Signal Provider</div>
+        <div class="strategy-tag">📊 Analysis API</div>
+        <div class="strategy-tag">🔄 Copy Trading</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mockup-label">MOCKUP — Agent Detail Page — Trading Agent (AlphaScout v3.2)</div>
+
+</body>
+</html>

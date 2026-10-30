@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}AI Agent Marketplace Course{% endblock %}
+{% block description %}Build an AI Agent Marketplace from scratch. 10 chapters covering Flask, Stripe, API keys, marketplace CRUD, trading engine, and Pi 5 deployment. $29.{% endblock %}
+
+{% block content %}
+<!-- Hero -->
+<section style="padding:140px 22px 80px;text-align:center;max-width:800px;margin:0 auto;">
+  <p style="color:var(--accent2);font-size:var(--text-sm);font-weight:600;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:16px;">Course</p>
+  <h1 style="font-size:var(--text-hero);font-weight:700;letter-spacing:-0.04em;line-height:1.05;margin-bottom:20px;">Build an AI Agent Marketplace from Scratch</h1>
+  <p style="color:var(--text-secondary);font-size:var(--text-xl);max-width:560px;margin:0 auto 32px;">The complete playbook behind a 142-agent marketplace with 1,465 passing tests. From zero to production in 10 chapters.</p>
+  <button class="btn btn-primary" style="padding:16px 48px;font-size:var(--text-lg);" onclick="buyCourse()">Buy for $29</button>
+</section>
+
+<!-- Lesson Outline -->
+<section class="section" style="padding-top:60px;">
+  <h2 class="section-title" style="text-align:center;">From Zero to Marketplace</h2>
+  <p class="section-subtitle" style="text-align:center;margin:12px auto 48px;">8 core lessons. Each one builds on the last. You'll deploy a working marketplace by the end.</p>
+
+  <div style="max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:16px;">
+    <div class="card" style="display:flex;gap:20px;align-items:flex-start;">
+      <span style="color:var(--accent);font-family:var(--font-mono);font-weight:700;font-size:var(--text-lg);min-width:32px;">01</span>
+      <div>
+        <h4 style="font-weight:600;margin-bottom:4px;">Flask Setup & Project Structure</h4>
+        <p style="color:var(--text-secondary);font-size:var(--text-sm);">Blueprints, config management, .env files, logging, and the folder structure that scales.</p>
+      </div>
+    </div>
+    <div class="card" style="display:flex;gap:20px;align-items:flex-start;">
+      <span style="color:var(--accent);font-family:var(--font-mono);font-weight:700;font-size:var(--text-lg);min-width:32px;">02</span>
+      <div>
+        <h4 style="font-weight:600;margin-bottom:4px;">Auth & Billing</h4>
+        <p style="color:var(--text-secondary);font-size:var(--text-sm);">Email/password auth, Google & GitHub OAuth, Stripe checkout sessions, webhook handling, and credit-based billing.</p>
+      </div>
+    </div>
+    <div class="card" style="display:flex;gap:20px;align-items:flex-start;">
+      <span style="color:var(--accent);font-family:var(--font-mono);font-weight:700;font-size:var(--text-lg);min-width:32px;">03</span>
+      <div>
+        <h4 style="font-weight:600;margin-bottom:4px;">API Key System</h4>
+        <p style="color:var(--text-secondary);font-size:var(--text-sm);">Generate, validate, and track API keys. Per-key usage limits, rate limiting, and analytics dashboards.</p>
+      </div>
+    </div>
+    <div class="card" style="display:flex;gap:20px;align-items:flex-start;">
+      <span style="color:var(--accent);font-family:var(--font-mono);font-weight:700;font-size:var(--text-lg);min-width:32px;">04</span>
+      <div>
+        <h4 style="font-weight:600;margin-bottom:4px;">Marketplace CRUD</h4>
+        <p style="color:var(--text-secondary);font-size:var(--text-sm);">Listing agents, search with ranking, categories, reviews, and the seller dashboard.</p>
+      </div>
+    </div>
+    <div class="card" style="display:flex;gap:20px;align-items:flex-start;">
+      <span style="color:var(--accent);font-family:var(--font-mono);font-weight:700;font-size:var(--text-lg);min-width:32px;">05</span>
+      <div>
+        <h4 style="font-weight:600;margin-bottom:4px;">Agent Discovery Engine</h4>
+        <p style="color:var(--text-secondary);font-size:var(--text-sm);">Trending algorithms, similar agent recommendations, leaderboards, and featured placements.</p>
+      </div>
+    </div>
+    <div class="card" style="display:flex;gap:20px;align-items:flex-start;">
+      <span style="color:var(--accent);font-family:var(--font-mono);font-weight:700;font-size:var(--text-lg);min-width:32px;">06</span>
+      <div>
+        <h4 style="font-weight:600;margin-bottom:4px;">Trading Engine</h4>
+        <p style="color:var(--text-secondary);font-size:var(--text-sm);">Backtesting framework, signal generation, adaptive learning, and live paper trading with real market data.</p>
+      </div>
+    </div>
+    <div class="card" style="display:flex;gap:20px;align-items:flex-start;">
+      <span style="color:var(--accent);font-family:var(--font-mono);font-weight:700;font-size:var(--text-lg);min-width:32px;">07</span>
+      <div>
+        <h4 style="font-weight:600;margin-bottom:4px;">Webhook System</h4>
+        <p style="color:var(--text-secondary);font-size:var(--text-sm);">Stripe webhooks, agent event notifications, retry logic, and signature verification.</p>
+      </div>
+    </div>
+    <div class="card" style="display:flex;gap:20px;align-items:flex-start;">
+      <span style="color:var(--accent);font-family:var(--font-mono);font-weight:700;font-size:var(--text-lg);min-width:32px;">08</span>
+      <div>
+        <h4 style="font-weight:600;margin-bottom:4px;">Deployment on Pi 5</h4>
+        <p style="color:var(--text-secondary);font-size:var(--text-sm);">Gunicorn, systemd, Cloudflare Tunnel, NVMe SSD setup, overclocking, and production monitoring.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- What You'll Build -->
+<section class="section" style="padding-top:60px;">
+  <h2 class="section-title" style="text-align:center;">What You'll Build</h2>
+  <p class="section-subtitle" style="text-align:center;margin:12px auto 48px;">A production marketplace with real users, real payments, and real agents.</p>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;">
+    <div class="card" style="text-align:center;">
+      <div style="font-size:32px;margin-bottom:12px;">&#128722;</div>
+      <h4 style="font-weight:600;margin-bottom:8px;">Agent Marketplace</h4>
+      <p style="color:var(--text-secondary);font-size:var(--text-sm);">Search, browse, and purchase AI agents. Full e-commerce flow with Stripe.</p>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div style="font-size:32px;margin-bottom:12px;">&#128202;</div>
+      <h4 style="font-weight:600;margin-bottom:8px;">Analytics Dashboard</h4>
+      <p style="color:var(--text-secondary);font-size:var(--text-sm);">Revenue tracking, API usage graphs, user growth metrics, and system health.</p>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div style="font-size:32px;margin-bottom:12px;">&#128200;</div>
+      <h4 style="font-weight:600;margin-bottom:8px;">Trading System</h4>
+      <p style="color:var(--text-secondary);font-size:var(--text-sm);">Backtested strategies, live signals, and adaptive learning from market data.</p>
+    </div>
+  </div>
+</section>
+
+<!-- What's Included -->
+<section class="section" style="padding-top:60px;">
+  <h2 class="section-title" style="text-align:center;margin-bottom:48px;">What's Included</h2>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;max-width:640px;margin:0 auto;">
+    <div class="card" style="text-align:center;padding:20px;">
+      <p style="font-size:var(--text-2xl);font-weight:700;color:var(--accent);margin-bottom:4px;">10</p>
+      <p style="color:var(--text-secondary);font-size:var(--text-sm);">Chapters</p>
+    </div>
+    <div class="card" style="text-align:center;padding:20px;">
+      <p style="font-size:var(--text-2xl);font-weight:700;color:var(--accent);margin-bottom:4px;">100%</p>
+      <p style="color:var(--text-secondary);font-size:var(--text-sm);">Source Code</p>
+    </div>
+    <div class="card" style="text-align:center;padding:20px;">
+      <p style="font-size:var(--text-2xl);font-weight:700;color:var(--accent);margin-bottom:4px;">.env</p>
+      <p style="color:var(--text-secondary);font-size:var(--text-sm);">Templates</p>
+    </div>
+    <div class="card" style="text-align:center;padding:20px;">
+      <p style="font-size:var(--text-2xl);font-weight:700;color:var(--accent);margin-bottom:4px;">&#128640;</p>
+      <p style="color:var(--text-secondary);font-size:var(--text-sm);">Deployment Guide</p>
+    </div>
+  </div>
+</section>
+
+<!-- Who Is This For -->
+<section class="section" style="padding-top:60px;">
+  <h2 class="section-title" style="text-align:center;margin-bottom:48px;">Who Is This For</h2>
+  <div style="max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px;">
+    <div class="card" style="display:flex;gap:16px;align-items:center;">
+      <span style="font-size:24px;">&#128187;</span>
+      <p style="color:var(--text-secondary);font-size:var(--text-sm);"><strong style="color:var(--text);">Developers</strong> who want to build and sell AI agents but don't know where to start.</p>
+    </div>
+    <div class="card" style="display:flex;gap:16px;align-items:center;">
+      <span style="font-size:24px;">&#127891;</span>
+      <p style="color:var(--text-secondary);font-size:var(--text-sm);"><strong style="color:var(--text);">Students</strong> learning Flask, APIs, and real-world SaaS architecture.</p>
+    </div>
+    <div class="card" style="display:flex;gap:16px;align-items:center;">
+      <span style="font-size:24px;">&#128640;</span>
+      <p style="color:var(--text-secondary);font-size:var(--text-sm);"><strong style="color:var(--text);">Founders</strong> who want a reference implementation before building their own marketplace.</p>
+    </div>
+    <div class="card" style="display:flex;gap:16px;align-items:center;">
+      <span style="font-size:24px;">&#129302;</span>
+      <p style="color:var(--text-secondary);font-size:var(--text-sm);"><strong style="color:var(--text);">AI enthusiasts</strong> exploring MCP servers, agent-to-agent commerce, and trading bots.</p>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section style="padding:60px 22px 100px;text-align:center;">
+  <div class="card" style="max-width:480px;margin:0 auto;text-align:center;">
+    <p style="font-size:var(--text-3xl);font-weight:700;margin-bottom:8px;">$29</p>
+    <p style="color:var(--text-secondary);font-size:var(--text-sm);margin-bottom:24px;">One-time payment. Lifetime access. All future updates included.</p>
+    <button class="btn btn-primary" style="width:100%;padding:16px;font-size:var(--text-lg);" onclick="buyCourse()">Buy the Course</button>
+  </div>
+</section>
+
+<script>
+async function buyCourse() {
+  const btn = event.currentTarget;
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Redirecting to Stripe...';
+  try {
+    const res = await fetch('/stripe/create-checkout', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ amount: 29, label: 'AI Agent Marketplace Course' })
+    });
+    const data = await res.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      btn.textContent = origText;
+      btn.disabled = false;
+      window.showToast('Checkout failed. Please try again.');
+    }
+  } catch(e) {
+    btn.textContent = origText;
+    btn.disabled = false;
+    window.showToast('Network error. Please try again.');
+  }
+}
+</script>
+{% endblock %}

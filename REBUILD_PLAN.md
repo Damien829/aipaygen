@@ -30,6 +30,10 @@ The two versions each have something the other lacks. v1 has the business; v2 ha
 10. **Marketplace payouts:** settlement collects buyer money and pays sellers later, so the platform holds other people's funds (custody). That is a legal and regulatory risk (money transmission). The fix is in Phase 4.
 11. **Trading:** auto-execution and copy trading exist (paper mode by default). Live trading for other users is regulated. Keep it simulation-only and clearly labeled.
 
+12. **Tests write into the live databases:** the test suite uses the real DB paths, so the 2026-03-30 snapshot has 4,243 fake "credited" deposits ($168,195, keys `apk_test…`, sender `0xSENDER`). Tests must use temporary databases only, and the fake rows get removed before migration.
+13. **AI calls went through a personal Claude Max subscription** (`claude -p`, per `docs/history/KNOWLEDGE_BASE.md`). Anthropic's terms don't allow a consumer subscription to power a paid service. Use API keys only, with spending caps (step 48).
+14. **`trading-system` (Alpha Scout) connects to Robinhood with real credentials** in its `.env`. It isn't part of the rebuild. Keep it offline and rotate its credentials with everything else.
+
 No live private keys, API keys or Stripe secrets were found anywhere in the git history. Only placeholders and the public ERC-20 event signature.
 
 ---
@@ -74,12 +78,23 @@ Why this shape:
 
 **Done when:** backups open on another machine and row counts match.
 
+> ✅ **Done 2026-10-30.** The Pi's SD card held `aipaygen-transfer.tar.gz` (2026-03-30, confirmed as the final data). It's copied to `~/AIPayGen-Backups/` with a matching checksum. 39 databases pass integrity checks, unmerged journals are folded in, and the row counts (90 tables, 173,811 rows) are in `row-counts-2026-03-30.tsv`. Tag `v2-sitesintel-final`, branch `rebuild`.
+
 ### Phase 1: Bring v1 back into the repo
 5. Put v1 under `core/` (the Python service) next to v2's `src/` (the edge Worker). Keep history with `git checkout 36370d3 -- <paths>` into the new layout.
 6. Delete the committed logs (`requests.jsonl`, `update.log.old`, `.restart.lock`) and the Pi-only scripts (`tunnel-watchdog.sh`, `auto-update.sh`, `*.service.new`). Tighten `.gitignore`.
 7. Run v1's 59 test files as they are and record the baseline (pass/fail counts) before changing anything.
 
 **Done when:** v1 boots locally from `core/` and the baseline is recorded.
+
+> ✅ **Done 2026-10-30.** v1 is restored under `core/` from `36370d3` (git history kept). Three marketplace pages and the knowledge base were in the archive but never in git, so they've been added (`core/docs/history/`).
+> - **The last v1 commit didn't start.** Four files created on the Pi on Apr 1–3 were never committed: `sla_monitor.py`, `status_enterprise.html`, `market_success.html` and `teams.py`. The status routes now return 503 and post-purchase redirects to the agent page, until Phases 6–7 rebuild them.
+> - **Boot check:** 565 routes; `/`, `/market`, `/pricing`, `/llms.txt`, `/openapi.json` and `/.well-known/x402` return 200.
+> - **Test baseline** (Python 3.11, exact `requirements.lock`, no API keys): **1,460 passed, 5 failed**.
+>   - `test_discovery_api::test_wallet_analytics_unknown_wallet`: missing `wallet_transactions` table
+>   - `test_sse_negotiation` ×2: `/research` and `/write` return 400 without SSE header
+>   - `test_v2_integration::test_buy_credits_*` ×2: buy-credits returns 402 instead of 200
+> - **Found for Phase 2:** importing `app` starts the live scheduler (settlements, trading strategies, renewals), so tests and scripts run real background jobs.
 
 ### Phase 2: Security hardening (code)
 8. Upgrade every dependency to current versions. Run `pip-audit` and `npm audit` until no high or critical issues remain. Add Dependabot or Renovate.
