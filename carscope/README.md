@@ -85,6 +85,26 @@ python main.py live --pids RPM,SPEED,COOLANT_TEMP,MAF
 (PID names follow python-OBD's command names; `scan` reports how many your
 vehicle supports.)
 
+## Raw CAN capture
+
+For signals the standard PIDs don't expose, CarScope can listen to raw CAN
+traffic. This needs a real **USB-CAN adapter** (e.g. CANable / CANtact in
+`slcan` mode); an ELM327 can't provide raw frames. Capture is read-only:
+CarScope never transmits onto the bus.
+
+```bash
+ls /dev/tty.usbmodem*                                    # find the adapter
+python main.py can sniff  --channel /dev/tty.usbmodem14201
+python main.py can log    --channel /dev/tty.usbmodem14201 --out can.csv --duration 60
+python main.py can survey --channel /dev/tty.usbmodem14201 --duration 20
+```
+
+`survey` lists every active arbitration ID and which byte positions change.
+That's the quick way to locate a signal: run it, operate a control (a window
+switch, for example), and see which ID/byte moves. If you see no frames, try
+`--bitrate 125000` (the body/comfort bus speed on many cars) instead of the
+500000 default.
+
 ## Safety notes
 
 - `clear` erases stored codes **and** freeze-frame data and resets readiness
@@ -97,9 +117,10 @@ vehicle supports.)
 
 ## Roadmap
 
-- **CAN sniffing / decoding** on vehicles you own (`python-can` + a USB-CAN
-  interface like CANable, or SocketCAN on a Pi).
-- **UDS / manufacturer PIDs** via a J2534 pass-thru interface, where supported.
+- **Signal decoding** on top of `can survey`: name and scale the IDs/bytes
+  you've identified (e.g. via a DBC file).
+- **UDS / manufacturer PIDs**. Note that J2534 pass-thru drivers are mostly
+  Windows-only, so on a Mac this would go over raw CAN (ISO-TP) instead.
 - A lightweight **web UI** (gauges + code list + log viewer) you can hit from
   your phone when it runs on a Pi in the garage.
 - **AI anomaly spotting** over logged CSVs, not just code interpretation.
@@ -113,6 +134,7 @@ carscope/
     connection.py      # adapter connection (ELM327 over serial/BT/Wi-Fi)
     diagnostics.py     # DTC read/clear + freeze frame (standard OBD-II modes)
     live.py            # live snapshots + CSV logging
+    can_bus.py         # raw CAN capture: sniff / log / survey (read-only)
     ai.py              # optional Claude interpretation layer
     cli.py             # argparse command-line interface
 ```

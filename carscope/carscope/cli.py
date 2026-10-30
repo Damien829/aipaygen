@@ -7,6 +7,7 @@ Subcommands:
   live    Print a one-shot snapshot of live sensor values.
   log     Stream live sensor data to a CSV file.
   explain Read codes, then have Claude interpret them (needs ANTHROPIC_API_KEY).
+  can     Raw CAN capture: sniff / log / survey (needs a USB-CAN adapter).
 """
 
 from __future__ import annotations
@@ -16,7 +17,7 @@ import sys
 from pathlib import Path
 
 from . import __version__
-from . import ai, connection, diagnostics, live
+from . import ai, can_bus, connection, diagnostics, live
 
 
 def _add_common(p: argparse.ArgumentParser) -> None:
@@ -120,6 +121,18 @@ def cmd_explain(args) -> int:
     return 0
 
 
+def cmd_can(args) -> int:
+    common = dict(interface=args.interface, bitrate=args.bitrate)
+    if args.can_command == "sniff":
+        can_bus.sniff(args.channel, duration=args.duration, **common)
+    elif args.can_command == "log":
+        can_bus.log_to_csv(args.channel, Path(args.out), duration=args.duration, **common)
+    elif args.can_command == "survey":
+        stats = can_bus.survey(args.channel, duration=args.duration or 15.0, **common)
+        can_bus.print_survey(stats)
+    return 0
+
+
 def _build_explain_prompt(report, frame, snap) -> str:
     lines = ["Trouble codes read from the vehicle:"]
     for title, items in (
@@ -187,6 +200,25 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--vehicle", help="Year/make/model/engine, to sharpen the analysis.")
     p.set_defaults(func=cmd_explain)
 
+    p = sub.add_parser("can", help="Raw CAN bus capture (needs a USB-CAN adapter).")
+    can_sub = p.add_subparsers(dest="can_command", required=True)
+    for name, help_text in (
+        ("sniff", "Live-print raw frames."),
+        ("log", "Record raw frames to CSV."),
+        ("survey", "Summarize active IDs and which bytes change."),
+    ):
+        cp = can_sub.add_parser(name, help=help_text)
+        cp.add_argument("--channel", required=True,
+                        help="Interface channel (e.g. /dev/tty.usbmodem14201, or can0 on a Pi).")
+        cp.add_argument("--interface", default="slcan",
+                        help="python-can interface (default: slcan; socketcan on a Pi).")
+        cp.add_argument("--bitrate", type=int, default=500000,
+                        help="Bus bitrate (500000 powertrain, 125000 body is common).")
+        cp.add_argument("--duration", type=float, default=None, help="Stop after N seconds.")
+        if name == "log":
+            cp.add_argument("--out", default="carscope_can.csv", help="Output CSV path.")
+        cp.set_defaults(func=cmd_can)
+
     return parser
 
 
@@ -195,7 +227,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         return args.func(args)
-    except connection.ConnectionError as e:
+    except (connection.ConnectionError, can_bus.CANError) as e:
         print(f"\nConnection error: {e}", file=sys.stderr)
         return 1
     except KeyboardInterrupt:
