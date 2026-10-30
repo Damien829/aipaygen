@@ -1,0 +1,6 @@
+# Core: talk to the ELM327 / OBD-II bus.
+obd>=0.7.1
+
+# Optional: the AI interpretation layer. Safe to install even if you don't
+# use `explain` — nothing calls the API unless ANTHROPIC_API_KEY is set.
+anthropic>=0.40.0
