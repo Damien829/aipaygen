@@ -43,7 +43,9 @@ def run_python_code(code: Annotated[str, Field(description="Python code to execu
     Imports, file I/O, network access, and OS commands are blocked."""
     import subprocess
     import time as _time
-    from security import validate_code_safety, SandboxViolation, get_sandbox_env
+    from security import validate_code_safety, SandboxViolation, get_sandbox_env, code_run_disabled_response
+    if code_run_disabled_response():
+        return code_run_disabled_response()
     if len(code) > 5000:
         return {"error": "code too long (max 5000 chars)"}
     try:

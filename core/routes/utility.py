@@ -23,7 +23,7 @@ from xml.etree import ElementTree
 import yaml
 import jwt as pyjwt
 import markdown as md_lib
-import requests as _requests
+from security import guarded_http as _requests  # SSRF-safe drop-in for requests
 from flask import Blueprint, request, jsonify, send_file
 
 from helpers import cache_get as _cache_get, cache_set as _cache_set, get_client_ip as _get_client_ip
@@ -824,8 +824,8 @@ def extract_pdf():
         return jsonify({"error": "file upload required (multipart form)"}), 400
     file = request.files["file"]
     try:
-        import PyPDF2
-        reader = PyPDF2.PdfReader(file)
+        import pypdf
+        reader = pypdf.PdfReader(file)
         pages = []
         for i, page in enumerate(reader.pages):
             text = page.extract_text() or ""
@@ -1611,7 +1611,7 @@ def scrape_website_route():
     if not url:
         return jsonify({"error": "url required"}), 400
     try:
-        resp = _requests.get(url, timeout=15, headers={"User-Agent": "AiPayGen/1.0"}, verify=False)
+        resp = _requests.get(url, timeout=15, headers={"User-Agent": "AiPayGen/1.0"})
         import re as _re
         text = _re.sub(r'<script[^>]*>.*?</script>', '', resp.text, flags=_re.DOTALL)
         text = _re.sub(r'<style[^>]*>.*?</style>', '', text, flags=_re.DOTALL)

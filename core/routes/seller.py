@@ -310,7 +310,7 @@ def sell_proxy(slug, subpath):
     # Vendor allowlist enforcement (get_agent_wallet already returns a parsed list)
     allowlist = wallet.get("vendor_allowlist", [])
     if isinstance(allowlist, str):
-        logger.warning("vendor_allowlist returned as string for wallet %s, expected list", wallet.get("id"))
+        _log.warning("vendor_allowlist returned as string for wallet %s, expected list", wallet.get("id"))
         allowlist = []
     if allowlist and "*" not in allowlist and slug not in allowlist:
         return jsonify({

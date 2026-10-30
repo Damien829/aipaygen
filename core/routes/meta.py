@@ -7,7 +7,7 @@ import requests as _requests
 import time as _time
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify, Response, render_template, make_response
-from helpers import APP_VERSION, require_admin, agent_response, get_client_ip, call_llm as _call_llm, cache_get as _cache_get, cache_set as _cache_set
+from helpers import APP_VERSION, require_admin, agent_response, get_client_ip, call_llm as _call_llm, cache_get as _cache_get, cache_set as _cache_set, parse_json_from_claude
 from model_router import call_model, list_models, get_all_perf
 from discovery_engine import get_blog_post, list_blog_posts, get_health_history, get_daily_cost
 from uptime_tracker import record_check as _record_uptime, get_uptime_stats as _get_uptime_stats, get_recent_checks as _get_recent_checks

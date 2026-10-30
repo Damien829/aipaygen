@@ -1,6 +1,6 @@
 import re
 import logging
-import requests
+from security import guarded_http as requests  # SSRF-safe drop-in for requests
 from bs4 import BeautifulSoup
 from markdownify import markdownify as md
 from ddgs import DDGS

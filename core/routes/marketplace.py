@@ -1,7 +1,7 @@
 import json
 import uuid
 import threading
-import requests as _requests
+from security import guarded_http as _requests  # SSRF-safe drop-in for requests
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 

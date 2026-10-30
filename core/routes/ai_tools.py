@@ -1569,7 +1569,9 @@ def workflow_route():
 def code_run():
     import subprocess
     import time as _time
-    from security import validate_code_safety, SandboxViolation, get_sandbox_env
+    from security import validate_code_safety, SandboxViolation, get_sandbox_env, code_run_disabled_response
+    if code_run_disabled_response():
+        return jsonify(code_run_disabled_response()), 503
     data = request.get_json() or {}
     code = data.get("code", "")
     try:

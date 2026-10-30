@@ -13,7 +13,7 @@ import os
 import json
 import sqlite3
 import time
-import requests
+from security import guarded_http as requests  # SSRF-safe drop-in for requests
 from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)

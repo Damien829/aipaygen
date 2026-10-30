@@ -3,7 +3,7 @@ import os
 import re
 import time
 import sqlite3
-import requests
+from security import guarded_http as requests  # SSRF-safe drop-in for requests
 from api_catalog import upsert_api, log_run_start, log_run_end, DB_PATH as CATALOG_DB
 
 OUTBOUND_DB = os.path.join(os.path.dirname(__file__), "discovery_engine.db")

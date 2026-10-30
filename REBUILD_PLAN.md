@@ -111,6 +111,14 @@ Why this shape:
 
 **Done when:** all scanners are clean, the v1 test baseline holds or improves, and new tests cover each fix above.
 
+> 🔶 **In progress. Done 2026-10-30:**
+> - **SSRF (step 14):** new `security.guarded_http` checks every outbound address at connect time, so redirects and DNS rebinding can't reach private, loopback, link-local, metadata or IPv4-mapped addresses. Proxies are refused. It's used by `routes/utility`, `routes/data`, `routes/marketplace`, `web`, `api_discovery` and `discovery_engine` (~40 fetches that took user or seller URLs), and `safe_fetch` now uses it too. `verify=False` is gone. 23 new tests (`tests/test_ssrf_guard.py`).
+> - **`/code/run` and the MCP `run_python_code` are off** (503 / error, never charged, since x402 only settles 2xx). They ran customer Python as the server user behind a word blocklist. `CODE_RUN_ENABLED=1` turns them back on, but only once they run inside an isolated sandbox (Phase 4).
+> - **17 crash bugs (undefined names) fixed:** the IP auto-ban logger, the browser 404 page, the seller allowlist warning, 4 meta routes missing `parse_json_from_claude`, and the MCP tools `compare_models`, `estimate_cost` and `suggest_tools`, which always crashed.
+> - **Dependencies (step 8):** ~250 advisories across 26 packages patched. `PyPDF2` (abandoned) is replaced by `pypdf`. MCP stays on 1.30 (all its advisories fixed); 2.x comes with Phase 5. On Linux, production resolves with **zero known vulnerabilities**. Intel macOS can't install `cryptography` 49+, so local dev runs 48.0.1, with 3 certificate-chain/PKCS#7 advisories that v1 doesn't hit. `requirements.lock` picks per platform.
+> - **Tests:** 1,483 passed, the same 5 baseline failures, no regressions.
+> - **Still to do in Phase 2:** steps 9–13 and 15–18; stop tests from writing live DBs and stop `import app` starting the scheduler; Bandit's 28 SQL-string and 12 MD5 findings; and AI model IDs, since `claude-haiku` and other v1 model names no longer exist (see the research update).
+
 ### Phase 3: Data layer
 19. Move ~30 SQLite files into **one managed Postgres** with migrations (Alembic). Each old file becomes its own schema so the migration stays mechanical.
 20. Write a migration script that loads the Phase 0 backups. Run it twice, verify that row counts and money totals match exactly, and keep it repeatable.
@@ -145,6 +153,14 @@ Why this shape:
 34. **One MCP endpoint for the whole marketplace:** Site Intel, AI tools and marketplace agents. It uses search-style tool discovery (`search_tools`, `get_tool`) instead of dumping 250+ tools, which overwhelms agent context windows.
 35. **Agent identity and reputation:** connect v1's `eas_reputation.py` and `agent_identity.py` to current on-chain agent registries (for example ERC-8004), so sellers have verifiable reputation.
 36. **Before building this step, check what's current.** Agent standards change monthly. Spend half a day checking the latest x402, MCP, A2A and agent-payments specs and adjust the list.
+
+> 🔎 **Research update 2026-10-30** (re-check before each phase):
+> - **x402:** v2 is current, run by the x402 Foundation under the Linux Foundation, with Coinbase, Cloudflare, Visa and Google. Schemes: `exact`, `upto` and `batch-settlement`. **Use `upto` for AI tools**, where the price depends on tokens used (charge up to a cap, settle the actual amount), and `batch-settlement` for high-frequency agents. Networks are CAIP-2 (`eip155:*`, `solana:*`). `/verify` must not commit state; at least one verify or settle runs before work starts. Bazaar is the official discovery extension. v1 is on the Python SDK 2.3 (current 2.26), so Phase 4 moves all payments to the Worker anyway.
+> - **MCP:** spec `2026-07-28` is current. It's stateless (no sessions or `Mcp-Session-Id`), with optional `server/discover`, a formal extensions framework, **Tasks** (long-running jobs, good for research and workflows) and **MCP Apps** (server-rendered UI), plus list caching and stronger auth. The v2 Worker already speaks it. **Decision:** the Worker becomes the single MCP endpoint (step 34), rather than porting v1's Python MCP server to SDK 2.x.
+> - **A2A:** the agent card lives at **`/.well-known/agent-card.json`** (since v0.3). v1 only serves the old `/.well-known/agent.json`; serve both.
+> - **Other payment rails:** **MPP** (Stripe + Tempo, launched 2026-03-18) does session-based streaming micropayments over stablecoins, cards and Lightning, and Stripe supports both MPP and x402. That's a cheap second rail via the Stripe account step 28 already needs. **AP2** (Google, v0.2), Visa TAP, Mastercard Agent Pay and Stripe ACP are the "identity-native" camp; publish AP2/ACP discovery so those agents can find us, and settle through x402 or Stripe.
+> - **ERC-8004** (on-chain agent identity and reputation): live on mainnets but still a Draft EIP. Treat it as optional and add it behind a flag.
+> - **AI models:** v1's model router names models that no longer exist (`claude-haiku`, `gpt-4o-mini`, ...). Update to the current families (Claude 5: Haiku 5.5 / Sonnet 5.5 / Opus 5.5 / Fable 5.1, plus current OpenAI and Gemini) in Phase 2, with the API-key-only rule (finding 13).
 37. Re-list everywhere: MCP Registry, Glama, Smithery, mcp.so, x402 Bazaar, PyPI (`aipaygen-mcp`), npm SDK, plus A2A directories.
 
 **Done when:** a fresh agent (Claude, or a plain x402 client script) with no instructions can find a tool, pay and get a result from only the homepage URL. This is tested automatically in CI.

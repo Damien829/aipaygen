@@ -11,6 +11,7 @@ import html
 import ipaddress
 import json
 import logging
+import os
 import re
 import socket
 import urllib.parse
@@ -117,6 +118,20 @@ def validate_code_safety(code: str) -> None:
                 raise SandboxViolation("Suspected code injection in string literal")
 
 
+def code_run_disabled_response():
+    """Error body while untrusted code execution is off, else None.
+
+    The AST blocklist above is defense in depth, not isolation: Python blocklists
+    are routinely bypassed, and the code would run as the server user next to its
+    secrets and databases. Execution stays off unless an operator opts in with
+    CODE_RUN_ENABLED=1, which is only safe inside an isolated sandbox.
+    """
+    if os.getenv("CODE_RUN_ENABLED") == "1":
+        return None
+    return {"error": "temporarily_unavailable",
+            "message": "Code execution is moving to an isolated sandbox and is not available right now."}
+
+
 def get_sandbox_env():
     """Return a minimal environment for subprocess code execution."""
     return {
@@ -199,37 +214,170 @@ def validate_url(url: str, allow_http: bool = False) -> str:
 
 
 def _is_blocked_ip(ip: ipaddress._BaseAddress) -> bool:
-    for net in _BLOCKED_NETWORKS:
-        if ip in net:
-            return True
-    return False
+    # ::ffff:127.0.0.1 and friends must be judged as the IPv4 address they carry.
+    mapped = getattr(ip, "ipv4_mapped", None)
+    if mapped is not None:
+        ip = mapped
+    if not ip.is_global or ip.is_multicast:
+        return True
+    return any(ip in net for net in _BLOCKED_NETWORKS)
+
+
+# ── SSRF-safe HTTP client ─────────────────────────────────────────────
+# validate_url() alone is not enough: the HTTP library resolves DNS again when it
+# connects (rebinding) and follows redirects without re-checking them. These
+# classes vet the address at the moment of connecting, on every hop, and connect
+# to exactly the address that was vetted.
+
+import requests as _requests_lib
+from requests.adapters import HTTPAdapter as _HTTPAdapter
+from urllib3.connection import HTTPConnection as _HTTPConnection, HTTPSConnection as _HTTPSConnection
+from urllib3.connectionpool import HTTPConnectionPool as _HTTPPool, HTTPSConnectionPool as _HTTPSPool
+
+
+def _guarded_connect(address, timeout, source_address=None, socket_options=None):
+    host, port = address
+    try:
+        infos = socket.getaddrinfo(host, port, 0, socket.SOCK_STREAM)
+    except socket.gaierror as e:
+        raise SSRFError(f"DNS resolution failed for {host}") from e
+    for *_, sockaddr in infos:
+        if _is_blocked_ip(ipaddress.ip_address(sockaddr[0])):
+            raise SSRFError(f"{host} resolves to blocked address {sockaddr[0]}")
+    err = None
+    for family, socktype, proto, _, sockaddr in infos:
+        sock = None
+        try:
+            sock = socket.socket(family, socktype, proto)
+            for opt in socket_options or ():
+                sock.setsockopt(*opt)
+            if timeout is not socket._GLOBAL_DEFAULT_TIMEOUT:
+                sock.settimeout(timeout)
+            if source_address:
+                sock.bind(source_address)
+            sock.connect(sockaddr)
+            return sock
+        except OSError as e:
+            err = e
+            if sock is not None:
+                sock.close()
+    raise err or OSError(f"Could not connect to {host}")
+
+
+class _GuardedHTTPConnection(_HTTPConnection):
+    def _new_conn(self):
+        return _guarded_connect((self._dns_host, self.port), self.timeout, self.source_address, self.socket_options)
+
+
+class _GuardedHTTPSConnection(_HTTPSConnection):
+    def _new_conn(self):
+        return _guarded_connect((self._dns_host, self.port), self.timeout, self.source_address, self.socket_options)
+
+
+class _GuardedHTTPPool(_HTTPPool):
+    ConnectionCls = _GuardedHTTPConnection
+
+
+class _GuardedHTTPSPool(_HTTPSPool):
+    ConnectionCls = _GuardedHTTPSConnection
+
+
+class _GuardedAdapter(_HTTPAdapter):
+    def init_poolmanager(self, *args, **kwargs):
+        super().init_poolmanager(*args, **kwargs)
+        self.poolmanager.pool_classes_by_scheme = {"http": _GuardedHTTPPool, "https": _GuardedHTTPSPool}
+
+    def proxy_manager_for(self, *args, **kwargs):
+        raise SSRFError("Proxies are not allowed for outbound fetches")
+
+
+def _check_scheme(url: str, allow_http: bool) -> None:
+    scheme = urllib.parse.urlparse(url).scheme
+    if scheme not in (("http", "https") if allow_http else ("https",)):
+        raise SSRFError(f"Scheme '{scheme}' not allowed")
+
+
+class _GuardedSession(_requests_lib.Session):
+    def __init__(self, allow_http: bool):
+        super().__init__()
+        self.trust_env = False  # ignore HTTP(S)_PROXY and .netrc from the server environment
+        self.max_redirects = 5
+        self._allow_http = allow_http
+        adapter = _GuardedAdapter(max_retries=0)
+        self.mount("http://", adapter)
+        self.mount("https://", adapter)
+
+    def get_redirect_target(self, resp):
+        target = super().get_redirect_target(resp)
+        if target:
+            _check_scheme(urllib.parse.urljoin(resp.url, target), self._allow_http)
+        return target
+
+
+class _GuardedClient:
+    """Drop-in for the `requests` module (get/post/head/request) that refuses
+    private, loopback, link-local and metadata addresses. Raises SSRFError."""
+
+    def __getattr__(self, name):
+        return getattr(_requests_lib, name)  # exceptions, utils, codes, ...
+
+    def request(self, method, url, allow_http=True, **kwargs):
+        _check_scheme(url, allow_http)
+        kwargs.setdefault("timeout", 15)
+        with _GuardedSession(allow_http) as s:
+            return s.request(method, url, **kwargs)
+
+    def get(self, url, **kwargs):
+        return self.request("GET", url, **kwargs)
+
+    def post(self, url, **kwargs):
+        return self.request("POST", url, **kwargs)
+
+    def put(self, url, **kwargs):
+        return self.request("PUT", url, **kwargs)
+
+    def patch(self, url, **kwargs):
+        return self.request("PATCH", url, **kwargs)
+
+    def delete(self, url, **kwargs):
+        return self.request("DELETE", url, **kwargs)
+
+    def head(self, url, **kwargs):
+        kwargs.setdefault("allow_redirects", False)  # same default as requests.head
+        return self.request("HEAD", url, **kwargs)
+
+
+guarded_http = _GuardedClient()
 
 
 def safe_fetch(url: str, headers: dict = None, timeout: int = 15,
                method: str = "GET", data: bytes = None,
                user_agent: str = "AiPayGen/2.0",
                max_size: int = 100000, allow_http: bool = False) -> dict:
-    """SSRF-safe URL fetch. Validates URL before fetching."""
-    try:
-        url = validate_url(url, allow_http=allow_http)
-    except SSRFError as e:
-        return {"error": f"SSRF blocked: {e}", "blocked": True}
-
+    """SSRF-safe URL fetch, including redirects. Never raises."""
     hdrs = {"User-Agent": user_agent}
     if headers:
         hdrs.update(headers)
 
     try:
-        req = urllib.request.Request(url, headers=hdrs, method=method, data=data)
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            body = resp.read().decode("utf-8", errors="replace")[:max_size]
-            return {"status": resp.status, "body": body, "headers": dict(resp.headers)}
-    except urllib.error.HTTPError as e:
-        return {"error": f"HTTP {e.code}", "status": e.code,
-                "body": e.read().decode("utf-8", errors="replace")[:2000]}
+        resp = guarded_http.request(method, url, allow_http=allow_http, headers=hdrs,
+                                    data=data, timeout=timeout, stream=True)
+    except SSRFError as e:
+        return {"error": f"SSRF blocked: {e}", "blocked": True}
     except Exception as e:
         logger.error("Safe fetch failed for %s: %s", url, e)
         return {"error": "Fetch failed"}
+    try:
+        raw = resp.raw.read(max_size if resp.status_code < 400 else 2000, decode_content=True)
+        body = raw.decode(resp.encoding or "utf-8", errors="replace")
+    except Exception as e:
+        logger.error("Safe fetch read failed for %s: %s", url, e)
+        return {"error": "Fetch failed"}
+    finally:
+        resp.close()
+    if resp.status_code >= 400:
+        return {"error": f"HTTP {resp.status_code}", "status": resp.status_code, "body": body}
+    return {"status": resp.status_code, "body": body, "headers": dict(resp.headers)}
 
 
 # ── Input Sanitization ─────────────────────────────────────────────────

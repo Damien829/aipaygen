@@ -1,6 +1,7 @@
 """AI Processing Tools — research, summarize, analyze, translate, chat, vision, RAG, etc."""
 
 import os
+import json as _json
 from typing import Annotated
 from pydantic import Field
 
@@ -485,6 +486,27 @@ def chain_operations(steps: Annotated[list, Field(description="List of {action, 
         else:
             last_result = str(out)
     return {"steps_completed": len(results), "chain": results, "final_result": results[-1]["result"] if results else None}
+
+
+_inprocess_app = None
+
+
+def _post(path: str, payload: dict) -> dict:
+    """Run one of the HTTP API's JSON handlers in-process. MCP tools are billed by
+    metered_tool, so this deliberately skips the HTTP payment middleware."""
+    global _inprocess_app
+    from flask import Flask
+    from routes.ai_tools import compare_models_route
+    from routes.utility import estimate_cost_route, suggest_tools_route
+    views = {
+        "/compare-models": compare_models_route,
+        "/estimate-cost": estimate_cost_route,
+        "/suggest-tools": suggest_tools_route,
+    }
+    if _inprocess_app is None:
+        _inprocess_app = Flask("mcp_inprocess")
+    with _inprocess_app.test_request_context(path, method="POST", json=payload):
+        return _inprocess_app.make_response(views[path]()).get_json()
 
 
 @metered_tool("premium")

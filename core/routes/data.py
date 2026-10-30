@@ -7,7 +7,7 @@ import hashlib as _hashlib
 from datetime import datetime, timezone
 
 from flask import Blueprint, request, jsonify
-import requests as _requests
+from security import guarded_http as _requests  # SSRF-safe drop-in for requests
 import qrcode
 import feedparser
 from youtube_transcript_api import YouTubeTranscriptApi
