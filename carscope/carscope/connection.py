@@ -94,6 +94,27 @@ def connect(
         conn.close()
 
 
+def open_persistent(portstr: Optional[str] = None, baudrate: Optional[int] = None,
+                    timeout: float = 30.0) -> "obd.OBD":
+    """Open a connection and return it (caller owns closing it).
+
+    Unlike `connect`, this is not a context manager — used by the long-running
+    UIs that hold one connection open across many requests.
+    """
+    _require_obd()
+    kwargs: dict = {"fast": False, "timeout": timeout}
+    if portstr:
+        kwargs["portstr"] = portstr
+    if baudrate:
+        kwargs["baudrate"] = baudrate
+    conn = obd.OBD(**kwargs)
+    if not conn.is_connected():
+        status = str(conn.status())
+        conn.close()
+        raise ConnectionError(f"Could not connect (adapter status: {status}).")
+    return conn
+
+
 def describe(conn: "obd.OBD") -> dict:
     """Return a small dict describing the active connection."""
     return {

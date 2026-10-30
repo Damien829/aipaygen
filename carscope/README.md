@@ -85,24 +85,42 @@ python main.py live --pids RPM,SPEED,COOLANT_TEMP,MAF
 (PID names follow python-OBD's command names; `scan` reports how many your
 vehicle supports.)
 
-## Native desktop UI
+## The dashboard (recommended UI)
 
-A real Mac window (built on Tkinter, which ships with Python — nothing extra
-to install):
+```bash
+python main.py web
+```
+
+This starts a small local server and opens a modern dashboard in your browser.
+It runs entirely on your Mac — nothing is sent anywhere (except, if you use the
+AI features, your prompt to the Claude API). It's built to be clean and
+accessible: automatic light/dark, responsive layout, the system font so it
+feels native, keyboard-operable tabs, screen-reader-aware regions, and a
+tuning heatmap that always shows the number (color is never the only cue).
+
+- **Connect** from the top bar — type the adapter port or leave it blank to
+  auto-detect.
+- **Live data** tab — start/stop a live readout of sensor tiles.
+- **Trouble codes** tab — read codes, clear them (behind a confirmation), and
+  "Explain with AI" if you've set an API key.
+- **Tuning log** tab — point it at a CSV and get the color-coded AFR-error
+  grid, knock events, and optional AI analysis.
+
+Reach it from your phone on the same Wi-Fi with
+`python main.py web --host 0.0.0.0` and your Mac's IP.
+
+### Offline fallback: native window
+
+If you'd rather not use a browser, there's a native Tkinter window with the
+same core features (Tkinter ships with Python):
 
 ```bash
 python main.py gui
 ```
 
-Tabs for **Live data** (start/stop live readings), **Trouble codes** (read,
-and clear behind a confirmation dialog), and **Tuning log** (open a CSV and see
-the AFR-error grid + knock count). You can prefill the adapter port with
-`--port`. All vehicle I/O runs on a background thread, so the window stays
-responsive while the adapter is queried.
-
-> If `python main.py gui` says Tkinter isn't available: on macOS the
-> python.org installer includes it. Verify with `python3 -m tkinter` (a tiny
-> test window should appear). Homebrew Python needs `brew install python-tk`.
+> If it says Tkinter isn't available: on macOS the python.org installer
+> includes it (verify with `python3 -m tkinter`); Homebrew Python needs
+> `brew install python-tk`.
 
 ## Tuning datalog analysis (off-road / track use)
 
@@ -180,7 +198,9 @@ carscope/
     live.py            # live snapshots + CSV logging
     can_bus.py         # raw CAN capture: sniff / log / survey (read-only)
     tuning.py          # tuning datalog analysis (AFR grid, knock events)
-    gui.py             # native desktop UI (Tkinter)
+    web.py             # local web dashboard backend (stdlib http.server)
+    web_assets/        #   the dashboard frontend (single accessible HTML page)
+    gui.py             # native desktop UI (Tkinter) — offline fallback
     ai.py              # optional Claude interpretation layer
     cli.py             # argparse command-line interface
 ```

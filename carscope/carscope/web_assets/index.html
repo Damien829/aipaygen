@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CarScope</title>
+<style>
+  :root {
+    --bg:#f4f5f7; --panel:#ffffff; --ink:#15181d; --muted:#5b6472;
+    --line:#e2e6eb; --accent:#2563eb; --accent-ink:#ffffff;
+    --ok:#15803d; --warn:#b45309; --bad:#b91c1c;
+    --lean:#c0392b; --rich:#1d6fb8; --neutral:#7a8291;
+    --radius:14px; --shadow:0 1px 2px rgba(0,0,0,.04), 0 8px 24px rgba(0,0,0,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:#0e1116; --panel:#171b22; --ink:#e8eaee; --muted:#9aa3b2;
+      --line:#262c36; --accent:#4b8bf5; --accent-ink:#0b0d11;
+      --ok:#4ade80; --warn:#fbbf24; --bad:#f87171;
+      --lean:#ef6b5a; --rich:#5aa6e0; --neutral:#8b93a3;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 30px rgba(0,0,0,.35);
+    }
+  }
+  * { box-sizing:border-box; }
+  html { -webkit-text-size-adjust:100%; }
+  body {
+    margin:0; background:var(--bg); color:var(--ink);
+    font:15px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a { color:var(--accent); }
+  :focus-visible { outline:3px solid var(--accent); outline-offset:2px; border-radius:6px; }
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; animation:none !important; } }
+
+  header {
+    position:sticky; top:0; z-index:5; background:var(--panel);
+    border-bottom:1px solid var(--line);
+    display:flex; flex-wrap:wrap; gap:12px 16px; align-items:center;
+    padding:14px 20px;
+  }
+  .brand { font-weight:700; font-size:18px; letter-spacing:-.01em; margin-right:4px; }
+  .brand span { color:var(--accent); }
+  .conn { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .conn label { color:var(--muted); font-size:13px; }
+  input[type=text] {
+    font:inherit; padding:8px 10px; border:1px solid var(--line); border-radius:9px;
+    background:var(--bg); color:var(--ink); min-width:200px;
+  }
+  button {
+    font:inherit; font-weight:550; padding:8px 14px; border-radius:9px;
+    border:1px solid var(--line); background:var(--panel); color:var(--ink);
+    cursor:pointer; transition:background .12s, border-color .12s, opacity .12s;
+  }
+  button:hover:not(:disabled) { border-color:var(--accent); }
+  button.primary { background:var(--accent); border-color:var(--accent); color:var(--accent-ink); }
+  button.danger { color:var(--bad); border-color:var(--bad); }
+  button:disabled { opacity:.45; cursor:not-allowed; }
+
+  .pill { display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:600;
+          padding:5px 11px; border-radius:999px; border:1px solid var(--line); margin-left:auto; }
+  .dot { width:9px; height:9px; border-radius:50%; background:var(--neutral); }
+  .pill.on .dot { background:var(--ok); } .pill.on { color:var(--ok); border-color:var(--ok); }
+  .pill.off .dot { background:var(--bad); } .pill.off { color:var(--bad); border-color:var(--bad); }
+
+  nav[role=tablist] { display:flex; gap:4px; padding:12px 20px 0; flex-wrap:wrap; }
+  [role=tab] { background:transparent; border:1px solid transparent; border-bottom:none;
+    padding:9px 15px; border-radius:10px 10px 0 0; color:var(--muted); font-weight:600; }
+  [role=tab][aria-selected=true] { color:var(--ink); background:var(--panel);
+    border-color:var(--line); }
+
+  main { padding:0 20px 40px; max-width:1080px; margin:0 auto; }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:20px; margin-top:0; }
+  [role=tabpanel][hidden] { display:none; }
+  h2 { font-size:14px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted);
+       margin:0 0 14px; }
+  .toolbar { display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:16px; }
+  .muted { color:var(--muted); }
+  .hint { color:var(--muted); font-size:13px; margin-top:10px; }
+
+  .tiles { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:12px; }
+  .tile { border:1px solid var(--line); border-radius:12px; padding:14px; background:var(--bg); }
+  .tile .k { font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase;
+             letter-spacing:.03em; }
+  .tile .v { font-size:28px; font-weight:700; font-variant-numeric:tabular-nums; line-height:1.1;
+             margin-top:6px; }
+  .tile .u { font-size:12px; color:var(--muted); }
+
+  .code { display:grid; grid-template-columns:auto auto 1fr; gap:12px; align-items:baseline;
+          padding:11px 0; border-top:1px solid var(--line); }
+  .code:first-of-type { border-top:none; }
+  .code .id { font-family:ui-monospace, "SF Mono", Menlo, monospace; font-weight:700; }
+  .badge { font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px;
+           border:1px solid var(--line); color:var(--muted); white-space:nowrap; }
+  .badge.stored { color:var(--bad); border-color:var(--bad); }
+  .badge.pending { color:var(--warn); border-color:var(--warn); }
+  .badge.permanent { color:var(--muted); }
+
+  table.grid { border-collapse:collapse; width:100%; font-variant-numeric:tabular-nums;
+               font-size:12.5px; }
+  table.grid th, table.grid td { border:1px solid var(--line); padding:6px 4px; text-align:center; }
+  table.grid th { color:var(--muted); font-weight:600; background:var(--bg); }
+  table.grid caption { text-align:left; color:var(--muted); font-size:13px; margin-bottom:8px; }
+  table.grid td.cell { color:#fff; font-weight:600; }
+  .legend { display:flex; gap:16px; align-items:center; margin-top:12px; font-size:13px; color:var(--muted); flex-wrap:wrap; }
+  .swatch { display:inline-block; width:14px; height:14px; border-radius:4px; vertical-align:-2px; margin-right:5px; }
+
+  pre.analysis { white-space:pre-wrap; background:var(--bg); border:1px solid var(--line);
+    border-radius:12px; padding:16px; font:14px/1.6 inherit; margin-top:14px; }
+  .msg { padding:12px 14px; border-radius:10px; border:1px solid var(--line); margin-bottom:14px; }
+  .msg.err { color:var(--bad); border-color:var(--bad); }
+  .visually-hidden { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">Car<span>Scope</span></div>
+  <div class="conn">
+    <label for="port">Adapter port</label>
+    <input type="text" id="port" placeholder="/dev/tty.usbserial-… (blank = auto)" autocomplete="off">
+    <button id="connectBtn" class="primary">Connect</button>
+  </div>
+  <div id="statusPill" class="pill off" role="status" aria-live="polite">
+    <span class="dot"></span><span id="statusText">Not connected</span>
+  </div>
+</header>
+
+<nav role="tablist" aria-label="Views">
+  <button role="tab" id="tab-live" aria-controls="panel-live" aria-selected="true">Live data</button>
+  <button role="tab" id="tab-codes" aria-controls="panel-codes" aria-selected="false" tabindex="-1">Trouble codes</button>
+  <button role="tab" id="tab-tune" aria-controls="panel-tune" aria-selected="false" tabindex="-1">Tuning log</button>
+</nav>
+
+<main>
+  <!-- LIVE -->
+  <section class="panel" role="tabpanel" id="panel-live" aria-labelledby="tab-live" tabindex="0">
+    <h2>Live sensor data</h2>
+    <div class="toolbar">
+      <button id="liveBtn" disabled>Start live</button>
+      <span id="liveNote" class="muted">Connect to the vehicle to read live data.</span>
+    </div>
+    <div class="tiles" id="liveTiles" aria-live="off"></div>
+  </section>
+
+  <!-- CODES -->
+  <section class="panel" role="tabpanel" id="panel-codes" aria-labelledby="tab-codes" tabindex="0" hidden>
+    <h2>Diagnostic trouble codes</h2>
+    <div class="toolbar">
+      <button id="readCodesBtn" disabled>Read codes</button>
+      <button id="clearBtn" class="danger" disabled>Clear codes…</button>
+      <button id="explainBtn" disabled title="Needs ANTHROPIC_API_KEY set on this Mac">Explain with AI</button>
+    </div>
+    <div id="codesOut" aria-live="polite"><p class="muted">No codes read yet.</p></div>
+    <pre class="analysis" id="codesAnalysis" hidden></pre>
+  </section>
+
+  <!-- TUNE -->
+  <section class="panel" role="tabpanel" id="panel-tune" aria-labelledby="tab-tune" tabindex="0" hidden>
+    <h2>Tuning datalog analysis <span class="muted">· off-road / track use</span></h2>
+    <div class="toolbar">
+      <label for="logPath">CSV log path</label>
+      <input type="text" id="logPath" placeholder="~/logs/session.csv" autocomplete="off" style="flex:1; min-width:260px;">
+      <label for="targetAfr">Target AFR</label>
+      <input type="text" id="targetAfr" value="12.8" style="min-width:70px; width:80px;">
+      <button id="analyzeBtn" class="primary">Analyze</button>
+      <label style="display:flex; gap:6px; align-items:center;"><input type="checkbox" id="tuneExplain"> AI analysis</label>
+    </div>
+    <div id="tuneOut"><p class="muted">Pick a datalog from CarScope’s <code>log</code> command or your tuning software.</p></div>
+    <pre class="analysis" id="tuneAnalysis" hidden></pre>
+  </section>
+</main>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const api = {
+  async get(p){ const r = await fetch(p); return r.json(); },
+  async post(p, body){ const r = await fetch(p, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body||{})}); return r.json(); },
+};
+let connected = false, liveOn = false, liveTimer = null;
+
+/* ---- tabs (accessible: arrow keys + roving tabindex) ---- */
+const tabs = [...document.querySelectorAll('[role=tab]')];
+function selectTab(tab){
+  tabs.forEach(t => {
+    const on = t === tab;
+    t.setAttribute('aria-selected', on);
+    t.tabIndex = on ? 0 : -1;
+    $(t.getAttribute('aria-controls')).hidden = !on;
+  });
+  tab.focus();
+}
+tabs.forEach((tab, i) => {
+  tab.addEventListener('click', () => selectTab(tab));
+  tab.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft'){
+      e.preventDefault();
+      const d = e.key === 'ArrowRight' ? 1 : -1;
+      selectTab(tabs[(i + d + tabs.length) % tabs.length]);
+    }
+  });
+});
+
+/* ---- connection ---- */
+function setStatus(on, text){
+  connected = on;
+  const pill = $('statusPill');
+  pill.className = 'pill ' + (on ? 'on' : 'off');
+  $('statusText').textContent = text;
+  $('connectBtn').textContent = on ? 'Disconnect' : 'Connect';
+  ['liveBtn','readCodesBtn','clearBtn','explainBtn'].forEach(id => $(id).disabled = !on);
+  $('liveNote').textContent = on ? '' : 'Connect to the vehicle to read live data.';
+  if (!on){ stopLive(); }
+}
+$('connectBtn').addEventListener('click', async () => {
+  if (connected){ await api.post('/api/disconnect'); setStatus(false, 'Not connected'); return; }
+  setStatus(false, 'Connecting…'); $('statusPill').className = 'pill';
+  const res = await api.post('/api/connect', { port: $('port').value.trim() || null });
+  if (res.error){ setStatus(false, 'Not connected'); alert(res.error); return; }
+  setStatus(true, 'Connected · ' + (res.info?.protocol || ''));
+});
+
+/* ---- live ---- */
+function stopLive(){ liveOn = false; if (liveTimer) clearTimeout(liveTimer); liveTimer = null; $('liveBtn').textContent = 'Start live'; }
+async function pollLive(){
+  if (!liveOn) return;
+  const res = await api.get('/api/live');
+  if (res.readings){
+    $('liveTiles').innerHTML = res.readings.map(r => {
+      const v = (r.value === null || r.value === undefined) ? '—' : (+r.value).toLocaleString(undefined,{maximumFractionDigits:2});
+      return `<div class="tile"><div class="k">${esc(r.name)}</div><div class="v">${v}</div><div class="u">${esc(r.unit||'')}</div></div>`;
+    }).join('');
+  }
+  if (liveOn) liveTimer = setTimeout(pollLive, 750);
+}
+$('liveBtn').addEventListener('click', () => {
+  liveOn = !liveOn;
+  $('liveBtn').textContent = liveOn ? 'Stop live' : 'Start live';
+  if (liveOn) pollLive();
+});
+
+/* ---- codes ---- */
+function codeRow(c, kind){
+  return `<div class="code"><span class="id">${esc(c.code)}</span><span class="badge ${kind}">${kind}</span><span>${esc(c.description)} <span class="muted">· ${esc(c.system)}</span></span></div>`;
+}
+$('readCodesBtn').addEventListener('click', async () => {
+  $('codesOut').innerHTML = '<p class="muted">Reading…</p>';
+  const r = await api.get('/api/codes');
+  if (r.error){ $('codesOut').innerHTML = `<div class="msg err">${esc(r.error)}</div>`; return; }
+  let html = '';
+  if (r.mil_on !== null) html += `<p><strong>Check-engine light:</strong> ${r.mil_on ? 'ON' : 'off'}${r.dtc_count!=null?` · ${r.dtc_count} codes`:''}</p>`;
+  const all = [...r.stored.map(c=>[c,'stored']), ...r.pending.map(c=>[c,'pending']), ...r.permanent.map(c=>[c,'permanent'])];
+  html += all.length ? all.map(([c,k]) => codeRow(c,k)).join('') : '<p class="muted">No trouble codes found. ✅</p>';
+  $('codesOut').innerHTML = html;
+});
+$('clearBtn').addEventListener('click', async () => {
+  if (!confirm('Clear trouble codes?\n\nThis erases stored codes AND freeze-frame data and resets readiness monitors. This cannot be undone.')) return;
+  const r = await api.post('/api/clear', { confirm:true });
+  if (r.error){ alert(r.error); return; }
+  alert(r.cleared ? 'Codes cleared.' : 'Clear sent, but no confirmation received.');
+  $('readCodesBtn').click();
+});
+$('explainBtn').addEventListener('click', async () => {
+  const el = $('codesAnalysis'); el.hidden = false; el.textContent = 'Asking Claude…';
+  const vehicle = prompt('Vehicle (year/make/model/engine) — optional, sharpens the analysis:') || null;
+  const r = await api.post('/api/explain', { vehicle });
+  el.textContent = r.error ? ('AI unavailable: ' + r.error) : (r.analysis || '(no analysis)');
+});
+
+/* ---- tuning ---- */
+function cellColor(err){
+  if (err === null || err === undefined) return '';
+  // Diverging: rich (neg) → blue, lean (pos) → red. Magnitude → opacity.
+  const mag = Math.min(1, Math.abs(err) / 1.5);
+  const base = err > 0 ? '192,57,43' : '29,111,184';
+  return `background:rgba(${base},${(0.18 + 0.72*mag).toFixed(2)})`;
+}
+$('analyzeBtn').addEventListener('click', async () => {
+  $('tuneOut').innerHTML = '<p class="muted">Analyzing…</p>';
+  $('tuneAnalysis').hidden = true;
+  const target = parseFloat($('targetAfr').value);
+  const r = await api.post('/api/tune', {
+    path: $('logPath').value.trim(),
+    target: isNaN(target) ? null : target,
+    explain: $('tuneExplain').checked,
+  });
+  if (r.error){ $('tuneOut').innerHTML = `<div class="msg err">${esc(r.error)}</div>`; return; }
+  const g = r.grid;
+  let html = `<p class="muted">${r.summary.samples} samples · channels: ${esc((r.summary.channels_found||[]).join(', ')||'none')} · <strong>${r.event_count}</strong> knock/retard event(s)</p>`;
+  html += '<table class="grid"><caption>Mean AFR error (actual − target) across RPM × load. Each cell also shows the number, so color is never the only cue.</caption><thead><tr><th scope="col">load \\ rpm</th>';
+  html += g.rpm_axis.map(x => `<th scope="col">${x}</th>`).join('') + '</tr></thead><tbody>';
+  g.cells.forEach((row, li) => {
+    html += `<tr><th scope="row">${g.load_axis[li]}</th>`;
+    html += row.map(err => {
+      if (err === null || err === undefined) return '<td class="muted">·</td>';
+      const sign = err > 0 ? '+' : '';
+      const label = `${g.load_axis[li]}% load, this rpm: ${sign}${err.toFixed(2)} AFR ${err>0?'lean':'rich'}`;
+      return `<td class="cell" style="${cellColor(err)}" title="${esc(label)}" aria-label="${esc(label)}">${sign}${err.toFixed(2)}</td>`;
+    }).join('');
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  html += '<div class="legend"><span><span class="swatch" style="background:rgba(29,111,184,.8)"></span>Rich (negative)</span><span><span class="swatch" style="background:rgba(192,57,43,.8)"></span>Lean (positive)</span><span>· = no data</span></div>';
+  if (r.events && r.events.length){
+    html += '<h2 style="margin-top:22px">Knock / ignition-retard events</h2>';
+    html += '<div>' + r.events.slice(0,20).map(e =>
+      `<div class="code"><span class="id">${(e.value>0?'+':'')}${e.value.toFixed(2)}</span><span class="badge stored">row ${e.row}</span><span>rpm ${fmt(e.rpm)} · load ${fmt(e.load)} · timing ${fmt(e.timing)}</span></div>`
+    ).join('') + '</div>';
+  }
+  $('tuneOut').innerHTML = html;
+  if (r.analysis){ const el = $('tuneAnalysis'); el.hidden = false; el.textContent = r.analysis; }
+  else if (r.analysis_error){ const el = $('tuneAnalysis'); el.hidden = false; el.textContent = 'AI unavailable: ' + r.analysis_error; }
+});
+
+function esc(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmt(x){ return (x===null||x===undefined) ? '—' : x; }
+
+/* ---- init ---- */
+(async () => {
+  const s = await api.get('/api/status');
+  setStatus(!!s.connected, s.connected ? ('Connected · ' + (s.info?.protocol||'')) : 'Not connected');
+})();
+</script>
+</body>
+</html>

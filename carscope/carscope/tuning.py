@@ -197,6 +197,20 @@ def format_grid(grid: AFRGrid) -> str:
     return "\n".join(lines)
 
 
+def grid_to_dict(grid: AFRGrid) -> dict:
+    """Structured form of the AFR grid for a UI to render as a heatmap.
+
+    Rows are ordered high-load first (how a VE/fuel table is usually drawn).
+    Each cell is the mean AFR error (actual - target) or None where no data.
+    """
+    rpm_axis = [c * grid.rpm_step for c in range(grid.rpm_bins)]
+    load_axis = [int(l * grid.load_step) for l in range(grid.load_bins - 1, -1, -1)]
+    rows = []
+    for l in range(grid.load_bins - 1, -1, -1):
+        rows.append([grid.mean_error(r, l) for r in range(grid.rpm_bins)])
+    return {"rpm_axis": rpm_axis, "load_axis": load_axis, "cells": rows}
+
+
 TUNING_SYSTEM = (
     "You are an experienced engine calibrator helping the owner of an "
     "off-road / track / race vehicle interpret their own datalog. The vehicle "

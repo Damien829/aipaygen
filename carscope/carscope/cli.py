@@ -9,7 +9,8 @@ Subcommands:
   explain Read codes, then have Claude interpret them (needs ANTHROPIC_API_KEY).
   can     Raw CAN capture: sniff / log / survey (needs a USB-CAN adapter).
   tune    Analyze a tuning datalog (AFR grid, knock events) — off-road/track.
-  gui     Launch the native desktop UI.
+  web     Launch the modern browser dashboard (recommended).
+  gui     Launch the native Tkinter window (offline fallback).
 """
 
 from __future__ import annotations
@@ -135,6 +136,12 @@ def cmd_can(args) -> int:
     return 0
 
 
+def cmd_web(args) -> int:
+    from . import web
+    return web.serve(port_str=args.port, baud=args.baud, host=args.host,
+                     http_port=args.http_port, open_browser=not args.no_open)
+
+
 def cmd_gui(args) -> int:
     from . import gui
     return gui.launch(port=args.port, baud=args.baud)
@@ -250,7 +257,15 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--vehicle", help="Year/make/model/engine, to sharpen the analysis.")
     p.set_defaults(func=cmd_explain)
 
-    p = sub.add_parser("gui", help="Launch the native desktop UI.")
+    p = sub.add_parser("web", help="Launch the modern browser dashboard (recommended).")
+    _add_common(p)
+    p.add_argument("--http-port", type=int, default=8765, help="Local web server port.")
+    p.add_argument("--host", default="127.0.0.1",
+                   help="Bind address (use 0.0.0.0 to reach it from other devices).")
+    p.add_argument("--no-open", action="store_true", help="Don't auto-open the browser.")
+    p.set_defaults(func=cmd_web)
+
+    p = sub.add_parser("gui", help="Launch the native Tkinter window (offline fallback).")
     _add_common(p)
     p.set_defaults(func=cmd_gui)
 
