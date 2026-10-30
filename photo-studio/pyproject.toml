@@ -3,10 +3,11 @@ name = "protune"
 version = "0.1.0"
 description = "Professional auto-editing for your own camera photos, with optional Claude-guided fine-tuning"
 requires-python = ">=3.10"
-dependencies = ["numpy>=1.24", "Pillow>=10", "rawpy>=0.19", "anthropic>=0.80", "opencv-python-headless>=4.8"]
+dependencies = ["numpy>=1.24", "Pillow>=10", "rawpy>=0.19", "opencv-python-headless>=4.8"]
 
 [project.optional-dependencies]
-test = ["pytest"]
+api = ["anthropic>=0.80"]
+test = ["pytest", "anthropic>=0.80"]
 
 [project.scripts]
 protune = "protune.cli:main"

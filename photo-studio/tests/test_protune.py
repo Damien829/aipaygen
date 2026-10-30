@@ -6,7 +6,7 @@ from PIL import Image
 
 from protune import Adjustments, apply, auto_adjust
 from protune.adjust import luminance
-from protune.ai import ai_refine
+from protune.ai import ApiBackend, ai_refine
 from protune.cli import main
 
 
@@ -63,7 +63,8 @@ class FakeClient:
 def test_ai_refine_returns_only_slider_values():
     first = {**Adjustments(exposure=1.0, shadows=30).to_dict(), "scene": "landscape", "notes": "lifted"}
     client = FakeClient([first, first])  # second pass agrees -> stops
-    adj = ai_refine(_scene(), Adjustments(), "natural", passes=3, client=client, log=lambda m: None)
+    adj = ai_refine(_scene(), Adjustments(), "natural", passes=3, backend=ApiBackend(client),
+                    log=lambda m: None)
     assert adj.exposure == 1.0 and adj.shadows == 30
     assert len(client.calls) == 2
     req = client.calls[0]

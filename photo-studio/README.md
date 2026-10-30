@@ -25,7 +25,7 @@ pip install .
 # Edit every photo in a folder. Results go to <folder>/edited/
 protune ~/Pictures/2026-10-wedding
 
-# Same, but Claude reviews each photo and fine-tunes it (needs an API key, see below)
+# Same, but Claude reviews each photo and fine-tunes it (uses your Claude Pro plan, see below)
 protune ~/Pictures/2026-10-wedding --ai
 
 # Choose a look: natural (default), vibrant, moody, bright, bw
@@ -69,18 +69,25 @@ it holds far more highlight and shadow detail for the editor to recover.
    noise reduction is edge-aware, and sharpening skips flat areas such as skin
    and sky.
 
-## AI setup (optional)
+## AI setup (optional): uses your Claude Pro plan
 
-The auto edit works with no account at all. For `--ai`, get an API key at
-<https://platform.claude.com>, then:
+The auto edit needs no account. `--ai` runs through **Claude Code**, which is
+included with Claude Pro, so it uses your subscription. No API key or extra bill.
 
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-```
+1. Install Claude Code: <https://claude.com/claude-code>
+2. Run `claude` once in a terminal and log in with your Claude account.
+3. That's it: `protune ~/Pictures/shoot --ai`
 
-Only a small preview (1024 px) is sent to the API, never your full-resolution file.
-Each photo costs a few cents with the default two review passes. Use `--ai-passes 1`
-to halve that.
+Each photo uses one or two Claude messages from your plan's usage allowance
+(`--ai-passes 1` halves that). On a very large shoot you may hit your plan's
+usage limit. If so, wait for it to reset, or run without `--ai` for the rest.
+Only small 1024 px previews are shown to Claude, never your full-resolution files.
+
+Want a particular model? `--ai-model sonnet` or `--ai-model opus`, if your plan
+includes it.
+
+*Alternative:* `--ai-via api` uses the Anthropic API with `ANTHROPIC_API_KEY`
+instead (pay per use; `pip install ".[api]"`).
 
 ## Tips for learning
 

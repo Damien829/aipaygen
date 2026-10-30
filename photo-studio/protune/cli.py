@@ -1,7 +1,7 @@
 """protune: professional auto-editing for your own camera files.
 
   protune ~/Pictures/shoot                 # auto edit every photo in the folder
-  protune ~/Pictures/shoot --ai            # let Claude review and fine-tune each edit
+  protune ~/Pictures/shoot --ai            # Claude (your Pro plan via Claude Code) fine-tunes each edit
   protune shot.NEF --style moody --compare # one file, a look, and a before/after image
   protune shot.NEF --set exposure=0.3 --set shadows=40   # override any slider
 """
@@ -63,6 +63,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--style", choices=sorted(STYLES), default="natural")
     ap.add_argument("--ai", action="store_true", help="have Claude review and fine-tune every edit")
     ap.add_argument("--ai-passes", type=int, default=2, help="Claude review rounds per photo (default 2)")
+    ap.add_argument("--ai-via", choices=["claude-code", "api"], default="claude-code",
+                    help="claude-code: your Claude subscription via the `claude` CLI (default); "
+                         "api: ANTHROPIC_API_KEY, pay per use")
+    ap.add_argument("--ai-model", default=None, help="model for --ai-via claude-code (default: your Claude Code default)")
     ap.add_argument("--settings", help="JSON file of slider values to use instead of auto analysis")
     ap.add_argument("--set", action="append", default=[], metavar="SLIDER=VALUE", help="override one slider")
     ap.add_argument("--compare", action="store_true", help="also save a before/after image")
@@ -78,6 +82,15 @@ def main(argv: list[str] | None = None) -> int:
     fixed = json.loads(Path(args.settings).read_text()) if args.settings else None
     over = _overrides(args.set)
 
+    backend = None
+    if args.ai and fixed is None:
+        from .ai import make_backend
+
+        try:
+            backend = make_backend(args.ai_via, args.ai_model)
+        except Exception as e:
+            print(f"AI unavailable ({e}); using auto settings only", file=sys.stderr)
+
     for n, f in enumerate(files, 1):
         t0 = time.time()
         print(f"[{n}/{len(files)}] {f.name}")
@@ -88,12 +101,11 @@ def main(argv: list[str] | None = None) -> int:
             adj = Adjustments.from_dict(fixed)
         else:
             adj = auto_adjust(small, photo.is_raw, args.style)
-            if args.ai:
+            if backend is not None:
                 from .ai import ai_refine
 
                 try:
-                    adj = ai_refine(small, adj, args.style, args.ai_passes,
-                                    log=lambda m: print(m))
+                    adj = ai_refine(small, adj, args.style, args.ai_passes, backend=backend)
                 except Exception as e:  # keep going with the auto edit
                     print(f"    AI unavailable ({e}); using auto settings")
         if over:
