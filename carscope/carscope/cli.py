@@ -8,6 +8,8 @@ Subcommands:
   log     Stream live sensor data to a CSV file.
   explain Read codes, then have Claude interpret them (needs ANTHROPIC_API_KEY).
   can     Raw CAN capture: sniff / log / survey (needs a USB-CAN adapter).
+  tune    Analyze a tuning datalog (AFR grid, knock events) — off-road/track.
+  gui     Launch the native desktop UI.
 """
 
 from __future__ import annotations
@@ -17,7 +19,7 @@ import sys
 from pathlib import Path
 
 from . import __version__
-from . import ai, can_bus, connection, diagnostics, live
+from . import ai, can_bus, connection, diagnostics, live, tuning
 
 
 def _add_common(p: argparse.ArgumentParser) -> None:
@@ -133,6 +135,54 @@ def cmd_can(args) -> int:
     return 0
 
 
+def cmd_gui(args) -> int:
+    from . import gui
+    return gui.launch(port=args.port, baud=args.baud)
+
+
+def cmd_tune(args) -> int:
+    if args.tune_command != "analyze":
+        return 1
+    overrides = {}
+    if args.map:
+        for pair in args.map.split(","):
+            if "=" in pair:
+                ch, col = pair.split("=", 1)
+                overrides[ch.strip()] = col.strip()
+    data = tuning.load_log(Path(args.log), overrides)
+    if not data.rows:
+        print("Log is empty or unreadable.", file=sys.stderr)
+        return 1
+
+    summ = tuning.summarize(data)
+    print(f"Samples: {summ['samples']}")
+    print(f"Channels detected: {', '.join(summ['channels_found']) or 'none'}")
+    if not data.mapping.get("afr"):
+        print("\nNo AFR/lambda channel found — can't build the AFR grid.")
+        print("Use --map afr=<your_column> to point at it.", file=sys.stderr)
+        return 1
+    if args.target is None and not data.mapping.get("afr_target"):
+        print("\nNo target-AFR channel found. Pass --target (e.g. --target 12.8) "
+              "so error can be computed.", file=sys.stderr)
+        return 1
+
+    grid = tuning.build_afr_grid(data, target_const=args.target, rpm_step=args.rpm_step)
+    events = tuning.find_knock_events(data, threshold=args.knock_threshold)
+    print("\n" + tuning.format_grid(grid))
+    print(f"\nKnock / ignition-retard events over {args.knock_threshold}: {len(events)}")
+    for e in events[:15]:
+        print(f"  row {e.row_index}: {e.value:+.2f} @ rpm {e.rpm}, load {e.load}, timing {e.timing}")
+
+    if args.explain:
+        if not ai.is_available():
+            print(f"\nAI analysis unavailable: {ai.unavailable_reason()}", file=sys.stderr)
+            return 3
+        print("\nAsking Claude to analyze the tune…\n" + "-" * 60)
+        body = tuning.build_tuning_prompt(data, grid, events)
+        print(ai.interpret(body, vehicle=args.vehicle, system=tuning.TUNING_SYSTEM))
+    return 0
+
+
 def _build_explain_prompt(report, frame, snap) -> str:
     lines = ["Trouble codes read from the vehicle:"]
     for title, items in (
@@ -200,6 +250,10 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--vehicle", help="Year/make/model/engine, to sharpen the analysis.")
     p.set_defaults(func=cmd_explain)
 
+    p = sub.add_parser("gui", help="Launch the native desktop UI.")
+    _add_common(p)
+    p.set_defaults(func=cmd_gui)
+
     p = sub.add_parser("can", help="Raw CAN bus capture (needs a USB-CAN adapter).")
     can_sub = p.add_subparsers(dest="can_command", required=True)
     for name, help_text in (
@@ -218,6 +272,20 @@ def build_parser() -> argparse.ArgumentParser:
         if name == "log":
             cp.add_argument("--out", default="carscope_can.csv", help="Output CSV path.")
         cp.set_defaults(func=cmd_can)
+
+    p = sub.add_parser("tune", help="Analyze a tuning datalog (off-road/track use).")
+    tune_sub = p.add_subparsers(dest="tune_command", required=True)
+    tp = tune_sub.add_parser("analyze", help="AFR-error grid, knock events, stats from a CSV log.")
+    tp.add_argument("--log", required=True, help="CSV datalog path.")
+    tp.add_argument("--target", type=float, default=None,
+                    help="Constant target AFR if the log has no target channel (e.g. 12.8).")
+    tp.add_argument("--rpm-step", type=int, default=500, help="RPM bin width for the grid.")
+    tp.add_argument("--knock-threshold", type=float, default=0.5,
+                    help="Flag knock/retard values at or above this.")
+    tp.add_argument("--map", help="Column overrides, e.g. afr=WB_AFR,rpm=EngineSpeed,load=MAP.")
+    tp.add_argument("--vehicle", help="Car/engine/setup, to sharpen the AI analysis.")
+    tp.add_argument("--explain", action="store_true", help="Add Claude's tuning analysis.")
+    tp.set_defaults(func=cmd_tune)
 
     return parser
 

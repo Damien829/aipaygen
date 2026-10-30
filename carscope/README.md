@@ -85,6 +85,49 @@ python main.py live --pids RPM,SPEED,COOLANT_TEMP,MAF
 (PID names follow python-OBD's command names; `scan` reports how many your
 vehicle supports.)
 
+## Native desktop UI
+
+A real Mac window (built on Tkinter, which ships with Python — nothing extra
+to install):
+
+```bash
+python main.py gui
+```
+
+Tabs for **Live data** (start/stop live readings), **Trouble codes** (read,
+and clear behind a confirmation dialog), and **Tuning log** (open a CSV and see
+the AFR-error grid + knock count). You can prefill the adapter port with
+`--port`. All vehicle I/O runs on a background thread, so the window stays
+responsive while the adapter is queried.
+
+> If `python main.py gui` says Tkinter isn't available: on macOS the
+> python.org installer includes it. Verify with `python3 -m tkinter` (a tiny
+> test window should appear). Homebrew Python needs `brew install python-tk`.
+
+## Tuning datalog analysis (off-road / track use)
+
+For a track/race car, analyze a datalog to see where the tune needs work. The
+log can come from CarScope's own `log` command or be exported from your tuning
+software (rusEFI, Speeduino, MegaSquirt, HP Tuners, AEM, Haltech, …).
+
+```bash
+# AFR-error grid + knock events; give a target AFR if the log has no target channel
+python main.py tune analyze --log drive.csv --target 12.8
+
+# Map oddly-named columns, and add Claude's analysis
+python main.py tune analyze --log drive.csv --target 12.8 \
+    --map "rpm=EngineSpeed,load=MAP,afr=WB_AFR" --explain
+```
+
+The grid shows mean AFR error (actual − target) across RPM × load — positive is
+lean, negative is rich — so you can see exactly which cells to adjust. Knock /
+ignition-retard events are listed with the conditions they occurred under, so
+you address the dangerous high-load/high-rpm corner first.
+
+This is **analysis only** — it never writes to the vehicle or a calibration.
+You make the changes in your own tuning software. It's for off-road / track /
+race use; it does not help defeat emissions equipment.
+
 ## Raw CAN capture
 
 For signals the standard PIDs don't expose, CarScope can listen to raw CAN
@@ -121,9 +164,10 @@ switch, for example), and see which ID/byte moves. If you see no frames, try
   you've identified (e.g. via a DBC file).
 - **UDS / manufacturer PIDs**. Note that J2534 pass-thru drivers are mostly
   Windows-only, so on a Mac this would go over raw CAN (ISO-TP) instead.
-- A lightweight **web UI** (gauges + code list + log viewer) you can hit from
-  your phone when it runs on a Pi in the garage.
-- **AI anomaly spotting** over logged CSVs, not just code interpretation.
+- **Live gauges in the GUI** drawn graphically (arcs/bars), and live charting
+  of logged PIDs.
+- **Coding / adaptations** over UDS on vehicles you own (authenticated access
+  only — no security bypass), for retrofits and post-repair configuration.
 
 ## How it's organized
 
@@ -135,6 +179,8 @@ carscope/
     diagnostics.py     # DTC read/clear + freeze frame (standard OBD-II modes)
     live.py            # live snapshots + CSV logging
     can_bus.py         # raw CAN capture: sniff / log / survey (read-only)
+    tuning.py          # tuning datalog analysis (AFR grid, knock events)
+    gui.py             # native desktop UI (Tkinter)
     ai.py              # optional Claude interpretation layer
     cli.py             # argparse command-line interface
 ```

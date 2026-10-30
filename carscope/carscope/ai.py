@@ -58,8 +58,13 @@ def interpret(
     prompt_body: str,
     vehicle: Optional[str] = None,
     max_tokens: int = 4000,
+    system: Optional[str] = None,
 ) -> str:
-    """Send a formatted diagnostic summary to Claude and return its analysis."""
+    """Send a formatted summary to Claude and return its analysis.
+
+    `system` overrides the default diagnostic persona — the tuning module
+    passes its own so the advice is framed for calibration work.
+    """
     if not is_available():
         raise RuntimeError(unavailable_reason())
 
@@ -69,7 +74,7 @@ def interpret(
         model=MODEL,
         max_tokens=max_tokens,
         thinking={"type": "adaptive"},
-        system=SYSTEM_PROMPT,
+        system=system or SYSTEM_PROMPT,
         messages=[{"role": "user", "content": context + prompt_body}],
     )
     return _extract_text(message)
