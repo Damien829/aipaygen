@@ -1,9 +1,9 @@
 [project]
 name = "protune"
-version = "0.1.0"
+version = "0.2.0"
 description = "Professional auto-editing for your own camera photos, with optional Claude-guided fine-tuning"
 requires-python = ">=3.10"
-dependencies = ["numpy>=1.24", "Pillow>=10", "rawpy>=0.19", "opencv-python-headless>=4.8"]
+dependencies = ["numpy>=1.24", "Pillow>=10", "rawpy>=0.19", "opencv-python-headless>=4.8", "pillow-heif>=0.16"]
 
 [project.optional-dependencies]
 api = ["anthropic>=0.80"]
@@ -11,6 +11,7 @@ test = ["pytest", "anthropic>=0.80"]
 
 [project.scripts]
 protune = "protune.cli:main"
+protune-app = "protune.app:main"
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -18,3 +19,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = ["protune"]
+
+[tool.setuptools.package-data]
+protune = ["web/*.html"]

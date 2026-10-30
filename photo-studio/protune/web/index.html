@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ProTune</title>
+<style>
+  /* Neutral greys on purpose: coloured UI skews how you judge colour in a photo. */
+  :root {
+    --bg: #1c1c1c; --panel: #262626; --panel2: #2f2f2f; --line: #3a3a3a;
+    --text: #e6e6e6; --muted: #9a9a9a; --accent: #5b9bff; --ok: #5cb85c; --warn: #e0a84a; --bad: #e06060;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font: 14px/1.4 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif; }
+  button, select, input { font: inherit; color: inherit; }
+  button { background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 7px 14px; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: #555; }
+  button:disabled { opacity: .45; cursor: default; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  button.ghost { background: transparent; }
+  header { display: flex; align-items: center; gap: 16px; padding: 10px 18px; border-bottom: 1px solid var(--line); background: #202020; position: sticky; top: 0; z-index: 5; }
+  header h1 { font-size: 16px; margin: 0; letter-spacing: .5px; }
+  header button { white-space: nowrap; }
+  header .spacer { flex: 1; }
+  .chip { font-size: 12px; color: var(--muted); border: 1px solid var(--line); border-radius: 99px; padding: 3px 10px; white-space: nowrap; }
+  .chip.ok { color: var(--ok); border-color: #355a35; } .chip.warn { color: var(--warn); border-color: #5e4a25; }
+  main { padding: 18px; max-width: 1500px; margin: 0 auto; }
+
+  .setup { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; display: grid; grid-template-columns: 150px 1fr; gap: 14px 18px; align-items: center; }
+  .setup label.k { color: var(--muted); }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; min-width: 0; }
+  .path { flex: 1; min-width: 200px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  input.path { outline: none; }
+  .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; max-width: 100%; }
+  .seg button { border: 0; border-radius: 0; border-right: 1px solid var(--line); background: var(--panel2); white-space: nowrap; }
+  .seg button:last-child { border-right: 0; }
+  .seg button.on { background: var(--accent); color: #fff; }
+  .hint { color: var(--muted); font-size: 12px; }
+  .actions { grid-column: 1 / -1; display: flex; gap: 10px; align-items: center; border-top: 1px solid var(--line); padding-top: 14px; }
+
+  .progress { margin: 14px 0; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; display: none; }
+  .bar { height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+  .bar > div { height: 100%; width: 0; background: var(--accent); transition: width .4s; }
+  .banner { margin: 14px 0; padding: 10px 14px; border-radius: var(--radius); border: 1px solid #5e4a25; background: #2d261a; color: #f0d6a8; display: none; }
+
+  .toolbar { display: flex; gap: 10px; align-items: center; margin: 18px 0 10px; flex-wrap: wrap; }
+  .toolbar .count { color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; cursor: pointer; position: relative; }
+  .card:hover { border-color: #555; }
+  .card .thumb { aspect-ratio: 3 / 2; background: #141414; display: flex; align-items: center; justify-content: center; }
+  .card img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .card .meta { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; gap: 6px; font-size: 12px; }
+  .card .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .badge { font-size: 11px; padding: 1px 7px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+  .badge.ai { color: var(--accent); border-color: #2f4f80; } .badge.manual { color: var(--ok); border-color: #355a35; }
+  .badge.failed { color: var(--bad); border-color: #6a3030; } .badge.working { color: var(--warn); border-color: #5e4a25; }
+  .empty { color: var(--muted); text-align: center; padding: 60px 0; }
+
+  /* Editor */
+  .editor { position: fixed; inset: 0; background: var(--bg); display: none; z-index: 20; grid-template-columns: 1fr 330px; }
+  .editor.open { display: grid; }
+  .viewer { position: relative; display: flex; flex-direction: column; min-width: 0; }
+  .viewer .top { display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  .viewer .top .title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .stage { flex: 1; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; padding: 16px; user-select: none; }
+  .cmp { position: relative; max-width: 100%; max-height: 100%; line-height: 0; }
+  .cmp img { max-width: 100%; max-height: calc(100vh - 140px); display: block; }
+  .cmp .after { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .cmp .handle { position: absolute; top: 0; bottom: 0; width: 2px; background: #fff; box-shadow: 0 0 4px #000; cursor: ew-resize; }
+  .cmp .handle::after { content: "⟷"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: #fff; color: #000; border-radius: 99px; padding: 6px 7px; font-size: 13px; line-height: 1; }
+  .cmp .lbl { position: absolute; top: 8px; font-size: 11px; background: rgba(0,0,0,.55); padding: 2px 8px; border-radius: 4px; line-height: 1.6; }
+  .cmp .lbl.b { left: 8px; } .cmp .lbl.a { right: 8px; }
+  .viewer .foot { padding: 8px 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; display: flex; gap: 16px; flex-wrap: wrap; }
+  .side { background: var(--panel); border-left: 1px solid var(--line); overflow-y: auto; display: flex; flex-direction: column; }
+  .side section { padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .side h3 { margin: 0 0 8px; font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); font-weight: 600; }
+  .sl { display: grid; grid-template-columns: 92px 1fr 46px; gap: 8px; align-items: center; margin: 4px 0; }
+  .sl label { font-size: 12px; color: #c8c8c8; }
+  .sl output { font-size: 12px; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+  input[type=range] { width: 100%; accent-color: #bbb; }
+  .notes { font-size: 13px; color: #cfcfcf; }
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .dialog { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; align-items: center; justify-content: center; z-index: 40; }
+  .dialog.open { display: flex; }
+  .dialog > div { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px; width: min(420px, 92vw); }
+  .dialog h2 { margin: 0 0 10px; font-size: 16px; }
+  .dialog label { display: block; margin: 6px 0; }
+  .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: #333; border: 1px solid #555; padding: 8px 16px; border-radius: 6px; display: none; z-index: 50; }
+  @media (max-width: 760px) {
+    .setup { grid-template-columns: 1fr; }
+    .editor.open { grid-template-columns: 1fr; grid-template-rows: 60vh 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>ProTune</h1>
+  <span class="chip" id="claudeChip">Claude: checking…</span>
+  <span class="spacer"></span>
+  <button class="ghost" id="revealBtn" disabled title="Open the folder with your edited photos">Show in Finder</button>
+  <button class="ghost" id="quitBtn" title="Quit ProTune">Quit</button>
+</header>
+
+<main>
+  <div class="setup" id="setup">
+    <label class="k">Photos</label>
+    <div class="row">
+      <button id="pickBtn" class="primary">Choose folder…</button>
+      <input class="path" id="folder" placeholder="or paste a folder path here, e.g. /Volumes/EOS_DIGITAL/DCIM/100CANON">
+    </div>
+    <label class="k">Save edits to</label>
+    <div class="row">
+      <div class="path" id="outDir">Pictures ▸ ProTune ▸ (folder name)</div>
+      <button id="outBtn">Change…</button>
+    </div>
+    <label class="k">Look</label>
+    <div class="row">
+      <div class="seg" id="styleSeg"></div>
+      <span class="hint" id="styleHint"></span>
+    </div>
+    <label class="k">AI fine-tuning</label>
+    <div class="row">
+      <label><input type="checkbox" id="ai" checked> Claude reviews and refines every photo</label>
+      <span class="hint">Uses your Claude plan. About 20 s per photo.</span>
+    </div>
+    <label class="k">Size</label>
+    <div class="row"><div class="seg" id="sizeSeg"></div></div>
+    <label class="k">File type</label>
+    <div class="row"><div class="seg" id="fmtSeg"></div><span class="hint">TIFF is 16-bit, for printing or further editing.</span></div>
+    <label class="k">Options</label>
+    <div class="row">
+      <label><input type="checkbox" id="recursive"> Include subfolders</label>
+      <label><input type="checkbox" id="skipDone" checked> Skip photos already edited</label>
+    </div>
+    <div class="actions">
+      <button class="primary" id="startBtn" disabled>Edit photos</button>
+      <span class="hint" id="found"></span>
+    </div>
+  </div>
+
+  <div class="banner" id="banner"></div>
+
+  <div class="progress" id="progress">
+    <div class="row" style="justify-content: space-between">
+      <span id="progText">Working…</span>
+      <button id="stopBtn">Stop</button>
+    </div>
+    <div class="bar"><div id="barFill"></div></div>
+  </div>
+
+  <div class="toolbar" id="toolbar" style="display:none">
+    <span class="count" id="count"></span>
+    <span class="spacer" style="flex:1"></span>
+    <button id="aiAutoBtn" title="Run Claude on photos that only have the automatic edit">Run AI on “Auto” photos</button>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty">Choose a folder of photos straight from your camera or memory card to get started.</div>
+</main>
+
+<div class="editor" id="editor">
+  <div class="viewer">
+    <div class="top">
+      <button id="prevBtn" title="Previous (←)">‹</button>
+      <button id="nextBtn" title="Next (→)">›</button>
+      <span class="title" id="edTitle"></span>
+      <button id="closeBtn">Done (Esc)</button>
+    </div>
+    <div class="stage" id="stage">
+      <div class="cmp" id="cmp">
+        <img id="imgBefore" alt="Before">
+        <img id="imgAfter" class="after" alt="After">
+        <div class="handle" id="handle"></div>
+        <span class="lbl b">Before</span><span class="lbl a">After</span>
+      </div>
+    </div>
+    <div class="foot">
+      <span>Drag the line to compare</span><span>Hold <b>B</b> to see the original</span><span>Double-click a slider to reset it</span><span>← → next photo</span>
+    </div>
+  </div>
+  <div class="side">
+    <section id="noteSec"><h3>Notes</h3><div class="notes" id="notes"></div></section>
+    <div id="sliders"></div>
+    <section>
+      <div class="btns">
+        <button class="primary" id="saveBtn">Save</button>
+        <button id="resetBtn" title="Back to the last saved settings">Undo changes</button>
+        <button id="autoBtn" title="Automatic settings for this photo">Auto</button>
+        <button id="aiBtn" title="Ask Claude to edit this photo again">Ask Claude</button>
+      </div>
+    </section>
+    <section>
+      <button id="copyBtn" style="width:100%">Copy these settings to other photos…</button>
+    </section>
+  </div>
+</div>
+
+<div class="dialog" id="copyDlg">
+  <div>
+    <h2>Copy settings</h2>
+    <p class="hint">Use this photo's settings on every other edited photo, for a consistent look across a shoot. Choose which parts to copy:</p>
+    <div id="groupChecks"></div>
+    <div class="btns" style="margin-top:14px; justify-content:flex-end">
+      <button id="copyCancel">Cancel</button>
+      <button class="primary" id="copyGo">Copy to all photos</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const TOKEN = "__TOKEN__";
+const $ = (id) => document.getElementById(id);
+const api = async (path, body) => {
+  const r = await fetch(path, {
+    method: body === undefined ? "GET" : "POST",
+    headers: { "X-Token": TOKEN, "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  return r.json();
+};
+const img = (id, kind, v) => `/api/img/${id}/${kind}?t=${TOKEN}&v=${v}`;
+
+const SLIDERS = [
+  ["White balance", [["temperature", "Temperature", -100, 100, 1], ["tint", "Tint", -100, 100, 1]]],
+  ["Light", [["exposure", "Exposure", -3, 3, 0.05], ["contrast", "Contrast", -100, 100, 1],
+             ["highlights", "Highlights", -100, 100, 1], ["shadows", "Shadows", -100, 100, 1],
+             ["whites", "Whites", -100, 100, 1], ["blacks", "Blacks", -100, 100, 1]]],
+  ["Presence", [["clarity", "Clarity", -100, 100, 1], ["vibrance", "Vibrance", -100, 100, 1],
+                ["saturation", "Saturation", -100, 100, 1]]],
+  ["Detail", [["sharpening", "Sharpening", 0, 150, 1], ["noise_reduction", "Noise reduction", 0, 100, 1]]],
+  ["Effects", [["vignette", "Vignette", -100, 100, 1]]],
+];
+const STYLE_HINTS = { natural: "True to life, clean and neutral", vibrant: "Punchy colour and contrast",
+  moody: "Darker, deeper, cinematic", bright: "Light and airy", bw: "Black & white" };
+const STYLE_NAMES = { natural: "Natural", vibrant: "Vibrant", moody: "Moody", bright: "Bright & airy", bw: "Black & white" };
+const GROUP_NAMES = { white_balance: "White balance", exposure: "Exposure", tone: "Contrast, highlights, shadows, whites, blacks",
+  presence: "Clarity, vibrance, saturation, B&W", detail: "Sharpening and noise reduction", effects: "Vignette" };
+
+let S = null;            // last status
+let opts = { style: "natural", size: "", format: "jpg" };
+let outDir = "";
+let cur = null;          // item id open in editor
+let edit = null;         // settings being edited
+let saved = null;        // settings when the editor opened
+let renderSeq = 0;
+
+function seg(el, items, key, onChange) {
+  el.innerHTML = "";
+  for (const [val, label] of items) {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.className = opts[key] === val ? "on" : "";
+    b.onclick = () => { opts[key] = val; seg(el, items, key, onChange); onChange && onChange(); };
+    el.appendChild(b);
+  }
+}
+function toast(msg, ms = 2500) { const t = $("toast"); t.textContent = msg; t.style.display = "block"; clearTimeout(t._h); t._h = setTimeout(() => t.style.display = "none", ms); }
+function fmtTime(s) { if (s == null) return ""; s = Math.round(s); return s < 60 ? `${s}s` : s < 3600 ? `${Math.round(s / 60)} min` : `${(s / 3600).toFixed(1)} h`; }
+
+// ---------- setup ----------
+seg($("styleSeg"), Object.entries(STYLE_NAMES), "style", () => $("styleHint").textContent = STYLE_HINTS[opts.style]);
+$("styleHint").textContent = STYLE_HINTS.natural;
+seg($("sizeSeg"), [["", "Full size"], ["4096", "4096 px"], ["2048", "2048 px (web)"], ["1080", "1080 px (Instagram)"]], "size");
+seg($("fmtSeg"), [["jpg", "JPEG"], ["tif", "TIFF 16-bit"]], "format");
+
+async function openFolder() {
+  const folder = $("folder").value.trim();
+  if (!folder) return;
+  const r = await api("/api/open", { folder, out_dir: outDir || null, recursive: $("recursive").checked, skip_done: $("skipDone").checked });
+  if (r.error) { $("found").textContent = r.error; $("startBtn").disabled = true; return; }
+  await refresh();
+  const todo = S.items.filter(i => i.status !== "done").length;
+  $("found").textContent = r.count === 0 ? "No photos found in this folder." :
+    `${r.count} photo${r.count > 1 ? "s" : ""} found` + (todo < r.count ? `, ${r.count - todo} already edited` : "") + ".";
+  $("startBtn").disabled = todo === 0;
+}
+$("pickBtn").onclick = async () => {
+  const r = await api("/api/choose", { prompt: "Choose a folder of photos" });
+  if (r.path) { $("folder").value = r.path; openFolder(); }
+  else if (!r.mac) { $("folder").focus(); toast("Paste the folder path into the box"); }
+};
+$("folder").addEventListener("change", openFolder);
+$("folder").addEventListener("keydown", e => { if (e.key === "Enter") openFolder(); });
+$("recursive").onchange = openFolder;
+$("skipDone").onchange = openFolder;
+$("outBtn").onclick = async () => {
+  const r = await api("/api/choose", { prompt: "Where should edited photos be saved?" });
+  if (r.path) { outDir = r.path; $("outDir").textContent = r.path.replace(S.home, "~"); openFolder(); }
+};
+$("startBtn").onclick = async () => {
+  await api("/api/start", { ai: $("ai").checked, style: opts.style, format: opts.format, long_edge: opts.size || null });
+  $("startBtn").disabled = true;
+  refresh();
+};
+$("stopBtn").onclick = async () => { await api("/api/cancel", {}); toast("Stopping after the current photo…"); };
+$("revealBtn").onclick = () => api("/api/reveal", {});
+$("quitBtn").onclick = async () => {
+  if (S && S.busy && !confirm("Photos are still being edited. Quit anyway?")) return;
+  await api("/api/quit", {});
+  document.body.innerHTML = '<div class="empty">ProTune has quit. You can close this tab.</div>';
+};
+$("aiAutoBtn").onclick = async () => {
+  const ids = S.items.filter(i => i.status === "done" && i.source === "auto").map(i => i.id);
+  if (!ids.length) return toast("Every photo already has an AI edit");
+  await api("/api/ai", { ids }); toast(`Claude will review ${ids.length} photo${ids.length > 1 ? "s" : ""}`);
+};
+
+// ---------- grid ----------
+const cards = new Map();
+function badge(it) {
+  if (it.status === "working") return ["working", "Editing…"];
+  if (it.status === "queued") return ["", "Waiting"];
+  if (it.status === "failed") return ["failed", "Failed"];
+  if (it.status === "waiting" || !it.status) return ["", "Not started"];
+  return it.source === "ai" ? ["ai", "AI"] : it.source === "manual" ? ["manual", "Edited"] : ["", "Auto"];
+}
+function renderGrid() {
+  const grid = $("grid");
+  $("empty").style.display = S.items.length ? "none" : "block";
+  $("toolbar").style.display = S.items.length ? "flex" : "none";
+  const done = S.items.filter(i => i.status === "done").length;
+  $("count").textContent = `${done} of ${S.items.length} edited`;
+  const ids = new Set(S.items.map(i => i.id + ":" + i.name));
+  for (const [k, c] of cards) if (!ids.has(k)) { c.el.remove(); cards.delete(k); }
+  for (const it of S.items) {
+    const key = it.id + ":" + it.name;
+    let c = cards.get(key);
+    if (!c) {
+      const el = document.createElement("div");
+      el.className = "card";
+      el.innerHTML = `<div class="thumb"><img loading="lazy" alt=""></div><div class="meta"><span class="name"></span><span class="badge"></span></div>`;
+      el.querySelector(".name").textContent = it.name;
+      el.onclick = () => openEditor(it.id);
+      grid.appendChild(el);
+      c = { el, v: null };
+      cards.set(key, c);
+    }
+    const [cls, text] = badge(it);
+    const b = c.el.querySelector(".badge");
+    b.className = "badge " + cls; b.textContent = text;
+    b.title = it.error || it.notes || "";
+    const want = it.status === "done" ? img(it.id, "after", it.version) : img(it.id, "before", 0);
+    if (c.v !== want) { c.el.querySelector("img").src = want; c.v = want; }
+  }
+}
+
+async function refresh() {
+  try { S = await api("/api/status"); } catch (e) { return; }
+  const chip = $("claudeChip");
+  if (!S.ai.installed) { chip.textContent = "Claude Code not installed (auto edits only)"; chip.className = "chip warn"; $("ai").checked = false; }
+  else if (S.ai.stopped) { chip.textContent = "Claude paused"; chip.className = "chip warn"; }
+  else { chip.textContent = "Claude ready"; chip.className = "chip ok"; }
+  $("banner").style.display = S.ai.note ? "block" : "none";
+  $("banner").textContent = S.ai.note ? "Claude: " + S.ai.note + "  Photos it couldn't review got the automatic edit; use “Run AI on Auto photos” later." : "";
+  $("revealBtn").disabled = !S.out_dir;
+  if (S.out_dir && !outDir) $("outDir").textContent = S.out_dir.replace(S.home, "~");
+  const p = S.progress;
+  $("progress").style.display = S.busy ? "block" : "none";
+  if (S.busy) {
+    $("progText").textContent = `${S.current ? "Editing " + S.current + " · " : ""}${p.done} of ${p.total} done` + (p.eta ? ` · about ${fmtTime(p.eta)} left` : "");
+    $("barFill").style.width = (p.total ? 100 * p.done / p.total : 0) + "%";
+  } else if (S.items.length) {
+    $("startBtn").disabled = !S.items.some(i => i.status !== "done");
+  }
+  renderGrid();
+  if (cur !== null) syncEditor();
+}
+setInterval(() => refresh(), 1500);
+setInterval(() => api("/api/heartbeat", {}), 20000);
+refresh();
+
+// ---------- editor ----------
+function buildSliders() {
+  const box = $("sliders"); box.innerHTML = "";
+  for (const [group, list] of SLIDERS) {
+    const sec = document.createElement("section");
+    sec.innerHTML = `<h3>${group}</h3>`;
+    for (const [key, label, min, max, step] of list) {
+      const row = document.createElement("div"); row.className = "sl";
+      row.innerHTML = `<label for="s_${key}">${label}</label><input type="range" id="s_${key}" min="${min}" max="${max}" step="${step}"><output id="o_${key}"></output>`;
+      const inp = row.querySelector("input");
+      inp.oninput = () => { edit[key] = parseFloat(inp.value); showVals(); liveRender(); };
+      inp.ondblclick = () => { edit[key] = 0; showVals(); liveRender(); };
+      sec.appendChild(row);
+    }
+    if (group === "Presence") {
+      const row = document.createElement("div"); row.style.marginTop = "6px";
+      row.innerHTML = `<label><input type="checkbox" id="s_monochrome"> Black &amp; white</label>`;
+      row.querySelector("input").onchange = (e) => { edit.monochrome = e.target.checked; liveRender(); };
+      sec.appendChild(row);
+    }
+    box.appendChild(sec);
+  }
+}
+buildSliders();
+function showVals() {
+  for (const [, list] of SLIDERS) for (const [key, , , , step] of list) {
+    $("s_" + key).value = edit[key];
+    $("o_" + key).textContent = step < 1 ? (edit[key] > 0 ? "+" : "") + Number(edit[key]).toFixed(2) : Math.round(edit[key]);
+  }
+  $("s_monochrome").checked = !!edit.monochrome;
+}
+const item = (id) => S.items.find(i => i.id === id);
+
+function openEditor(id) {
+  const it = item(id); if (!it) return;
+  cur = id; edVersion = it.version;
+  $("editor").classList.add("open");
+  $("edTitle").textContent = it.name;
+  $("imgBefore").src = img(id, "before", 0);
+  saved = it.status === "done" ? { ...it.settings } : null;
+  edit = saved ? { ...saved } : null;
+  $("imgAfter").src = it.status === "done" ? img(id, "after", it.version) : img(id, "before", 0);
+  if (!saved) api(`/api/auto/${id}`).then(a => { if (cur === id && !edit) { edit = a; saved = { ...a }; showVals(); liveRender(); } });
+  else showVals();
+  $("notes").textContent = it.notes || (it.source === "manual" ? "Edited by you." : it.source === "auto" ? "Automatic edit (no AI review)." : "Not edited yet.");
+  setSplit(50);
+  syncEditor();
+}
+let edVersion = null;
+function syncEditor() {
+  const it = item(cur); if (!it) return;
+  const busy = it.status === "working" || it.status === "queued";
+  $("saveBtn").disabled = busy || !edit;
+  $("aiBtn").disabled = busy || !S.ai.installed;
+  $("saveBtn").textContent = busy ? (it.status === "working" ? "Working…" : "Waiting…") : "Save";
+  if (!busy && it.status === "done" && it.version !== edVersion) {
+    // A save or AI run finished: show its result and settings.
+    edVersion = it.version;
+    saved = { ...it.settings }; edit = { ...saved }; showVals();
+    $("imgAfter").src = img(it.id, "after", it.version);
+    $("notes").textContent = it.notes || (it.source === "manual" ? "Edited by you." : "Automatic edit (no AI review).");
+  }
+}
+function closeEditor() { cur = null; $("editor").classList.remove("open"); }
+$("closeBtn").onclick = closeEditor;
+function step(d) {
+  const idx = S.items.findIndex(i => i.id === cur);
+  const n = S.items[idx + d]; if (n) openEditor(n.id);
+}
+$("prevBtn").onclick = () => step(-1);
+$("nextBtn").onclick = () => step(1);
+
+let renderTimer = null;
+function liveRender() {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(async () => {
+    const seq = ++renderSeq, id = cur;
+    const r = await fetch(`/api/render/${id}`, { method: "POST", headers: { "X-Token": TOKEN, "Content-Type": "application/json" }, body: JSON.stringify({ settings: edit }) });
+    if (!r.ok || seq !== renderSeq || id !== cur) return;
+    const url = URL.createObjectURL(await r.blob());
+    const im = $("imgAfter"); const old = im.src; im.src = url;
+    if (old.startsWith("blob:")) URL.revokeObjectURL(old);
+  }, 90);
+}
+$("saveBtn").onclick = async () => {
+  await api(`/api/save/${cur}`, { settings: edit });
+  saved = { ...edit }; toast("Saving full-size photo…");
+  refresh();
+};
+$("resetBtn").onclick = () => { if (saved) { edit = { ...saved }; showVals(); liveRender(); } };
+$("autoBtn").onclick = async () => { edit = await api(`/api/auto/${cur}`); showVals(); liveRender(); };
+$("aiBtn").onclick = async () => { await api("/api/ai", { ids: [cur] }); toast("Claude is looking at this photo…"); refresh(); };
+
+// compare slider
+let split = 50, dragging = false;
+function setSplit(p) {
+  split = Math.max(0, Math.min(100, p));
+  $("imgAfter").style.clipPath = `inset(0 0 0 ${split}%)`;
+  $("handle").style.left = `calc(${split}% - 1px)`;
+}
+const cmp = $("cmp");
+const posFromEvent = (e) => { const r = cmp.getBoundingClientRect(); return 100 * ((e.touches ? e.touches[0].clientX : e.clientX) - r.left) / r.width; };
+cmp.addEventListener("mousedown", (e) => { dragging = true; setSplit(posFromEvent(e)); e.preventDefault(); });
+window.addEventListener("mousemove", (e) => { if (dragging) setSplit(posFromEvent(e)); });
+window.addEventListener("mouseup", () => dragging = false);
+cmp.addEventListener("touchmove", (e) => setSplit(posFromEvent(e)), { passive: true });
+
+window.addEventListener("keydown", (e) => {
+  if (cur === null || e.target.tagName === "INPUT" && e.target.type !== "range") return;
+  if (e.key === "Escape") closeEditor();
+  else if (e.key === "ArrowRight" && e.target.type !== "range") step(1);
+  else if (e.key === "ArrowLeft" && e.target.type !== "range") step(-1);
+  else if ((e.key === "b" || e.key === "B" || e.key === "\\") && !e.repeat) { $("imgAfter").style.visibility = "hidden"; $("handle").style.visibility = "hidden"; }
+});
+window.addEventListener("keyup", (e) => {
+  if (e.key === "b" || e.key === "B" || e.key === "\\") { $("imgAfter").style.visibility = ""; $("handle").style.visibility = ""; }
+});
+
+// copy settings
+$("copyBtn").onclick = () => {
+  const box = $("groupChecks"); box.innerHTML = "";
+  for (const [g, name] of Object.entries(GROUP_NAMES)) {
+    const on = g !== "exposure" && g !== "white_balance";
+    box.insertAdjacentHTML("beforeend", `<label><input type="checkbox" value="${g}" ${on ? "checked" : ""}> ${name}</label>`);
+  }
+  box.insertAdjacentHTML("beforeend", `<p class="hint">Exposure and white balance are off by default: they usually differ from shot to shot.</p>`);
+  $("copyDlg").classList.add("open");
+};
+$("copyCancel").onclick = () => $("copyDlg").classList.remove("open");
+$("copyGo").onclick = async () => {
+  const groups = [...$("groupChecks").querySelectorAll("input:checked")].map(i => i.value);
+  const ids = S.items.filter(i => i.status === "done" && i.id !== cur).map(i => i.id);
+  $("copyDlg").classList.remove("open");
+  if (!groups.length || !ids.length) return;
+  await api("/api/apply", { settings: edit, groups, ids });
+  toast(`Updating ${ids.length} photos…`); refresh();
+};
+</script>
+</body>
+</html>

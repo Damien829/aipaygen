@@ -7,6 +7,7 @@ generated or invented; the same settings always give the same result.
 
 from __future__ import annotations
 
+import os
 from dataclasses import asdict, dataclass, fields
 
 import numpy as np
@@ -145,16 +146,6 @@ def _resize(a: np.ndarray, w: int, h: int) -> np.ndarray:
     return np.asarray(Image.fromarray(a.astype(np.float32), "F").resize((w, h), Image.BILINEAR))
 
 
-def base_layer(lp: np.ndarray, work_px: int = 768) -> np.ndarray:
-    """Large-scale illumination layer, computed small and upsampled for speed."""
-    h, w = lp.shape
-    s = min(1.0, work_px / max(h, w))
-    small = _resize(lp, max(1, int(w * s)), max(1, int(h * s))) if s < 1 else lp
-    r = max(2, int(max(small.shape) * 0.03))
-    base = guided_filter(small, r, 0.01)
-    return _resize(base, w, h) if s < 1 else base
-
-
 # ---------------------------------------------------------------------------
 # The pipeline
 # ---------------------------------------------------------------------------
@@ -165,9 +156,9 @@ def wb_gains(temperature: float, tint: float) -> np.ndarray:
     return np.array([2 ** t, 2 ** (-g), 2 ** (-t)], dtype=np.float32)
 
 
-def _tone(lp: np.ndarray, adj: Adjustments) -> np.ndarray:
-    """Tone work on perceptual (gamma-encoded) luminance."""
-    base = base_layer(lp)
+def _tone(lp: np.ndarray, adj: Adjustments, base: np.ndarray) -> np.ndarray:
+    """Tone work on perceptual (gamma-encoded) luminance. `base` is the smooth
+    large-scale illumination of the whole photo (see _global_base)."""
     detail = lp - base
 
     # Highlights / shadows act on the smooth base layer so local texture survives.
@@ -207,9 +198,9 @@ def _colour(rgb: np.ndarray, adj: Adjustments) -> np.ndarray:
     if adj.vibrance == 0 and adj.saturation == 0:
         return rgb
     y = luminance(rgb)[..., None]
-    mx, mn = rgb.max(-1), rgb.min(-1)
-    sat = (mx - mn) / np.maximum(mx, 1e-4)
     r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
+    mx, mn = np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b)
+    sat = (mx - mn) / np.maximum(mx, 1e-4)
     # Skin tones: red > green > blue, moderately saturated.
     skin = ((r > g) & (g > b) & (sat > 0.15) & (sat < 0.65)).astype(np.float32)
     skin = box_blur(skin, 2)
@@ -248,46 +239,106 @@ def _sharpen(rgb: np.ndarray, amount: float, scale: float) -> np.ndarray:
     return np.clip(rgb + (amount / 100.0 * 1.4 * hp * edge)[..., None], 0.0, 1.0)
 
 
-def _vignette(rgb: np.ndarray, amount: float) -> np.ndarray:
+def _vignette(rgb: np.ndarray, amount: float, y0: int = 0, full: tuple[int, int] | None = None) -> np.ndarray:
+    """`y0`/`full` place a strip inside the whole photo so the vignette stays centred."""
     if amount == 0:
         return rgb
-    h, w = rgb.shape[:2]
-    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
-    d = np.sqrt(((xx - w / 2) / (w / 2)) ** 2 + ((yy - h / 2) / (h / 2)) ** 2) / np.sqrt(2)
+    sh, sw = rgb.shape[:2]
+    h, w = full or (sh, sw)
+    yy = (np.arange(y0, y0 + sh, dtype=np.float32)[:, None] - h / 2) / (h / 2)
+    xx = (np.arange(sw, dtype=np.float32)[None, :] - w / 2) / (w / 2)
+    d = np.sqrt(xx * xx + yy * yy) / np.sqrt(2)
     m = smoothstep(0.35, 1.0, d)
     return np.clip(rgb * (1.0 + amount / 100.0 * 0.6 * m)[..., None], 0.0, 1.0)
 
 
-def apply(linear_rgb: np.ndarray, adj: Adjustments) -> np.ndarray:
-    """Linear-light float RGB in, display-ready sRGB float [0,1] out."""
-    adj = adj.clamped()
-    # Detail filters scale with resolution so a 45MP file and a preview look alike.
-    scale = max(1.0, max(linear_rgb.shape[:2]) / 3000.0)
+def _area_resize(a: np.ndarray, w: int, h: int) -> np.ndarray:
+    if cv2 is not None:
+        return cv2.resize(np.ascontiguousarray(a, np.float32), (w, h), interpolation=cv2.INTER_AREA)
+    return _resize(a, w, h)
 
-    lin = linear_rgb.astype(np.float32) * wb_gains(adj.temperature, adj.tint)
-    lin = lin * (2.0 ** adj.exposure)
+
+def _global_base(lp: np.ndarray, work_px: int = 768) -> np.ndarray:
+    """Large-scale illumination of the whole photo, computed small (fast) and
+    upsampled. Done once per photo so strips rendered separately match exactly."""
+    h, w = lp.shape
+    s = min(1.0, work_px / max(h, w))
+    small = _area_resize(lp, max(1, int(w * s)), max(1, int(h * s))) if s < 1 else lp
+    r = max(2, int(max(small.shape) * 0.03))
+    base = guided_filter(small, r, 0.01)
+    return _resize(base, w, h) if s < 1 else base
+
+
+def _render(lin: np.ndarray, adj: Adjustments, gains: np.ndarray, base: np.ndarray, scale: float,
+            y0: int, full: tuple[int, int]) -> np.ndarray:
+    """The whole pipeline for one region (a strip or the full image)."""
+    lin = lin * gains
 
     # Tone on luminance, then carry the change back to RGB as a ratio (keeps hue).
     L = luminance(lin)
-    lp = linear_to_srgb(np.clip(L, 0, 4) / 1.0)
-    lp_new = _tone(np.clip(lp, 0, None), adj)
-    ratio = srgb_to_linear(lp_new) / np.maximum(L, 1e-6)
-    lin = lin * ratio[..., None]
+    lp = linear_to_srgb(np.minimum(L, 4.0))
+    ratio = srgb_to_linear(_tone(lp, adj, base)) / np.maximum(L, 1e-6)
+    del lp, L
+    lin *= ratio[..., None]
 
     # A channel pushed past white keeps its hue and fades toward white, the way
     # film does, instead of clipping into a flat coloured blotch.
-    peak = lin.max(-1, keepdims=True)
-    hue = lin / np.maximum(peak, 1e-6)
-    to_white = 1.0 - 1.0 / np.maximum(peak, 1.0)
-    lin = np.where(peak > 1.0, hue + (1.0 - hue) * to_white, lin)
-    lin = np.clip(lin, 0.0, 1.0)
+    peak = np.maximum(np.maximum(lin[..., 0], lin[..., 1]), lin[..., 2])[..., None]
+    if (peak > 1.0).any():
+        hue = lin / np.maximum(peak, 1e-6)
+        to_white = 1.0 - 1.0 / np.maximum(peak, 1.0)
+        lin = np.where(peak > 1.0, hue + (1.0 - hue) * to_white, lin)
+    np.clip(lin, 0.0, 1.0, out=lin)
 
     out = linear_to_srgb(lin)
+    del lin
     out = _noise_reduction(out, adj.noise_reduction, scale)
     if adj.monochrome:
         out = np.repeat(luminance(out)[..., None], 3, -1)
     else:
         out = _colour(out, adj)
-    out = _vignette(out, adj.vignette)
+    out = _vignette(out, adj.vignette, y0, full)
     out = _sharpen(out, adj.sharpening, scale)
     return np.clip(out, 0.0, 1.0)
+
+
+STRIP_PIXELS = 3_000_000  # per strip; keeps memory modest on big RAW files
+
+
+def apply(linear_rgb: np.ndarray, adj: Adjustments) -> np.ndarray:
+    """Linear-light float RGB in, display-ready sRGB float [0,1] out.
+
+    Large photos are rendered in overlapping horizontal strips, several at once,
+    which is faster and needs a fraction of the memory. The result is the same
+    as rendering in one go (the only whole-photo step, the base layer, is shared).
+    """
+    adj = adj.clamped()
+    h, w = linear_rgb.shape[:2]
+    # Detail filters scale with resolution so a 45MP file and a preview look alike.
+    scale = max(1.0, max(h, w) / 3000.0)
+    gains = wb_gains(adj.temperature, adj.tint) * np.float32(2.0 ** adj.exposure)
+
+    L = (linear_rgb.reshape(-1, 3) @ (LUMA * gains)).reshape(h, w).astype(np.float32)
+    base = _global_base(linear_to_srgb(np.minimum(L, 4.0)))
+    del L
+
+    if h * w <= STRIP_PIXELS * 1.5:
+        return _render(linear_rgb.astype(np.float32), adj, gains, base, scale, 0, (h, w))
+
+    # Even sizes keep the half-resolution colour noise step aligned across strips.
+    rows = max(64, STRIP_PIXELS // w) // 2 * 2
+    pad = (int(40 * scale) + 8) // 2 * 2  # covers the widest local filter (noise reduction)
+    out = np.empty((h, w, 3), np.float32)
+
+    def strip(y: int):
+        a, b = max(0, y - pad), min(h, y + rows + pad)
+        res = _render(linear_rgb[a:b].astype(np.float32), adj, gains, base[a:b], scale, a, (h, w))
+        n = min(rows, h - y)
+        out[y:y + n] = res[y - a:y - a + n]
+
+    from concurrent.futures import ThreadPoolExecutor
+
+    workers = max(1, min(4, (os.cpu_count() or 2) // 2))
+    with ThreadPoolExecutor(workers) as ex:
+        list(ex.map(strip, range(0, h, rows)))
+    return out

@@ -76,13 +76,24 @@ def _jpeg_bytes(srgb: np.ndarray, long_side: int = 1024) -> bytes:
 # ---------------------------------------------------------------------------
 
 
+def find_claude() -> str | None:
+    """The `claude` command. Apps opened from Finder get a minimal PATH, so also
+    look where the Claude Code installers put it."""
+    home = Path.home()
+    for p in (shutil.which("claude"), home / ".local/bin/claude", home / ".claude/local/claude",
+              "/opt/homebrew/bin/claude", "/usr/local/bin/claude", home / ".npm-global/bin/claude"):
+        if p and Path(p).exists():
+            return str(p)
+    return None
+
+
 class ClaudeCodeBackend:
     """Uses the logged-in `claude` CLI, i.e. your Claude Pro/Max subscription."""
 
     def __init__(self, model: str | None = None):
-        self.exe = shutil.which("claude")
+        self.exe = find_claude()
         if not self.exe:
-            raise RuntimeError("the `claude` command was not found; install Claude Code and run `claude` once to log in")
+            raise RuntimeError("Claude Code is not installed (the `claude` command was not found)")
         self.model = model
 
     def ask(self, images: list[tuple[str, bytes]], text: str) -> dict:
@@ -103,14 +114,25 @@ class ClaudeCodeBackend:
                 cmd += ["--model", self.model]
             # Drop any API key so the CLI uses the subscription login, not API billing.
             env = {k: v for k, v in os.environ.items() if k not in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")}
+            extra = [str(Path(self.exe).parent), str(Path.home() / ".local/bin"), "/opt/homebrew/bin", "/usr/local/bin"]
+            env["PATH"] = os.pathsep.join(extra + [env.get("PATH", "/usr/bin:/bin")])
             proc = subprocess.run(cmd, cwd=tmp, env=env, capture_output=True, text=True, timeout=600)
         try:
             out = json.loads(proc.stdout)
         except json.JSONDecodeError:
-            raise RuntimeError((proc.stderr or proc.stdout or "no output from claude").strip()[:300])
+            raise RuntimeError(_friendly((proc.stderr or proc.stdout or "no output from claude").strip()))
         if out.get("is_error") or not out.get("structured_output"):
-            raise RuntimeError(str(out.get("result") or out.get("subtype") or "claude returned no settings")[:300])
+            raise RuntimeError(_friendly(str(out.get("result") or out.get("subtype") or "claude returned no settings")))
         return out["structured_output"]
+
+
+def _friendly(msg: str) -> str:
+    low = msg.lower()
+    if "login" in low or "log in" in low or "api key" in low or "authenticat" in low:
+        return "Claude Code isn't logged in. Open Terminal, type: claude  and log in, then try again."
+    if "limit" in low or "usage" in low:
+        return "Your Claude plan's usage limit was reached. It resets after a few hours. " + msg[:200]
+    return msg[:300]
 
 
 class ApiBackend:
@@ -151,22 +173,43 @@ def make_backend(name: str = "claude-code", model: str | None = None):
     return ApiBackend() if name == "api" else ClaudeCodeBackend(model)
 
 
+STYLE_HINTS = {
+    "natural": "true-to-life, clean, neutral; what the scene looked like on a good day",
+    "vibrant": "punchy colour and contrast, still believable",
+    "moody": "darker, lower saturation, deeper shadows, cinematic",
+    "bright": "light and airy, open shadows, soft contrast, clean whites",
+    "bw": "black and white with rich tonal separation (monochrome must stay true)",
+}
+
+
+def _close(a: Adjustments, b: Adjustments) -> bool:
+    da, db = a.to_dict(), b.to_dict()
+    tol = {"exposure": 0.05}
+    return all(da[k] == db[k] if isinstance(da[k], bool) else abs(da[k] - db[k]) <= tol.get(k, 2) for k in da)
+
+
 def ai_refine(lin_preview: np.ndarray, auto: Adjustments, style: str, passes: int = 2,
-              backend=None, log=print) -> Adjustments:
+              backend=None, log=print, crop: np.ndarray | None = None,
+              meta: dict | None = None) -> tuple[Adjustments, str, str]:
     """Pass 1: Claude reviews the original and the auto edit and sets the sliders.
-    Pass 2+: Claude sees its own rendered result and fine-tunes it."""
+    Pass 2+: Claude sees its own rendered result and fine-tunes it.
+    Returns (settings, notes, scene)."""
     backend = backend or make_backend()
-    current = auto
+    current, notes, scene = auto, "", ""
     for i in range(passes):
         rendered = apply(lin_preview, current)
         images = []
         if i == 0:
-            images.append(("ORIGINAL (camera file, no edits)",
+            images.append(("ORIGINAL (camera file, no edits, downscaled)",
                            _jpeg_bytes(linear_to_srgb(np.clip(lin_preview, 0, 1)))))
-        images.append((f"CURRENT EDIT (pass {i + 1})", _jpeg_bytes(rendered)))
+        images.append((f"CURRENT EDIT (pass {i + 1}, downscaled)", _jpeg_bytes(rendered)))
+        if crop is not None:
+            images.append(("CURRENT EDIT, 100% crop of the most detailed area (judge noise and sharpness here)",
+                           _jpeg_bytes(apply(crop, current), long_side=max(crop.shape[:2]))))
         text = (
-            f"Requested look: {style}.\n"
-            f"Current slider values: {json.dumps(current.to_dict())}\n"
+            f"Requested look: {style} ({STYLE_HINTS.get(style, '')}).\n"
+            + (f"Camera data: {json.dumps(meta, default=str)}\n" if meta else "")
+            + f"Current slider values: {json.dumps(current.to_dict())}\n"
             f"Measurements of the current edit: {json.dumps({k: round(v, 4) for k, v in measure(rendered).items()})}\n"
             f"Allowed ranges: {json.dumps(RANGES)}\n"
             + ("Set the sliders for a professional finish." if i == 0 else
@@ -175,8 +218,10 @@ def ai_refine(lin_preview: np.ndarray, auto: Adjustments, style: str, passes: in
         )
         answer = backend.ask(images, text)
         new = Adjustments.from_dict(answer)
-        log(f"    AI pass {i + 1} [{answer.get('scene', '?')}]: {answer.get('notes', '').strip()}")
-        if new == current:
-            break
+        notes, scene = answer.get("notes", "").strip(), answer.get("scene", "")
+        log(f"    AI pass {i + 1} [{scene or '?'}]: {notes}")
+        done = _close(new, current)
         current = new
-    return current
+        if done:
+            break
+    return current, notes, scene
