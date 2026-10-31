@@ -1,7 +1,7 @@
 import type { Env } from "../env";
 import { errorMessage, ToolError } from "../lib/errors";
 import type { ToolDef } from "../tools/types";
-import { findApiKey, recordUsage, refundCredits, reserveCredits } from "./keys";
+import { findApiKey, recordUsage, refundCredits, reserveCredits, sha256Hex } from "./keys";
 import {
   buildRequirements,
   decodePaymentToken,
@@ -150,17 +150,27 @@ export async function chargeAndRun(opts: {
   const verified = await verifyPayment(env, payload, accepts);
   if (!verified.ok) return { kind: "payment_required", body: paymentRequiredBody(tool, accepts, resourceUrl, channel, verified.reason) };
 
+  // Claim this payment before running, so parallel copies of it can't each get work done.
+  const claim = await sha256Hex(`x402:${payment.paymentToken}`);
+  const claimed = await env.DB.prepare("INSERT OR IGNORE INTO payment_claims (token_hash, created_at) VALUES (?, ?)").bind(claim, Date.now()).run();
+  if (!claimed.meta.changes) return { kind: "error", status: 409, code: "PAYMENT_ALREADY_USED", message: "This payment was already used. Sign a new one." };
+  const release = () => env.DB.prepare("DELETE FROM payment_claims WHERE token_hash = ?").bind(claim).run().catch(() => {});
+
   let run: { result: Record<string, unknown>; cached: boolean };
   try {
     run = await runWithCache(tool, args, env, ctx);
   } catch (err) {
-    // Not settled, so the payer is not charged.
+    // Not settled, so the payer is not charged and may retry with the same payment.
+    await release();
     log({ payment: "x402", payer: verified.payer, ok: false });
     return fail(err);
   }
 
   const settled = await settlePayment(env, payload, verified.match);
-  if (!settled.ok) return { kind: "payment_required", body: paymentRequiredBody(tool, accepts, resourceUrl, channel, settled.reason) };
+  if (!settled.ok) {
+    await release();
+    return { kind: "payment_required", body: paymentRequiredBody(tool, accepts, resourceUrl, channel, settled.reason) };
+  }
   log({ payment: "x402", payer: settled.payer ?? verified.payer, ok: true, tx: settled.transaction });
   return {
     kind: "ok",
