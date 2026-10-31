@@ -70,7 +70,7 @@ def main():
         starlette_app.routes.insert(0, Route("/health", health))
         starlette_app.routes.append(Mount("/sse", app=sse_app))
 
-        uvicorn.run(starlette_app, host="127.0.0.1", port=5002)
+        uvicorn.run(starlette_app, host=os.getenv("MCP_HOST", "127.0.0.1"), port=int(os.getenv("MCP_PORT", "5002")))
     else:
         mcp.run(transport="stdio")
 

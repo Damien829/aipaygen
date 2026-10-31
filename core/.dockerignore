@@ -14,3 +14,11 @@ uploads/
 *.pyc
 .pytest_cache/
 node_modules/
+.venv/
+backups/
+*.jsonl
+docs/
+sdk/
+examples/
+products/
+marketing/

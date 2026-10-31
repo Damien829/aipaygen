@@ -1636,7 +1636,7 @@ def serve_app_assets(path):
     """Serve Expo app assets — fonts go through /static/fonts/ to avoid @ in Cloudflare paths."""
     import os
     from flask import send_from_directory, abort
-    base_dir = DATA_DIR
+    base_dir = os.path.dirname(os.path.dirname(__file__))  # app code dir: static files ship with the code
     # Font files: serve from clean /static/fonts/ dir (Cloudflare blocks @ in URL paths)
     if path.endswith(".ttf") or path.endswith(".woff") or path.endswith(".woff2"):
         font_name = os.path.basename(path)

@@ -1,0 +1,426 @@
+# Litestream: continuous backup of every AiPayGen SQLite database to Cloudflare R2.
+# Each database streams its changes within about a second and keeps 7 days of
+# history, so any moment in the last week can be restored (see deploy/README.md).
+#
+# Every database the code opens must be listed here; core/tests/test_backups_cover_all_dbs.py
+# fails if one is missing. ${...} values come from deploy/.env.
+
+snapshot:
+  interval: 24h
+  retention: 168h
+
+dbs:
+  - path: /data/a2a.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: a2a
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/ab_tests.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: ab_tests
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/accounts.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: accounts
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/agent_builder.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: agent_builder
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/agent_memory.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: agent_memory
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/agent_network.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: agent_network
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/aipaygen.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: aipaygen
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/alerts.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: alerts
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/analytics.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: analytics
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/api_catalog.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: api_catalog
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/api_keys.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: api_keys
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/async_jobs.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: async_jobs
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/billing_audit.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: billing_audit
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/chat.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: chat
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/contact_submissions.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: contact_submissions
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/cost_tracking.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: cost_tracking
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/crypto_deposits.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: crypto_deposits
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/discovery_engine.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: discovery_engine
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/eas_reputation.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: eas_reputation
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/email_queue.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: email_queue
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/email_subscribers.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: email_subscribers
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/engagement.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: engagement
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/file_storage.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: file_storage
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/free_tier.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: free_tier
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/funnel.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: funnel
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/harvest_log.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: harvest_log
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/mcp_sessions.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: mcp_sessions
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/network.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: network
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/notifications.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: notifications
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/referral.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: referral
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/refunds.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: refunds
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/scheduler.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: scheduler
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/seller_marketplace.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: seller_marketplace
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/sessions.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: sessions
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/settlement.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: settlement
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/showcase.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: showcase
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/skills.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: skills
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/support.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: support
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/tool_usage.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: tool_usage
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/trading.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: trading
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/uptime.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: uptime
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/usage_log.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: usage_log
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/webhook_dispatch.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: webhook_dispatch
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/webhook_relay.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: webhook_relay
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/webhooks.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: webhooks
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}
+  - path: /data/workflows.db
+    replica:
+      type: s3
+      bucket: ${R2_BUCKET}
+      path: workflows
+      endpoint: https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com
+      region: auto
+      access-key-id: ${R2_ACCESS_KEY_ID}
+      secret-access-key: ${R2_SECRET_ACCESS_KEY}

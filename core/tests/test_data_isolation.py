@@ -31,3 +31,10 @@ def test_module_databases_live_in_data_dir(tmp_path):
 def test_importing_app_does_not_start_jobs():
     import app
     assert not app._scheduler.running
+
+
+def test_static_assets_still_come_from_the_code_dir():
+    # DATA_DIR is a temp dir in tests; fonts ship with the code, not the data volume.
+    import app
+    r = app.app.test_client().get("/assets/fonts/IBMPlexMono_100Thin.119294763c9a5ce5b6762fd8df1fb305.ttf")
+    assert r.status_code == 200 and len(r.data) > 1000

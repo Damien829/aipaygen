@@ -143,6 +143,17 @@ Why this shape:
 > - **Unverified:** gitleaks is untested until the first CI run; it may flag test fixtures that need an allowlist.
 
 ### Phase 3: Data layer
+
+> ♻️ **Changed 2026-10-30: $0/month, SQLite stays.** The owner wants no paid services, and a Postgres port turned out to mean rewriting 1,050 queries across 52 modules (weeks, high risk). Phase 3 is now: **SQLite on one Oracle Always Free server, with Litestream streaming every change to Cloudflare R2** (point-in-time restore for 7 days). Cloudflare Tunnel is the only way in. Postgres can come later, money tables first, if traffic ever needs it. Steps 19–21 below are the original plan, kept for reference.
+>
+> ✅ **Built 2026-10-30 (not deployed):**
+> - `core/scripts/clean_v1_snapshot.py` copies the snapshot and removes **30,266** test rows by exact rules, written to `cleanup-report.json`: 4,243 fake deposits, 4 test keys, 1,587 scout test conversions, and 25,000+ rows pointing at keys that don't exist. `billing_audit` is left untouched. Integrity is OK and the source is unchanged. Result: `~/AIPayGen-Backups/v1-data-cleaned-2026-10-30`, with 143,545 rows kept, including all 72 listings, 61 reviews, 954 agents, 4,379 APIs, 4,989 skills, 1,509 services and 50 posts.
+> - **Finding:** the snapshot has **no real paying-customer records**. Every deposit is fake and every API key was created by a test (tests also ran `DROP TABLE` on live data). Your own account is kept, but needs a new key.
+> - **Deploy setup** (`deploy/`): `compose.yaml` runs restore → web + scheduler (exactly one) + mcp + litestream + tunnel. `litestream.yml` lists all 46 databases, and `tests/test_backups_cover_all_dbs.py` fails if a new one is missing. Also `restore.sh`, `.env.example` and `README.md` (setup, everyday commands, restores). The core `Dockerfile` installs from the lock and runs as non-root; `gunicorn.conf.py` no longer uses Pi paths and logs to stdout.
+> - **Verified locally:** the gunicorn config check passes, and v1 on the cleaned real data serves `/`, `/market`, `/pricing`, `/skills`, `/llms.txt`, `/openapi.json`, `/.well-known/*` and `/health` with 200s.
+> - **Fixed:** the fonts and app assets route had been pointed at the data folder in the Phase 2 path change; a test now covers it.
+> - **Not verified:** Docker isn't installed on this Mac, so the image build, compose run and Litestream config are untested until the server's first `docker compose up`.
+> - **Owner steps:** authorize this Mac's key on the Oracle server, create the R2 bucket and token, and create the Tunnel token (`deploy/README.md` steps 1–3).
 19. Move ~30 SQLite files into **one managed Postgres** with migrations (Alembic). Each old file becomes its own schema so the migration stays mechanical.
 20. Write a migration script that loads the Phase 0 backups. Run it twice, verify that row counts and money totals match exactly, and keep it repeatable.
 21. Turn on daily automated backups with point-in-time recovery and run a **monthly restore test**.
