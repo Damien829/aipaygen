@@ -1618,6 +1618,13 @@ def _api_key_wsgi(environ, start_response):
 
 app.wsgi_app = _api_key_wsgi
 
+# Edge-only mode (production): the Worker does all billing and signs what it
+# forwards, so skip v1's own x402 and key-billing wrappers and reject anything
+# that did not come through the Worker. See edge_auth.py.
+if os.getenv("AIPAYGEN_EDGE_SECRET"):
+    from edge_auth import edge_only_wsgi
+    app.wsgi_app = edge_only_wsgi(_raw_flask_wsgi, os.environ["AIPAYGEN_EDGE_SECRET"])
+
 # Admin pages (session-cookie logins included) also need Cloudflare Access once
 # it is configured; require_admin covers admin API routes elsewhere.
 @app.before_request

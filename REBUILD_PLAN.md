@@ -161,6 +161,14 @@ Why this shape:
 **Done when:** a restore from backup gives the same balances.
 
 ### Phase 4: One payment layer, done right
+
+> 🔶 **In progress. Done 2026-10-30 (not deployed):**
+> - **Step 22:** `pricing/core-routes.json` holds the 178 prices v1 actually charged (app.py + route_pricing.py + the data default, merged by `core/scripts/export_pricing.py`). It's now the one table, and the Worker reads it.
+> - **Step 23:** the Worker answers everything it doesn't serve itself by forwarding to the core (`src/core/proxy.ts`). Priced routes go through the Worker's mainnet-tested `chargeAndRun` (credits or x402 → verify → core runs → settle only on 2xx; 4xx/5xx is never charged). Every forward is HMAC-signed (ts, method, raw path, body hash, paid, client IP), and `core/edge_auth.py` rejects anything else with 401 when `AIPAYGEN_EDGE_SECRET` is set. Signed requests skip v1's own x402 and key-billing wrappers, so nothing is charged twice. A shared test vector proves the TS and Python signatures match. Bazaar metadata now uses each route's real method.
+> - **Step 24 (partly):** charge-on-success comes from `chargeAndRun`. Idempotency keys are still open.
+> - **Found:** two of the 5 baseline failures (`test_buy_credits_*`) expect 200 from `/credits/buy`, which is priced at $5, so 402 is correct. Those tests are wrong, not the code.
+> - **Limits:** streaming routes (`/stream/*`, `/agent/stream`) are buffered for now. Shared paths (`/`, `/llms.txt`, `/openapi.json`, `/sitemap.xml`) stay with the Worker until Phase 5 merges discovery. Core features keyed to v1 `apk_` keys keep working; Worker `apg_` keys pay.
+> - **Still open:** idempotency (24), replay (25), non-custodial seller payouts (26), Solana (27), reconciliation (29), testnet e2e (30).
 22. **One price table** (`pricing.json`, generated once and read by both the Worker and Python). Each entry has: route, price, description, input schema and example.
 23. The Edge Worker handles x402 for **all** paid routes using v2's mainnet-tested code. The Python core trusts only the Worker's signed "paid" header.
 24. Charge only on success: verify, then run, then settle; if the tool fails, don't settle. v2 already works this way. Add an idempotency key so a retried payment can't charge twice.

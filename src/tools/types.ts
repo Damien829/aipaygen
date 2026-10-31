@@ -16,6 +16,8 @@ export interface ToolDef<I extends z.ZodObject = z.ZodObject> {
   input: I;
   /** A realistic example input, used in docs and discovery metadata. */
   example: z.infer<I>;
+  /** HTTP method agents use for this tool (Bazaar discovery metadata). Defaults to GET. */
+  httpMethod?: "GET" | "POST";
   run(args: z.infer<I>, ctx: ToolContext): Promise<Record<string, unknown>>;
 }
 

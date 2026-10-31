@@ -12,6 +12,11 @@ export interface Env {
   ADMIN_TOKEN?: string;
   STRIPE_SECRET_KEY?: string;
   STRIPE_WEBHOOK_SECRET?: string;
+
+  /** Core (v1 marketplace) origin behind the Cloudflare Tunnel, e.g. https://core.aipaygen.com. Unset: core routes are off. */
+  CORE_ORIGIN?: string;
+  /** Shared with the core's AIPAYGEN_EDGE_SECRET; signs every forwarded request. */
+  CORE_EDGE_SECRET?: string;
 }
 
 export const APP_VERSION = "2.0.0";

@@ -75,7 +75,7 @@ export function discoveryExtension(tool: ToolDef, channel: "mcp" | "http"): Reco
     };
     // Normally injected per-route by the HTTP middleware; we build 402s ourselves, so set it here.
     // Without it facilitators reject the listing ("Invalid input at info.input").
-    if (ext.bazaar?.info?.input) ext.bazaar.info.input.method = "GET";
+    if (ext.bazaar?.info?.input) ext.bazaar.info.input.method = tool.httpMethod ?? "GET";
     return ext;
   } catch {
     return {};

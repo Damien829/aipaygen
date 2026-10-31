@@ -6,6 +6,7 @@ import { apiRoutes, catalog } from "./http";
 import { billingPage, docsPage, landingPage, llmsTxt, openApi, serverCard } from "./pages";
 import { createCheckout, handleStripeWebhook } from "./billing/stripe";
 import { x402Enabled } from "./billing/x402";
+import { handleCore } from "./core/proxy";
 
 type AppEnv = { Bindings: Env };
 
@@ -75,7 +76,11 @@ app.get("/admin/stats", async (c) => {
   return c.json({ window_days: 30, by_tool: byTool.results, by_day: byDay.results, keys });
 });
 
-app.notFound((c) => c.json({ error: { code: "NOT_FOUND", message: "Not found. See /docs." } }, 404));
+app.notFound(async (c) => {
+  // Anything the Worker doesn't serve itself belongs to the core (v1 marketplace), when it is configured.
+  const core = await handleCore(c.req.raw, c.env, c.executionCtx as unknown as ExecutionContext);
+  return core ?? c.json({ error: { code: "NOT_FOUND", message: "Not found. See /docs." } }, 404);
+});
 
 export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {

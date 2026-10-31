@@ -19,9 +19,10 @@ internet ─▶ Cloudflare ─▶ Tunnel ─▶ web :5001 ─┐
    - Install Docker: `curl -fsSL https://get.docker.com | sh && sudo usermod -aG docker $USER`, then log out and back in.
    - In the Oracle security list, allow only SSH (22) inbound, ideally from your IP only.
 2. **R2.** In the Cloudflare dashboard, go to R2, create the bucket `aipaygen-backups`, then create an API token with "Object Read & Write" on that bucket only.
-3. **Tunnel.** In Zero Trust, go to Networks > Tunnels > Create (type: Cloudflared, Docker). Copy the token. Then add these public hostnames:
-   - `api.aipaygen.com` → `http://web:5001`
-   - `mcp.aipaygen.com` → `http://mcp:5002`
+3. **Tunnel.** In Zero Trust, go to Networks > Tunnels > Create (type: Cloudflared, Docker). Copy the token. Then add one public hostname: `core.aipaygen.com` → `http://web:5001`.
+   - The Worker keeps `aipaygen.com`, `api.` and `mcp.`, charges for core routes, and forwards to `core.` with a signature.
+   - Generate one secret: `python3 -c "import secrets; print(secrets.token_urlsafe(48))"`. Put it in `deploy/.env` as `AIPAYGEN_EDGE_SECRET`, and in the Worker with `npx wrangler secret put CORE_EDGE_SECRET`.
+   - Set the Worker var `CORE_ORIGIN = "https://core.aipaygen.com"` in `wrangler.jsonc`.
 4. **Code and settings** on the server:
    ```bash
    git clone https://github.com/Damien829/aipaygen.git && cd aipaygen && git checkout rebuild
