@@ -4,6 +4,10 @@ on:
   push:
     branches: [main, master, rebuild]
   pull_request:
+  # Weekly re-scan: catches vulnerabilities announced since the last change.
+  schedule:
+    - cron: "17 9 * * 1"
+  workflow_dispatch:
 
 permissions:
   contents: read

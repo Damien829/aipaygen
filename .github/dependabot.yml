@@ -1,0 +1,36 @@
+# Automatic dependency and security updates. Security fixes open as soon as an
+# advisory is published (repo Settings > Code security > Dependabot security updates);
+# everything else is checked weekly and grouped, so there are few PRs.
+# Patch/minor updates merge themselves once CI passes (.github/workflows/dependabot-automerge.yml).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 5
+    groups:
+      worker-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: pip
+    directory: /core
+    schedule: { interval: weekly, day: monday }
+    open-pull-requests-limit: 5
+    groups:
+      core-minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      # Intel macOS dev machines have no wheel past 48; Linux is pinned via markers in requirements.lock.
+      - dependency-name: cryptography
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: pip
+    directory: /python/aipaygen-mcp
+    schedule: { interval: monthly }
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly, day: monday }
+    groups:
+      actions:
+        patterns: ["*"]
