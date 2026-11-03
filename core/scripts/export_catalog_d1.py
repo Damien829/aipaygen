@@ -52,7 +52,7 @@ def main(src: Path, out: Path) -> None:
     def add(kind, sid, name, desc, cat, url, price_micro=None, x402=0, meta=None):
         if not name:
             return
-        catalog.append((f"{kind}:{sid}", kind, name.strip()[:200], (desc or "").strip()[:2000], (cat or "").strip()[:60],
+        catalog.append((f"{kind}:{sid}", kind, name.replace("**", "").strip(" *")[:200], (desc or "").strip()[:2000], (cat or "").strip()[:60],
                         url, price_micro, int(bool(x402)), json.dumps(meta or {}, separators=(",", ":")), now))
 
     for r in rows(src / "agent_memory.db", "SELECT * FROM marketplace WHERE is_active = 1"):

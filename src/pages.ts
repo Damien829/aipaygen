@@ -4,7 +4,7 @@ import { formatPrice } from "./tools/types";
 import { microToUsd, toolJsonSchema, x402Enabled } from "./billing/x402";
 import { PACKS, stripeEnabled } from "./billing/stripe";
 
-const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 const STYLE = `
 :root{--bg:#fbfaf8;--fg:#17171a;--muted:#5f6068;--line:#e6e3dd;--card:#fff;--accent:#2b59ff;--accent-fg:#fff;--code:#f2f0ec}
@@ -38,13 +38,13 @@ footer{margin:72px 0 40px;color:var(--muted);font-size:14px;border-top:1px solid
 .scroll{overflow-x:auto}
 `;
 
-function layout(env: Env, title: string, body: string, description: string): string {
+export function layout(env: Env, title: string, body: string, description: string, head = ""): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title><meta name="description" content="${esc(description)}">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(env.PUBLIC_URL)}">
-<link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt"><style>${STYLE}</style></head>
+<link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt">${head}<style>${STYLE}</style></head>
 <body><div class="wrap"><header class="top"><a class="logo" href="/">AIPay<span>Gen</span></a>
-<nav><a href="/#tools">Tools</a><a href="/#connect">Connect</a><a href="/billing">Billing</a><a href="/docs">Docs</a></nav></header>
+<nav><a href="/market">Marketplace</a><a href="/#tools">Tools</a><a href="/#connect">Connect</a><a href="/billing">Billing</a><a href="/docs">Docs</a></nav></header>
 ${body}
 <footer>${SERVICE_NAME} v${APP_VERSION} · Public data only · Failed calls are never charged · <a class="muted" href="/llms.txt">llms.txt</a> · <a class="muted" href="/openapi.json">OpenAPI</a></footer>
 </div></body></html>`;

@@ -7,10 +7,18 @@ import { billingPage, docsPage, landingPage, llmsTxt, openApi, serverCard } from
 import { createCheckout, handleStripeWebhook } from "./billing/stripe";
 import { x402Enabled } from "./billing/x402";
 import { handleCore } from "./core/proxy";
+import { KINDS, type Kind } from "./catalog";
+import { agentCard, catalogItemMarkdown, catalogItemPage, DISCOVERY_LINK_HEADER, llmsFullTxt, marketItem, marketMarkdown, marketPage, robotsTxt, sitemapFor, sitemapIndex, x402Discovery } from "./discovery";
 
 type AppEnv = { Bindings: Env };
 
 const app = new Hono<AppEnv>();
+
+// Every response points agents at the machine-readable entry points.
+app.use("*", async (c, next) => {
+  await next();
+  if (!c.res.headers.has("link")) c.res.headers.set("link", DISCOVERY_LINK_HEADER);
+});
 
 const html = (body: string) => new Response(body, { headers: { "content-type": "text/html; charset=utf-8" } });
 
@@ -21,12 +29,29 @@ app.get("/llms.txt", (c) => c.text(llmsTxt(c.env)));
 app.get("/openapi.json", (c) => c.json(openApi(c.env)));
 app.get("/.well-known/mcp/server-card.json", (c) => c.json(serverCard(c.env)));
 app.get("/.well-known/mcp.json", (c) => c.json(serverCard(c.env)));
-app.get("/robots.txt", (c) => c.text(`User-agent: *\nAllow: /\nSitemap: ${c.env.PUBLIC_URL}/sitemap.xml\n`));
-app.get("/sitemap.xml", (c) => {
-  const urls = ["/", "/docs", "/billing", "/llms.txt"].map((p) => `<url><loc>${c.env.PUBLIC_URL}${p}</loc></url>`).join("");
-  return c.body(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`, 200, {
-    "content-type": "application/xml",
-  });
+const xml = (body: string) => new Response(body, { headers: { "content-type": "application/xml", "cache-control": "public, max-age=3600" } });
+app.get("/robots.txt", (c) => c.text(robotsTxt(c.env)));
+app.get("/sitemap.xml", (c) => xml(sitemapIndex(c.env)));
+app.get("/sitemaps/:name{[a-z]+\\.xml}", async (c) => {
+  const map = await sitemapFor(c.env, c.req.param("name").replace(/\.xml$/, ""));
+  return map ? xml(map) : c.notFound();
+});
+app.get("/llms-full.txt", (c) => c.text(llmsFullTxt(c.env, llmsTxt(c.env))));
+app.get("/.well-known/agent-card.json", (c) => c.json(agentCard(c.env)));
+app.get("/.well-known/agent.json", (c) => c.json(agentCard(c.env)));
+app.get("/.well-known/x402", (c) => c.json(x402Discovery(c.env)));
+const wantsMarkdown = (accept: string | undefined) => /text\/markdown/i.test(accept ?? "");
+const markdown = (body: string) => new Response(body, { headers: { "content-type": "text/markdown; charset=utf-8", vary: "Accept" } });
+app.get("/market", async (c) => {
+  const kind = c.req.query("kind");
+  const k = KINDS.includes(kind as Kind) ? (kind as Kind) : undefined;
+  const q = c.req.query("q") ?? "";
+  return wantsMarkdown(c.req.header("accept")) ? markdown(await marketMarkdown(c.env, q, k)) : html(await marketPage(c.env, q, k));
+});
+app.get("/market/:kind/:id", async (c) => {
+  const item = await marketItem(c.env, c.req.param("kind"), c.req.param("id"));
+  if (!item) return c.notFound();
+  return wantsMarkdown(c.req.header("accept")) ? markdown(catalogItemMarkdown(c.env, item)) : html(catalogItemPage(c.env, item));
 });
 app.get("/bot", (c) => c.text("AIPayGenBot fetches public pages only when an AIPayGen user asks about a site. It makes one request per lookup and caches results."));
 
