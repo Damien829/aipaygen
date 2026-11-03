@@ -7,9 +7,11 @@ import { securityHeaders } from "./headers";
 import { techStack } from "./tech";
 import { pageToMarkdown, siteMetadata } from "./page";
 import { companyProfile, domainReport } from "./composite";
+import { searchMarketplace } from "../catalog";
 
 /** Every paid tool, cheapest first. Order is used in docs and listings. */
 export const TOOLS: ToolDef[] = [
+  searchMarketplace,
   dnsLookup,
   securityHeaders,
   domainWhois,

@@ -6,6 +6,7 @@ import { TOOLS, TOOLS_BY_NAME } from "./tools";
 import { formatPrice, type ToolDef } from "./tools/types";
 import { apiKeyFromHeaders, createApiKey, findApiKey, sha256Hex } from "./billing/keys";
 import { chargeAndRun } from "./billing/charge";
+import { catalogStats, getCatalogItem, KINDS, searchCatalog, type Kind } from "./catalog";
 import { microToUsd, toolJsonSchema, x402Enabled } from "./billing/x402";
 import { errorMessage } from "./lib/errors";
 
@@ -107,6 +108,20 @@ export function catalog(env: Env) {
 
 export function apiRoutes(): Hono<AppEnv> {
   const api = new Hono<AppEnv>();
+
+  api.get("/catalog/search", async (c) => {
+    const q = c.req.query();
+    const kind = KINDS.includes(q.kind as Kind) ? (q.kind as Kind) : undefined;
+    const r = await searchCatalog(c.env, { q: q.q, kind, category: q.category, limit: Number(q.limit) || undefined, offset: Number(q.offset) || undefined });
+    return json(c, 200, r, { "cache-control": "public, max-age=300" });
+  });
+
+  api.get("/catalog/stats", async (c) => json(c, 200, await catalogStats(c.env), { "cache-control": "public, max-age=600" }));
+
+  api.get("/catalog/:kind/:id", async (c) => {
+    const item = await getCatalogItem(c.env, `${c.req.param("kind")}:${c.req.param("id")}`);
+    return item ? json(c, 200, item, { "cache-control": "public, max-age=600" }) : json(c, 404, { error: { code: "NOT_FOUND", message: "No such catalog item." } });
+  });
 
   api.get("/tools", (c) =>
     json(c, 200, {

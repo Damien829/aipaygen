@@ -147,6 +147,15 @@ export function llmsTxt(env: Env): string {
 
 - MCP endpoint (Streamable HTTP): ${env.PUBLIC_URL}/mcp
 - HTTP API: ${env.PUBLIC_URL}/v1/<tool> (GET query params or POST JSON)
+
+## Marketplace (free to search)
+
+11,000+ resources for agents: AIPayGen tools, 4,300+ third-party APIs (docs, auth, x402 support), 4,300+ skills, 950+ agents, 1,500+ agent services.
+
+- Search: ${env.PUBLIC_URL}/v1/catalog/search?q=<words>&kind=<listing|api|skill|agent|service>
+- One item: ${env.PUBLIC_URL}/v1/catalog/<kind>/<id>
+- Overview: ${env.PUBLIC_URL}/v1/catalog/stats
+- MCP tool: search_marketplace (free)
 - Tool catalog (JSON): ${env.PUBLIC_URL}/v1/tools
 - OpenAPI: ${env.PUBLIC_URL}/openapi.json
 - Free API key with trial credits: POST ${env.PUBLIC_URL}/v1/keys
