@@ -19,5 +19,5 @@ export interface Env {
   CORE_EDGE_SECRET?: string;
 }
 
-export const APP_VERSION = "2.0.0";
-export const SERVICE_NAME = "AIPayGen Site Intel";
+export const APP_VERSION = "2.1.0";
+export const SERVICE_NAME = "AIPayGen";
