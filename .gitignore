@@ -11,3 +11,6 @@ __pycache__/
 *.egg-info/
 .claude/
 !.env.example
+
+# Generated D1 imports (contain private skill prompts); rebuild with core/scripts/export_catalog_d1.py
+deploy/d1/
