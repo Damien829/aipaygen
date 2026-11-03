@@ -254,3 +254,51 @@ Nothing is literally 100% fool-proof. What we can do is make failures rare, visi
 3. **Trading features:** keep as simulation-only (recommended), or drop them?
 4. **Legal check** on marketplace fees and seller payouts before launch. Even non-custodial, one hour with a fintech lawyer is worth it.
 5. Approval of this plan, or changes to it.
+
+---
+
+## Catch-up list (2026-11-03): everything started and not finished
+
+Pivot since Phase 4: **Worker-first.** The marketplace runs on Cloudflare (free, scales automatically); the Python core is an optional back end.
+
+### Done and live
+- Marketplace in D1: 11,246 seed entries plus self-updating MCP Registry and x402 Bazaar ingest; full-text search; `search_marketplace` tool.
+- Discovery: item pages and sitemaps, agent card, `/.well-known/x402`, `llms-full.txt`, AI-crawler robots.txt, WebMCP, markdown pages, `Link` headers.
+- Word of mouth: share block, related items, agent self-registration, demand logging.
+- Interactive marketplace (live search, filters, snippets).
+- Cron every 10 min: agent refresh, health checks, MCP Registry and Bazaar ingest.
+
+### Built, waiting for deploy approval
+- Prices hidden (quote on request) · verified trust scores and ranking · Most Wanted page · A2A agent at `/a2a` · referral credits. Migrations 0006 and 0007.
+
+### Code I can still do (in priority order)
+1. Payment-claim test with a D1 stub (Phase 4 step 1).
+2. Idempotency keys for credit calls (step 24).
+3. Free first calls per agent (try before paying).
+4. Bring over the remaining v1 content (50 blog posts, 10 agent templates, knowledge base), checked for seeded content first.
+5. Reconciliation: nightly comparison of on-chain receipts with the `usage` table (step 29).
+6. Solana payments (`@x402/svm`, step 27).
+7. Fix or retire the 5 old core test failures (2 are wrong tests: the $5 credit pack correctly returns 402).
+8. Registering our own card fails with 530 (Cloudflare blocks a Worker fetching its own zone); serve it from memory in that case.
+
+### Needs you
+- **GitHub `workflow` permission:** unlocks pushing, CI, Dependabot and auto-deploy.
+- **Cloudflare API token** as a GitHub secret (auto-deploy). **Cloudflare Access** app for `/admin`.
+- **Rotate every key** from the old Pi. Set `AIPAYGEN_IP_HASH_SECRET`, plus `ADMIN_TOKEN` on the Worker for `/admin/*`.
+- **Oracle account recovery** (only for the optional Python core) and **R2 or Oracle storage** for its backups.
+- **Testnet end-to-end payment test** (step 30): fund the test wallet with Base Sepolia USDC.
+- **Directory listings:** `docs/LISTINGS.md` (MCP Registry, Smithery, Glama, PulseMCP, search consoles).
+- **Legal check** before pay-through routing or seller payouts (below).
+
+## Pay-through routing (planned, not built)
+
+**Goal:** an agent calls any listed x402 service through AIPayGen with one `apg_` key or wallet, and AIPayGen takes a small fee.
+
+**Why it's not built yet:** charging the agent and paying the provider later means AIPayGen holds other people's money. That's money transmission in the US (FinCEN rules and state licenses) and similar rules elsewhere. **Get a fintech lawyer's view first.**
+
+**Non-custodial versions that avoid holding funds:**
+1. **Relay only:** AIPayGen forwards the call and the provider's 402 quote; the agent's own wallet pays the provider directly. AIPayGen charges its own separate, small x402 fee for the routing (two payments, each to its real recipient). No custody.
+2. **Facilitator partnership:** route through a licensed facilitator (for example Coinbase CDP) that handles settlement and splits.
+3. **Credits only for AIPayGen's own tools,** as today.
+
+Recommended order: (1) relay only first, since it's legal-light and immediately useful; (2) after legal advice.
