@@ -10,6 +10,7 @@ import { handleCore } from "./core/proxy";
 import { KINDS, searchCatalog, type Kind } from "./catalog";
 import { demandReport, logSearch, relatedTo } from "./growth";
 import { runFreshness } from "./refresh";
+import { wantedList, wantedPage } from "./discovery";
 import { agentCard, catalogItemMarkdown, catalogItemPage, DISCOVERY_LINK_HEADER, llmsFullTxt, marketItem, marketMarkdown, marketPage, robotsTxt, sitemapFor, sitemapIndex, x402Discovery } from "./discovery";
 
 type AppEnv = { Bindings: Env };
@@ -54,6 +55,8 @@ app.get("/market", async (c) => {
   }
   return wantsMarkdown(c.req.header("accept")) ? markdown(await marketMarkdown(c.env, q, k)) : html(await marketPage(c.env, q, k));
 });
+app.get("/market/wanted", async (c) => html(await wantedPage(c.env)));
+app.get("/v1/catalog/wanted", async (c) => c.json(await wantedList(c.env), 200, { "cache-control": "public, max-age=600" }));
 app.get("/market/:kind/:id", async (c) => {
   const item = await marketItem(c.env, c.req.param("kind"), c.req.param("id"));
   if (!item) return c.notFound();

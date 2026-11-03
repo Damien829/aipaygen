@@ -50,22 +50,51 @@ export async function refreshAgents(env: Env, limit = 5) {
   return { checked: results.length, refreshed: ok };
 }
 
-export async function healthCheck(env: Env, limit = 20) {
+interface Probe { alive: boolean; verified: boolean; ms: number }
+
+/** One test call. MCP servers must answer tools/list; x402 APIs must return a payment quote. */
+async function probe(kind: string, url: string, x402: boolean): Promise<Probe> {
+  const t0 = Date.now();
+  const timeout = AbortSignal.timeout(6000);
+  if (kind === "mcp") {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json, text/event-stream", "mcp-protocol-version": "2025-06-18", "user-agent": UA },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list", params: {} }),
+      redirect: "follow", signal: timeout,
+    });
+    const text = res.status < 500 ? (await res.text()).slice(0, 200_000) : "";
+    return { alive: res.status < 500, verified: res.ok && /"tools"\s*:/.test(text), ms: Date.now() - t0 };
+  }
+  if (x402) {
+    const res = await fetch(url, { method: "GET", headers: { accept: "application/json", "user-agent": UA }, redirect: "follow", signal: timeout });
+    let quoted = res.status === 402 && !!(res.headers.get("payment-required") || res.headers.get("x-payment-required"));
+    if (res.status === 402 && !quoted) quoted = /"accepts"\s*:/.test((await res.text()).slice(0, 50_000));
+    return { alive: res.status < 500, verified: quoted, ms: Date.now() - t0 };
+  }
+  const res = await fetch(url, { method: "HEAD", headers: { "user-agent": UA }, redirect: "follow", signal: timeout });
+  return { alive: res.status < 500, verified: false, ms: Date.now() - t0 };
+}
+
+export async function healthCheck(env: Env, limit = 40) {
   const { results } = await env.DB.prepare(
-    "SELECT id, url, fail_count FROM catalog WHERE kind IN ('api', 'agent', 'service', 'mcp') AND url LIKE 'https://%' ORDER BY checked_at LIMIT ?",
-  ).bind(limit).all<{ id: string; url: string; fail_count: number }>();
-  const checks = await Promise.allSettled(results.map(async (r) => {
-    const res = await fetch(r.url, { method: "HEAD", headers: { "user-agent": UA }, redirect: "follow", signal: AbortSignal.timeout(5000) });
-    return res.status < 500; // any answer short of a server error means it's alive
-  }));
+    "SELECT id, kind, url, x402, fail_count, latency_ms FROM catalog WHERE kind IN ('api', 'agent', 'service', 'mcp') AND url LIKE 'https://%' ORDER BY checked_at + CASE WHEN kind = 'mcp' OR x402 = 1 THEN 0 ELSE 86400000 END LIMIT ?",
+  ).bind(limit).all<{ id: string; kind: string; url: string; x402: number; fail_count: number; latency_ms: number | null }>();
+  const probes = await Promise.allSettled(results.map((r) => probe(r.kind, r.url, !!r.x402)));
   const now = Date.now();
   let alive = 0;
+  let verified = 0;
   await env.DB.batch(results.map((r, i) => {
-    const up = checks[i]!.status === "fulfilled" && (checks[i] as PromiseFulfilledResult<boolean>).value;
+    const p = probes[i]!.status === "fulfilled" ? (probes[i] as PromiseFulfilledResult<Probe>).value : null;
+    const up = !!p?.alive;
     if (up) alive++;
-    return env.DB.prepare("UPDATE catalog SET checked_at = ?, fail_count = ? WHERE id = ?").bind(now, up ? 0 : r.fail_count + 1, r.id);
+    if (p?.verified) verified++;
+    const latency = p ? (r.latency_ms == null ? p.ms : Math.round(r.latency_ms * 0.7 + p.ms * 0.3)) : r.latency_ms;
+    return env.DB.prepare(
+      "UPDATE catalog SET checked_at = ?, fail_count = ?, checks_total = checks_total + 1, checks_ok = checks_ok + ?, latency_ms = ?, verified = ?, verified_at = CASE WHEN ? THEN ? ELSE verified_at END WHERE id = ?",
+    ).bind(now, up ? 0 : r.fail_count + 1, up ? 1 : 0, latency, p?.verified ? 1 : 0, p?.verified ? 1 : 0, now, r.id);
   }));
-  return { checked: results.length, alive };
+  return { checked: results.length, alive, verified };
 }
 
 interface McpEntry {

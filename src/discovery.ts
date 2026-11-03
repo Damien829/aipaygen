@@ -53,7 +53,7 @@ export function catalogItemPage(env: Env, item: CatalogItem, related: RelatedIte
     .join("");
   const body = `<main><p class="muted"><a href="/market">Marketplace</a> · ${esc(KIND_LABEL[kind])}${item.category ? ` · ${esc(item.category)}` : ""}</p>
 <h1>${esc(item.name)}</h1><p>${esc(desc)}</p>
-<table>${item.url ? `<tr><td>Endpoint</td><td><code>${esc(item.url)}</code></td></tr>` : ""}${item.price ? `<tr><td>Price</td><td class="price">${esc(item.price)} per call</td></tr>` : ""}<tr><td>Pricing</td><td>${item.x402 ? "Pay per call with x402, no account. Call it to get an exact quote before paying." : "See the provider"}</td></tr>${meta}</table>
+<table>${item.url ? `<tr><td>Endpoint</td><td><code>${esc(item.url)}</code></td></tr>` : ""}${item.price ? `<tr><td>Price</td><td class="price">${esc(item.price)} per call</td></tr>` : ""}${item.trust ? `<tr><td>Trust</td><td>${item.trust.verified ? "✓ Verified callable · " : ""}${item.trust.uptime_pct}% uptime over ${item.trust.checks} checks${item.trust.latency_ms != null ? ` · ~${item.trust.latency_ms} ms` : ""}</td></tr>` : `<tr><td>Trust</td><td>Not checked yet</td></tr>`}<tr><td>Pricing</td><td>${item.x402 ? "Pay per call with x402, no account. Call it to get an exact quote before paying." : "See the provider"}</td></tr>${meta}</table>
 <h2>Use it</h2>${snippets(env, item, kind, id).map((sn) => `<p class="muted">${esc(sn.label)}</p><div class="snip"><button class="copy" type="button" aria-label="Copy ${esc(sn.label)}">Copy</button><pre><code>${esc(sn.code)}</code></pre></div>`).join("")}
 ${related.length ? `<h2>Related</h2><ul class="cards">${related.map((r) => `<li class="card"><a class="t" href="${esc(r.url)}">${esc(r.name)}</a><div class="badges"><span class="b">${esc(KIND_LABEL[r.kind as Kind] ?? r.kind)}</span>${r.price ? `<span class="b pay">${esc(r.price)}/call</span>` : ""}</div></li>`).join("")}</ul>` : ""}</main>${COPY_JS}`;
   return layout(env, `${item.name} · ${KIND_LABEL[kind]} for AI agents · AIPayGen`, body, desc.slice(0, 300),
@@ -73,7 +73,7 @@ const MARKET_CSS = `<style>
 .card{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:14px;display:flex;flex-direction:column;gap:6px;min-width:0}
 .card a.t{font-weight:600;color:var(--fg);text-decoration:none;overflow-wrap:anywhere}.card a.t:hover{text-decoration:underline}
 .card p{margin:0;color:var(--muted);font-size:.92rem;overflow-wrap:anywhere}.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto}
-.b{font-size:.75rem;padding:2px 8px;border-radius:999px;background:var(--code);color:var(--muted)}.b.pay{color:var(--fg)}
+.b{font-size:.75rem;padding:2px 8px;border-radius:999px;background:var(--code);color:var(--muted)}.b.ok{color:#1a7f37;font-weight:600}@media (prefers-color-scheme:dark){.b.ok{color:#56d364}}.b.pay{color:var(--fg)}
 .mk-status{color:var(--muted);font-size:.9rem;min-height:1.4em}.more{margin:8px auto 24px;display:block}
 .snip{position:relative}.snip pre{background:var(--code);padding:12px;border-radius:10px;overflow-x:auto;font-size:.85rem}
 .copy{position:absolute;top:6px;right:6px;font:inherit;font-size:.8rem;padding:4px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg);cursor:pointer}
@@ -81,7 +81,7 @@ const MARKET_CSS = `<style>
 
 function card(env: Env, i: CatalogItem): string {
   const [k, id] = i.id.split(/:(.*)/s);
-  const badges = [`<span class="b">${esc(KIND_LABEL[i.kind])}</span>`, i.price ? `<span class="b pay">${esc(i.price)}/call</span>` : "", i.x402 ? `<span class="b">x402</span>` : ""].join("");
+  const badges = [`<span class="b">${esc(KIND_LABEL[i.kind])}</span>`, i.trust?.verified ? `<span class="b ok">✓ Verified</span>` : "", i.trust ? `<span class="b">${i.trust.uptime_pct}% up</span>` : "", i.price ? `<span class="b pay">${esc(i.price)}/call</span>` : "", i.x402 ? `<span class="b">x402</span>` : ""].join("");
   return `<li class="card"><a class="t" href="/market/${esc(k!)}/${encodeURIComponent(id!)}">${esc(i.name)}</a><p>${esc((i.description || "").slice(0, 180))}</p><div class="badges">${badges}</div></li>`;
 }
 
@@ -96,13 +96,13 @@ export async function marketPage(env: Env, q: string, kind?: Kind): Promise<stri
   const body = `<main><h1>Marketplace</h1><p>${total.toLocaleString("en-US")} resources for AI agents: AIPayGen tools, APIs, skills, agents, MCP servers and agent services. Searching is free and the catalog refreshes itself every 10 minutes.</p>
 <form class="mk-search" action="/market" role="search" aria-label="Search the marketplace"><input id="q" name="q" type="search" value="${esc(q)}" placeholder="What does your agent need? e.g. weather API, summarize PDF" aria-label="Search query" autocomplete="off">${kind ? `<input type="hidden" name="kind" value="${esc(kind)}">` : ""}</form>
 <nav class="chips" aria-label="Filter by kind">${chips}</nav>
-<p class="mk-status" id="status" aria-live="polite">${r.total.toLocaleString("en-US")} results</p>
+<p class="muted"><a href="/market/wanted">Most wanted by agents →</a></p><p class="mk-status" id="status" aria-live="polite">${r.total.toLocaleString("en-US")} results</p>
 <ul class="cards" id="results">${r.items.map((i) => card(env, i)).join("")}</ul>
 <button class="chip more" id="more" type="button" ${r.total > 24 ? "" : "hidden"}>Load more</button></main>
 <script>(()=>{const q=document.getElementById("q"),res=document.getElementById("results"),st=document.getElementById("status"),more=document.getElementById("more");
 const L=${JSON.stringify(KIND_LABEL)};let kind=${JSON.stringify(kind ?? "")},off=24,total=${r.total},t,seq=0;
 const e=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
-const card=i=>{const x=i.id.indexOf(":"),k=i.id.slice(0,x),id=i.id.slice(x+1);return '<li class="card"><a class="t" href="/market/'+e(k)+'/'+encodeURIComponent(id)+'">'+e(i.name)+'</a><p>'+e((i.description||"").slice(0,180))+'</p><div class="badges"><span class="b">'+e(L[i.kind])+'</span>'+(i.price?'<span class="b pay">'+e(i.price)+'/call</span>':'')+(i.x402?'<span class="b">x402</span>':'')+'</div></li>';};
+const card=i=>{const x=i.id.indexOf(":"),k=i.id.slice(0,x),id=i.id.slice(x+1);return '<li class="card"><a class="t" href="/market/'+e(k)+'/'+encodeURIComponent(id)+'">'+e(i.name)+'</a><p>'+e((i.description||"").slice(0,180))+'</p><div class="badges"><span class="b">'+e(L[i.kind])+'</span>'+(i.trust&&i.trust.verified?'<span class="b ok">✓ Verified</span>':'')+(i.trust?'<span class="b">'+i.trust.uptime_pct+'% up</span>':'')+(i.price?'<span class="b pay">'+e(i.price)+'/call</span>':'')+(i.x402?'<span class="b">x402</span>':'')+'</div></li>';};
 async function load(reset){const n=++seq;const p=new URLSearchParams({limit:"24",offset:String(reset?0:off)});if(q.value.trim())p.set("q",q.value.trim());if(kind)p.set("kind",kind);
 st.textContent="Searching…";const d=await (await fetch("/v1/catalog/search?"+p)).json();if(n!==seq)return;
 if(reset){res.innerHTML="";off=0;}res.insertAdjacentHTML("beforeend",d.items.map(card).join(""));off+=d.items.length;total=d.total;
@@ -125,7 +125,7 @@ export function sitemapIndex(env: Env): string {
 export async function sitemapFor(env: Env, name: string): Promise<string | null> {
   let locs: string[];
   if (name === "pages") {
-    locs = ["/", "/market", "/docs", "/billing", "/llms.txt", "/llms-full.txt"].map((p) => env.PUBLIC_URL + p);
+    locs = ["/", "/market", "/market/wanted", "/docs", "/billing", "/llms.txt", "/llms-full.txt"].map((p) => env.PUBLIC_URL + p);
   } else if (KINDS.includes(name as Kind)) {
     const { results } = await env.DB.prepare("SELECT id FROM catalog WHERE kind = ? ORDER BY id LIMIT 50000").bind(name).all<{ id: string }>();
     locs = results.map((r) => `${env.PUBLIC_URL}/market/${name}/${encodeURIComponent(r.id.slice(name.length + 1))}`);
@@ -234,3 +234,27 @@ export async function marketMarkdown(env: Env, q: string, kind?: Kind): Promise<
 /** Points every agent that fetches any page at the machine-readable entry points. */
 export const DISCOVERY_LINK_HEADER =
   '</.well-known/agent-card.json>; rel="describedby"; type="application/json", </llms.txt>; rel="describedby"; type="text/plain", </mcp>; rel="service", </openapi.json>; rel="service-desc"; type="application/json"';
+
+/**
+ * What agents search for and can't find. Only queries searched 3+ times, short and
+ * plain (letters, digits, spaces, dashes), so nothing one person typed is exposed.
+ */
+export async function wantedList(env: Env, days = 30) {
+  const since = Date.now() - days * 86_400_000;
+  const q = (zero: boolean) => env.DB.prepare(
+    `SELECT query, COUNT(*) AS searches FROM search_log WHERE created_at > ? ${zero ? "AND results = 0" : ""}
+     AND length(query) <= 60 AND query NOT GLOB '*[^a-z0-9 -]*' GROUP BY query HAVING COUNT(*) >= 3 ORDER BY searches DESC LIMIT 40`,
+  ).bind(since);
+  const [unmet, popular] = await env.DB.batch([q(true), q(false)]);
+  return { window_days: days, unmet: unmet?.results ?? [], popular: popular?.results ?? [] };
+}
+
+export async function wantedPage(env: Env): Promise<string> {
+  const w = await wantedList(env);
+  const li = (rows: unknown[]) => (rows as { query: string; searches: number }[])
+    .map((r) => `<li><a href="/market?q=${encodeURIComponent(r.query)}">${esc(r.query)}</a> <span class="muted">· ${r.searches} searches</span></li>`).join("") || `<li class="muted">Not enough searches yet. Check back soon.</li>`;
+  const body = `<main><h1>Most wanted</h1><p>What AI agents are searching this marketplace for. If you build or run one of these, list it for free: send your agent card to <code>POST ${esc(env.PUBLIC_URL)}/v1/agents/register</code> or use the <code>register_agent</code> MCP tool.</p>
+<h2>Searched for, not found yet</h2><ul>${li(w.unmet)}</ul><h2>Popular searches</h2><ul>${li(w.popular)}</ul>
+<p class="muted">Last ${w.window_days} days. Only searches made at least 3 times are shown.</p></main>`;
+  return layout(env, "Most wanted by AI agents · AIPayGen", body, "What AI agents search for in the AIPayGen marketplace, and what they can't find yet.");
+}

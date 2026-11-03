@@ -19,6 +19,8 @@ export interface CatalogItem {
   price: string | null;
   x402: boolean;
   meta: Record<string, unknown>;
+  /** From real test calls; null until checked. */
+  trust: { verified: boolean; uptime_pct: number | null; latency_ms: number | null; checks: number } | null;
 }
 
 interface Row {
@@ -31,9 +33,15 @@ interface Row {
   price_micro: number | null;
   x402: number;
   meta: string;
+  checks_total: number;
+  checks_ok: number;
+  latency_ms: number | null;
+  verified: number;
 }
 
-const COLS = "c.id, c.kind, c.name, c.description, c.category, c.url, c.price_micro, c.x402, c.meta";
+const COLS = "c.id, c.kind, c.name, c.description, c.category, c.url, c.price_micro, c.x402, c.meta, c.checks_total, c.checks_ok, c.latency_ms, c.verified";
+// Higher is better: proven callable, then uptime. Unchecked items sit in the middle.
+const TRUST_SQL = "(c.verified * 2.0 + CASE WHEN c.checks_total > 0 THEN 1.0 * c.checks_ok / c.checks_total ELSE 0.5 END)";
 
 function toItem(r: Row): CatalogItem {
   let meta: Record<string, unknown> = {};
@@ -47,6 +55,9 @@ function toItem(r: Row): CatalogItem {
     id: r.id, kind: r.kind, name: r.name, description: r.description, category: r.category, url: r.url,
     price: null, // not shown publicly: agents get an exact quote from the 402 reply when they call
     x402: !!r.x402, meta,
+    trust: r.checks_total > 0
+      ? { verified: !!r.verified, uptime_pct: Math.round((100 * r.checks_ok) / r.checks_total), latency_ms: r.latency_ms, checks: r.checks_total }
+      : null,
   };
 }
 
@@ -86,8 +97,8 @@ export async function searchCatalog(env: Env, o: SearchOpts): Promise<{ total: n
   const w = where.length ? `WHERE ${where.join(" AND ")}` : "";
   // Rank text matches by bm25; otherwise our own listings first, then name.
   const order = fts
-    ? "ORDER BY (SELECT bm25(catalog_fts) FROM catalog_fts WHERE catalog_fts.rowid = c.rowid AND catalog_fts MATCH ?)"
-    : "ORDER BY (c.kind = 'listing') DESC, c.name";
+    ? `ORDER BY (SELECT bm25(catalog_fts) FROM catalog_fts WHERE catalog_fts.rowid = c.rowid AND catalog_fts MATCH ?) - ${TRUST_SQL}`
+    : `ORDER BY (c.kind = 'listing') DESC, ${TRUST_SQL} DESC, c.name`;
   const [count, page] = await env.DB.batch([
     env.DB.prepare(`SELECT COUNT(*) AS n FROM catalog c ${w}`).bind(...binds),
     env.DB.prepare(`SELECT ${COLS} FROM catalog c ${w} ${order} LIMIT ? OFFSET ?`).bind(...binds, ...(fts ? [fts] : []), limit, offset),
