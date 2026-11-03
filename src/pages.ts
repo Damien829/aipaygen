@@ -12,7 +12,7 @@ const STYLE = `
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 .wrap{max-width:980px;margin:0 auto;padding:0 20px}
-header.top{display:flex;justify-content:space-between;align-items:center;padding:18px 0}
+header.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 16px;padding:18px 0}.top nav{display:flex;flex-wrap:wrap;gap:4px 14px}
 .logo{font-weight:700;letter-spacing:-.02em;color:var(--fg);text-decoration:none}.logo span{color:var(--accent)}
 nav a{color:var(--muted);text-decoration:none;margin-left:18px;font-size:15px}nav a:hover{color:var(--fg)}
 h1{font-size:clamp(32px,6vw,52px);line-height:1.08;letter-spacing:-.03em;margin:48px 0 16px}
@@ -59,7 +59,10 @@ export function landingPage(env: Env): string {
   const trial = microToUsd(Number(env.TRIAL_CREDITS_MICRO) || 0);
 
   const body = `
-<h1>Website and company intelligence for AI agents.</h1>
+<h1>Everything your AI agent needs, one search away.</h1>
+<p>Search 11,000+ APIs, skills, agents and MCP servers for free, then pay per call only for what you use. No account needed with x402.</p>
+<form action="/market" role="search" aria-label="Search the marketplace" style="display:flex;gap:8px;margin:16px 0 28px"><input name="q" type="search" placeholder="e.g. weather API, translate, summarize PDF" aria-label="Search query" style="flex:1;min-width:0;padding:12px 14px;font:inherit;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--fg)"><button type="submit" style="padding:12px 18px;font:inherit;border:0;border-radius:10px;background:var(--accent);color:var(--accent-fg);cursor:pointer">Search</button></form>
+<h2>Website and company intelligence for AI agents.</h2>
 <p class="lead">Give your agent ten tools for DNS, domain registration, certificates and subdomains, tech stack, email security, page content and full company profiles. Built on public data. Pay per call from ${formatPrice(TOOLS[0]!.priceMicro)}.</p>
 <div class="btns"><button class="btn primary" id="getkey">Get a free API key</button><a class="btn" href="#connect">Connect via MCP</a></div>
 <div id="keybox" class="card"><h3>Your API key</h3><p>Copy it now; it is shown only once. It comes with <strong>${trial}</strong> of free credits.</p><pre><code id="keyval"></code></pre></div>

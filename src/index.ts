@@ -8,7 +8,7 @@ import { createCheckout, handleStripeWebhook } from "./billing/stripe";
 import { x402Enabled } from "./billing/x402";
 import { handleCore } from "./core/proxy";
 import { KINDS, searchCatalog, type Kind } from "./catalog";
-import { demandReport, logSearch } from "./growth";
+import { demandReport, logSearch, relatedTo } from "./growth";
 import { runFreshness } from "./refresh";
 import { agentCard, catalogItemMarkdown, catalogItemPage, DISCOVERY_LINK_HEADER, llmsFullTxt, marketItem, marketMarkdown, marketPage, robotsTxt, sitemapFor, sitemapIndex, x402Discovery } from "./discovery";
 
@@ -57,7 +57,8 @@ app.get("/market", async (c) => {
 app.get("/market/:kind/:id", async (c) => {
   const item = await marketItem(c.env, c.req.param("kind"), c.req.param("id"));
   if (!item) return c.notFound();
-  return wantsMarkdown(c.req.header("accept")) ? markdown(catalogItemMarkdown(c.env, item)) : html(catalogItemPage(c.env, item));
+  if (wantsMarkdown(c.req.header("accept"))) return markdown(catalogItemMarkdown(c.env, item));
+  return html(catalogItemPage(c.env, item, await relatedTo(c.env, item.name, item.id, 6)));
 });
 app.get("/bot", (c) => c.text("AIPayGenBot fetches public pages only when an AIPayGen user asks about a site. It makes one request per lookup and caches results."));
 

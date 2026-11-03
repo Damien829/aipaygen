@@ -57,9 +57,19 @@ def main(src: Path, out: Path) -> None:
 
     for r in rows(src / "agent_memory.db", "SELECT * FROM marketplace WHERE is_active = 1"):
         endpoint = r["endpoint"] or ""
+        if "example.com" in endpoint:
+            continue  # test listing
         built_in = "aipaygen.com" in endpoint
+        # price_usd sometimes held a monthly subscription price; show the per-call price only.
+        per_call = r["price_usd"] or 0
+        try:
+            models = json.loads(r["pricing_models"] or "{}")
+        except ValueError:
+            models = {}
+        if per_call >= 1:
+            per_call = models.get("per_call") or 0.05
         add("listing", r["listing_id"], r["name"], r["description"], r["category"], endpoint,
-            int(round((r["price_usd"] or 0) * 1_000_000)), 1,
+            int(round(per_call * 1_000_000)), 1,
             {"provider": "AIPayGen" if built_in else "third-party",
              "runs": endpoint.replace("https://api.aipaygen.com", "") if built_in else None,
              "capabilities": as_list(r["capabilities"]), "tags": as_list(r["tags"])})

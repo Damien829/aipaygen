@@ -1,4 +1,4 @@
-import { type CatalogItem, KINDS, type Kind, getCatalogItem, searchCatalog } from "./catalog";
+import { type CatalogItem, catalogStats, KINDS, type Kind, getCatalogItem, searchCatalog } from "./catalog";
 import { CORE_ROUTES } from "./core/proxy";
 import { APP_VERSION, type Env } from "./env";
 import { esc, layout } from "./pages";
@@ -14,7 +14,26 @@ import { formatPrice } from "./tools/types";
 const KIND_LABEL: Record<Kind, string> = { listing: "AIPayGen tool", api: "API", skill: "Skill", agent: "Agent", service: "Agent service", mcp: "MCP server" };
 
 /** Search engines get one indexable page per catalog item. */
-export function catalogItemPage(env: Env, item: CatalogItem): string {
+export interface RelatedItem { name: string; kind: string; price: string | null; url: string }
+
+function snippets(env: Env, item: CatalogItem, kind: Kind, id: string): { label: string; code: string }[] {
+  const out: { label: string; code: string }[] = [];
+  const remote = typeof item.meta.remote === "string" ? item.meta.remote : null;
+  if (kind === "mcp" && remote) {
+    out.push({ label: "Add to an MCP client", code: JSON.stringify({ mcpServers: { [item.name.replace(/[^a-z0-9]+/gi, "-").toLowerCase()]: { url: remote } } }, null, 2) });
+  } else if (item.x402 && item.url) {
+    out.push({ label: "Call it (an x402 client pays automatically)", code: `curl -i ${item.url}\n# 402 reply -> sign PAYMENT-REQUIRED with an x402 client (e.g. @x402/fetch) -> retry with PAYMENT-SIGNATURE` });
+  } else if (item.url) {
+    out.push({ label: "Endpoint", code: item.url });
+  }
+  out.push({ label: "This listing as JSON", code: `curl ${env.PUBLIC_URL}/v1/catalog/${kind}/${id}` });
+  out.push({ label: "Search the whole marketplace from your agent (MCP)", code: JSON.stringify({ mcpServers: { aipaygen: { url: `${env.PUBLIC_URL}/mcp` } } }, null, 2) });
+  return out;
+}
+
+const COPY_JS = `<script>document.querySelectorAll(".copy").forEach(b=>b.addEventListener("click",async()=>{try{await navigator.clipboard.writeText(b.nextElementSibling.textContent);b.textContent="Copied";setTimeout(()=>b.textContent="Copy",1500);}catch(e){}}));</script>`;
+
+export function catalogItemPage(env: Env, item: CatalogItem, related: RelatedItem[] = []): string {
   const [kind, id] = item.id.split(/:(.*)/s) as [Kind, string];
   const url = `${env.PUBLIC_URL}/market/${kind}/${encodeURIComponent(id)}`;
   const desc = item.description || `${KIND_LABEL[kind]} for AI agents: ${item.name}`;
@@ -35,30 +54,66 @@ export function catalogItemPage(env: Env, item: CatalogItem): string {
   const body = `<main><p class="muted"><a href="/market">Marketplace</a> · ${esc(KIND_LABEL[kind])}${item.category ? ` · ${esc(item.category)}` : ""}</p>
 <h1>${esc(item.name)}</h1><p>${esc(desc)}</p>
 <table>${item.url ? `<tr><td>Endpoint</td><td><code>${esc(item.url)}</code></td></tr>` : ""}${item.price ? `<tr><td>Price</td><td class="price">${esc(item.price)} per call</td></tr>` : ""}<tr><td>x402 (pay per call, no account)</td><td>${item.x402 ? "yes" : "no"}</td></tr>${meta}</table>
-<h2>Use it from an agent</h2><p>Machine-readable: <code>GET ${esc(env.PUBLIC_URL)}/v1/catalog/${esc(kind)}/${esc(id)}</code>. Find more with the free <code>search_marketplace</code> MCP tool at <code>${esc(env.PUBLIC_URL)}/mcp</code>.</p></main>`;
+<h2>Use it</h2>${snippets(env, item, kind, id).map((sn) => `<p class="muted">${esc(sn.label)}</p><div class="snip"><button class="copy" type="button" aria-label="Copy ${esc(sn.label)}">Copy</button><pre><code>${esc(sn.code)}</code></pre></div>`).join("")}
+${related.length ? `<h2>Related</h2><ul class="cards">${related.map((r) => `<li class="card"><a class="t" href="${esc(r.url)}">${esc(r.name)}</a><div class="badges"><span class="b">${esc(KIND_LABEL[r.kind as Kind] ?? r.kind)}</span>${r.price ? `<span class="b pay">${esc(r.price)}/call</span>` : ""}</div></li>`).join("")}</ul>` : ""}</main>${COPY_JS}`;
   return layout(env, `${item.name} · ${KIND_LABEL[kind]} for AI agents · AIPayGen`, body, desc.slice(0, 300),
-    `<link rel="canonical" href="${esc(url)}"><link rel="alternate" type="application/json" href="/v1/catalog/${esc(kind)}/${esc(id)}"><script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>${webMcpScript()}`);
+    `<link rel="canonical" href="${esc(url)}"><link rel="alternate" type="application/json" href="/v1/catalog/${esc(kind)}/${esc(id)}"><script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>${MARKET_CSS}${webMcpScript()}`);
 }
 
 export async function marketItem(env: Env, kind: string, id: string): Promise<CatalogItem | null> {
   return KINDS.includes(kind as Kind) ? getCatalogItem(env, `${kind}:${id}`) : null;
 }
 
-/** Marketplace home: search box plus a server-rendered first page, so it works without JS. */
+const MARKET_CSS = `<style>
+.mk-search{display:flex;gap:8px;margin:12px 0}.mk-search input{flex:1;min-width:0;padding:12px 14px;font:inherit;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--fg)}
+.mk-search input:focus{outline:2px solid var(--accent);outline-offset:1px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}.chip{padding:6px 12px;border:1px solid var(--line);border-radius:999px;background:var(--card);color:var(--fg);font:inherit;font-size:.9rem;cursor:pointer;text-decoration:none}
+.chip[aria-pressed=true]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}.chip .n{opacity:.7;margin-left:4px;font-variant-numeric:tabular-nums}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:12px;margin:12px 0;padding:0;list-style:none}
+.card{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:14px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.card a.t{font-weight:600;color:var(--fg);text-decoration:none;overflow-wrap:anywhere}.card a.t:hover{text-decoration:underline}
+.card p{margin:0;color:var(--muted);font-size:.92rem;overflow-wrap:anywhere}.badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:auto}
+.b{font-size:.75rem;padding:2px 8px;border-radius:999px;background:var(--code);color:var(--muted)}.b.pay{color:var(--fg)}
+.mk-status{color:var(--muted);font-size:.9rem;min-height:1.4em}.more{margin:8px auto 24px;display:block}
+.snip{position:relative}.snip pre{background:var(--code);padding:12px;border-radius:10px;overflow-x:auto;font-size:.85rem}
+.copy{position:absolute;top:6px;right:6px;font:inherit;font-size:.8rem;padding:4px 10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg);cursor:pointer}
+</style>`;
+
+function card(env: Env, i: CatalogItem): string {
+  const [k, id] = i.id.split(/:(.*)/s);
+  const badges = [`<span class="b">${esc(KIND_LABEL[i.kind])}</span>`, i.price ? `<span class="b pay">${esc(i.price)}/call</span>` : "", i.x402 ? `<span class="b">x402</span>` : ""].join("");
+  return `<li class="card"><a class="t" href="/market/${esc(k!)}/${encodeURIComponent(id!)}">${esc(i.name)}</a><p>${esc((i.description || "").slice(0, 180))}</p><div class="badges">${badges}</div></li>`;
+}
+
+/** Marketplace home. Server-rendered first page (works without JS for agents and crawlers);
+ * in a browser, search updates as you type, chips filter by kind, and "Load more" pages on. */
 export async function marketPage(env: Env, q: string, kind?: Kind): Promise<string> {
-  const r = await searchCatalog(env, { q: q || undefined, kind, limit: 30 });
-  const rows = r.items
-    .map((i) => {
-      const [k, id] = i.id.split(/:(.*)/s);
-      return `<tr><td><a href="/market/${esc(k!)}/${encodeURIComponent(id!)}">${esc(i.name)}</a><br><span class="muted">${esc((i.description || "").slice(0, 160))}</span></td><td>${esc(KIND_LABEL[i.kind])}</td><td class="price">${i.price ? esc(i.price) : ""}</td></tr>`;
-    })
-    .join("");
-  const tabs = ["", ...KINDS].map((k) => `<a href="/market?${new URLSearchParams({ q, ...(k ? { kind: k } : {}) })}">${k ? esc(KIND_LABEL[k as Kind]) + "s" : "All"}</a>`).join(" · ");
-  const body = `<main><h1>Marketplace</h1><p>11,000+ resources for AI agents: AIPayGen tools, third-party APIs, skills, agents and agent services. Searching is free.</p>
-<form action="/market" role="search" aria-label="Search the marketplace"><input name="q" aria-label="Search query" value="${esc(q)}" placeholder="What does your agent need? e.g. weather API, summarize PDF" style="width:100%;padding:10px"></form>
-<p>${tabs}</p><p class="muted">${r.total.toLocaleString("en-US")} results</p><table>${rows}</table></main>`;
+  const [r, stats] = await Promise.all([searchCatalog(env, { q: q || undefined, kind, limit: 24 }), catalogStats(env)]);
+  const total = Object.values(stats.counts).reduce((a, b) => a + (b as number), 0);
+  const chip = (k: Kind | "", label: string, n: number) =>
+    `<a class="chip" data-kind="${k}" aria-pressed="${(kind ?? "") === k}" href="/market?${new URLSearchParams({ ...(q ? { q } : {}), ...(k ? { kind: k } : {}) })}">${esc(label)}<span class="n">${n.toLocaleString("en-US")}</span></a>`;
+  const chips = [chip("", "All", total), ...KINDS.filter((k) => stats.counts[k]).map((k) => chip(k, `${KIND_LABEL[k]}s`, stats.counts[k] as number))].join("");
+  const body = `<main><h1>Marketplace</h1><p>${total.toLocaleString("en-US")} resources for AI agents: AIPayGen tools, APIs, skills, agents, MCP servers and agent services. Searching is free and the catalog refreshes itself every 10 minutes.</p>
+<form class="mk-search" action="/market" role="search" aria-label="Search the marketplace"><input id="q" name="q" type="search" value="${esc(q)}" placeholder="What does your agent need? e.g. weather API, summarize PDF" aria-label="Search query" autocomplete="off">${kind ? `<input type="hidden" name="kind" value="${esc(kind)}">` : ""}</form>
+<nav class="chips" aria-label="Filter by kind">${chips}</nav>
+<p class="mk-status" id="status" aria-live="polite">${r.total.toLocaleString("en-US")} results</p>
+<ul class="cards" id="results">${r.items.map((i) => card(env, i)).join("")}</ul>
+<button class="chip more" id="more" type="button" ${r.total > 24 ? "" : "hidden"}>Load more</button></main>
+<script>(()=>{const q=document.getElementById("q"),res=document.getElementById("results"),st=document.getElementById("status"),more=document.getElementById("more");
+const L=${JSON.stringify(KIND_LABEL)};let kind=${JSON.stringify(kind ?? "")},off=24,total=${r.total},t,seq=0;
+const e=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
+const card=i=>{const x=i.id.indexOf(":"),k=i.id.slice(0,x),id=i.id.slice(x+1);return '<li class="card"><a class="t" href="/market/'+e(k)+'/'+encodeURIComponent(id)+'">'+e(i.name)+'</a><p>'+e((i.description||"").slice(0,180))+'</p><div class="badges"><span class="b">'+e(L[i.kind])+'</span>'+(i.price?'<span class="b pay">'+e(i.price)+'/call</span>':'')+(i.x402?'<span class="b">x402</span>':'')+'</div></li>';};
+async function load(reset){const n=++seq;const p=new URLSearchParams({limit:"24",offset:String(reset?0:off)});if(q.value.trim())p.set("q",q.value.trim());if(kind)p.set("kind",kind);
+st.textContent="Searching…";const d=await (await fetch("/v1/catalog/search?"+p)).json();if(n!==seq)return;
+if(reset){res.innerHTML="";off=0;}res.insertAdjacentHTML("beforeend",d.items.map(card).join(""));off+=d.items.length;total=d.total;
+st.textContent=total.toLocaleString("en-US")+" results";more.hidden=off>=total;
+const u=new URLSearchParams();if(q.value.trim())u.set("q",q.value.trim());if(kind)u.set("kind",kind);history.replaceState(null,"","/market"+(u.toString()?"?"+u:""));}
+q.addEventListener("input",()=>{clearTimeout(t);t=setTimeout(()=>load(true),220);});
+document.querySelector(".mk-search").addEventListener("submit",ev=>{ev.preventDefault();load(true);});
+document.querySelectorAll(".chip[data-kind]").forEach(c=>c.addEventListener("click",ev=>{ev.preventDefault();kind=c.dataset.kind;document.querySelectorAll(".chip[data-kind]").forEach(x=>x.setAttribute("aria-pressed",String(x===c)));load(true);}));
+more.addEventListener("click",()=>load(false));})();</script>`;
   return layout(env, q ? `${q} · AIPayGen Marketplace` : "AIPayGen Marketplace · tools, APIs and skills for AI agents", body,
-    "Search 11,000+ APIs, skills, agents and pay-per-call tools for AI agents. Free to search; pay per call with x402 or credits.", webMcpScript());
+    "Search 11,000+ APIs, skills, agents, MCP servers and pay-per-call tools for AI agents. Free to search; pay per call with x402 or credits.", MARKET_CSS + webMcpScript());
 }
 
 /** Sitemap index plus one sitemap per kind (each well under the 50,000-URL limit). */
