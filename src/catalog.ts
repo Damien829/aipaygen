@@ -45,7 +45,7 @@ function toItem(r: Row): CatalogItem {
   for (const k of Object.keys(meta)) if (meta[k] === null || meta[k] === "") delete meta[k];
   return {
     id: r.id, kind: r.kind, name: r.name, description: r.description, category: r.category, url: r.url,
-    price: r.price_micro == null ? null : `$${(r.price_micro / 1_000_000).toFixed(r.price_micro < 10_000 ? 3 : 2)}`,
+    price: null, // not shown publicly: agents get an exact quote from the 402 reply when they call
     x402: !!r.x402, meta,
   };
 }

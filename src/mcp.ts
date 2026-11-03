@@ -73,7 +73,7 @@ export function buildMcpServer(env: Env, execCtx?: ExecutionContext): McpServer 
       tool.name,
       {
         title: tool.title,
-        description: `${tool.description} Price: ${formatPrice(tool.priceMicro)} per call.`,
+        description: tool.priceMicro === 0 ? `${tool.description} Free.` : `${tool.description} Pay per call; ask the pricing tool for a quote.`,
         inputSchema: tool.input,
         annotations: { readOnlyHint: true, openWorldHint: true, idempotentHint: true, destructiveHint: false },
         _meta: { "aipaygen/priceUSD": tool.priceMicro / 1_000_000, "agents-x402/paymentRequired": true, "agents-x402/priceUSD": tool.priceMicro / 1_000_000 },

@@ -53,7 +53,7 @@ ${body}
 export function landingPage(env: Env): string {
   const mcpUrl = `${env.PUBLIC_URL}/mcp`;
   const rows = TOOLS.map(
-    (t) => `<tr><td><code>${t.name}</code></td><td>${esc(t.description)}</td><td class="price">${formatPrice(t.priceMicro)}</td></tr>`,
+    (t) => `<tr><td><code>${t.name}</code></td><td>${esc(t.description)}</td><td class="price">${t.priceMicro === 0 ? "Free" : "Pay per call"}</td></tr>`,
   ).join("");
   const x402 = x402Enabled(env);
   const trial = microToUsd(Number(env.TRIAL_CREDITS_MICRO) || 0);
@@ -63,7 +63,7 @@ export function landingPage(env: Env): string {
 <p>Search 11,000+ APIs, skills, agents and MCP servers for free, then pay per call only for what you use. No account needed with x402.</p>
 <form action="/market" role="search" aria-label="Search the marketplace" style="display:flex;gap:8px;margin:16px 0 28px"><input name="q" type="search" placeholder="e.g. weather API, translate, summarize PDF" aria-label="Search query" style="flex:1;min-width:0;padding:12px 14px;font:inherit;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--fg)"><button type="submit" style="padding:12px 18px;font:inherit;border:0;border-radius:10px;background:var(--accent);color:var(--accent-fg);cursor:pointer">Search</button></form>
 <h2>Website and company intelligence for AI agents.</h2>
-<p class="lead">Give your agent ten tools for DNS, domain registration, certificates and subdomains, tech stack, email security, page content and full company profiles. Built on public data. Pay per call from ${formatPrice(TOOLS[0]!.priceMicro)}.</p>
+<p class="lead">Give your agent ten tools for DNS, domain registration, certificates and subdomains, tech stack, email security, page content and full company profiles. Built on public data. Pay per call, only for calls that succeed.</p>
 <div class="btns"><button class="btn primary" id="getkey">Get a free API key</button><a class="btn" href="#connect">Connect via MCP</a></div>
 <div id="keybox" class="card"><h3>Your API key</h3><p>Copy it now; it is shown only once. It comes with <strong>${trial}</strong> of free credits.</p><pre><code id="keyval"></code></pre></div>
 
@@ -130,7 +130,7 @@ var buy=document.getElementById('buy');if(buy)buy.addEventListener('click',async
 
 export function docsPage(env: Env): string {
   const sections = TOOLS.map(
-    (t) => `<h2 id="${t.name}"><code>${t.name}</code></h2><p>${esc(t.description)}</p><p class="muted small">Price ${formatPrice(t.priceMicro)} · cached up to ${Math.round(t.cacheTtl / 60)} min</p>
+    (t) => `<h2 id="${t.name}"><code>${t.name}</code></h2><p>${esc(t.description)}</p><p class="muted small">${t.priceMicro === 0 ? "Free" : "Pay per call (quote on request)"} · cached up to ${Math.round(t.cacheTtl / 60)} min</p>
 <pre><code>GET ${esc(env.PUBLIC_URL)}/v1/${t.name}?${esc(new URLSearchParams(Object.entries(t.example).map(([k, v]) => [k, String(v)])).toString())}</code></pre>
 <details><summary class="small">Input schema</summary><pre><code>${esc(JSON.stringify(toolJsonSchema(t), null, 2))}</code></pre></details>`,
   ).join("");
@@ -166,7 +166,7 @@ export function llmsTxt(env: Env): string {
 
 ## Tools
 
-${TOOLS.map((t) => `- ${t.name} (${formatPrice(t.priceMicro)}): ${t.description}`).join("\n")}
+${TOOLS.map((t) => `- ${t.name}${t.priceMicro === 0 ? " (free)" : ""}: ${t.description}`).join("\n")}
 `;
 }
 
@@ -178,7 +178,7 @@ export function openApi(env: Env): Record<string, unknown> {
       get: {
         operationId: t.name,
         summary: t.title,
-        description: `${t.description} Price: ${formatPrice(t.priceMicro)} per call.`,
+        description: t.priceMicro === 0 ? `${t.description} Free.` : `${t.description} Pay per call: the 402 reply quotes the exact price.`,
         parameters: Object.entries(schema.properties ?? {}).map(([name, s]) => ({
           name,
           in: "query",
@@ -221,6 +221,6 @@ export function serverCard(env: Env): Record<string, unknown> {
     websiteUrl: env.PUBLIC_URL,
     remotes: [{ type: "streamable-http", url: `${env.PUBLIC_URL}/mcp` }],
     authentication: { type: "bearer", description: "Optional API key (apg_...). Without one, paid tools use x402 when enabled." },
-    tools: TOOLS.map((t) => ({ name: t.name, title: t.title, description: t.description, priceUSD: t.priceMicro / 1_000_000 })),
+    tools: TOOLS.map((t) => ({ name: t.name, title: t.title, description: t.description, free: t.priceMicro === 0 })),
   };
 }

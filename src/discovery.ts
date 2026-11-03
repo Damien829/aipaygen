@@ -53,7 +53,7 @@ export function catalogItemPage(env: Env, item: CatalogItem, related: RelatedIte
     .join("");
   const body = `<main><p class="muted"><a href="/market">Marketplace</a> · ${esc(KIND_LABEL[kind])}${item.category ? ` · ${esc(item.category)}` : ""}</p>
 <h1>${esc(item.name)}</h1><p>${esc(desc)}</p>
-<table>${item.url ? `<tr><td>Endpoint</td><td><code>${esc(item.url)}</code></td></tr>` : ""}${item.price ? `<tr><td>Price</td><td class="price">${esc(item.price)} per call</td></tr>` : ""}<tr><td>x402 (pay per call, no account)</td><td>${item.x402 ? "yes" : "no"}</td></tr>${meta}</table>
+<table>${item.url ? `<tr><td>Endpoint</td><td><code>${esc(item.url)}</code></td></tr>` : ""}${item.price ? `<tr><td>Price</td><td class="price">${esc(item.price)} per call</td></tr>` : ""}<tr><td>Pricing</td><td>${item.x402 ? "Pay per call with x402, no account. Call it to get an exact quote before paying." : "See the provider"}</td></tr>${meta}</table>
 <h2>Use it</h2>${snippets(env, item, kind, id).map((sn) => `<p class="muted">${esc(sn.label)}</p><div class="snip"><button class="copy" type="button" aria-label="Copy ${esc(sn.label)}">Copy</button><pre><code>${esc(sn.code)}</code></pre></div>`).join("")}
 ${related.length ? `<h2>Related</h2><ul class="cards">${related.map((r) => `<li class="card"><a class="t" href="${esc(r.url)}">${esc(r.name)}</a><div class="badges"><span class="b">${esc(KIND_LABEL[r.kind as Kind] ?? r.kind)}</span>${r.price ? `<span class="b pay">${esc(r.price)}/call</span>` : ""}</div></li>`).join("")}</ul>` : ""}</main>${COPY_JS}`;
   return layout(env, `${item.name} · ${KIND_LABEL[kind]} for AI agents · AIPayGen`, body, desc.slice(0, 300),
@@ -161,7 +161,7 @@ export function agentCard(env: Env): Record<string, unknown> {
     skills: TOOLS.map((t) => ({
       id: t.name,
       name: t.title,
-      description: `${t.description} Price: ${formatPrice(t.priceMicro)} per call.`,
+      description: t.priceMicro === 0 ? `${t.description} Free.` : `${t.description} Pay per call; quote on request.`,
       tags: [t.priceMicro === 0 ? "free" : "x402", "pay-per-call"],
       examples: [JSON.stringify(t.example)],
     })),
@@ -190,7 +190,7 @@ export function x402Discovery(env: Env): Record<string, unknown> {
 
 /** Everything an LLM needs in one fetch. */
 export function llmsFullTxt(env: Env, base: string): string {
-  const tools = TOOLS.map((t) => `### ${t.name} (${formatPrice(t.priceMicro)})\n${t.description}\nHTTP: ${t.httpMethod ?? "GET"} ${env.PUBLIC_URL}/v1/${t.name}\nExample input: ${JSON.stringify(t.example)}\n`).join("\n");
+  const tools = TOOLS.map((t) => `### ${t.name}${t.priceMicro === 0 ? " (free)" : ""}\n${t.description}\nHTTP: ${t.httpMethod ?? "GET"} ${env.PUBLIC_URL}/v1/${t.name}\nExample input: ${JSON.stringify(t.example)}\n`).join("\n");
   return `${base}\n\n## Paying\n\n- x402: call any paid endpoint; the 402 reply says what to sign (USDC on ${env.X402_NETWORK}). No account, no API key.\n- Credits: POST ${env.PUBLIC_URL}/v1/keys for a key with free trial credits, then send Authorization: Bearer apg_...\n- Failed calls are never charged.\n\n## Discovery files\n\n- ${env.PUBLIC_URL}/.well-known/agent-card.json (A2A)\n- ${env.PUBLIC_URL}/.well-known/x402 (payable resources)\n- ${env.PUBLIC_URL}/.well-known/mcp/server-card.json (MCP)\n- ${env.PUBLIC_URL}/openapi.json\n\n## Tools\n\n${tools}`;
 }
 
