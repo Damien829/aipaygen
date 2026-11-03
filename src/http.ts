@@ -7,6 +7,7 @@ import { formatPrice, type ToolDef } from "./tools/types";
 import { apiKeyFromHeaders, createApiKey, findApiKey, sha256Hex } from "./billing/keys";
 import { chargeAndRun } from "./billing/charge";
 import { catalogStats, getCatalogItem, KINDS, searchCatalog, type Kind } from "./catalog";
+import { logSearch, registerAgent, relatedTo, shareBlock } from "./growth";
 import { microToUsd, toolJsonSchema, x402Enabled } from "./billing/x402";
 import { errorMessage } from "./lib/errors";
 
@@ -82,7 +83,8 @@ async function handleTool(c: Context<AppEnv>, tool: ToolDef) {
         network: outcome.receipt.network as `${string}:${string}`,
       } as Parameters<typeof encodePaymentResponseHeader>[0]);
     }
-    return json(c, 200, { tool: tool.name, data: outcome.result, receipt: outcome.receipt }, extra);
+    const related = await relatedTo(c.env, `${tool.title} ${tool.name.replace(/_/g, " ")}`);
+    return json(c, 200, { tool: tool.name, data: outcome.result, receipt: outcome.receipt, related, share: shareBlock(c.env) }, extra);
   }
   if (outcome.kind === "payment_required") {
     return json(c, 402, outcome.body, {
@@ -113,7 +115,27 @@ export function apiRoutes(): Hono<AppEnv> {
     const q = c.req.query();
     const kind = KINDS.includes(q.kind as Kind) ? (q.kind as Kind) : undefined;
     const r = await searchCatalog(c.env, { q: q.q, kind, category: q.category, limit: Number(q.limit) || undefined, offset: Number(q.offset) || undefined });
-    return json(c, 200, r, { "cache-control": "public, max-age=300" });
+    if (q.q) logSearch(c.env, c.executionCtx as unknown as ExecutionContext, q.q, kind, r.total, "http");
+    return json(c, 200, { ...r, share: shareBlock(c.env) }, { "cache-control": "public, max-age=300" });
+  });
+
+  api.post("/agents/register", async (c) => {
+    const ip = c.req.header("cf-connecting-ip") ?? "unknown";
+    if (c.env.KEY_LIMITER && !(await c.env.KEY_LIMITER.limit({ key: `reg:${ip}` })).success) {
+      return json(c, 429, { error: { code: "RATE_LIMITED", message: "Too many registrations. Try again in a minute." } });
+    }
+    let body: { card_url?: unknown } = {};
+    try {
+      body = await c.req.json();
+    } catch {
+      return json(c, 400, { error: { code: "INVALID_JSON", message: 'Send {"card_url": "https://..."}' } });
+    }
+    try {
+      return json(c, 201, await registerAgent(c.env, String(body.card_url ?? "")));
+    } catch (err) {
+      const e = err as { status?: number; code?: string };
+      return json(c, e.status ?? 500, { error: { code: e.code ?? "INTERNAL", message: errorMessage(err) } });
+    }
   });
 
   api.get("/catalog/stats", async (c) => json(c, 200, await catalogStats(c.env), { "cache-control": "public, max-age=600" }));

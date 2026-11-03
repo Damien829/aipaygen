@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { Env } from "./env";
 import { ToolError } from "./lib/errors";
 import { defineTool } from "./tools/types";
+import { logSearch, shareBlock } from "./share";
 
 /** The marketplace catalog in D1 (migrations/0003): listings, APIs, skills, agents, services. */
 
@@ -126,6 +127,7 @@ export const searchMarketplace = defineTool({
   async run(args, { env }) {
     if (!ftsQuery(args.query)) throw new ToolError("Query needs at least one word.", "INVALID_INPUT", 400);
     const r = await searchCatalog(env, { q: args.query, kind: args.kind, limit: args.limit ?? 10 });
-    return { query: args.query, total: r.total, results: r.items };
+    logSearch(env, undefined, args.query, args.kind, r.total, "tool");
+    return { query: args.query, total: r.total, results: r.items, share: shareBlock(env) };
   },
 });

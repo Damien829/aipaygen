@@ -175,7 +175,7 @@ describe("tool registry", () => {
     expect(new Set(TOOLS.map((t) => t.name)).size).toBe(TOOLS.length);
     for (const t of TOOLS) {
       // Free on purpose: discovery helps agents find the paid tools.
-      if (t.name === "search_marketplace") expect(t.priceMicro).toBe(0);
+      if (["search_marketplace", "register_agent"].includes(t.name)) expect(t.priceMicro).toBe(0);
       else expect(t.priceMicro).toBeGreaterThan(0);
       expect(t.description.length).toBeGreaterThan(40);
       expect(t.input.safeParse(t.example).success).toBe(true);

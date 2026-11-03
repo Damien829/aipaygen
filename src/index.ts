@@ -7,7 +7,8 @@ import { billingPage, docsPage, landingPage, llmsTxt, openApi, serverCard } from
 import { createCheckout, handleStripeWebhook } from "./billing/stripe";
 import { x402Enabled } from "./billing/x402";
 import { handleCore } from "./core/proxy";
-import { KINDS, type Kind } from "./catalog";
+import { KINDS, searchCatalog, type Kind } from "./catalog";
+import { demandReport, logSearch } from "./growth";
 import { agentCard, catalogItemMarkdown, catalogItemPage, DISCOVERY_LINK_HEADER, llmsFullTxt, marketItem, marketMarkdown, marketPage, robotsTxt, sitemapFor, sitemapIndex, x402Discovery } from "./discovery";
 
 type AppEnv = { Bindings: Env };
@@ -46,6 +47,10 @@ app.get("/market", async (c) => {
   const kind = c.req.query("kind");
   const k = KINDS.includes(kind as Kind) ? (kind as Kind) : undefined;
   const q = c.req.query("q") ?? "";
+  if (q) {
+    const { total } = await searchCatalog(c.env, { q, kind: k, limit: 1 });
+    logSearch(c.env, c.executionCtx as unknown as ExecutionContext, q, k, total, "web");
+  }
   return wantsMarkdown(c.req.header("accept")) ? markdown(await marketMarkdown(c.env, q, k)) : html(await marketPage(c.env, q, k));
 });
 app.get("/market/:kind/:id", async (c) => {
@@ -83,6 +88,12 @@ app.post("/billing/webhook", async (c) => {
   const payload = await c.req.text();
   const r = await handleStripeWebhook(c.env, payload, c.req.header("stripe-signature") ?? null);
   return c.json({ received: r.status === 200, status: r.message }, r.status as 200);
+});
+
+app.get("/admin/demand", async (c) => {
+  const token = c.env.ADMIN_TOKEN;
+  if (!token || c.req.header("authorization") !== `Bearer ${token}`) return c.json({ error: "unauthorized" }, 401);
+  return c.json(await demandReport(c.env, Math.min(Number(c.req.query("days")) || 30, 365)));
 });
 
 app.get("/admin/stats", async (c) => {
