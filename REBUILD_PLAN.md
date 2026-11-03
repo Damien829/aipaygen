@@ -272,14 +272,14 @@ Pivot since Phase 4: **Worker-first.** The marketplace runs on Cloudflare (free,
 - Prices hidden (quote on request) · verified trust scores and ranking · Most Wanted page · A2A agent at `/a2a` · referral credits. Migrations 0006 and 0007.
 
 ### Code I can still do (in priority order)
-1. Payment-claim test with a D1 stub (Phase 4 step 1).
-2. Idempotency keys for credit calls (step 24).
-3. Free first calls per agent (try before paying).
-4. Bring over the remaining v1 content (50 blog posts, 10 agent templates, knowledge base), checked for seeded content first.
+1. ✅ Payment-claim tests (4, including parallel copies) in `test/charge-claims.test.ts`.
+2. ✅ `Idempotency-Key` on credit calls (migration 0008): a retry returns the first result at $0; reuse for another tool is refused.
+3. ✅ Free first calls (migration 0009): 3 a day per caller (hashed IP) on tools up to $0.005, independent of the facilitator.
+4. ❌ Not publishing v1's 50 blog posts (auto-generated around trending HN titles; Google's scaled-content policies could hurt the real marketplace pages) or its 10 agent-builder templates (the builder isn't running). Both stay in the backup.
 5. Reconciliation: nightly comparison of on-chain receipts with the `usage` table (step 29).
 6. Solana payments (`@x402/svm`, step 27).
 7. Fix or retire the 5 old core test failures (2 are wrong tests: the $5 credit pack correctly returns 402).
-8. Registering our own card fails with 530 (Cloudflare blocks a Worker fetching its own zone); serve it from memory in that case.
+8. Won't fix for now: registering our own card fails with 530 (Cloudflare blocks a Worker fetching its own zone). No real agent hits this.
 
 ### Needs you
 - **GitHub `workflow` permission:** unlocks pushing, CI, Dependabot and auto-deploy.

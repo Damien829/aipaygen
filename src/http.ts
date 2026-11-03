@@ -69,7 +69,7 @@ async function handleTool(c: Context<AppEnv>, tool: ToolDef) {
     tool,
     args: parsed.data as Record<string, unknown>,
     channel: "http",
-    payment: { apiKey, paymentToken: headers.get("payment-signature") ?? headers.get("x-payment") },
+    payment: { apiKey, paymentToken: headers.get("payment-signature") ?? headers.get("x-payment"), idempotencyKey: headers.get("idempotency-key") ?? headers.get("x-idempotency-key"), clientIp: headers.get("cf-connecting-ip") },
     resourceUrl: `${c.env.PUBLIC_URL}/v1/${tool.name}`,
   });
 

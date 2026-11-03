@@ -120,7 +120,7 @@ export async function handleCore(request: Request, env: Env, ctx?: ExecutionCont
     tool,
     args: {},
     channel: "http",
-    payment: { apiKey, paymentToken: request.headers.get("payment-signature") ?? request.headers.get("x-payment") },
+    payment: { apiKey, paymentToken: request.headers.get("payment-signature") ?? request.headers.get("x-payment"), idempotencyKey: request.headers.get("idempotency-key") ?? request.headers.get("x-idempotency-key"), clientIp: request.headers.get("cf-connecting-ip") },
     resourceUrl: `${env.PUBLIC_URL}${route.path}`,
   });
 
