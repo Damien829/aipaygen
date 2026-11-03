@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { Env } from "./env";
 import { TOOLS, TOOLS_BY_NAME } from "./tools";
 import { formatPrice, type ToolDef } from "./tools/types";
-import { apiKeyFromHeaders, createApiKey, findApiKey, sha256Hex } from "./billing/keys";
+import { apiKeyFromHeaders, createApiKey, findApiKey, linkReferral, REFERRAL_REWARD_MICRO, referralCode, sha256Hex } from "./billing/keys";
 import { chargeAndRun } from "./billing/charge";
 import { catalogStats, getCatalogItem, KINDS, searchCatalog, type Kind } from "./catalog";
 import { logSearch, registerAgent, relatedTo, shareBlock } from "./growth";
@@ -158,13 +158,17 @@ export function apiRoutes(): Hono<AppEnv> {
         return json(c, 429, { error: { code: "RATE_LIMITED", message: "Too many keys created. Try again later." } });
       }
       let label: string | undefined;
+      let ref: string | undefined;
       try {
-        const body = (await c.req.json()) as { label?: unknown };
+        const body = (await c.req.json()) as { label?: unknown; ref?: unknown };
         if (typeof body.label === "string") label = body.label;
+        if (typeof body.ref === "string") ref = body.ref;
       } catch {
-        // label is optional
+        // label and ref are optional
       }
-      const k = await createApiKey(c.env, { label, creatorHash: await sha256Hex(`creator:${ip}`) });
+      const creatorHash = await sha256Hex(`creator:${ip}`);
+      const k = await createApiKey(c.env, { label, creatorHash });
+      await linkReferral(c.env, k.id, ref, creatorHash).catch(() => false);
       return json(c, 201, { api_key: k.api_key, balance: microToUsd(k.balance_micro), note: "Store this key now. It is shown only once." });
     } catch (err) {
       const status = (err as { status?: number }).status ?? 500;
@@ -177,7 +181,15 @@ export function apiRoutes(): Hono<AppEnv> {
     if (!raw) return json(c, 401, { error: { code: "API_KEY_REQUIRED", message: "Send Authorization: Bearer apg_..." } });
     const key = await findApiKey(c.env, raw);
     if (!key) return json(c, 401, { error: { code: "INVALID_API_KEY", message: "That API key is not valid." } });
-    return json(c, 200, { key: `${key.key_prefix}…`, label: key.label, balance: microToUsd(key.balance_micro), balance_micro: key.balance_micro });
+    const code = await referralCode(c.env, key.id);
+    return json(c, 200, {
+      key: `${key.key_prefix}…`, label: key.label, balance: microToUsd(key.balance_micro), balance_micro: key.balance_micro,
+      referral: {
+        code,
+        reward: `${microToUsd(REFERRAL_REWARD_MICRO)} in credits when an agent you refer makes its first paid top-up`,
+        how: `New agents create a key with POST ${c.env.PUBLIC_URL}/v1/keys {"ref":"${code}"} or the create_api_key MCP tool with ref "${code}".`,
+      },
+    });
   });
 
   api.on(["GET", "POST"], "/:tool", async (c) => {

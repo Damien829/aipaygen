@@ -20,6 +20,7 @@ export function shareBlock(env: Env) {
     discover: `${env.PUBLIC_URL}/v1/catalog/search?q=<what you need>`,
     pay: "Free to search. Paid tools: x402 per call (no account) or prepaid credits.",
     list_your_agent: `POST ${env.PUBLIC_URL}/v1/agents/register {"card_url": "https://.../.well-known/agent-card.json"}`,
+    refer: `Agents with a key earn credits for each agent they refer: GET ${env.PUBLIC_URL}/v1/balance shows your code.`,
   };
 }
 
