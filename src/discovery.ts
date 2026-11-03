@@ -11,7 +11,7 @@ import { formatPrice } from "./tools/types";
  * list, llms-full.txt, and a robots.txt that welcomes AI crawlers.
  */
 
-const KIND_LABEL: Record<Kind, string> = { listing: "AIPayGen tool", api: "API", skill: "Skill", agent: "Agent", service: "Agent service" };
+const KIND_LABEL: Record<Kind, string> = { listing: "AIPayGen tool", api: "API", skill: "Skill", agent: "Agent", service: "Agent service", mcp: "MCP server" };
 
 /** Search engines get one indexable page per catalog item. */
 export function catalogItemPage(env: Env, item: CatalogItem): string {

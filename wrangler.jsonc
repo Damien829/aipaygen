@@ -38,6 +38,9 @@
     }
   ],
 
+  // Every 10 minutes: refresh agent cards, health-check listings, pull MCP Registry and x402 Bazaar (src/refresh.ts).
+  "triggers": { "crons": ["*/10 * * * *"] },
+
   "ratelimits": [
     { "name": "TOOL_LIMITER", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } },
     { "name": "KEY_LIMITER", "namespace_id": "1002", "simple": { "limit": 3, "period": 60 } }

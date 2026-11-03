@@ -6,7 +6,7 @@ import { logSearch, shareBlock } from "./share";
 
 /** The marketplace catalog in D1 (migrations/0003): listings, APIs, skills, agents, services. */
 
-export const KINDS = ["listing", "api", "skill", "agent", "service"] as const;
+export const KINDS = ["listing", "api", "skill", "agent", "service", "mcp"] as const;
 export type Kind = (typeof KINDS)[number];
 
 export interface CatalogItem {
@@ -78,6 +78,7 @@ export async function searchCatalog(env: Env, o: SearchOpts): Promise<{ total: n
     where.push("c.kind = ?");
     binds.push(o.kind);
   }
+  where.push("c.fail_count < 3"); // hide listings that failed 3 health checks in a row
   if (o.category) {
     where.push("c.category = ?");
     binds.push(o.category);
@@ -131,3 +132,40 @@ export const searchMarketplace = defineTool({
     return { query: args.query, total: r.total, results: r.items, share: shareBlock(env) };
   },
 });
+
+export interface UpsertItem {
+  id: string;
+  kind: Kind;
+  name: string;
+  description: string;
+  category: string;
+  url: string | null;
+  priceMicro: number | null;
+  x402: boolean;
+  meta: Record<string, unknown>;
+  source: string;
+}
+
+/** Insert or update one catalog row and keep the external-content FTS index in step. */
+export async function upsertCatalogItem(env: Env, it: UpsertItem): Promise<"inserted" | "updated"> {
+  const name = it.name.replace(/\*\*/g, "").trim().slice(0, 200);
+  const description = (it.description ?? "").trim().slice(0, 2000);
+  const category = (it.category ?? "").trim().slice(0, 60);
+  const meta = JSON.stringify(it.meta ?? {});
+  const now = Date.now();
+  const old = await env.DB.prepare("SELECT rowid, name, description, category FROM catalog WHERE id = ?").bind(it.id)
+    .first<{ rowid: number; name: string; description: string; category: string }>();
+  if (old) {
+    await env.DB.batch([
+      env.DB.prepare("INSERT INTO catalog_fts (catalog_fts, rowid, name, description, category) VALUES ('delete', ?, ?, ?, ?)").bind(old.rowid, old.name, old.description, old.category),
+      env.DB.prepare("UPDATE catalog SET name = ?, description = ?, category = ?, url = ?, price_micro = ?, x402 = ?, meta = ?, source = ?, updated_at = ?, fail_count = 0 WHERE id = ?")
+        .bind(name, description, category, it.url, it.priceMicro, it.x402 ? 1 : 0, meta, it.source, now, it.id),
+      env.DB.prepare("INSERT INTO catalog_fts (rowid, name, description, category) VALUES (?, ?, ?, ?)").bind(old.rowid, name, description, category),
+    ]);
+    return "updated";
+  }
+  const ins = await env.DB.prepare("INSERT INTO catalog (id, kind, name, description, category, url, price_micro, x402, meta, source, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    .bind(it.id, it.kind, name, description, category, it.url, it.priceMicro, it.x402 ? 1 : 0, meta, it.source, now).run();
+  await env.DB.prepare("INSERT INTO catalog_fts (rowid, name, description, category) VALUES (?, ?, ?, ?)").bind(ins.meta.last_row_id, name, description, category).run();
+  return "inserted";
+}

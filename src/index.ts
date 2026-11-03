@@ -9,6 +9,7 @@ import { x402Enabled } from "./billing/x402";
 import { handleCore } from "./core/proxy";
 import { KINDS, searchCatalog, type Kind } from "./catalog";
 import { demandReport, logSearch } from "./growth";
+import { runFreshness } from "./refresh";
 import { agentCard, catalogItemMarkdown, catalogItemPage, DISCOVERY_LINK_HEADER, llmsFullTxt, marketItem, marketMarkdown, marketPage, robotsTxt, sitemapFor, sitemapIndex, x402Discovery } from "./discovery";
 
 type AppEnv = { Bindings: Env };
@@ -90,6 +91,16 @@ app.post("/billing/webhook", async (c) => {
   return c.json({ received: r.status === 200, status: r.message }, r.status as 200);
 });
 
+app.get("/admin/freshness", async (c) => {
+  const token = c.env.ADMIN_TOKEN;
+  if (!token || c.req.header("authorization") !== `Bearer ${token}`) return c.json({ error: "unauthorized" }, 401);
+  const [last, sources] = await c.env.DB.batch([
+    c.env.DB.prepare("SELECT value, updated_at FROM sync_state WHERE key = 'last_freshness_run'"),
+    c.env.DB.prepare("SELECT source, COUNT(*) AS items, SUM(fail_count >= 3) AS hidden, SUM(checked_at > 0) AS checked FROM catalog GROUP BY source"),
+  ]);
+  return c.json({ last_run: last?.results[0] ?? null, sources: sources?.results ?? [] });
+});
+
 app.get("/admin/demand", async (c) => {
   const token = c.env.ADMIN_TOKEN;
   if (!token || c.req.header("authorization") !== `Bearer ${token}`) return c.json({ error: "unauthorized" }, 401);
@@ -119,6 +130,11 @@ app.notFound(async (c) => {
 });
 
 export default {
+  // Cron trigger (wrangler.jsonc): keep the catalog fresh. See src/refresh.ts.
+  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(runFreshness(env).then((r) => console.log("freshness", JSON.stringify(r))));
+  },
+
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === "/mcp") {

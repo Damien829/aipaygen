@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type CatalogItem, ftsQuery, searchCatalog } from "./catalog";
+import { type CatalogItem, ftsQuery, searchCatalog, upsertCatalogItem } from "./catalog";
 import type { Env } from "./env";
 import { ToolError } from "./lib/errors";
 import { defineTool } from "./tools/types";
@@ -83,25 +83,15 @@ export async function registerAgent(env: Env, cardUrl: string) {
   const meta = JSON.stringify({ card_url: u.href, skills, provider: card.provider?.organization ?? null, protocol_version: card.protocolVersion ?? null, self_registered: true });
   const now = Date.now();
 
-  // Keep the external-content FTS index in step with the row (delete old terms, add new ones).
-  const old = await env.DB.prepare("SELECT rowid, name, description, category FROM catalog WHERE id = ?").bind(id).first<{ rowid: number; name: string; description: string; category: string }>();
-  if (old) {
-    await env.DB.batch([
-      env.DB.prepare("INSERT INTO catalog_fts (catalog_fts, rowid, name, description, category) VALUES ('delete', ?, ?, ?, ?)").bind(old.rowid, old.name, old.description, old.category),
-      env.DB.prepare("UPDATE catalog SET name = ?, description = ?, category = ?, url = ?, meta = ?, updated_at = ? WHERE id = ?").bind(name, description, category, card.url ?? u.href, meta, now, id),
-      env.DB.prepare("INSERT INTO catalog_fts (rowid, name, description, category) VALUES (?, ?, ?, ?)").bind(old.rowid, name, description, category),
-    ]);
-  } else {
-    const ins = await env.DB.prepare("INSERT INTO catalog (id, kind, name, description, category, url, price_micro, x402, meta, updated_at) VALUES (?, 'agent', ?, ?, ?, ?, NULL, 0, ?, ?)")
-      .bind(id, name, description, category, card.url ?? u.href, meta, now).run();
-    await env.DB.prepare("INSERT INTO catalog_fts (rowid, name, description, category) VALUES (?, ?, ?, ?)").bind(ins.meta.last_row_id, name, description, category).run();
-  }
+  const updated = (await upsertCatalogItem(env, {
+    id, kind: "agent", name, description, category, url: card.url ?? u.href, priceMicro: null, x402: false, meta: JSON.parse(meta), source: "registered",
+  })) === "updated";
   await env.DB.prepare(
-    "INSERT INTO agent_registrations (card_url, catalog_id, status, created_at, refreshed_at) VALUES (?, ?, 'listed', ?, ?) ON CONFLICT(card_url) DO UPDATE SET status = 'listed', refreshed_at = excluded.refreshed_at",
+    "INSERT INTO agent_registrations (card_url, catalog_id, status, created_at, refreshed_at) VALUES (?, ?, 'listed', ?, ?) ON CONFLICT(card_url) DO UPDATE SET status = 'listed', fail_count = 0, refreshed_at = excluded.refreshed_at",
   ).bind(u.href, id, now, now).run();
 
   const [, rest] = id.split(/:(.*)/s);
-  return { listed: true, id, name, page: `${env.PUBLIC_URL}/market/agent/${rest}`, json: `${env.PUBLIC_URL}/v1/catalog/agent/${rest}`, updated: !!old };
+  return { listed: true, id, name, page: `${env.PUBLIC_URL}/market/agent/${rest}`, json: `${env.PUBLIC_URL}/v1/catalog/agent/${rest}`, updated };
 }
 
 /** Free tool: an agent lists itself so other agents can find it. */
