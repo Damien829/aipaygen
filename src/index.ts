@@ -11,6 +11,7 @@ import { KINDS, searchCatalog, type Kind } from "./catalog";
 import { demandReport, logSearch, relatedTo } from "./growth";
 import { runFreshness } from "./refresh";
 import { handleA2A } from "./a2a";
+import { facilitatorEnabled, facilitatorNetworks, facilitatorStats, handleFacilitator } from "./facilitator";
 import { wantedList, wantedPage } from "./discovery";
 import { agentCard, catalogItemMarkdown, catalogItemPage, DISCOVERY_LINK_HEADER, llmsFullTxt, marketItem, marketMarkdown, marketPage, robotsTxt, sitemapFor, sitemapIndex, x402Discovery } from "./discovery";
 
@@ -57,6 +58,16 @@ app.get("/market", async (c) => {
   return wantsMarkdown(c.req.header("accept")) ? markdown(await marketMarkdown(c.env, q, k)) : html(await marketPage(c.env, q, k));
 });
 app.post("/a2a", (c) => handleA2A(c.req.raw, c.env, c.executionCtx as unknown as ExecutionContext));
+app.get("/facilitator", async (c) => c.json({
+  name: "AIPayGen x402 facilitator",
+  non_custodial: true,
+  endpoints: { supported: "GET /facilitator/supported", verify: "POST /facilitator/verify", settle: "POST /facilitator/settle (Authorization: Bearer apg_...)" },
+  enabled: facilitatorEnabled(c.env),
+  networks: facilitatorNetworks(c.env),
+  stats: await facilitatorStats(c.env).catch(() => null),
+  use_it: "Set your x402 resource server's facilitator URL to https://aipaygen.com/facilitator and pass your apg_ key for settle.",
+}));
+app.all("/facilitator/*", (c) => handleFacilitator(c.req.raw, c.env, c.executionCtx as unknown as ExecutionContext));
 app.get("/market/wanted", async (c) => html(await wantedPage(c.env)));
 app.get("/v1/catalog/wanted", async (c) => c.json(await wantedList(c.env), 200, { "cache-control": "public, max-age=600" }));
 app.get("/market/:kind/:id", async (c) => {
