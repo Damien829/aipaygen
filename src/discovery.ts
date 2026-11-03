@@ -148,9 +148,8 @@ export function agentCard(env: Env): Record<string, unknown> {
     protocolVersion: "0.3.0",
     name: "AIPayGen",
     description: "Pay-per-call tools for AI agents: website and company intelligence, plus a free searchable marketplace of 11,000+ APIs, skills, agents and services. Pay with x402 (USDC on Base) or prepaid credits; no account needed for x402.",
-    url: `${env.PUBLIC_URL}/mcp`,
+    url: `${env.PUBLIC_URL}/a2a`,
     preferredTransport: "JSONRPC",
-    additionalInterfaces: [{ url: `${env.PUBLIC_URL}/v1`, transport: "HTTP+JSON" }],
     version: APP_VERSION,
     documentationUrl: `${env.PUBLIC_URL}/docs`,
     provider: { organization: "AIPayGen", url: env.PUBLIC_URL },
@@ -158,13 +157,19 @@ export function agentCard(env: Env): Record<string, unknown> {
     defaultInputModes: ["application/json", "text/plain"],
     defaultOutputModes: ["application/json"],
     securitySchemes: { apiKey: { type: "http", scheme: "bearer", description: "Optional apg_ key for prepaid credits. Without one, paid calls use x402." } },
-    skills: TOOLS.map((t) => ({
+    skills: [{
+      id: "find_agent_resources",
+      name: "Find APIs, agents and tools",
+      description: "Describe what you need in plain language; get verified APIs, MCP servers, agents and skills from 11,000+ listings, with uptime and how to pay. Free.",
+      tags: ["free", "search", "marketplace", "discovery"],
+      examples: ["I need a weather API my agent can pay per call", "MCP server for reading PDFs"],
+    }, ...TOOLS.map((t) => ({
       id: t.name,
       name: t.title,
       description: t.priceMicro === 0 ? `${t.description} Free.` : `${t.description} Pay per call; quote on request.`,
       tags: [t.priceMicro === 0 ? "free" : "x402", "pay-per-call"],
       examples: [JSON.stringify(t.example)],
-    })),
+    }))],
   };
 }
 
@@ -191,7 +196,7 @@ export function x402Discovery(env: Env): Record<string, unknown> {
 /** Everything an LLM needs in one fetch. */
 export function llmsFullTxt(env: Env, base: string): string {
   const tools = TOOLS.map((t) => `### ${t.name}${t.priceMicro === 0 ? " (free)" : ""}\n${t.description}\nHTTP: ${t.httpMethod ?? "GET"} ${env.PUBLIC_URL}/v1/${t.name}\nExample input: ${JSON.stringify(t.example)}\n`).join("\n");
-  return `${base}\n\n## Paying\n\n- x402: call any paid endpoint; the 402 reply says what to sign (USDC on ${env.X402_NETWORK}). No account, no API key.\n- Credits: POST ${env.PUBLIC_URL}/v1/keys for a key with free trial credits, then send Authorization: Bearer apg_...\n- Failed calls are never charged.\n\n## Discovery files\n\n- ${env.PUBLIC_URL}/.well-known/agent-card.json (A2A)\n- ${env.PUBLIC_URL}/.well-known/x402 (payable resources)\n- ${env.PUBLIC_URL}/.well-known/mcp/server-card.json (MCP)\n- ${env.PUBLIC_URL}/openapi.json\n\n## Tools\n\n${tools}`;
+  return `${base}\n\n## Paying\n\n- x402: call any paid endpoint; the 402 reply says what to sign (USDC on ${env.X402_NETWORK}). No account, no API key.\n- Credits: POST ${env.PUBLIC_URL}/v1/keys for a key with free trial credits, then send Authorization: Bearer apg_...\n- Failed calls are never charged.\n\n## Discovery files\n\n- ${env.PUBLIC_URL}/.well-known/agent-card.json (A2A; talk to us at ${env.PUBLIC_URL}/a2a with message/send)\n- ${env.PUBLIC_URL}/.well-known/x402 (payable resources)\n- ${env.PUBLIC_URL}/.well-known/mcp/server-card.json (MCP)\n- ${env.PUBLIC_URL}/openapi.json\n\n## Tools\n\n${tools}`;
 }
 
 /**

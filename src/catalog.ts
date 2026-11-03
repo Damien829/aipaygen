@@ -62,13 +62,20 @@ function toItem(r: Row): CatalogItem {
 }
 
 /** Turn free text into a safe FTS5 query: each word quoted, prefix-matched, ANDed. */
-export function ftsQuery(q: string): string | null {
-  const words = q.toLowerCase().match(/[\p{L}\p{N}]+/gu)?.slice(0, 8) ?? [];
-  return words.length ? words.map((w) => `"${w}"*`).join(" ") : null;
+export function ftsQuery(q: string, anyWord = false): string | null {
+  let words: string[] = [...(q.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [])];
+  if (anyWord) words = words.filter((w) => w.length > 2 && !STOPWORDS.has(w));
+  words = words.slice(0, 8);
+  return words.length ? words.map((w) => `"${w}"*`).join(anyWord ? " OR " : " ") : null;
 }
+
+// Dropped from natural-language requests ("I need an API that can...").
+const STOPWORDS = new Set("the and for that this with from can you your need want find looking look any some get give show what which who how are was were has have will would could should please help agent agents tool tools api apis service services".split(" "));
 
 export interface SearchOpts {
   q?: string;
+  /** Match any significant word (natural-language requests) instead of all words. */
+  anyWord?: boolean;
   kind?: Kind;
   category?: string;
   limit?: number;
@@ -80,7 +87,7 @@ export async function searchCatalog(env: Env, o: SearchOpts): Promise<{ total: n
   const offset = Math.min(Math.max(o.offset ?? 0, 0), 5000);
   const where: string[] = [];
   const binds: unknown[] = [];
-  const fts = o.q ? ftsQuery(o.q) : null;
+  const fts = o.q ? ftsQuery(o.q, o.anyWord) : null;
   if (fts) {
     where.push("c.rowid IN (SELECT rowid FROM catalog_fts WHERE catalog_fts MATCH ?)");
     binds.push(fts);
