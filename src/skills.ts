@@ -7,23 +7,27 @@ import { defineTool } from "./tools/types";
 
 /**
  * Marketplace skills, runnable. Each skill is a prompt template with {{input}}
- * (stored privately in skill_prompts). run_skill fills it in and runs it on
- * Claude Haiku 5.5. Failures and refusals are never charged (chargeAndRun).
+ * (stored privately in skill_prompts). run_skill fills it in and runs it on free
+ * Workers AI, or on Claude Haiku 5.5 when ANTHROPIC_API_KEY is set. Failures and
+ * refusals are never charged (chargeAndRun).
  */
 
 const SKILL_MODEL = "claude-haiku-5-5";
+// Free default: Cloudflare Workers AI (no key, free daily allowance). Fallback if the first model errors.
+const FREE_MODELS = ["@cf/qwen/qwen3-30b-a3b-fp8", "@cf/meta/llama-3.3-70b-instruct-fp8-fast"] as const;
 const SYSTEM = "You are running an AIPayGen marketplace skill for another AI agent. Follow the skill's instructions exactly. When it asks for JSON, reply with only valid JSON and no commentary.";
 
-function client(env: Env): Anthropic {
-  if (!env.ANTHROPIC_API_KEY) throw new ToolError("Skills are temporarily unavailable.", "SKILLS_UNAVAILABLE", 503);
-  return new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+/** Claude when ANTHROPIC_API_KEY is set; otherwise free Workers AI. Returns the text and which model ran. */
+async function ask(env: Env, prompt: string, maxTokens: number): Promise<{ text: string; model: string; usage: unknown }> {
+  if (env.ANTHROPIC_API_KEY) return askClaude(env.ANTHROPIC_API_KEY, prompt, maxTokens);
+  if (env.AI) return askWorkersAI(env.AI, prompt, maxTokens);
+  throw new ToolError("Skills are temporarily unavailable.", "SKILLS_UNAVAILABLE", 503);
 }
 
-/** Text of a Messages response; refusals and empty answers become uncharged errors. */
-async function ask(env: Env, prompt: string, maxTokens: number): Promise<{ text: string; usage: unknown }> {
+async function askClaude(apiKey: string, prompt: string, maxTokens: number) {
   let res;
   try {
-    res = await client(env).messages.create({
+    res = await new Anthropic({ apiKey }).messages.create({
       model: SKILL_MODEL,
       max_tokens: maxTokens,
       thinking: { type: "disabled" }, // skills are single-shot prompts; keep latency and cost low
@@ -38,19 +42,51 @@ async function ask(env: Env, prompt: string, maxTokens: number): Promise<{ text:
   if (res.stop_reason === "refusal") throw new ToolError("The model declined this request.", "REFUSED", 422);
   const text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("").trim();
   if (!text) throw new ToolError("The skill returned no output.", "EMPTY_OUTPUT", 502);
-  return { text, usage: res.usage };
+  return { text, model: SKILL_MODEL, usage: res.usage };
+}
+
+async function askWorkersAI(ai: Ai, prompt: string, maxTokens: number) {
+  let lastErr: unknown;
+  for (const model of FREE_MODELS) {
+    try {
+      const out = (await ai.run(model as Parameters<Ai["run"]>[0], {
+        messages: [{ role: "system", content: SYSTEM }, { role: "user", content: prompt }],
+        max_tokens: Math.min(maxTokens, 2048),
+      } as never)) as { response?: unknown; choices?: { message?: { content?: string } }[]; usage?: unknown };
+      const raw = typeof out.response === "string" ? out.response : out.choices?.[0]?.message?.content ?? "";
+      // Reasoning models may prepend <think>...</think>; agents only want the answer.
+      const text = raw.replace(/<think>[\s\S]*?<\/think>/g, "").trim();
+      if (text) return { text, model, usage: out.usage ?? null };
+      lastErr = new Error("empty output");
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  console.log("workers ai failed", lastErr instanceof Error ? lastErr.message : String(lastErr));
+  throw new ToolError("Skill runtime error.", "SKILL_RUNTIME_ERROR", 502);
 }
 
 /** JSON if the skill returned JSON (fenced or bare), else the text. */
 function parseOutput(text: string): unknown {
   const m = text.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
   const body = (m ? m[1] : text)!.trim();
-  if (/^[[{]/.test(body)) {
+  const tryParse = (t: string) => {
     try {
-      return JSON.parse(body);
+      return JSON.parse(t) as unknown;
     } catch {
-      // not JSON after all
+      return undefined;
     }
+  };
+  if (/^[[{]/.test(body)) {
+    const whole = tryParse(body);
+    if (whole !== undefined) return whole;
+  }
+  // Models sometimes wrap JSON in prose: take the outermost {...} or [...] if it parses.
+  const start = body.search(/[[{]/);
+  const end = Math.max(body.lastIndexOf("}"), body.lastIndexOf("]"));
+  if (start >= 0 && end > start) {
+    const inner = tryParse(body.slice(start, end + 1));
+    if (inner !== undefined) return inner;
   }
   return text;
 }
@@ -59,7 +95,7 @@ export const runSkill = defineTool({
   name: "run_skill",
   title: "Run a marketplace skill",
   description:
-    "Run any of 4,000+ ready-made AI skills from the AIPayGen marketplace on your input: research, code review, market analysis, writing, extraction, summarizing and more. Find skill ids with search_marketplace (kind: skill). Failed or refused runs are never charged.",
+    "Run any of 3,900+ ready-made AI skills from the AIPayGen marketplace on your input: research, code review, market analysis, writing, extraction, summarizing and more. Find skill ids with search_marketplace (kind: skill). Failed or refused runs are never charged.",
   priceMicro: 5_000,
   cacheTtl: 3600,
   httpMethod: "POST",
@@ -75,8 +111,8 @@ export const runSkill = defineTool({
     ).bind(id).first<{ name: string; description: string; prompt_template: string }>();
     if (!row) throw new ToolError("No runnable skill with that id. Find one with search_marketplace (kind: skill).", "UNKNOWN_SKILL", 404);
     const prompt = row.prompt_template.includes("{{input}}") ? row.prompt_template.replaceAll("{{input}}", args.input) : `${row.prompt_template}\n\n${args.input}`;
-    const { text, usage } = await ask(env, prompt, 4096);
-    return { skill: { id, name: row.name }, output: parseOutput(text), model: SKILL_MODEL, usage };
+    const { text, model, usage } = await ask(env, prompt, 4096);
+    return { skill: { id, name: row.name }, output: parseOutput(text), model, usage };
   },
 });
 
@@ -95,7 +131,7 @@ const draftSchema = z.object({
  * auto-generated and are runnable immediately with run_skill.
  */
 export async function skillsFromDemand(env: Env, limit = 2) {
-  if (!env.ANTHROPIC_API_KEY) return { skipped: "no ANTHROPIC_API_KEY" };
+  if (!env.ANTHROPIC_API_KEY && !env.AI) return { skipped: "no model runtime" };
   const last = await env.DB.prepare("SELECT value FROM sync_state WHERE key = 'skills_from_demand_at'").first<{ value: string }>();
   if (last && Date.now() - Number(last.value) < 3_600_000) return { skipped: "ran within the hour" };
   await env.DB.prepare("INSERT INTO sync_state (key, value, updated_at) VALUES ('skills_from_demand_at', ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at")

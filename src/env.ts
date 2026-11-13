@@ -1,5 +1,7 @@
 export interface Env {
   DB: D1Database;
+  /** Workers AI: free skill runtime (wrangler.jsonc "ai" binding). */
+  AI?: Ai;
   TOOL_LIMITER?: RateLimit;
   KEY_LIMITER?: RateLimit;
 

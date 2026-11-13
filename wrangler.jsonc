@@ -31,6 +31,9 @@
     "FACILITATOR_NETWORKS": "eip155:84532"
   },
 
+  // Workers AI: runs marketplace skills on the free daily allowance (src/skills.ts).
+  "ai": { "binding": "AI" },
+
   "d1_databases": [
     {
       "binding": "DB",
