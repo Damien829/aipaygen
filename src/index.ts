@@ -149,6 +149,22 @@ app.get("/admin/stats", async (c) => {
 
 app.route("/admin", admin);
 
+// When the database is unavailable (most likely D1's daily free quota, which resets at
+// midnight UTC), say so with a 503 and Retry-After instead of a bare 500.
+app.onError((err, c) => {
+  const message = err instanceof Error ? err.message : String(err);
+  console.log("unhandled", c.req.path, message.slice(0, 300));
+  if (!/D1_|d1 |daily|quota|limit/i.test(message)) return c.json({ error: { code: "INTERNAL", message: "Something went wrong. Try again." } }, 500);
+  const now = new Date();
+  const retry = Math.max(60, Math.ceil((Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1) - now.getTime()) / 1000));
+  const headers = { "retry-after": String(retry), "cache-control": "no-store" };
+  const text = "The AIPayGen catalog is temporarily unavailable and will be back by 00:00 UTC. Tools that don't use the catalog still work.";
+  if (/text\/html/i.test(c.req.header("accept") ?? "")) {
+    return c.html(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AIPayGen: back soon</title><body style="font:16px/1.5 system-ui;max-width:34rem;margin:18vh auto;padding:0 1.25rem;color:#e8eaf0;background:#0b0d12"><h1 style="font-size:1.4rem">The catalog is taking a short break</h1><p>${text}</p><p><a style="color:#6cc7ff" href="/">Back to the homepage</a></p></body>`, 503, headers);
+  }
+  return c.json({ error: { code: "TEMPORARILY_UNAVAILABLE", message: text, retry_after_seconds: retry } }, 503, headers);
+});
+
 app.notFound(async (c) => {
   // Anything the Worker doesn't serve itself belongs to the core (v1 marketplace), when it is configured.
   const core = await handleCore(c.req.raw, c.env, c.executionCtx as unknown as ExecutionContext);
