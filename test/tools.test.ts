@@ -182,3 +182,16 @@ describe("tool registry", () => {
     }
   });
 });
+
+describe("admin auth", () => {
+  it("accepts only the exact bearer token", async () => {
+    const { isAdmin } = await import("../src/admin");
+    const env = { ADMIN_TOKEN: "s3cret-token" };
+    expect(await isAdmin(env, "Bearer s3cret-token")).toBe(true);
+    expect(await isAdmin(env, "Bearer s3cret-toke")).toBe(false);
+    expect(await isAdmin(env, "s3cret-token")).toBe(false);
+    expect(await isAdmin(env, undefined)).toBe(false);
+    expect(await isAdmin({ ADMIN_TOKEN: undefined }, "Bearer undefined")).toBe(false);
+    expect(await isAdmin({ ADMIN_TOKEN: "" }, "Bearer ")).toBe(false);
+  });
+});

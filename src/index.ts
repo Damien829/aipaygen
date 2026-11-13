@@ -11,7 +11,8 @@ import { KINDS, searchCatalog, type Kind } from "./catalog";
 import { demandReport, logSearch, relatedTo } from "./growth";
 import { runFreshness } from "./refresh";
 import { handleA2A } from "./a2a";
-import { facilitatorEnabled, facilitatorNetworks, facilitatorStats, handleFacilitator } from "./facilitator";
+import { facilitatorEnabled, facilitatorNetworks, facilitatorPaused, facilitatorStats, handleFacilitator } from "./facilitator";
+import { admin } from "./admin";
 import { wantedList, wantedPage } from "./discovery";
 import { agentCard, catalogItemMarkdown, catalogItemPage, DISCOVERY_LINK_HEADER, llmsFullTxt, marketItem, marketMarkdown, marketPage, robotsTxt, sitemapFor, sitemapIndex, x402Discovery } from "./discovery";
 
@@ -63,6 +64,7 @@ app.get("/facilitator", async (c) => c.json({
   non_custodial: true,
   endpoints: { supported: "GET /facilitator/supported", verify: "POST /facilitator/verify", settle: "POST /facilitator/settle (Authorization: Bearer apg_...)" },
   enabled: facilitatorEnabled(c.env),
+  paused: await facilitatorPaused(c.env).catch(() => false),
   networks: facilitatorNetworks(c.env),
   stats: await facilitatorStats(c.env).catch(() => null),
   use_it: "Set your x402 resource server's facilitator URL to https://aipaygen.com/facilitator and pass your apg_ key for settle.",
@@ -108,6 +110,7 @@ app.post("/billing/webhook", async (c) => {
   return c.json({ received: r.status === 200, status: r.message }, r.status as 200);
 });
 
+// Owner controls (src/admin.ts). The three GET routes below are matched first and keep their own checks.
 app.get("/admin/freshness", async (c) => {
   const token = c.env.ADMIN_TOKEN;
   if (!token || c.req.header("authorization") !== `Bearer ${token}`) return c.json({ error: "unauthorized" }, 401);
@@ -139,6 +142,8 @@ app.get("/admin/stats", async (c) => {
   ]);
   return c.json({ window_days: 30, by_tool: byTool.results, by_day: byDay.results, keys });
 });
+
+app.route("/admin", admin);
 
 app.notFound(async (c) => {
   // Anything the Worker doesn't serve itself belongs to the core (v1 marketplace), when it is configured.

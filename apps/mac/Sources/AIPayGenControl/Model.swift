@@ -64,6 +64,7 @@ struct Facilitator: Decodable, Sendable {
         let testnet: NetStats
     }
     let enabled: Bool
+    let paused: Bool?
     let networks: [String]
     let stats: Stats?
 }
@@ -115,7 +116,8 @@ final class Store: ObservableObject {
     private var started = false
 
     var total: Int { counts.values.reduce(0, +) }
-    var mainnetLive: Bool { (fac?.networks.contains("eip155:8453") ?? false) && (mainnetGas ?? 0) >= minGasEth }
+    var ownerPaused: Bool { fac?.paused == true }
+    var mainnetLive: Bool { !ownerPaused && (fac?.networks.contains("eip155:8453") ?? false) && (mainnetGas ?? 0) >= minGasEth }
 
     static let base = "https://aipaygen.com"
     static let session: URLSession = {

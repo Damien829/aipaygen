@@ -1,4 +1,4 @@
-import { upsertCatalogItem } from "./catalog";
+import { OWNER_HIDDEN, upsertCatalogItem } from "./catalog";
 import type { Env } from "./env";
 import { facilitatorAlert } from "./facilitator";
 import { registerAgent } from "./growth";
@@ -45,7 +45,7 @@ export async function refreshAgents(env: Env, limit = 5) {
       const fails = r.fail_count + 1;
       await env.DB.batch([
         env.DB.prepare("UPDATE agent_registrations SET fail_count = ?, refreshed_at = ?, status = ? WHERE card_url = ?").bind(fails, Date.now(), fails >= 3 ? "stale" : "listed", r.card_url),
-        env.DB.prepare("UPDATE catalog SET fail_count = ? WHERE id = ?").bind(fails, r.catalog_id),
+        env.DB.prepare(`UPDATE catalog SET fail_count = ? WHERE id = ? AND fail_count < ${OWNER_HIDDEN}`).bind(fails, r.catalog_id),
       ]);
     }
   }
@@ -80,7 +80,7 @@ async function probe(kind: string, url: string, x402: boolean): Promise<Probe> {
 
 export async function healthCheck(env: Env, limit = 40) {
   const { results } = await env.DB.prepare(
-    "SELECT id, kind, url, x402, fail_count, latency_ms FROM catalog WHERE kind IN ('api', 'agent', 'service', 'mcp') AND url LIKE 'https://%' ORDER BY checked_at + CASE WHEN kind = 'mcp' OR x402 = 1 THEN 0 ELSE 86400000 END LIMIT ?",
+    `SELECT id, kind, url, x402, fail_count, latency_ms FROM catalog WHERE kind IN ('api', 'agent', 'service', 'mcp') AND url LIKE 'https://%' AND fail_count < ${OWNER_HIDDEN} ORDER BY checked_at + CASE WHEN kind = 'mcp' OR x402 = 1 THEN 0 ELSE 86400000 END LIMIT ?`,
   ).bind(limit).all<{ id: string; kind: string; url: string; x402: number; fail_count: number; latency_ms: number | null }>();
   const probes = await Promise.allSettled(results.map((r) => probe(r.kind, r.url, !!r.x402)));
   const now = Date.now();

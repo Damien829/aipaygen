@@ -5,11 +5,13 @@ import SwiftUI
 struct AIPayGenControlApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @StateObject private var store = Store()
+    @StateObject private var admin = Admin()
 
     var body: some Scene {
         WindowGroup("AIPayGen Control") {
             RootView()
                 .environmentObject(store)
+                .environmentObject(admin)
                 .frame(minWidth: 1180, minHeight: 740)
                 .preferredColorScheme(.dark)
         }
@@ -98,7 +100,9 @@ struct RootView: View {
 
 private struct Header: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject var admin: Admin
     @State private var beat = false
+    @State private var showControls = false
 
     var body: some View {
         HStack(spacing: 12) {
@@ -122,6 +126,16 @@ private struct Header: View {
                     .animation(store.loading ? .linear(duration: 0.9).repeatForever(autoreverses: false) : .default, value: store.loading)
             }
             .buttonStyle(.plain).help("Refresh now")
+            Button { showControls.toggle() } label: {
+                Label("Controls", systemImage: admin.hasToken ? "slider.horizontal.3" : "lock.fill")
+                    .font(.system(size: 11, weight: .semibold))
+                    .padding(.horizontal, 9).padding(.vertical, 4)
+                    .background(Capsule().fill(Color.white.opacity(0.1)))
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $showControls, arrowEdge: .bottom) {
+                ControlsView().environmentObject(store).environmentObject(admin)
+            }
         }
         .padding(.leading, 70)
         .frame(height: 22)
@@ -225,12 +239,12 @@ private struct FacilitatorCard: View {
             HStack {
                 Text("X402 FACILITATOR").caption()
                 Spacer()
-                Chip(text: store.fac?.enabled == true ? "ON" : "OFF", color: store.fac?.enabled == true ? .green : .gray)
+                Chip(text: store.ownerPaused ? "PAUSED BY YOU" : store.fac?.enabled == true ? "ON" : "OFF", color: store.ownerPaused ? .orange : store.fac?.enabled == true ? .green : .gray)
             }
             HStack(alignment: .top, spacing: 10) {
                 net("Base mainnet", "real money", store.fac?.stats?.mainnet, live: store.mainnetLive, pausedLabel: "PAUSED")
                 Divider().frame(height: 62)
-                net("Base Sepolia", "test network", store.fac?.stats?.testnet, live: store.fac?.networks.contains("eip155:84532") ?? false, pausedLabel: "OFF")
+                net("Base Sepolia", "test network", store.fac?.stats?.testnet, live: !store.ownerPaused && (store.fac?.networks.contains("eip155:84532") ?? false), pausedLabel: store.ownerPaused ? "PAUSED" : "OFF")
             }
             if let waiting = store.fac?.stats?.mainnet.merchants_waiting_7d, waiting > 0 {
                 Label("\(waiting) merchant\(waiting == 1 ? "" : "s") tried real payments in the last 7 days", systemImage: "person.crop.circle.badge.exclamationmark")
@@ -343,7 +357,9 @@ private struct ActivityCard: View {
 
 private struct DetailCard: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject var admin: Admin
     let item: CatalogItem
+    @State private var confirmHide = false
 
     var body: some View {
         let k = kind(item.kind)
@@ -366,6 +382,22 @@ private struct DetailCard: View {
                     var c = URLComponents(string: "https://aipaygen.com/market")!
                     c.queryItems = [URLQueryItem(name: "q", value: item.name), URLQueryItem(name: "kind", value: item.kind)]
                     if let url = c.url { NSWorkspace.shared.open(url) }
+                }
+                if admin.hasToken {
+                    Button("Hide…") { confirmHide = true }
+                        .disabled(admin.busy != nil)
+                        .confirmationDialog("Hide \"\(item.name)\"?", isPresented: $confirmHide) {
+                            Button("Hide listing", role: .destructive) {
+                                Task {
+                                    if await admin.setHidden(item.id, true) {
+                                        store.pick(nil)
+                                        await store.refresh()
+                                    }
+                                }
+                            }
+                        } message: {
+                            Text("Agents stop seeing it in search and listings. You can unhide it from Controls.")
+                        }
                 }
                 Button("Close") { store.pick(nil) }.buttonStyle(.plain).font(.system(size: 11)).foregroundStyle(.white.opacity(0.5))
             }

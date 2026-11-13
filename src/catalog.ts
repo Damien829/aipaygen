@@ -6,6 +6,9 @@ import { logSearch, shareBlock } from "./share";
 
 /** The marketplace catalog in D1 (migrations/0003): listings, APIs, skills, agents, services. */
 
+/** fail_count value meaning "hidden by the owner" (POST /admin/catalog/hide). Health checks and re-ingests never clear it. */
+export const OWNER_HIDDEN = 99;
+
 export const KINDS = ["listing", "api", "skill", "agent", "service", "mcp"] as const;
 export type Kind = (typeof KINDS)[number];
 
@@ -117,7 +120,7 @@ export async function searchCatalog(env: Env, o: SearchOpts): Promise<{ total: n
 }
 
 export async function getCatalogItem(env: Env, id: string): Promise<CatalogItem | null> {
-  const r = await env.DB.prepare(`SELECT ${COLS} FROM catalog c WHERE c.id = ?`).bind(id).first<Row>();
+  const r = await env.DB.prepare(`SELECT ${COLS} FROM catalog c WHERE c.id = ? AND c.fail_count < ${OWNER_HIDDEN}`).bind(id).first<Row>();
   return r ? toItem(r) : null;
 }
 
@@ -176,7 +179,7 @@ export async function upsertCatalogItem(env: Env, it: UpsertItem): Promise<"inse
   if (old) {
     await env.DB.batch([
       env.DB.prepare("INSERT INTO catalog_fts (catalog_fts, rowid, name, description, category) VALUES ('delete', ?, ?, ?, ?)").bind(old.rowid, old.name, old.description, old.category),
-      env.DB.prepare("UPDATE catalog SET name = ?, description = ?, category = ?, url = ?, price_micro = ?, x402 = ?, meta = ?, source = ?, updated_at = ?, fail_count = 0 WHERE id = ?")
+      env.DB.prepare(`UPDATE catalog SET name = ?, description = ?, category = ?, url = ?, price_micro = ?, x402 = ?, meta = ?, source = ?, updated_at = ?, fail_count = CASE WHEN fail_count >= ${OWNER_HIDDEN} THEN fail_count ELSE 0 END WHERE id = ?`)
         .bind(name, description, category, it.url, it.priceMicro, it.x402 ? 1 : 0, meta, it.source, now, it.id),
       env.DB.prepare("INSERT INTO catalog_fts (rowid, name, description, category) VALUES (?, ?, ?, ?)").bind(old.rowid, name, description, category),
     ]);

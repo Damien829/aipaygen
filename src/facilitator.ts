@@ -47,6 +47,22 @@ export function facilitatorEnabled(env: Env): boolean {
   return facilitatorNetworks(env).length > 0;
 }
 
+let pauseCheck: { at: number; paused: boolean } | null = null;
+
+/** Owner switch (POST /admin/facilitator). Cached briefly; other Worker instances catch up within 15 seconds. */
+export async function facilitatorPaused(env: Env, fresh = false): Promise<boolean> {
+  if (!fresh && pauseCheck && Date.now() - pauseCheck.at < 15_000) return pauseCheck.paused;
+  const r = await env.DB.prepare("SELECT value FROM sync_state WHERE key = 'facilitator_paused'").first<{ value: string }>();
+  pauseCheck = { at: Date.now(), paused: r?.value === "1" };
+  return pauseCheck.paused;
+}
+
+export async function setFacilitatorPaused(env: Env, paused: boolean) {
+  await env.DB.prepare("INSERT INTO sync_state (key, value, updated_at) VALUES ('facilitator_paused', ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at")
+    .bind(paused ? "1" : "0", Date.now()).run();
+  pauseCheck = { at: Date.now(), paused };
+}
+
 let gasCheck: { at: number; ok: boolean } | null = null;
 
 /** Cached for a minute so busy periods don't add an RPC call per settlement. */
@@ -141,6 +157,9 @@ export async function handleFacilitator(request: Request, env: Env, ctx?: Execut
         r.transaction ?? "", r.success ? 1 : 0, r.errorReason ?? null, Date.now()).run().catch(() => {});
       if (ctx) ctx.waitUntil(p);
     };
+    if (await facilitatorPaused(env).catch(() => false)) {
+      return json({ success: false, errorReason: "facilitator_unavailable", errorMessage: "Settlement is paused by the operator. Retry later or use another facilitator.", transaction: "", network: req.network ?? "" }, 503);
+    }
     if (req.network === MAINNET && !(await mainnetHasGas(env).catch(() => false))) {
       // Recorded so the owner can see real demand waiting on the fee wallet (facilitatorAlert).
       record({ success: false, errorReason: PAUSED });
