@@ -33,6 +33,8 @@ export const edgeCache: MiddlewareHandler = async (c, next) => {
   if (hit) {
     const res = new Response(hit.body, hit);
     res.headers.set("x-edge-cache", "hit");
+    // The stored copy can come back with the zone's browser TTL (hours); clients should use ours.
+    res.headers.set("cache-control", `public, max-age=${rule[1]}`);
     return res;
   }
 

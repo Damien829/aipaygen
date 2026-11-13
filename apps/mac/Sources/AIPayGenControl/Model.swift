@@ -129,6 +129,7 @@ final class Store: ObservableObject {
     static let session: URLSession = {
         let c = URLSessionConfiguration.ephemeral
         c.timeoutIntervalForRequest = 15
+        c.requestCachePolicy = .reloadIgnoringLocalCacheData // the edge already caches; never serve stale from disk
         c.httpAdditionalHeaders = ["User-Agent": "AIPayGenControl/1.0 (macOS)", "Accept": "application/json"]
         return URLSession(configuration: c)
     }()
