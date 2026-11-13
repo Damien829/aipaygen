@@ -47,6 +47,6 @@ That's the Visa-like seat: it touches every transaction it handles, and the mone
 
 ## Owner actions
 1. Create a fresh wallet for the facilitator (never reuse the payout wallet). Fund it with a little Base Sepolia ETH (free faucet) for testing, then about $5–10 of ETH on Base mainnet.
-2. `npx wrangler secret put FACILITATOR_PRIVATE_KEY`.
+2. Testnet: `npx wrangler secret put FACILITATOR_PRIVATE_KEY`. Mainnet uses its own fee wallet: `npx wrangler secret put FACILITATOR_MAINNET_KEY`. Below 0.00002 ETH, mainnet settle pauses with a 503 instead of failing.
 3. Legal check before Phase B.
 4. Submit to x402 ecosystem lists as a facilitator once mainnet is live.

@@ -27,8 +27,8 @@
     "PAY_TO": "0x366D488a48de1B2773F3a21F1A6972715056Cb30",
     // Free trial balance for new API keys, in micro-USD (50000 = $0.05).
     "TRIAL_CREDITS_MICRO": "50000",
-    // Facilitator networks. Testnet until the mainnet settlement wallet is funded (docs/FACILITATOR.md).
-    "FACILITATOR_NETWORKS": "eip155:84532"
+    // Facilitator networks. A network is served only when its fee-wallet key secret is set (docs/FACILITATOR.md).
+    "FACILITATOR_NETWORKS": "eip155:84532,eip155:8453"
   },
 
   // Workers AI: runs marketplace skills on the free daily allowance (src/skills.ts).

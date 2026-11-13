@@ -1,7 +1,7 @@
 import { x402Facilitator } from "@x402/core/facilitator";
 import { toFacilitatorEvmSigner } from "@x402/evm";
 import { registerExactEvmScheme } from "@x402/evm/exact/facilitator";
-import { createWalletClient, http, publicActions } from "viem";
+import { createPublicClient, createWalletClient, http, publicActions } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { base, baseSepolia } from "viem/chains";
 import { findApiKey } from "./billing/keys";
@@ -25,22 +25,47 @@ const CONFIRMATION_TIMEOUT_MS = 25_000;
 
 let cached: { key: string; facilitator: x402Facilitator } | null = null;
 
+const MAINNET = "eip155:8453";
+// Below this much ETH the mainnet fee wallet stops settling (and says so) instead of failing mid-transaction.
+const MIN_GAS_WEI = 20_000_000_000_000n; // 0.00002 ETH, a few settlements' worth
+
+const isKey = (k?: string) => /^0x[0-9a-fA-F]{64}$/.test(k ?? "");
+
+/** Mainnet uses its own fee wallet (FACILITATOR_MAINNET_KEY); testnet uses FACILITATOR_PRIVATE_KEY. */
+function keyFor(env: Env, network: ChainId): string | undefined {
+  return network === MAINNET ? env.FACILITATOR_MAINNET_KEY : env.FACILITATOR_PRIVATE_KEY;
+}
+
+/** Configured networks that also have a valid fee-wallet key. */
 export function facilitatorNetworks(env: Env): ChainId[] {
-  return (env.FACILITATOR_NETWORKS ?? "eip155:84532").split(",").map((s) => s.trim()).filter((n): n is ChainId => n in CHAINS);
+  return (env.FACILITATOR_NETWORKS ?? "eip155:84532").split(",").map((s) => s.trim())
+    .filter((n): n is ChainId => n in CHAINS).filter((n) => isKey(keyFor(env, n)));
 }
 
 export function facilitatorEnabled(env: Env): boolean {
-  return /^0x[0-9a-fA-F]{64}$/.test(env.FACILITATOR_PRIVATE_KEY ?? "") && facilitatorNetworks(env).length > 0;
+  return facilitatorNetworks(env).length > 0;
+}
+
+let gasCheck: { at: number; ok: boolean } | null = null;
+
+/** Cached for a minute so busy periods don't add an RPC call per settlement. */
+async function mainnetHasGas(env: Env): Promise<boolean> {
+  if (gasCheck && Date.now() - gasCheck.at < 60_000) return gasCheck.ok;
+  const client = createPublicClient({ chain: base, transport: http(env.FACILITATOR_RPC_BASE) });
+  const ok = (await client.getBalance({ address: privateKeyToAccount(env.FACILITATOR_MAINNET_KEY as `0x${string}`).address })) >= MIN_GAS_WEI;
+  gasCheck = { at: Date.now(), ok };
+  if (!ok) console.log("facilitator mainnet fee wallet low on gas");
+  return ok;
 }
 
 function getFacilitator(env: Env): x402Facilitator {
   const networks = facilitatorNetworks(env);
-  const key = `${networks.join(",")}|${env.FACILITATOR_RPC_BASE ?? ""}|${env.FACILITATOR_RPC_BASE_SEPOLIA ?? ""}`;
+  const key = `${networks.join(",")}|${env.FACILITATOR_RPC_BASE ?? ""}|${env.FACILITATOR_RPC_BASE_SEPOLIA ?? ""}|${(env.FACILITATOR_MAINNET_KEY ?? "").slice(-6)}|${(env.FACILITATOR_PRIVATE_KEY ?? "").slice(-6)}`;
   if (cached?.key === key) return cached.facilitator;
-  const account = privateKeyToAccount(env.FACILITATOR_PRIVATE_KEY as `0x${string}`);
   const facilitator = new x402Facilitator();
   for (const network of networks) {
-    const rpc = network === "eip155:8453" ? env.FACILITATOR_RPC_BASE : env.FACILITATOR_RPC_BASE_SEPOLIA;
+    const account = privateKeyToAccount(keyFor(env, network) as `0x${string}`);
+    const rpc = network === MAINNET ? env.FACILITATOR_RPC_BASE : env.FACILITATOR_RPC_BASE_SEPOLIA;
     const client = createWalletClient({ account, chain: CHAINS[network], transport: http(rpc) }).extend(publicActions);
     const signer = toFacilitatorEvmSigner(
       { ...client, address: account.address } as unknown as Parameters<typeof toFacilitatorEvmSigner>[0],
@@ -107,6 +132,9 @@ export async function handleFacilitator(request: Request, env: Env, ctx?: Execut
     const b = await readBody(request);
     if (!b) return json({ success: false, errorReason: "invalid_request", errorMessage: "Send { x402Version, paymentPayload, paymentRequirements }.", transaction: "", network: "" }, 400);
     if (!served(b)) return json({ success: false, errorReason: "unsupported_network", errorMessage: `Supported networks: ${networks.join(", ")}`, transaction: "", network: "" }, 400);
+    if (String((b.paymentRequirements as unknown as { network?: string }).network) === MAINNET && !(await mainnetHasGas(env).catch(() => false))) {
+      return json({ success: false, errorReason: "facilitator_unavailable", errorMessage: "Mainnet settlement is paused. Retry later or use another facilitator.", transaction: "", network: MAINNET }, 503);
+    }
     let result;
     try {
       result = await fac.settle(b.paymentPayload!, b.paymentRequirements!);
