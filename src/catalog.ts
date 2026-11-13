@@ -124,6 +124,23 @@ export async function getCatalogItem(env: Env, id: string): Promise<CatalogItem 
   return r ? toItem(r) : null;
 }
 
+/**
+ * Counts per kind plus a small sample of each, for dashboards (the Mac app).
+ * One call replaces six listing searches; the samples use the kind index and no sort,
+ * so they read about 25 rows each. Served from the edge cache for 30 minutes.
+ */
+export async function catalogSummary(env: Env, perKind = 24) {
+  const [counts, ...samples] = await env.DB.batch([
+    env.DB.prepare("SELECT kind, COUNT(*) AS n FROM catalog WHERE fail_count < 3 GROUP BY kind"),
+    ...KINDS.map((k) => env.DB.prepare(`SELECT ${COLS} FROM catalog c WHERE c.kind = ? AND c.fail_count < 3 LIMIT ?`).bind(k, perKind)),
+  ]);
+  return {
+    counts: Object.fromEntries(((counts?.results ?? []) as { kind: Kind; n: number }[]).map((r) => [r.kind, r.n])),
+    nodes: samples.flatMap((s) => (s.results as Row[]).map(toItem)),
+    generated_at: new Date().toISOString(),
+  };
+}
+
 export async function catalogStats(env: Env) {
   const { results } = await env.DB.prepare("SELECT kind, COUNT(*) AS n FROM catalog GROUP BY kind").all<{ kind: Kind; n: number }>();
   const { results: cats } = await env.DB.prepare(

@@ -79,9 +79,15 @@ async function probe(kind: string, url: string, x402: boolean): Promise<Probe> {
 }
 
 export async function healthCheck(env: Env, limit = 40) {
-  const { results } = await env.DB.prepare(
-    `SELECT id, kind, url, x402, fail_count, latency_ms FROM catalog WHERE kind IN ('api', 'agent', 'service', 'mcp') AND url LIKE 'https://%' AND fail_count < ${OWNER_HIDDEN} ORDER BY checked_at + CASE WHEN kind = 'mcp' OR x402 = 1 THEN 0 ELSE 86400000 END LIMIT ?`,
-  ).bind(limit).all<{ id: string; kind: string; url: string; x402: number; fail_count: number; latency_ms: number | null }>();
+  // One indexed query per kind (idx_catalog_health), least recently checked first.
+  // MCP servers and APIs get most of the budget: they are what agents call.
+  type HealthRow = { id: string; kind: string; url: string; x402: number; fail_count: number; latency_ms: number | null };
+  const share: [string, number][] = [["mcp", 0.375], ["api", 0.375], ["agent", 0.125], ["service", 0.125]];
+  const batches = await env.DB.batch(share.map(([kind, part]) => env.DB.prepare(
+    `SELECT id, kind, url, x402, fail_count, latency_ms FROM catalog WHERE kind = ? AND url LIKE 'https://%' AND fail_count < ${OWNER_HIDDEN} ORDER BY checked_at LIMIT ?`,
+  ).bind(kind, Math.max(1, Math.round(limit * part)))));
+  const results = batches.flatMap((b) => b.results as HealthRow[]);
+  if (!results.length) return { checked: 0, alive: 0, verified: 0 };
   const probes = await Promise.allSettled(results.map((r) => probe(r.kind, r.url, !!r.x402)));
   const now = Date.now();
   let alive = 0;

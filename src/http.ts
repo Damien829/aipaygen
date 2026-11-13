@@ -6,7 +6,7 @@ import { TOOLS, TOOLS_BY_NAME } from "./tools";
 import { formatPrice, type ToolDef } from "./tools/types";
 import { apiKeyFromHeaders, createApiKey, findApiKey, linkReferral, REFERRAL_REWARD_MICRO, referralCode, sha256Hex } from "./billing/keys";
 import { chargeAndRun } from "./billing/charge";
-import { catalogStats, getCatalogItem, KINDS, searchCatalog, type Kind } from "./catalog";
+import { catalogStats, catalogSummary, getCatalogItem, KINDS, searchCatalog, type Kind } from "./catalog";
 import { logSearch, registerAgent, relatedTo, shareBlock } from "./growth";
 import { microToUsd, toolJsonSchema, x402Enabled } from "./billing/x402";
 import { errorMessage } from "./lib/errors";
@@ -136,6 +136,8 @@ export function apiRoutes(): Hono<AppEnv> {
       return json(c, e.status ?? 500, { error: { code: e.code ?? "INTERNAL", message: errorMessage(err) } });
     }
   });
+
+  api.get("/catalog/summary", async (c) => json(c, 200, await catalogSummary(c.env), { "cache-control": "public, max-age=1800" }));
 
   api.get("/catalog/stats", async (c) => json(c, 200, await catalogStats(c.env), { "cache-control": "public, max-age=600" }));
 

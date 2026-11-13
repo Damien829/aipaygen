@@ -34,18 +34,28 @@ admin.use("*", async (c, next) => {
   await next();
 });
 
+interface HiddenItem { id: string; kind: string; name: string }
+
+/** Owner-hidden listings are tracked in sync_state, so listing them doesn't scan the catalog. */
+async function hiddenList(env: Env): Promise<HiddenItem[]> {
+  const r = await env.DB.prepare("SELECT value FROM sync_state WHERE key = 'owner_hidden'").first<{ value: string }>();
+  try {
+    const v = JSON.parse(r?.value ?? "[]") as unknown;
+    return Array.isArray(v) ? (v as HiddenItem[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 admin.get("/overview", async (c) => {
-  const [last, hidden] = await c.env.DB.batch([
-    c.env.DB.prepare("SELECT value FROM sync_state WHERE key = 'last_freshness_run'"),
-    c.env.DB.prepare("SELECT id, kind, name FROM catalog WHERE fail_count >= ? ORDER BY updated_at DESC LIMIT 50").bind(OWNER_HIDDEN),
-  ]);
+  const last = await c.env.DB.prepare("SELECT value FROM sync_state WHERE key = 'last_freshness_run'").first<{ value: string }>();
   let lastRun: unknown = null;
   try {
-    lastRun = JSON.parse((last?.results[0] as { value?: string } | undefined)?.value ?? "null");
+    lastRun = JSON.parse(last?.value ?? "null");
   } catch {
     // leave null
   }
-  return c.json({ facilitator_paused: await facilitatorPaused(c.env, true), last_run: lastRun, hidden: hidden?.results ?? [] });
+  return c.json({ facilitator_paused: await facilitatorPaused(c.env, true), last_run: lastRun, hidden: await hiddenList(c.env) });
 });
 
 admin.post("/refresh", async (c) => c.json({ ok: true, result: await runFreshness(c.env) }));
@@ -60,8 +70,15 @@ admin.post("/facilitator", async (c) => {
 admin.post("/catalog/hide", async (c) => {
   const body = (await c.req.json().catch(() => null)) as { id?: unknown; hidden?: unknown } | null;
   if (typeof body?.id !== "string" || typeof body.hidden !== "boolean") return c.json({ error: 'Send { "id": "...", "hidden": true|false }.' }, 400);
-  // Unhiding sets 0, so the next health check decides from scratch.
-  const r = await c.env.DB.prepare("UPDATE catalog SET fail_count = ? WHERE id = ?").bind(body.hidden ? OWNER_HIDDEN : 0, body.id).run();
-  if (!r.meta.changes) return c.json({ error: "No listing with that id." }, 404);
+  const item = await c.env.DB.prepare("SELECT id, kind, name FROM catalog WHERE id = ?").bind(body.id).first<HiddenItem>();
+  if (!item) return c.json({ error: "No listing with that id." }, 404);
+  const list = (await hiddenList(c.env)).filter((h) => h.id !== item.id);
+  if (body.hidden) list.unshift(item);
+  await c.env.DB.batch([
+    // Unhiding sets 0, so the next health check decides from scratch.
+    c.env.DB.prepare("UPDATE catalog SET fail_count = ? WHERE id = ?").bind(body.hidden ? OWNER_HIDDEN : 0, item.id),
+    c.env.DB.prepare("INSERT INTO sync_state (key, value, updated_at) VALUES ('owner_hidden', ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at")
+      .bind(JSON.stringify(list.slice(0, 500)), Date.now()),
+  ]);
   return c.json({ ok: true, id: body.id, hidden: body.hidden });
 });

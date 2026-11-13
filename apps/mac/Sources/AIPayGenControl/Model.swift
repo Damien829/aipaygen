@@ -44,6 +44,12 @@ struct SearchResponse: Decodable, Sendable {
     let items: [CatalogItem]
 }
 
+/// GET /v1/catalog/summary: every count and the sample nodes in one edge-cached call.
+struct Summary: Decodable, Sendable {
+    let counts: [String: Int]
+    let nodes: [CatalogItem]
+}
+
 struct Health: Decodable, Sendable {
     let ok: Bool
     let version: String?
@@ -154,7 +160,9 @@ final class Store: ObservableObject {
         started = true
         while !Task.isCancelled {
             await refresh()
-            try? await Task.sleep(nanoseconds: 45_000_000_000)
+            // Slow on purpose. The site's database has a daily read quota (D1 free plan),
+            // and the summary is edge-cached for 30 minutes anyway.
+            try? await Task.sleep(nanoseconds: 120_000_000_000)
         }
     }
 
@@ -167,18 +175,8 @@ final class Store: ObservableObject {
         async let w: Wanted? = try? get("/v1/catalog/wanted")
         async let mg = gas("https://mainnet.base.org", mainnetWallet)
         async let tg = gas("https://sepolia.base.org", testnetWallet)
-        let pages = await withTaskGroup(of: (String, SearchResponse?).self, returning: [String: SearchResponse].self) { group in
-            for k in kinds {
-                group.addTask {
-                    let r: SearchResponse? = try? await self.get("/v1/catalog/search?q=&kind=\(k.id)&limit=24")
-                    return (k.id, r)
-                }
-            }
-            var out: [String: SearchResponse] = [:]
-            for await (k, r) in group { if let r { out[k] = r } }
-            return out
-        }
-        let (health, fac, wanted, mainGas, testGas) = await (h, f, w, mg, tg)
+        async let sm: Summary? = try? get("/v1/catalog/summary")
+        let (health, fac, wanted, mainGas, testGas, summary) = await (h, f, w, mg, tg, sm)
 
         let wasOnline = online
         online = health?.ok == true
@@ -189,14 +187,18 @@ final class Store: ObservableObject {
         let old = counts
         var newCounts = counts
         var newItems: [CatalogItem] = []
-        for k in kinds {
-            guard let p = pages[k.id] else { newItems += items.filter { $0.kind == k.id }; continue }
-            newCounts[k.id] = p.total
-            newItems += p.items
-            if let before = old[k.id], p.total > before {
-                log("+\(p.total - before) new \(k.label.lowercased())", "plus.circle.fill", k.color)
-                network.pulse(k.id)
+        if let summary {
+            newItems = summary.nodes
+            for k in kinds {
+                let n = summary.counts[k.id] ?? 0
+                newCounts[k.id] = n
+                if let before = old[k.id], n > before {
+                    log("+\(n - before) new \(k.label.lowercased())", "plus.circle.fill", k.color)
+                    network.pulse(k.id)
+                }
             }
+        } else {
+            newItems = items // keep what we had; the next refresh will retry
         }
         let settlements = fac.flatMap { $0.stats }.map { $0.mainnet.settlements + $0.testnet.settlements }
         if let s = settlements, let before = lastSettlements, s > before {

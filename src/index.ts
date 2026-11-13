@@ -13,12 +13,16 @@ import { runFreshness } from "./refresh";
 import { handleA2A } from "./a2a";
 import { facilitatorEnabled, facilitatorNetworks, facilitatorPaused, facilitatorStats, handleFacilitator } from "./facilitator";
 import { admin } from "./admin";
+import { edgeCache } from "./edgecache";
 import { wantedList, wantedPage } from "./discovery";
 import { agentCard, catalogItemMarkdown, catalogItemPage, DISCOVERY_LINK_HEADER, llmsFullTxt, marketItem, marketMarkdown, marketPage, robotsTxt, sitemapFor, sitemapIndex, x402Discovery } from "./discovery";
 
 type AppEnv = { Bindings: Env };
 
 const app = new Hono<AppEnv>();
+
+// Outermost, so a cache hit skips everything below (src/edgecache.ts).
+app.use("*", edgeCache);
 
 // Every response points agents at the machine-readable entry points.
 app.use("*", async (c, next) => {
