@@ -10,10 +10,11 @@ regexes = [
   # apk_YOUR_KEY, apk_your_key, apk_testkey, apk_THE_KEY, apk_xxx, apk_...
   '''(?i)apk_[a-z_]*key''',
   '''apk_(xxx|\.\.\.)''',
-  # YOUR_API_KEY, YOUR_KEY_HERE
-  '''(?i)your_(api_)?key''',
+  # YOUR_API_KEY, YOUR_KEY_HERE, YOUR_ADMIN_SECRET
+  '''(?i)your_[a-z_]*(key|secret|token)''',
   # Shell and template variables: $BILLING_KEY, ${token}, {api_key}, <key>, apg_...
   '''(?i)(bearer|key:)\s*(\$\{?[a-z_]+|\{[a-z_.]+|<[a-z_ ]+>|apg_\.\.\.)''',
-  # Fixture in core/tests/test_webhook_signing.py
+  # Fixtures in core/tests
   '''apk_live_abcdefghijklmnop9999''',
+  '''apk_existing123''',
 ]
