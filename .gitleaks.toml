@@ -1,0 +1,12 @@
+# Secret scan settings (CI: gitleaks). Default rules, plus an allowlist for
+# placeholders in docs and fixtures in tests. These are not real keys.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documentation placeholders and test fixtures"
+regexTarget = "match"
+regexes = [
+  '''apk_[A-Z_]*KEY''',
+  '''apk_live_abcdefghijklmnop9999''',
+]
