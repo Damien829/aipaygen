@@ -16,7 +16,24 @@ swift test                    # analytics tests
 ```
 
 It opens with a simulated sample league so every screen has something to show.
-Replace it with real results in **Data** — a CSV with one finished game per row:
+
+### Live results and odds
+
+In **Data**, pick a league (NBA, NFL, NHL, MLB), paste an API key from
+[the-odds-api.com](https://the-odds-api.com) and press **Refresh Now** (or use Refresh on Best Bets).
+
+- **Results** — this season's finished games from ESPN's public scoreboard. No key needed, but it is
+  an unofficial feed and could change without notice.
+- **Odds** — current moneylines, spreads and totals from US bookmakers. Each side shows the best
+  price on offer and which book has it; "Market" is the average across books with the margin removed.
+  The free plan allows 500 requests a month; each refresh uses 3. The key is stored in your keychain.
+- Odds update when you press Refresh, not continuously.
+- Past games arrive without spreads or totals, so spread and over/under streaks start empty and fill
+  in as games you refreshed odds for are played.
+
+### Your own results
+
+Or import a CSV in **Data** with one finished game per row:
 
 ```
 date,home,away,home_score,away_score,spread,total

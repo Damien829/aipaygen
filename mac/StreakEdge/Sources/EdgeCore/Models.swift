@@ -23,6 +23,7 @@ public struct Game: Codable, Identifiable, Hashable, Sendable {
 }
 
 /// An upcoming game with moneyline prices (American odds).
+/// From the live feed, each side's price is the best one on offer and the `…Book` fields say where.
 public struct SlateGame: Codable, Identifiable, Hashable, Sendable {
     public var id: UUID
     public var date: Date
@@ -32,12 +33,23 @@ public struct SlateGame: Codable, Identifiable, Hashable, Sendable {
     public var awayOdds: Int
     public var spread: Double?
     public var total: Double?
+    public var homeBook: String?
+    public var awayBook: String?
+    /// Home win probability averaged over every bookmaker, margin removed.
+    public var marketHome: Double?
+    public var bookCount: Int?
+    /// The feed's own event id, so a refresh updates a game instead of duplicating it.
+    public var sourceID: String?
 
     public init(id: UUID = UUID(), date: Date, home: String, away: String,
-                homeOdds: Int, awayOdds: Int, spread: Double? = nil, total: Double? = nil) {
+                homeOdds: Int, awayOdds: Int, spread: Double? = nil, total: Double? = nil,
+                homeBook: String? = nil, awayBook: String? = nil, marketHome: Double? = nil,
+                bookCount: Int? = nil, sourceID: String? = nil) {
         self.id = id; self.date = date; self.home = home; self.away = away
         self.homeOdds = homeOdds; self.awayOdds = awayOdds
         self.spread = spread; self.total = total
+        self.homeBook = homeBook; self.awayBook = awayBook
+        self.marketHome = marketHome; self.bookCount = bookCount; self.sourceID = sourceID
     }
 }
 

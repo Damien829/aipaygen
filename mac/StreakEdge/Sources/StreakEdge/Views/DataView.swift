@@ -14,9 +14,40 @@ struct DataView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack(spacing: 10) {
                     StatTile(title: "Games", value: "\(store.games.count)",
-                             detail: store.usingSampleData ? "simulated sample league" : "imported")
+                             detail: store.usingSampleData ? "simulated sample league"
+                                 : (store.isLive ? "live \(store.league.title) results" : "imported"))
                     StatTile(title: "Teams", value: "\(store.model.teams.count)")
                     StatTile(title: "Upcoming games", value: "\(store.slate.count)")
+                }
+
+                GroupBox("Live data") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Loads this season's real results and current bookmaker odds, replacing whatever games are loaded now. Odds need a key from the-odds-api.com; its free plan allows 500 requests a month and each refresh uses 3.")
+                        Picker("League", selection: Binding(get: { store.league }, set: { store.setLeague($0) })) {
+                            ForEach(League.allCases) { Text($0.title).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(maxWidth: 320)
+                        SecureField("Odds API key", text: $store.apiKey)
+                            .frame(maxWidth: 420)
+                        HStack {
+                            Button("Refresh Now") { Task { await store.refreshLive() } }
+                                .disabled(store.isRefreshing)
+                            if store.isRefreshing { ProgressView().controlSize(.small) }
+                        }
+                        if let text = store.liveMessage { Text(text).foregroundStyle(.secondary) }
+                        if let updated = store.resultsUpdated {
+                            Text("Results updated \(updated.formatted(date: .abbreviated, time: .shortened)).")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        if let updated = store.oddsUpdated {
+                            Text("Odds updated \(updated.formatted(date: .abbreviated, time: .shortened))"
+                                + (store.oddsRequestsRemaining.map { "; \($0) requests left this month." } ?? "."))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 GroupBox("Import results") {
@@ -42,7 +73,7 @@ struct DataView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                Text("Everything stays on this Mac, in Application Support/StreakEdge. Probabilities are estimates from past results, not guarantees — only stake what you can afford to lose.")
+                Text("Your bets and settings stay on this Mac, in Application Support/StreakEdge; the API key is kept in your keychain. Probabilities are estimates from past results, not guarantees — only stake what you can afford to lose.")
                     .font(.caption).foregroundStyle(.secondary)
             }
             .padding(16)

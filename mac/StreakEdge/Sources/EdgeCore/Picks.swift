@@ -13,6 +13,10 @@ public struct Pick: Identifiable, Hashable, Sendable {
     /// Market probability with the bookmaker margin removed.
     public var marketProbability: Double
     public var winStreak: Int
+    /// Bookmaker offering this price, when it came from the live feed.
+    public var book: String?
+    /// False when the team has no past results, so the model is only guessing.
+    public var hasHistory = true
 
     public var edge: Double { modelProbability - marketProbability }
     public var expectedValue: Double { Odds.expectedValue(probability: modelProbability, american: odds) }
@@ -41,14 +45,16 @@ public enum Picks {
         }
         return slate.flatMap { g -> [Pick] in
             let pHome = model.homeWinProbability(home: g.home, away: g.away)
-            let market = Odds.noVig(g.homeOdds, g.awayOdds)
+            let fallback = Odds.noVig(g.homeOdds, g.awayOdds)
+            let marketHome = g.marketHome ?? fallback.a
+            let known = model.team(g.home) != nil && model.team(g.away) != nil
             return [
                 Pick(gameID: g.id, date: g.date, team: g.home, opponent: g.away, isHome: true,
-                     odds: g.homeOdds, modelProbability: pHome, marketProbability: market.a,
-                     winStreak: streak(g.home)),
+                     odds: g.homeOdds, modelProbability: pHome, marketProbability: marketHome,
+                     winStreak: streak(g.home), book: g.homeBook, hasHistory: known),
                 Pick(gameID: g.id, date: g.date, team: g.away, opponent: g.home, isHome: false,
-                     odds: g.awayOdds, modelProbability: 1 - pHome, marketProbability: market.b,
-                     winStreak: streak(g.away)),
+                     odds: g.awayOdds, modelProbability: 1 - pHome, marketProbability: 1 - marketHome,
+                     winStreak: streak(g.away), book: g.awayBook, hasHistory: known),
             ]
         }
         .sorted { $0.expectedValue > $1.expectedValue }
@@ -56,7 +62,7 @@ public enum Picks {
 
     /// Every combination of `legCount` positive-value picks from different games, best expected value first.
     public static func bestParlays(from picks: [Pick], legCount: Int, limit: Int = 20) -> [Parlay] {
-        let pool = Array(picks.filter { $0.expectedValue > 0 }.prefix(14))
+        let pool = Array(picks.filter { $0.expectedValue > 0 && $0.hasHistory }.prefix(14))
         guard legCount >= 2, pool.count >= legCount else { return [] }
         var out: [Parlay] = []
         var chosen: [Pick] = []

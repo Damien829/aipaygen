@@ -8,14 +8,22 @@ struct BestBetsView: View {
     @State private var selection: Pick.ID?
 
     private var rows: [Pick] {
-        valueOnly ? store.picks.filter { $0.expectedValue > 0 } : store.picks
+        valueOnly ? store.picks.filter { $0.expectedValue > 0 && $0.hasHistory } : store.picks
+    }
+
+    private var status: String {
+        if let message = store.liveMessage { return message }
+        guard let updated = store.oddsUpdated else {
+            return store.usingSampleData ? "Simulated odds — use Refresh or the Data screen for live ones." : ""
+        }
+        return "Live \(store.league.title) odds as of \(updated.formatted(date: .omitted, time: .shortened))."
     }
 
     var body: some View {
         VStack(spacing: 0) {
             if store.slate.isEmpty {
                 EmptyState(title: "No upcoming games",
-                           message: "Add a game and its moneyline prices to see where the model disagrees with the market.",
+                           message: store.liveMessage ?? "Refresh to load live odds, or add a game and its moneyline prices by hand.",
                            icon: "star")
             } else {
                 Table(rows, selection: $selection) {
@@ -26,17 +34,26 @@ struct BestBetsView: View {
                         }
                     }
                     .width(min: 190)
-                    TableColumn("Odds") { Text(Odds.format(american: $0.odds)).monospacedDigit() }
-                    TableColumn("Model") { Text(Fmt.pct($0.modelProbability)).monospacedDigit() }
+                    TableColumn("Best odds") { p in
+                        VStack(alignment: .leading) {
+                            Text(Odds.format(american: p.odds)).monospacedDigit()
+                            if let book = p.book { Text(book).font(.caption).foregroundStyle(.secondary) }
+                        }
+                    }
+                    TableColumn("Model") { p in
+                        Text(p.hasHistory ? Fmt.pct(p.modelProbability) : "No results")
+                            .monospacedDigit()
+                            .foregroundStyle(p.hasHistory ? .primary : .secondary)
+                    }
                     TableColumn("Market") { Text(Fmt.pct($0.marketProbability)).monospacedDigit() }
                     TableColumn("Edge") { p in
                         Text(Fmt.signedPct(p.edge)).monospacedDigit()
-                            .fontWeight(p.edge > 0 ? .semibold : .regular)
-                            .foregroundStyle(p.edge > 0 ? .primary : .secondary)
+                            .fontWeight(p.edge > 0 && p.hasHistory ? .semibold : .regular)
+                            .foregroundStyle(p.edge > 0 && p.hasHistory ? .primary : .secondary)
                     }
                     TableColumn("EV per $100") { Text(Fmt.signedMoney($0.expectedValue * 100)).monospacedDigit() }
                     TableColumn("Stake") { p in
-                        let stake = store.suggestedStake(kelly: p.kelly)
+                        let stake = p.hasHistory ? store.suggestedStake(kelly: p.kelly) : 0
                         Text(stake > 0 ? Fmt.money(stake) : "Pass").monospacedDigit()
                             .foregroundStyle(stake > 0 ? .primary : .secondary)
                     }
@@ -54,13 +71,19 @@ struct BestBetsView: View {
                         for p in store.picks where ids.contains(p.id) { store.removeSlateGame(p.gameID) }
                     }
                 }
-                Text("Model is the app's win probability. Market is the bookmaker's price with its margin removed. Stake is \(Fmt.pct(store.kellyFraction, digits: 0)) of the Kelly amount on a \(Fmt.money(store.currentBalance)) balance, never more than \(Fmt.pct(AppStore.maxStakeShare, digits: 0)) of it.")
+                Text("\(status) Model is the app's win probability. Market is the bookmakers' average price with their margin removed. Stake is \(Fmt.pct(store.kellyFraction, digits: 0)) of the Kelly amount on a \(Fmt.money(store.currentBalance)) balance, never more than \(Fmt.pct(AppStore.maxStakeShare, digits: 0)) of it.")
                     .font(.caption).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(10)
             }
         }
         .toolbar {
+            if store.isRefreshing { ProgressView().controlSize(.small) }
+            Button("Refresh \(store.league.title)", systemImage: "arrow.clockwise") {
+                Task { await store.refreshLive() }
+            }
+            .disabled(store.isRefreshing)
+            .help("Load this season's results and current odds")
             Toggle("Positive value only", isOn: $valueOnly)
             Button("Add Game", systemImage: "plus") { adding = true }
         }
