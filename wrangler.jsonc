@@ -28,7 +28,9 @@
     // Free trial balance for new API keys, in micro-USD (50000 = $0.05).
     "TRIAL_CREDITS_MICRO": "50000",
     // Facilitator networks. A network is served only when its fee-wallet key secret is set (docs/FACILITATOR.md).
-    "FACILITATOR_NETWORKS": "eip155:84532,eip155:8453"
+    "FACILITATOR_NETWORKS": "eip155:84532,eip155:8453",
+    // Owner alerts open issues here (needs the GITHUB_ALERT_TOKEN secret).
+    "GITHUB_ALERT_REPO": "Damien829/aipaygen"
   },
 
   // Workers AI: runs marketplace skills on the free daily allowance (src/skills.ts).

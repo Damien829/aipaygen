@@ -1,5 +1,6 @@
 import { upsertCatalogItem } from "./catalog";
 import type { Env } from "./env";
+import { facilitatorAlert } from "./facilitator";
 import { registerAgent } from "./growth";
 import { skillsFromDemand } from "./skills";
 
@@ -171,6 +172,7 @@ export async function runFreshness(env: Env) {
     ["mcp_registry", () => ingestMcpRegistry(env)],
     ["x402_bazaar", () => ingestBazaar(env)],
     ["skills_from_demand", () => skillsFromDemand(env)],
+    ["facilitator_alert", () => facilitatorAlert(env)],
   ] as const) {
     try {
       out[name] = await job();

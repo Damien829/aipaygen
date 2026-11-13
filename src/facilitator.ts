@@ -29,7 +29,8 @@ const MAINNET = "eip155:8453";
 // Below this much ETH the mainnet fee wallet stops settling (and says so) instead of failing mid-transaction.
 const MIN_GAS_WEI = 20_000_000_000_000n; // 0.00002 ETH, a few settlements' worth
 
-const isKey = (k?: string) => /^0x[0-9a-fA-F]{64}$/.test(k ?? "");
+const PAUSED = "paused_no_gas";
+const isKey =(k?: string) => /^0x[0-9a-fA-F]{64}$/.test(k ?? "");
 
 /** Mainnet uses its own fee wallet (FACILITATOR_MAINNET_KEY); testnet uses FACILITATOR_PRIVATE_KEY. */
 function keyFor(env: Env, network: ChainId): string | undefined {
@@ -132,7 +133,17 @@ export async function handleFacilitator(request: Request, env: Env, ctx?: Execut
     const b = await readBody(request);
     if (!b) return json({ success: false, errorReason: "invalid_request", errorMessage: "Send { x402Version, paymentPayload, paymentRequirements }.", transaction: "", network: "" }, 400);
     if (!served(b)) return json({ success: false, errorReason: "unsupported_network", errorMessage: `Supported networks: ${networks.join(", ")}`, transaction: "", network: "" }, 400);
-    if (String((b.paymentRequirements as unknown as { network?: string }).network) === MAINNET && !(await mainnetHasGas(env).catch(() => false))) {
+    const req = b.paymentRequirements as unknown as { network?: string; payTo?: string; amount?: string; asset?: string };
+    const record = (r: { success: boolean; payer?: string; transaction?: string; errorReason?: string }) => {
+      const p = env.DB.prepare(
+        "INSERT INTO facilitator_settlements (key_id, network, payer, pay_to, asset, amount, tx, success, error, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      ).bind(key.id, req.network ?? "", r.payer ?? null, req.payTo ?? null, req.asset ?? null, req.amount ?? null,
+        r.transaction ?? "", r.success ? 1 : 0, r.errorReason ?? null, Date.now()).run().catch(() => {});
+      if (ctx) ctx.waitUntil(p);
+    };
+    if (req.network === MAINNET && !(await mainnetHasGas(env).catch(() => false))) {
+      // Recorded so the owner can see real demand waiting on the fee wallet (facilitatorAlert).
+      record({ success: false, errorReason: PAUSED });
       return json({ success: false, errorReason: "facilitator_unavailable", errorMessage: "Mainnet settlement is paused. Retry later or use another facilitator.", transaction: "", network: MAINNET }, 503);
     }
     let result;
@@ -141,23 +152,57 @@ export async function handleFacilitator(request: Request, env: Env, ctx?: Execut
     } catch (err) {
       result = { success: false, errorReason: "settle_error", errorMessage: err instanceof Error ? err.message.slice(0, 200) : "error", transaction: "", network: b.paymentRequirements!.network };
     }
-    const req = b.paymentRequirements as unknown as { network?: string; payTo?: string; amount?: string; asset?: string };
-    const rec = env.DB.prepare(
-      "INSERT INTO facilitator_settlements (key_id, network, payer, pay_to, asset, amount, tx, success, error, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-    ).bind(key.id, req.network ?? "", (result as { payer?: string }).payer ?? null, req.payTo ?? null, req.asset ?? null, req.amount ?? null,
-      (result as { transaction?: string }).transaction ?? "", result.success ? 1 : 0, (result as { errorReason?: string }).errorReason ?? null, Date.now()).run().catch(() => {});
-    if (ctx) ctx.waitUntil(rec);
+    record(result as { success: boolean; payer?: string; transaction?: string; errorReason?: string });
     return json(result, result.success ? 200 : 400);
   }
 
   return json({ error: "not_found", endpoints: ["GET /facilitator/supported", "POST /facilitator/verify", "POST /facilitator/settle"] }, 404);
 }
 
-/** Public volume numbers for /facilitator (and marketing). */
+/** Public volume numbers for /facilitator, split by network (testnet volume is not real money). */
 export async function facilitatorStats(env: Env) {
+  const { results } = await env.DB.prepare(
+    `SELECT network, SUM(success) AS ok, COUNT(DISTINCT CASE WHEN success = 1 THEN pay_to END) AS merchants, COUNT(DISTINCT CASE WHEN success = 1 THEN payer END) AS payers,
+       SUM(CASE WHEN success = 1 THEN CAST(amount AS INTEGER) ELSE 0 END) AS amount_micro,
+       COUNT(DISTINCT CASE WHEN error = '${PAUSED}' AND created_at > ? THEN key_id END) AS waiting
+     FROM facilitator_settlements GROUP BY network`,
+  ).bind(Date.now() - 7 * 86_400_000).all<{ network: string; ok: number; merchants: number; payers: number; amount_micro: number; waiting: number }>();
+  const by = (n: string) => results.find((r) => r.network === n);
+  const view = (n: string) => {
+    const r = by(n);
+    return { settlements: r?.ok ?? 0, merchants: r?.merchants ?? 0, payers: r?.payers ?? 0, volume_usdc: ((r?.amount_micro ?? 0) / 1_000_000).toFixed(2) };
+  };
+  return { mainnet: { ...view(MAINNET), merchants_waiting_7d: by(MAINNET)?.waiting ?? 0 }, testnet: view("eip155:84532") };
+}
+
+/**
+ * Cron job: when merchants tried real (mainnet) settlements while the fee wallet was
+ * empty, open a GitHub issue so the owner knows to fund it. At most once a day.
+ * Needs GITHUB_ALERT_TOKEN (fine-grained, Issues: write on the repo); without it, skips.
+ */
+export async function facilitatorAlert(env: Env) {
   const r = await env.DB.prepare(
-    "SELECT COUNT(*) AS settlements, SUM(success) AS ok, COUNT(DISTINCT pay_to) AS merchants, COUNT(DISTINCT payer) AS payers, SUM(CASE WHEN success = 1 THEN CAST(amount AS INTEGER) ELSE 0 END) AS amount_micro FROM facilitator_settlements",
-  ).first<{ settlements: number; ok: number; merchants: number; payers: number; amount_micro: number }>();
-  return { settlements: r?.ok ?? 0, merchants: r?.merchants ?? 0, payers: r?.payers ?? 0, volume_usdc: ((r?.amount_micro ?? 0) / 1_000_000).toFixed(2) };
+    `SELECT COUNT(*) AS attempts, COUNT(DISTINCT key_id) AS merchants, SUM(CAST(amount AS INTEGER)) AS amount_micro
+     FROM facilitator_settlements WHERE error = '${PAUSED}' AND created_at > ?`,
+  ).bind(Date.now() - 86_400_000).first<{ attempts: number; merchants: number; amount_micro: number | null }>();
+  if (!r?.attempts) return { attempts: 0 };
+  if (!env.GITHUB_ALERT_TOKEN || !env.GITHUB_ALERT_REPO) return { attempts: r.attempts, alerted: false, reason: "no GITHUB_ALERT_TOKEN" };
+  const last = await env.DB.prepare("SELECT value FROM sync_state WHERE key = 'facilitator_alert_at'").first<{ value: string }>();
+  if (last && Date.now() - Number(last.value) < 86_400_000) return { attempts: r.attempts, alerted: false, reason: "alerted within a day" };
+  const wallet = isKey(env.FACILITATOR_MAINNET_KEY) ? privateKeyToAccount(env.FACILITATOR_MAINNET_KEY as `0x${string}`).address : "(FACILITATOR_MAINNET_KEY not set)";
+  const res = await fetch(`https://api.github.com/repos/${env.GITHUB_ALERT_REPO}/issues`, {
+    method: "POST",
+    headers: { authorization: `Bearer ${env.GITHUB_ALERT_TOKEN}`, accept: "application/vnd.github+json", "user-agent": "AIPayGenBot", "content-type": "application/json" },
+    body: JSON.stringify({
+      title: `Facilitator: ${r.merchants} merchant(s) tried real payments, fee wallet needs ETH`,
+      body: `In the last 24 hours, ${r.attempts} mainnet settlement(s) worth ${((r.amount_micro ?? 0) / 1_000_000).toFixed(2)} USDC from ${r.merchants} merchant key(s) were paused because the fee wallet is low on gas.\n\nSend about $5 of ETH **on Base** to \`${wallet}\`. Settlements resume within a minute.`,
+      labels: ["facilitator"],
+    }),
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!res.ok) return { attempts: r.attempts, alerted: false, reason: `github ${res.status}` };
+  await env.DB.prepare("INSERT INTO sync_state (key, value, updated_at) VALUES ('facilitator_alert_at', ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at")
+    .bind(String(Date.now()), Date.now()).run();
+  return { attempts: r.attempts, alerted: true };
 }
 

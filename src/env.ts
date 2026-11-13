@@ -27,6 +27,9 @@ export interface Env {
   FACILITATOR_PRIVATE_KEY?: string;
   /** Separate fee wallet for Base mainnet (secret). Mainnet is served only when this is set. */
   FACILITATOR_MAINNET_KEY?: string;
+  /** Optional: fine-grained GitHub token (Issues: write) for owner alerts, and the "owner/repo" to open them in. */
+  GITHUB_ALERT_TOKEN?: string;
+  GITHUB_ALERT_REPO?: string;
   /** Comma-separated CAIP-2 networks, e.g. "eip155:84532" or "eip155:8453,eip155:84532". */
   FACILITATOR_NETWORKS?: string;
   FACILITATOR_RPC_BASE?: string;
