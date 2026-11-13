@@ -79,7 +79,8 @@ def main(src: Path, out: Path) -> None:
             {"docs_url": r["docs_url"], "openapi_url": r["openapi_url"], "auth": r["auth_type"] if r["auth_required"] else "none",
              "sample_endpoint": r["sample_endpoint"], "source": r["source"]})
 
-    for r in rows(src / "skills.db", "SELECT * FROM skills WHERE name NOT LIKE 'test%'"):
+    # Skip "skills" that only wrap another vendor's model: run_skill runs on Claude, so they'd be mislabeled.
+    for r in rows(src / "skills.db", "SELECT * FROM skills WHERE name NOT LIKE 'test%' AND model LIKE 'claude%'"):
         add("skill", r["id"], r["name"], r["description"], r["category"], f"{PUBLIC_PRICE_BASE}/v1/catalog/skill/{r['id']}",
             None, 0, {"source": r["source"]})
         if r["prompt_template"]:

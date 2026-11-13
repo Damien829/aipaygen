@@ -9,11 +9,13 @@ import { pageToMarkdown, siteMetadata } from "./page";
 import { companyProfile, domainReport } from "./composite";
 import { searchMarketplace } from "../catalog";
 import { registerAgentTool } from "../growth";
+import { runSkill } from "../skills";
 
 /** Every paid tool, cheapest first. Order is used in docs and listings. */
 export const TOOLS: ToolDef[] = [
   searchMarketplace,
   registerAgentTool,
+  runSkill,
   dnsLookup,
   securityHeaders,
   domainWhois,

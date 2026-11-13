@@ -1,6 +1,7 @@
 import { upsertCatalogItem } from "./catalog";
 import type { Env } from "./env";
 import { registerAgent } from "./growth";
+import { skillsFromDemand } from "./skills";
 
 /**
  * Runs on the Worker's cron trigger (wrangler.jsonc). Each run does a small,
@@ -169,6 +170,7 @@ export async function runFreshness(env: Env) {
     ["health", () => healthCheck(env)],
     ["mcp_registry", () => ingestMcpRegistry(env)],
     ["x402_bazaar", () => ingestBazaar(env)],
+    ["skills_from_demand", () => skillsFromDemand(env)],
   ] as const) {
     try {
       out[name] = await job();

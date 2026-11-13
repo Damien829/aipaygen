@@ -14,6 +14,7 @@
     "cf-typegen": "wrangler types"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0",
     "@modelcontextprotocol/server": "2.3.1",
     "@x402/core": "^2.28.0",
     "@x402/evm": "^2.28.0",
