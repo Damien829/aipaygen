@@ -188,13 +188,25 @@ export const tokenSecurity = defineTool({
   example: { chain: "base", address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" },
   async run({ chain, address }) {
     const c = chainOf(chain);
-    const { status, data } = await fetchJson<{ code: number; message: string; result?: Record<string, GoPlus> }>(
-      `https://api.gopluslabs.io/api/v1/token_security/${c.id}?contract_addresses=${address.toLowerCase()}`,
-      { timeoutMs: 10_000 },
-    );
-    if (!data) throw new ToolError(`The token security service didn't answer (status ${status}).`, "UPSTREAM_ERROR", 502);
-    const r = data.result?.[address.toLowerCase()];
-    if (!r || !Object.keys(r).length) throw new ToolError(`No token found at ${address} on ${c.name}.`, "NOT_FOUND", 404);
+    // GoPlus rate-limits shared cloud IPs; retry once, then fall back to honeypot.is (Ethereum, BNB, Base).
+    let r: GoPlus | undefined;
+    let note = "";
+    for (let attempt = 0; attempt < 2 && !r; attempt++) {
+      if (attempt) await new Promise((ok) => setTimeout(ok, 700));
+      const { status, data } = await fetchJson<{ code: number; message: string; result?: Record<string, GoPlus> }>(
+        `https://api.gopluslabs.io/api/v1/token_security/${c.id}?contract_addresses=${address.toLowerCase()}`,
+        { timeoutMs: 8000 },
+      ).catch(() => ({ status: 0, data: null }));
+      const hit = data?.result?.[address.toLowerCase()];
+      if (hit && Object.keys(hit).length) r = hit;
+      else note = data ? `GoPlus: ${data.message} (code ${data.code})` : `GoPlus status ${status}`;
+    }
+    if (!r) {
+      const hp = await honeypotIs(c.id, address);
+      if (hp) return { chain: c.key, address, ...hp };
+      console.log("token_security: no data", note);
+      throw new ToolError(`No security data for ${address} on ${c.name} right now. Check the address and chain, or try again shortly.`, "NO_DATA", 404);
+    }
     const holders = Array.isArray(r.holders) ? (r.holders as { address: string; percent: string; is_contract?: number; tag?: string }[]) : [];
     const top10 = holders.slice(0, 10).reduce((s, h) => s + Number(h.percent || 0), 0);
     const { risks, score, verdict } = tokenRisks(r);
@@ -212,6 +224,39 @@ export const tokenSecurity = defineTool({
     };
   },
 });
+
+interface HoneypotIs {
+  token?: { name?: string; symbol?: string; totalHolders?: number };
+  summary?: { risk?: string; riskLevel?: number; flags?: { flag?: string; description?: string; severity?: string }[] };
+  honeypotResult?: { isHoneypot?: boolean; honeypotReason?: string };
+  simulationResult?: { buyTax?: number; sellTax?: number };
+  contractCode?: { openSource?: boolean; isProxy?: boolean };
+}
+
+/** Fallback scan from honeypot.is (simulated buy/sell), mapped to the same output shape. */
+export async function honeypotIs(chainId: number, address: string) {
+  if (![1, 56, 8453].includes(chainId)) return null;
+  const { data } = await fetchJson<HoneypotIs>(`https://api.honeypot.is/v2/IsHoneypot?address=${address}&chainID=${chainId}`, { timeoutMs: 10_000 }).catch(() => ({ data: null }));
+  if (!data?.token) return null;
+  const sim = data.simulationResult ?? {};
+  const g: GoPlus = {
+    is_honeypot: data.honeypotResult?.isHoneypot ? "1" : "0",
+    buy_tax: sim.buyTax === undefined ? undefined : String(sim.buyTax / 100),
+    sell_tax: sim.sellTax === undefined ? undefined : String(sim.sellTax / 100),
+    is_open_source: data.contractCode?.openSource === false ? "0" : "1",
+    is_proxy: data.contractCode?.isProxy ? "1" : "0",
+  };
+  const { risks, score, verdict } = tokenRisks(g);
+  for (const f of data.summary?.flags ?? []) if (f.description) risks.push({ level: f.severity === "critical" ? "critical" : f.severity === "high" ? "high" : "medium", issue: f.description });
+  return {
+    name: data.token.name ?? null, symbol: data.token.symbol ?? null,
+    verdict, risk_score: score, risks,
+    buy_tax_pct: sim.buyTax ?? null, sell_tax_pct: sim.sellTax ?? null,
+    verified_source: data.contractCode?.openSource ?? null, honeypot: Boolean(data.honeypotResult?.isHoneypot), mintable: null, proxy: data.contractCode?.isProxy ?? null,
+    holders: data.token.totalHolders ?? null, top10_holders_pct: null, owner: null, creator: null, on_major_exchange: null, trusted_list: null,
+    credit: "Security data: honeypot.is (buy/sell simulation). Not financial advice.",
+  };
+}
 
 // ---------- DEX data ----------
 
@@ -268,9 +313,15 @@ export const dexToken = defineTool({
       const { data } = await fetchJson<{ pairs?: DexPair[] | null }>(`https://api.dexscreener.com/latest/dex/search?q=${encodeURIComponent(query.trim())}`, { timeoutMs: 8000 });
       pairs = data?.pairs ?? [];
     } else throw new ToolError("Pass a query (name or ticker) or a token address.", "INVALID_INPUT", 400);
+    let credit = "Market data: DexScreener.";
+    if (!pairs.length) {
+      // DexScreener sometimes refuses shared cloud IPs; GeckoTerminal covers the same pools.
+      pairs = await geckoPools(query?.trim(), address?.trim(), chain);
+      credit = "Market data: GeckoTerminal.";
+    }
     if (!pairs.length) throw new ToolError("No trading pairs found.", "NOT_FOUND", 404);
     pairs.sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0));
-    return { count: pairs.length, pairs: pairs.slice(0, limit ?? 5).map(pairSummary), credit: "Market data: DexScreener." };
+    return { count: pairs.length, pairs: pairs.slice(0, limit ?? 5).map(pairSummary), credit };
   },
 });
 
@@ -362,3 +413,47 @@ export const gasPrice = defineTool({
     return { chains: out, checked_at: new Date().toISOString() };
   },
 });
+
+const GECKO_NET: Record<string, string> = { ethereum: "eth", eth: "eth", base: "base", bsc: "bsc", bnb: "bsc", polygon: "polygon_pos", arbitrum: "arbitrum", optimism: "optimism", avalanche: "avax", avax: "avax", solana: "solana" };
+const NET_NAME: Record<string, string> = { eth: "ethereum", polygon_pos: "polygon", avax: "avalanche" };
+
+interface GeckoPool {
+  id: string;
+  attributes: {
+    address: string; name: string; base_token_price_usd?: string; reserve_in_usd?: string; pool_created_at?: string; market_cap_usd?: string | null; fdv_usd?: string | null;
+    volume_usd?: { h1?: string; h24?: string }; price_change_percentage?: { h1?: string; h24?: string }; transactions?: { h24?: { buys: number; sells: number } };
+  };
+  relationships: { base_token?: { data?: { id: string } }; quote_token?: { data?: { id: string } }; dex?: { data?: { id: string } } };
+}
+
+/** GeckoTerminal pools mapped to DexScreener's pair shape. */
+export async function geckoPools(query: string | undefined, address: string | undefined, chain: string | undefined): Promise<DexPair[]> {
+  let url: string;
+  if (address) {
+    const net = GECKO_NET[(chain ?? "").trim().toLowerCase()];
+    if (!net) return []; // GeckoTerminal needs the network for an address lookup
+    url = `https://api.geckoterminal.com/api/v2/networks/${net}/tokens/${address}/pools?include=base_token,quote_token`;
+  } else if (query) url = `https://api.geckoterminal.com/api/v2/search/pools?query=${encodeURIComponent(query)}&include=base_token,quote_token`;
+  else return [];
+  const { data } = await fetchJson<{ data?: GeckoPool[]; included?: { id: string; attributes: { address: string; name: string; symbol: string } }[] }>(url, {
+    timeoutMs: 8000,
+    headers: { accept: "application/json;version=20230302" },
+  }).catch(() => ({ data: null }));
+  const tokens = new Map((data?.included ?? []).map((t) => [t.id, t.attributes]));
+  const num = (v: string | null | undefined) => (v == null || v === "" ? undefined : Number(v));
+  return (data?.data ?? []).map((p) => {
+    const a = p.attributes;
+    const base = tokens.get(p.relationships.base_token?.data?.id ?? "");
+    const quote = tokens.get(p.relationships.quote_token?.data?.id ?? "");
+    const net = p.id.split("_")[0]!.replace(/^polygon$/, "polygon_pos");
+    const netKey = p.id.slice(0, p.id.indexOf("_0x") > 0 ? p.id.indexOf("_0x") : p.id.lastIndexOf("_"));
+    return {
+      chainId: NET_NAME[netKey] ?? netKey ?? net, dexId: p.relationships.dex?.data?.id ?? "unknown", url: `https://www.geckoterminal.com/${netKey}/pools/${a.address}`, pairAddress: a.address,
+      priceUsd: a.base_token_price_usd, marketCap: num(a.market_cap_usd), fdv: num(a.fdv_usd), pairCreatedAt: a.pool_created_at ? Date.parse(a.pool_created_at) : undefined,
+      baseToken: { address: base?.address ?? "", name: base?.name ?? a.name.split(" / ")[0] ?? "", symbol: base?.symbol ?? a.name.split(" / ")[0] ?? "" },
+      quoteToken: { symbol: quote?.symbol ?? a.name.split(" / ")[1]?.split(" ")[0] ?? "" },
+      liquidity: { usd: num(a.reserve_in_usd) }, volume: { h24: num(a.volume_usd?.h24), h1: num(a.volume_usd?.h1) },
+      priceChange: { h1: num(a.price_change_percentage?.h1), h24: num(a.price_change_percentage?.h24) }, txns: a.transactions?.h24 ? { h24: a.transactions.h24 } : undefined,
+    };
+  });
+}

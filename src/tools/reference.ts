@@ -40,7 +40,7 @@ export const documentToMarkdown = defineTool({
     url: z.string().max(2000).describe("Public URL of the document."),
     max_chars: z.number().int().min(1000).max(200_000).optional().describe("Longest Markdown to return. Default 50,000."),
   }),
-  example: { url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf" },
+  example: { url: "https://arxiv.org/pdf/1706.03762" },
   async run({ url, max_chars }, { env }) {
     if (!env.AI) throw new ToolError("Document conversion is not available right now.", "UNAVAILABLE", 503);
     const file = await fetchBytes(url, { maxBytes: 10_000_000, timeoutMs: 20_000 });
