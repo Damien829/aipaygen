@@ -62,10 +62,19 @@ const SYNONYMS: Record<string, string> = {
   economic_data: "economy economic gdp inflation unemployment population world bank indicator macro country",
   weather_alerts: "weather alert alerts warning storm tornado hurricane flood nws severe",
   product_lookup: "product barcode upc ean food nutrition ingredients allergens grocery",
-  text_utils: "hash sha256 base64 encode decode uuid slug json format utility utilities word count",
+  text_utils: "hash sha256 base64 encode decode uuid slug json format utility utilities word count readability flesch grade",
+  jwt_decode: "jwt token decode claims bearer expiry auth jose",
+  data_convert: "convert conversion json csv yaml xml tsv format transform",
+  date_calc: "date dates business days working days calendar weekday add days difference deadline",
+  time_zone: "timezone time zone convert clock utc offset dst local time",
+  country_info: "country countries capital currency language calling code iso flag nation",
+  math_calc: "math calculator calculate expression statistics stats mean median unit units convert",
+  language_detect: "language detect detection identify which language",
+  favicon: "favicon icon logo website brand touch icon",
+  ens_lookup: "ens ethereum name service eth address resolve reverse",
   github_trending: "github trending repos repositories open source new projects stars libraries",
   fx_history: "exchange rate history forex fx currency historical rates chart ecb",
-  sec_filings: "sec edgar filings 10-k 10-q 8-k annual report revenue earnings financials public company stock ticker",
+  sec_filings: "sec edgar filings 10-k 10-q 8-k annual report revenue earnings financials public company stock ticker"
 };
 
 /** Not offered as search results: free helpers, and run_skill (it runs other listings). */

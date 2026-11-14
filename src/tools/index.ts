@@ -19,6 +19,7 @@ import { currencyConvert, earthquakes, geocode, hackerNews, paperSearch, publicH
 import { domainAvailable, ipLookup, packageInfo, packageVulns, redirectCheck } from "./devtools";
 import { askLlm, describeImage, embedText, generateImage, rankTexts, textToSpeech, transcribeAudio } from "./media";
 import { bookSearch, clinicalTrials, documentToMarkdown, drugInfo, economicData, emailVerify, productLookup, regulationsSearch, scholarSearch, textUtils, weatherAlerts } from "./reference";
+import { countryInfo, dataConvert, dateCalc, ensLookup, favicon, jwtDecode, languageDetect, mathCalc, timeZone } from "./utils";
 import { cryptoPrice, dexToken, gasPrice, tokenSecurity, walletBalance } from "./crypto";
 import { registerTools } from "../registry";
 
@@ -30,6 +31,15 @@ export const TOOLS: ToolDef[] = [
   runSkill,
   dnsLookup,
   textUtils,
+  jwtDecode,
+  dataConvert,
+  dateCalc,
+  timeZone,
+  countryInfo,
+  mathCalc,
+  languageDetect,
+  favicon,
+  ensLookup,
   bookSearch,
   economicData,
   weatherAlerts,
