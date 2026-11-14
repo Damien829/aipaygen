@@ -13,6 +13,7 @@ import type { MiddlewareHandler } from "hono";
 const RULES: [RegExp, number][] = [
   [/^\/v1\/catalog\/summary$/, 1800],
   [/^\/v1\/catalog\//, 300],
+  [/^\/(v1\/)?discovery\/resources$/, 300],
   [/^\/market(\/|$)/, 300],
   [/^\/sitemap\.xml$|^\/sitemaps\//, 3600],
   [/^\/llms-full\.txt$/, 600],

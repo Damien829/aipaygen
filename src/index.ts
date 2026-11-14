@@ -3,6 +3,7 @@ import { RECONCILE_CRON, reconcilePayments } from "./reconcile";
 import { createMcpHandler } from "agents/mcp/server";
 import { APP_VERSION, type Env } from "./env";
 import { buildMcpServer } from "./mcp";
+import { discoveryResources } from "./x402discovery";
 import { apiRoutes, catalog } from "./http";
 import { billingPage, docsPage, privacyPage, landingPage, llmsTxt, openApi, serverCard } from "./pages";
 import { createCheckout, handleStripeWebhook } from "./billing/stripe";
@@ -39,6 +40,10 @@ app.get("/docs", (c) => html(docsPage(c.env)));
 app.get("/privacy", (c) => html(privacyPage(c.env)));
 app.get("/billing", (c) => html(billingPage(c.env, c.req.query("paid") === "1")));
 app.get("/llms.txt", (c) => c.text(llmsTxt(c.env)));
+// Bazaar-compatible x402 discovery (src/x402discovery.ts); same data under /v1 for consistency.
+for (const path of ["/discovery/resources", "/v1/discovery/resources"]) {
+  app.get(path, async (c) => c.json(await discoveryResources(c.env, new URL(c.req.url).searchParams), 200, { "access-control-allow-origin": "*", "cache-control": "public, max-age=300" }));
+}
 app.get("/openapi.json", (c) => c.json(openApi(c.env)));
 app.get("/.well-known/mcp/server-card.json", (c) => c.json(serverCard(c.env)));
 app.get("/.well-known/mcp.json", (c) => c.json(serverCard(c.env)));

@@ -159,6 +159,7 @@ ${SIZES.total} resources for agents: AIPayGen tools, ${SIZES.apis} third-party A
 - Search: ${env.PUBLIC_URL}/v1/catalog/search?q=<words>&kind=<listing|api|mcp|skill|agent|service>
 - One item: ${env.PUBLIC_URL}/v1/catalog/<kind>/<id>
 - Overview: ${env.PUBLIC_URL}/v1/catalog/stats
+- x402 discovery (Bazaar-compatible, dead listings removed, health data included): ${env.PUBLIC_URL}/discovery/resources?limit=100&offset=0&verified=true
 - MCP tool: search_marketplace (free)
 - Tool catalog (JSON): ${env.PUBLIC_URL}/v1/tools
 - OpenAPI: ${env.PUBLIC_URL}/openapi.json

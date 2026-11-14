@@ -430,3 +430,22 @@ describe("reference helpers", () => {
     expect((await textUtils.run({ op: "uuid", count: 3 }, { env })).uuids).toHaveLength(3);
   });
 });
+
+import { rowToDiscovery } from "../src/x402discovery";
+
+describe("x402 discovery API", () => {
+  it("maps a catalog row to the Bazaar item shape with payment terms and health", () => {
+    const item = rowToDiscovery({
+      id: "api:x402-abc", name: "example.com/paid", description: "Paid thing", url: "https://example.com/paid", price_micro: 2500,
+      meta: JSON.stringify({ network: "eip155:8453", scheme: "exact", pay_to: "0x1111111111111111111111111111111111111111", method: "POST" }),
+      checks_total: 4, checks_ok: 3, latency_ms: 210, verified: 1, checked_at: Date.UTC(2026, 10, 1), source: "x402-bazaar",
+    });
+    expect(item).toMatchObject({ resource: "https://example.com/paid", type: "http", x402Version: 2, lastUpdated: "2026-11-01T00:00:00.000Z" });
+    expect(item.accepts[0]).toMatchObject({ amount: "2500", payTo: "0x1111111111111111111111111111111111111111", network: "eip155:8453" });
+    expect(item.metadata).toMatchObject({ method: "POST", trust: { verified: true, uptime_pct: 75, checks: 4 } });
+  });
+  it("omits payment terms it doesn't know", () => {
+    const item = rowToDiscovery({ id: "x", name: "n", description: "d", url: "https://e.com", price_micro: null, meta: "{}", checks_total: 0, checks_ok: 0, latency_ms: null, verified: 0, checked_at: 0, source: "seed" });
+    expect(item.accepts).toEqual([]);
+  });
+});
