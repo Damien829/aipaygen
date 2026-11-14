@@ -1,0 +1,34 @@
+name: StreakEdge (macOS app)
+
+on:
+  push:
+    paths:
+      - "mac/StreakEdge/**"
+      - ".github/workflows/streakedge-mac.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: mac/StreakEdge
+    steps:
+      - uses: actions/checkout@v4
+      - name: Swift version
+        run: swift --version
+      - name: Build
+        run: swift build -c release 2>&1 | tee build.log
+      - name: Test
+        run: swift test
+      - name: Package app
+        run: |
+          ./scripts/make-app.sh
+          ditto -c -k --keepParent build/StreakEdge.app build/StreakEdge.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: StreakEdge-mac
+          path: mac/StreakEdge/build/StreakEdge.zip
