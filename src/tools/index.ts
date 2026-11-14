@@ -10,6 +10,8 @@ import { companyProfile, domainReport } from "./composite";
 import { searchMarketplace } from "../catalog";
 import { registerAgentTool } from "../growth";
 import { runSkill } from "../skills";
+import { weather } from "./weather";
+import { translate } from "./translate";
 
 /** Every paid tool, cheapest first. Order is used in docs and listings. */
 export const TOOLS: ToolDef[] = [
@@ -18,6 +20,8 @@ export const TOOLS: ToolDef[] = [
   runSkill,
   dnsLookup,
   securityHeaders,
+  weather,
+  translate,
   domainWhois,
   emailSecurity,
   siteMetadata,

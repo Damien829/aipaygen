@@ -4,9 +4,21 @@ import type { Env } from "./env";
 
 export type Channel = "http" | "mcp" | "web" | "tool";
 
+/**
+ * Looks like a credential: our API keys, common provider keys, private keys,
+ * JWTs, or one long random token. People paste these into search by mistake;
+ * they must never land in the demand log.
+ */
+export function looksSecret(q: string): boolean {
+  return /\b(apg|sk|pk|rk|ghp|gho|github_pat|xox[abprs]|whsec|AKIA)[_-]?[A-Za-z0-9_-]{16,}/i.test(q)
+    || /\b(0x)?[0-9a-f]{64}\b/i.test(q)
+    || /\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}/.test(q)
+    || /(^|\s)(?=[A-Za-z0-9_\-+/=]*\d)(?=[A-Za-z0-9_\-+/=]*[a-z])[A-Za-z0-9_\-+/=]{32,}(\s|$)/i.test(q);
+}
+
 export function logSearch(env: Env, ctx: ExecutionContext | undefined, query: string, kind: string | undefined, results: number, channel: Channel) {
   const q = query.toLowerCase().replace(/\s+/g, " ").trim().slice(0, 200);
-  if (!q) return;
+  if (!q || looksSecret(query)) return; // check the original: some token shapes are case-sensitive
   const p = env.DB.prepare("INSERT INTO search_log (query, kind, results, channel, created_at) VALUES (?, ?, ?, ?, ?)")
     .bind(q, kind ?? null, results, channel, Date.now()).run().catch(() => {});
   if (ctx) ctx.waitUntil(p);

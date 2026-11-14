@@ -29,3 +29,24 @@ describe("owner price overrides", () => {
     expect(parseOverrides(null)).toEqual({});
   });
 });
+
+import { looksSecret } from "../src/share";
+
+describe("search log never stores secrets", () => {
+  it("flags keys and tokens", () => {
+    for (const s of [
+      "apg_roq1oqcap0qrghhyphqkzv6a9icuaeap496mrdp4",
+      "sk-ant-api03-abcdefghijklmnopqrstuvwxyz",
+      "sk_live_51HabcdefghijklmnopQRST",
+      "ghp_abcdefghijklmnopqrstuvwxyz0123456789",
+      "0x4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318",
+      "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.abc",
+      "my key is Zq8xT2v9LmN4pR7sK1wY6bH3jF5dG0cA please",
+    ]) expect(looksSecret(s), s).toBe(true);
+  });
+  it("keeps normal searches", () => {
+    for (const s of ["weather", "translate text between languages", "stripe payments api", "mcp server for postgres", "0x402 facilitator", "a".repeat(40)]) {
+      expect(looksSecret(s), s).toBe(false);
+    }
+  });
+});
