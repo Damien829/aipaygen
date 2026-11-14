@@ -6,6 +6,7 @@ import { TOOLS, TOOLS_BY_NAME } from "./tools";
 import { formatPrice, type ToolDef } from "./tools/types";
 import { apiKeyFromHeaders, createApiKey, findApiKey, linkReferral, REFERRAL_REWARD_MICRO, referralCode, referralCodeForKey, sha256Hex } from "./billing/keys";
 import { chargeAndRun } from "./billing/charge";
+import { topUp } from "./billing/topup";
 import { catalogStats, catalogSummary, getCatalogItem, KINDS, searchCatalog, type Kind } from "./catalog";
 import { logSearch, refFromRequest, registerAgent, relatedTo, shareBlock } from "./growth";
 import { microToUsd, toolJsonSchema, x402Enabled } from "./billing/x402";
@@ -187,12 +188,28 @@ export function apiRoutes(): Hono<AppEnv> {
     const code = await referralCode(c.env, key.id);
     return json(c, 200, {
       key: `${key.key_prefix}…`, label: key.label, balance: microToUsd(key.balance_micro), balance_micro: key.balance_micro,
+      top_up: `POST ${c.env.PUBLIC_URL}/v1/topup {"amount_usd": 5} with this key, then pay the 402 with x402 (USDC on Base). $1-$100.`,
       referral: {
         code,
-        reward: `${microToUsd(REFERRAL_REWARD_MICRO)} in credits when an agent you refer makes its first paid top-up`,
+        reward: `${microToUsd(REFERRAL_REWARD_MICRO)} in credits when an agent you refer makes its first paid top-up of $5 or more`,
         how: `New agents create a key with POST ${c.env.PUBLIC_URL}/v1/keys {"ref":"${code}"} or the create_api_key MCP tool with ref "${code}".`,
       },
     });
+  });
+
+  // Prepaid credits bought with x402; the first paid top-up of $5+ rewards the key's referrer (src/billing/topup.ts).
+  api.post("/topup", async (c) => {
+    const body = (await c.req.json().catch(() => ({}))) as { amount_usd?: unknown };
+    const h = c.req.raw.headers;
+    const out = await topUp(c.env, apiKeyFromHeaders(h), body.amount_usd, h.get("payment-signature") ?? h.get("x-payment"), c.req.url);
+    if (out.kind === "payment_required") {
+      return json(c, 402, out.body, {
+        "payment-required": encodePaymentRequiredHeader(out.body as unknown as Parameters<typeof encodePaymentRequiredHeader>[0]),
+        "cache-control": "private, no-store",
+      });
+    }
+    if (out.kind === "error") return json(c, out.status, { error: { code: out.code, message: out.message } });
+    return json(c, 200, out);
   });
 
   api.on(["GET", "POST"], "/:tool", async (c) => {
