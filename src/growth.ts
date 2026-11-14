@@ -85,7 +85,7 @@ export async function registerAgent(env: Env, cardUrl: string) {
 
   const updated = (await upsertCatalogItem(env, {
     id, kind: "agent", name, description, category, url: card.url ?? u.href, priceMicro: null, x402: false, meta: JSON.parse(meta), source: "registered",
-  })) === "updated";
+  })) !== "inserted";
   await env.DB.prepare(
     "INSERT INTO agent_registrations (card_url, catalog_id, status, created_at, refreshed_at) VALUES (?, ?, 'listed', ?, ?) ON CONFLICT(card_url) DO UPDATE SET status = 'listed', fail_count = 0, refreshed_at = excluded.refreshed_at",
   ).bind(u.href, id, now, now).run();

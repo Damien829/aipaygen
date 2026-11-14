@@ -143,7 +143,7 @@ interface BazaarItem {
   extensions?: { bazaar?: { info?: { input?: { method?: string } } } };
 }
 
-export async function ingestBazaar(env: Env, limit = 40) {
+export async function ingestBazaar(env: Env, limit = 10) {
   const offset = Number(await getState(env, "bazaar_offset")) || 0;
   const res = await fetch(`${BAZAAR}?limit=${limit}&offset=${offset}`, { headers: { accept: "application/json", "user-agent": UA }, signal: AbortSignal.timeout(10000) });
   if (!res.ok) return { error: `bazaar ${res.status}` };
@@ -163,7 +163,7 @@ export async function ingestBazaar(env: Env, limit = 40) {
       id: `api:x402-${await sha16(it.resource)}`, kind: "api", name: `${u.hostname}${u.pathname === "/" ? "" : u.pathname}`.slice(0, 120),
       description: it.description ?? "", category: "x402", url: it.resource,
       priceMicro: usdc && a?.amount && /^\d+$/.test(a.amount) ? Number(a.amount) : null, x402: true, source: "x402-bazaar",
-      meta: { network: a?.network, scheme: a?.scheme, pay_to: a?.payTo, method: it.extensions?.bazaar?.info?.input?.method, last_updated: it.lastUpdated },
+      meta: { network: a?.network, scheme: a?.scheme, pay_to: a?.payTo, method: it.extensions?.bazaar?.info?.input?.method },
     })) === "inserted") added++;
   }
   const total = d.pagination?.total ?? 0;
@@ -171,13 +171,35 @@ export async function ingestBazaar(env: Env, limit = 40) {
   return { seen: d.items?.length ?? 0, added, offset, total };
 }
 
+/**
+ * New catalog items cost about 6 D1 rows written each (row, indexes, search index),
+ * and the free plan allows 100k rows written a day. The x402 Bazaar alone lists
+ * 35k+ resources, so ingestion adds at most this many new items per UTC day.
+ */
+const DAILY_NEW_ITEMS = 1000;
+
+async function withNewItemCap<T extends { added?: number }>(env: Env, job: () => Promise<T>): Promise<T | { skipped: string }> {
+  const day = new Date().toISOString().slice(0, 10);
+  let used = 0;
+  try {
+    const s = JSON.parse((await getState(env, "ingest_day")) || "{}") as { day?: string; added?: number };
+    if (s.day === day) used = s.added ?? 0;
+  } catch {
+    // start the day fresh
+  }
+  if (used >= DAILY_NEW_ITEMS) return { skipped: `daily cap of ${DAILY_NEW_ITEMS} new items reached` };
+  const out = await job();
+  if (out.added) await setState(env, "ingest_day", JSON.stringify({ day, added: used + out.added }));
+  return out;
+}
+
 export async function runFreshness(env: Env) {
   const out: Record<string, unknown> = {};
   for (const [name, job] of [
     ["agents", () => refreshAgents(env)],
     ["health", () => healthCheck(env)],
-    ["mcp_registry", () => ingestMcpRegistry(env)],
-    ["x402_bazaar", () => ingestBazaar(env)],
+    ["mcp_registry", () => withNewItemCap(env, () => ingestMcpRegistry(env))],
+    ["x402_bazaar", () => withNewItemCap(env, () => ingestBazaar(env))],
     ["skills_from_demand", () => skillsFromDemand(env)],
     ["facilitator_alert", () => facilitatorAlert(env)],
     ["reconcile", () => reconcilePayments(env)],

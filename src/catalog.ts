@@ -231,14 +231,17 @@ export interface UpsertItem {
 }
 
 /** Insert or update one catalog row and keep the external-content FTS index in step. */
-export async function upsertCatalogItem(env: Env, it: UpsertItem): Promise<"inserted" | "updated"> {
+export async function upsertCatalogItem(env: Env, it: UpsertItem): Promise<"inserted" | "updated" | "unchanged"> {
   const name = it.name.replace(/\*\*/g, "").trim().slice(0, 200);
   const description = (it.description ?? "").trim().slice(0, 2000);
   const category = (it.category ?? "").trim().slice(0, 60);
   const meta = JSON.stringify(it.meta ?? {});
   const now = Date.now();
-  const old = await env.DB.prepare("SELECT rowid, name, description, category FROM catalog WHERE id = ?").bind(it.id)
-    .first<{ rowid: number; name: string; description: string; category: string }>();
+  const old = await env.DB.prepare("SELECT rowid, name, description, category, url, price_micro, x402, meta FROM catalog WHERE id = ?").bind(it.id)
+    .first<{ rowid: number; name: string; description: string; category: string; url: string | null; price_micro: number | null; x402: number; meta: string }>();
+  // Unchanged items are skipped: every write here costs several D1 rows (table, indexes, search index).
+  if (old && old.name === name && old.description === description && old.category === category && old.url === it.url &&
+    old.price_micro === it.priceMicro && old.x402 === (it.x402 ? 1 : 0) && old.meta === meta) return "unchanged";
   if (old) {
     await env.DB.batch([
       env.DB.prepare("INSERT INTO catalog_fts (catalog_fts, rowid, name, description, category) VALUES ('delete', ?, ?, ?, ?)").bind(old.rowid, old.name, old.description, old.category),
