@@ -4,7 +4,7 @@ import { createMcpHandler } from "agents/mcp/server";
 import { APP_VERSION, type Env } from "./env";
 import { buildMcpServer } from "./mcp";
 import { apiRoutes, catalog } from "./http";
-import { billingPage, docsPage, landingPage, llmsTxt, openApi, serverCard } from "./pages";
+import { billingPage, docsPage, privacyPage, landingPage, llmsTxt, openApi, serverCard } from "./pages";
 import { createCheckout, handleStripeWebhook } from "./billing/stripe";
 import { x402Enabled } from "./billing/x402";
 import { handleCore } from "./core/proxy";
@@ -36,6 +36,7 @@ const html = (body: string) => new Response(body, { headers: { "content-type": "
 
 app.get("/", (c) => html(landingPage(c.env)));
 app.get("/docs", (c) => html(docsPage(c.env)));
+app.get("/privacy", (c) => html(privacyPage(c.env)));
 app.get("/billing", (c) => html(billingPage(c.env, c.req.query("paid") === "1")));
 app.get("/llms.txt", (c) => c.text(llmsTxt(c.env)));
 app.get("/openapi.json", (c) => c.json(openApi(c.env)));

@@ -47,7 +47,7 @@ export function layout(env: Env, title: string, body: string, description: strin
 <body><div class="wrap"><header class="top"><a class="logo" href="/">AIPay<span>Gen</span></a>
 <nav><a href="/market">Marketplace</a><a href="/#tools">Tools</a><a href="/#connect">Connect</a><a href="/billing">Billing</a><a href="/docs">Docs</a></nav></header>
 ${body}
-<footer>${SERVICE_NAME} v${APP_VERSION} · Public data only · Failed calls are never charged · <a class="muted" href="/llms.txt">llms.txt</a> · <a class="muted" href="/openapi.json">OpenAPI</a></footer>
+<footer>${SERVICE_NAME} v${APP_VERSION} · Public data only · Failed calls are never charged · <a class="muted" href="/llms.txt">llms.txt</a> · <a class="muted" href="/openapi.json">OpenAPI</a> · <a class="muted" href="/privacy">Privacy</a></footer>
 </div><script>(function(){try{var r=new URLSearchParams(location.search).get('ref');if(r&&/^[A-Za-z0-9]{6,16}$/.test(r))localStorage.setItem('apg_ref',r);}catch(e){}})();</script></body></html>`;
 }
 
@@ -232,4 +232,27 @@ export function serverCard(env: Env): Record<string, unknown> {
     authentication: { type: "bearer", description: "Optional API key (apg_...). Without one, paid tools use x402 when enabled." },
     tools: TOOLS.map((t) => ({ name: t.name, title: t.title, description: t.description, free: t.priceMicro === 0 })),
   };
+}
+
+export function privacyPage(env: Env): string {
+  const body = `
+<h1>Privacy</h1>
+<p>AIPayGen is built for software agents, so it collects as little as it can. No accounts, no cookies, no ad trackers, and nothing is sold.</p>
+<h2>What a tool call sends where</h2>
+<p>Your input is used to answer the call and is not written to our database. Most tools forward it to the public source they need (for example DNS over HTTPS, RDAP registries, Certificate Transparency logs, MET Norway weather, OpenStreetMap, CoinGecko, Wikipedia or the web page you name). AI tools run on Cloudflare Workers AI. Answers may be cached at Cloudflare's edge, keyed by the input, so a repeat call is fast: minutes for live data, up to 30 days for reference data that rarely changes.</p>
+<h2>What we store, and for how long</h2>
+<ul>
+<li><b>API keys:</b> only a hash of the key, its first characters, its credit balance and credit history. Kept while the key exists.</li>
+<li><b>Usage records:</b> which tool, the price, how it was paid (key id or paying wallet, and the on-chain transaction), success and duration. Never the input or the answer.</li>
+<li><b>Search text:</b> words typed into marketplace search and find_tool, with the number of results, to learn what agents need. No IP, key or wallet is attached. Deleted after 90 days.</li>
+<li><b>Free-call counters:</b> a daily count per hashed IP address (never the address itself), to apply the free daily allowance. Deleted after 2 days.</li>
+<li><b>Payment replay guards:</b> a hash of each x402 payment, so it can't be used twice. Deleted after 7 days.</li>
+<li><b>Facilitator settlements:</b> for merchants using our facilitator, the merchant's key id, payer and payee wallets, amount and transaction. These are already public on the blockchain.</li>
+<li><b>Agent listings:</b> the public agent card URL and card contents you submit with register_agent.</li>
+</ul>
+<h2>Payments</h2>
+<p>x402 payments go straight from the payer's wallet to ours on-chain. We never hold anyone else's funds or private keys.</p>
+<h2>Hosting and questions</h2>
+<p>The service runs on Cloudflare. For questions or deletion requests, open an issue on <a href="https://github.com/Damien829/aipaygen/issues">GitHub</a>.</p>`;
+  return layout(env, "AIPayGen privacy", body, "What AIPayGen stores, for how long, and where tool inputs go.");
 }

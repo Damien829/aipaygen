@@ -103,7 +103,7 @@ export const registerAgentTool = defineTool({
   cacheTtl: 0,
   httpMethod: "POST",
   input: z.object({ card_url: z.string().url().max(500).describe("Public https URL of your agent card JSON") }),
-  example: { card_url: "https://example.com/.well-known/agent-card.json" },
+  example: { card_url: "https://aipaygen.com/.well-known/agent-card.json" },
   async run(args, { env }) {
     return registerAgent(env, args.card_url);
   },

@@ -74,7 +74,7 @@ export function summarizeCerts(domain: string, certs: Cert[]) {
 }
 
 async function fromCrtSh(domain: string): Promise<Cert[] | null> {
-  const { data } = await fetchJson<CrtShEntry[]>(`https://crt.sh/?q=${encodeURIComponent(domain)}&output=json&exclude=expired`, { timeoutMs: 15_000 });
+  const { data } = await fetchJson<CrtShEntry[]>(`https://crt.sh/?q=${encodeURIComponent(domain)}&output=json&exclude=expired`, { timeoutMs: 28_000 });
   if (!data) return null;
   return data.slice(0, 2000).map((e) => ({
     issuer: issuerOrg(e.issuer_name),
@@ -109,14 +109,15 @@ export const sslCertificates = defineTool({
   example: { domain: "shopify.com" },
   async run({ domain }) {
     const d = normalizeDomain(domain);
-    let certs: Cert[] | null = null;
+    // Both sources at once, first good answer wins: CertSpotter answers small domains in
+    // ~0.1 s but gives up on big ones after 10 s; crt.sh is slow (15-30 s) but handles them.
+    const ok = (p: Promise<Cert[] | null>) => p.then((c) => c ?? Promise.reject(new Error("empty")));
+    let certs: Cert[];
     try {
-      certs = await fromCrtSh(d);
+      certs = await Promise.any([ok(fromCrtSh(d)), ok(fromCertSpotter(d))]);
     } catch {
-      certs = null;
+      throw new ToolError("Certificate Transparency sources are unavailable right now. Try again shortly.", "UPSTREAM_ERROR", 502);
     }
-    if (!certs) certs = await fromCertSpotter(d);
-    if (!certs) throw new ToolError("Certificate Transparency sources are unavailable right now. Try again shortly.", "UPSTREAM_ERROR", 502);
     return summarizeCerts(d, certs);
   },
 });

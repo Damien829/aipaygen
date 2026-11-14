@@ -193,6 +193,22 @@ async function withNewItemCap<T extends { added?: number }>(env: Env, job: () =>
   return out;
 }
 
+/**
+ * Retention: once a day (the 03:00 UTC run) delete what we no longer need.
+ * Search text 90 days (demand reports read 30), free-call counters 2 days,
+ * payment replay guards 7 days. Matches /privacy.
+ */
+export async function pruneLogs(env: Env, now = new Date()) {
+  if (now.getUTCHours() !== 3 || now.getUTCMinutes() >= 10) return { skipped: "runs daily at 03:00 UTC" };
+  const day = (ms: number) => new Date(now.getTime() - ms).toISOString().slice(0, 10);
+  const r = await env.DB.batch([
+    env.DB.prepare("DELETE FROM search_log WHERE created_at < ?").bind(now.getTime() - 90 * 86_400_000),
+    env.DB.prepare("DELETE FROM free_calls WHERE day < ?").bind(day(2 * 86_400_000)),
+    env.DB.prepare("DELETE FROM payment_claims WHERE created_at < ?").bind(now.getTime() - 7 * 86_400_000),
+  ]);
+  return { search_log: r[0]?.meta.changes ?? 0, free_calls: r[1]?.meta.changes ?? 0, payment_claims: r[2]?.meta.changes ?? 0 };
+}
+
 export async function runFreshness(env: Env) {
   const out: Record<string, unknown> = {};
   for (const [name, job] of [
@@ -202,6 +218,7 @@ export async function runFreshness(env: Env) {
     ["x402_bazaar", () => withNewItemCap(env, () => ingestBazaar(env))],
     ["skills_from_demand", () => skillsFromDemand(env)],
     ["facilitator_alert", () => facilitatorAlert(env)],
+    ["prune", () => pruneLogs(env)],
   ] as const) {
     try {
       out[name] = await job();

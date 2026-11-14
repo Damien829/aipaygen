@@ -130,7 +130,7 @@ export async function sitemapFor(env: Env, name: string): Promise<string | null>
   if (name === "pages") {
     // Our own tool pages first: they're what we sell (src/owntools.ts).
     const own = allOwnItems(env).map((i) => `/market/api/${i.id.slice(4)}`);
-    locs = ["/", "/market", "/market/wanted", "/docs", "/billing", "/llms.txt", "/llms-full.txt", ...own].map((p) => env.PUBLIC_URL + p);
+    locs = ["/", "/market", "/market/wanted", "/docs", "/billing", "/privacy", "/llms.txt", "/llms-full.txt", ...own].map((p) => env.PUBLIC_URL + p);
   } else if (KINDS.includes(name as Kind)) {
     const { results } = await env.DB.prepare("SELECT id FROM catalog WHERE kind = ? ORDER BY id LIMIT 50000").bind(name).all<{ id: string }>();
     locs = results.map((r) => `${env.PUBLIC_URL}/market/${name}/${encodeURIComponent(r.id.slice(name.length + 1))}`);
