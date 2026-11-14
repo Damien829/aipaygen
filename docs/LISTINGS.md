@@ -55,6 +55,22 @@ AIPayGen is a marketplace for AI agents. Agents search 19,000+ resources for fre
 | 9 | **Google Search Console + Bing Webmaster Tools** | Verify aipaygen.com, then submit `https://aipaygen.com/sitemap.xml` | Gets the 19,000+ marketplace pages indexed faster, which also feeds AI answer engines. |
 | 10 | **PyPI** (`aipaygen-mcp` 2.0.0 is already there) | Bump the description to mention the marketplace on the next release | |
 
+### x402 ecosystem (added 2026-11-14)
+
+| # | Where | How | Status |
+|---|---|---|---|
+| 11 | **Coinbase CDP Bazaar / Agentic.Market** | Automatic once a tool settles through CDP (CDP key set 2026-11-14) | In progress: paid pass running |
+| 12 | **x402scan** (x402scan.com) | Resources → Register: submit `https://aipaygen.com/openapi.json`; it probes each endpoint for a real 402 | Free web form |
+| 13 | **x402scan facilitators** | PR to Merit-Systems/x402scan adding us to `facilitators/config.ts` (URL `https://aipaygen.com/facilitator`, Base + Base Sepolia, payer addresses from `/facilitator/supported`) | PR |
+| 14 | **x402.eco** | PR to xzntexe/x402eco: one JSON file in `facilitators/` and one in `services-endpoints/` | PR |
+| 15 | **x402 Registry** | Issue on ralf9090/x402-registry (facilitator and API applications): identity, endpoints, settlement evidence (a BaseScan tx, never keys) | GitHub issue |
+| 16 | **x402.org ecosystem page** | PR to coinbase/x402 per its site README (Facilitators and Services) | PR |
+| 17 | **awesome-agentic-commerce** | PR to Merit-Systems/awesome-agentic-commerce (Marketplaces; Facilitators) | PR |
+
+**Facilitator one-liner:** AIPayGen facilitator — non-custodial x402 verify/settle on Base and Base Sepolia; settles from its own wallet or routes to PayAI/CDP with failover, so merchants always get gasless settlement at one URL. `https://aipaygen.com/facilitator`
+
+**Settlement evidence:** `0x74d50969bc1748c2a6ca2ebd05c31fbdb9b686abf1cf6bd963a604996b7d9328` (Base, 0.001 USDC to the payout wallet, settled via CDP).
+
 ## After listing
 
 - Watch `/admin/stats` (Worker) for which channel brings paid calls.
