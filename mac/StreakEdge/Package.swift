@@ -15,7 +15,7 @@ targets.append(.executableTarget(name: "StreakEdge", dependencies: ["EdgeCore"])
 
 let package = Package(
     name: "StreakEdge",
-    platforms: [.macOS(.v14)],
+    platforms: [.macOS(.v13)],
     products: products,
     targets: targets
 )

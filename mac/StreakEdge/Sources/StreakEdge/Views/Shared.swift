@@ -47,7 +47,19 @@ struct EmptyState: View {
     let icon: String
 
     var body: some View {
-        ContentUnavailableView(title, systemImage: icon, description: Text(message))
+        // Hand-built because ContentUnavailableView needs macOS 14.
+        VStack(spacing: 10) {
+            Image(systemName: icon)
+                .font(.system(size: 36))
+                .foregroundStyle(.secondary)
+            Text(title).font(.title3.weight(.semibold))
+            Text(message)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: 360)
+        }
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 }
 

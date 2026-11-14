@@ -79,13 +79,15 @@ struct BestBetsView: View {
         }
         .toolbar {
             if store.isRefreshing { ProgressView().controlSize(.small) }
-            Button("Refresh \(store.league.title)", systemImage: "arrow.clockwise") {
+            Button {
                 Task { await store.refreshLive() }
+            } label: {
+                Label("Refresh \(store.league.title)", systemImage: "arrow.clockwise")
             }
             .disabled(store.isRefreshing)
             .help("Load this season's results and current odds")
             Toggle("Positive value only", isOn: $valueOnly)
-            Button("Add Game", systemImage: "plus") { adding = true }
+            Button { adding = true } label: { Label("Add Game", systemImage: "plus") }
         }
         .sheet(isPresented: $adding) { AddSlateGameSheet() }
     }

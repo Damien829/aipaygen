@@ -64,7 +64,7 @@ struct BetsView: View {
             }
         }
         .toolbar {
-            Button("Add Bet", systemImage: "plus") { adding = true }
+            Button { adding = true } label: { Label("Add Bet", systemImage: "plus") }
         }
         .sheet(isPresented: $adding) { AddBetSheet() }
     }

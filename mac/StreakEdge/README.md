@@ -5,7 +5,7 @@ value against the bookmaker's price, parlays, and a bet tracker. Everything runs
 
 ## Run it
 
-Needs macOS 14+ and Xcode 15+.
+Needs macOS 13 (Ventura) or newer; building it needs Xcode 15+.
 
 ```sh
 cd mac/StreakEdge
