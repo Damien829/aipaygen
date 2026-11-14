@@ -3,11 +3,13 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-swift build -c release
+# Universal binary: runs on both Apple silicon and Intel Macs.
+ARCHS=(--arch arm64 --arch x86_64)
+swift build -c release "${ARCHS[@]}"
 APP=build/StreakEdge.app
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
-cp "$(swift build -c release --show-bin-path)/StreakEdge" "$APP/Contents/MacOS/StreakEdge"
+cp "$(swift build -c release "${ARCHS[@]}" --show-bin-path)/StreakEdge" "$APP/Contents/MacOS/StreakEdge"
 cat > "$APP/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -25,4 +27,6 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
 </plist>
 PLIST
 codesign --force --sign - "$APP"
+lipo -info "$APP/Contents/MacOS/StreakEdge"
+vtool -show-build "$APP/Contents/MacOS/StreakEdge" | grep -E "architecture|minos" || true
 echo "Built $APP — open it or drag it to Applications."

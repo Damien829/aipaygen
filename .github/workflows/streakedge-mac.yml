@@ -20,8 +20,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Swift version
         run: swift --version
-      - name: Build
-        run: swift build -c release 2>&1 | tee build.log
       - name: Test
         run: swift test
       - name: Package app
