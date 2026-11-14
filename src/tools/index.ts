@@ -1,4 +1,5 @@
 import type { ToolDef } from "./types";
+import { fxHistory, githubTrending, secFilings } from "./feeds";
 import { dnsLookup } from "./dns";
 import { domainWhois } from "./whois";
 import { sslCertificates } from "./certs";
@@ -77,6 +78,9 @@ export const TOOLS: ToolDef[] = [
   generateImage,
   companyProfile,
   domainReport,
+  githubTrending,
+  fxHistory,
+  secFilings,
 ] as unknown as ToolDef[];
 
 registerTools(TOOLS);

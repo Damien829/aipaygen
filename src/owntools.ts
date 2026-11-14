@@ -63,6 +63,9 @@ const SYNONYMS: Record<string, string> = {
   weather_alerts: "weather alert alerts warning storm tornado hurricane flood nws severe",
   product_lookup: "product barcode upc ean food nutrition ingredients allergens grocery",
   text_utils: "hash sha256 base64 encode decode uuid slug json format utility utilities word count",
+  github_trending: "github trending repos repositories open source new projects stars libraries",
+  fx_history: "exchange rate history forex fx currency historical rates chart ecb",
+  sec_filings: "sec edgar filings 10-k 10-q 8-k annual report revenue earnings financials public company stock ticker",
 };
 
 /** Not offered as search results: free helpers, and run_skill (it runs other listings). */
