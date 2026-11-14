@@ -24,6 +24,11 @@ describe("payment reconciliation", () => {
     expect(judge(p, { status: "0x1", logs: [log("0x2222222222222222222222222222222222222222", 5000)] })).toBe("wrong_transfer");
     expect(judge(p, { status: "0x1", logs: [log(PAY_TO, 5000, "0x3333333333333333333333333333333333333333")] })).toBe("wrong_transfer");
   });
+  it("accepts sales paid to an earlier payout wallet", () => {
+    const old = "0x366D488a48de1B2773F3a21F1A6972715056Cb30";
+    expect(judge(p, { status: "0x1", logs: [log(old, 5000)] })).toBe("wrong_transfer");
+    expect(judge({ ...p, also_pay_to: [old] }, { status: "0x1", logs: [log(old, 5000)] })).toBe("confirmed");
+  });
   it("knows Base Sepolia's USDC and refuses unknown networks", () => {
     const t = { ...p, network: "eip155:84532" };
     expect(judge(t, { status: "0x1", logs: [log(PAY_TO, 5000, "0x036cbd53842c5426634e7929541ec2318f3dcf7e")] })).toBe("confirmed");

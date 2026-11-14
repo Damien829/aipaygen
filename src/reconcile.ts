@@ -12,9 +12,16 @@ import { openIssue } from "./lib/github";
  * and only once a payment is 10 minutes old so it has had time to confirm.
  */
 
-const NETWORKS: Record<string, { rpc: (env: Env) => string; usdc: string }> = {
-  "eip155:8453": { rpc: (env) => env.FACILITATOR_RPC_BASE || "https://mainnet.base.org", usdc: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913" },
-  "eip155:84532": { rpc: (env) => env.FACILITATOR_RPC_BASE_SEPOLIA || "https://sepolia.base.org", usdc: "0x036cbd53842c5426634e7929541ec2318f3dcf7e" },
+// Free public RPCs, tried in order: Base's own endpoint often rate-limits Cloudflare's IPs.
+const NETWORKS: Record<string, { rpcs: (env: Env) => string[]; usdc: string }> = {
+  "eip155:8453": {
+    rpcs: (env) => [env.FACILITATOR_RPC_BASE, "https://base-rpc.publicnode.com", "https://1rpc.io/base", "https://mainnet.base.org"].filter((u): u is string => !!u),
+    usdc: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+  },
+  "eip155:84532": {
+    rpcs: (env) => [env.FACILITATOR_RPC_BASE_SEPOLIA, "https://sepolia.base.org", "https://base-sepolia-rpc.publicnode.com"].filter((u): u is string => !!u),
+    usdc: "0x036cbd53842c5426634e7929541ec2318f3dcf7e",
+  },
 };
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
 const PER_RUN = 8; // RPC calls per cron run
@@ -27,6 +34,8 @@ export interface Payment {
   network: string;
   tx: string;
   pay_to: string;
+  /** Earlier payout wallets that also count (sales made before PAY_TO changed). */
+  also_pay_to?: string[];
   amount_micro: number;
   created_at: number;
 }
@@ -44,11 +53,12 @@ export function judge(p: Payment, receipt: Receipt | null): Verdict {
   if (!net) return "unknown_network";
   if (!receipt) return "not_found";
   if (receipt.status !== "0x1") return "failed";
-  const to = "0x" + p.pay_to.toLowerCase().replace(/^0x/, "").padStart(64, "0");
+  const topic = (a: string) => "0x" + a.toLowerCase().replace(/^0x/, "").padStart(64, "0");
+  const to = new Set([p.pay_to, ...(p.also_pay_to ?? [])].map(topic));
   const paid = receipt.logs.some((l) =>
     l.address.toLowerCase() === net.usdc &&
     l.topics[0]?.toLowerCase() === TRANSFER &&
-    l.topics[2]?.toLowerCase() === to &&
+    to.has(l.topics[2]?.toLowerCase() ?? "") &&
     BigInt(l.data === "0x" ? 0 : l.data) >= BigInt(p.amount_micro));
   return paid ? "confirmed" : "wrong_transfer";
 }
@@ -56,16 +66,24 @@ export function judge(p: Payment, receipt: Receipt | null): Verdict {
 async function getReceipt(env: Env, p: Payment): Promise<Receipt | null> {
   const net = NETWORKS[p.network];
   if (!net) return null;
-  const res = await fetch(net.rpc(env), {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_getTransactionReceipt", params: [p.tx] }),
-    signal: AbortSignal.timeout(8_000),
-  });
-  if (!res.ok) throw new Error(`rpc ${res.status}`);
-  const j = (await res.json()) as { result?: Receipt | null; error?: { message?: string } };
-  if (j.error) throw new Error(`rpc ${j.error.message ?? "error"}`);
-  return j.result ?? null;
+  let last = "no rpc";
+  for (const url of net.rpcs(env)) {
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_getTransactionReceipt", params: [p.tx] }),
+        signal: AbortSignal.timeout(6_000),
+      });
+      if (!res.ok) throw new Error(`${res.status}`);
+      const j = (await res.json()) as { result?: Receipt | null; error?: { message?: string } };
+      if (j.error) throw new Error(j.error.message ?? "error");
+      return j.result ?? null;
+    } catch (err) {
+      last = `${new URL(url).hostname}: ${err instanceof Error ? err.message : String(err)}`.slice(0, 120);
+    }
+  }
+  throw new Error(`rpc ${last}`);
 }
 
 interface State {
@@ -107,18 +125,21 @@ export async function reconcilePayments(env: Env) {
   ]);
   const queue: Payment[] = [
     ...(sales!.results as { id: number; tx: string; amount_micro: number; created_at: number }[]).map((r) => ({
-      source: "sale" as const, network: env.X402_NETWORK, pay_to: env.PAY_TO, ...r,
+      source: "sale" as const, network: env.X402_NETWORK, pay_to: env.PAY_TO,
+      also_pay_to: (env.PAY_TO_PREVIOUS ?? "").split(",").map((a) => a.trim()).filter(Boolean), ...r,
     })),
     ...(fac!.results as Omit<Payment, "source">[]).map((r) => ({ source: "facilitator" as const, ...r })),
   ].sort((a, b) => a.created_at - b.created_at).slice(0, PER_RUN);
 
   const found: State["missing"] = [];
   let confirmed = 0;
+  let stalled: string | undefined;
   for (const p of queue) {
     let verdict: Verdict;
     try {
       verdict = judge(p, await getReceipt(env, p));
-    } catch {
+    } catch (err) {
+      stalled = err instanceof Error ? err.message : String(err);
       break; // RPC trouble: stop here and retry this one next run
     }
     if (verdict === "confirmed") confirmed++;
@@ -144,5 +165,5 @@ export async function reconcilePayments(env: Env) {
       "payments",
     );
   }
-  return { checked: confirmed + found.length, confirmed, problems: found.length, ...(alert !== undefined ? { alerted: alert === null, ...(alert ? { reason: alert } : {}) } : {}) };
+  return { checked: confirmed + found.length, confirmed, problems: found.length, ...(stalled ? { stalled } : {}), ...(alert !== undefined ? { alerted: alert === null, ...(alert ? { reason: alert } : {}) } : {}) };
 }
