@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
+// Node built-ins; the project has no @types/node (tsconfig types are Workers-only), and vitest runs in Node.
+// @ts-ignore
 import { DatabaseSync } from "node:sqlite";
+// @ts-ignore
 import { readFileSync } from "node:fs";
 import { linkPayerRef, payReferralShares, referralStats, REF_WINDOW_DAYS, shareOf, utcDayStart } from "../src/billing/refshare";
 
@@ -11,7 +14,7 @@ function fakeD1() {
     CREATE TABLE ledger (id INTEGER PRIMARY KEY AUTOINCREMENT, key_id TEXT NOT NULL, delta_micro INTEGER NOT NULL, reason TEXT NOT NULL, ref TEXT UNIQUE, created_at INTEGER NOT NULL);
     CREATE TABLE usage (id INTEGER PRIMARY KEY AUTOINCREMENT, tool TEXT, channel TEXT, payment TEXT NOT NULL, payer TEXT, price_micro INTEGER NOT NULL, ok INTEGER NOT NULL, ms INTEGER, tx TEXT, created_at INTEGER NOT NULL);
   `);
-  db.exec(readFileSync(new URL("../migrations/0016_payer_refs.sql", import.meta.url), "utf8"));
+  db.exec(readFileSync("migrations/0016_payer_refs.sql", "utf8")); // vitest runs from the repo root
   const stmt = (sql: string, args: unknown[] = []) => ({
     bind: (...a: unknown[]) => stmt(sql, a),
     first: async <T>() => (db.prepare(sql).get(...(args as never[])) as T) ?? null,
