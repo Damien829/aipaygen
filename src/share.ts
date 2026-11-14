@@ -27,7 +27,7 @@ export function logSearch(env: Env, ctx: ExecutionContext | undefined, query: st
 export const REF_RE = /^[A-Za-z0-9]{6,16}$/;
 
 /** A referral code passed on any URL (?ref=CODE) or as an x-aipaygen-ref header. */
-export function refFromRequest(req: Request | undefined): string | undefined {
+export function refFromRequest(req: Request | undefined, opts: { urlOnly?: boolean } = {}): string | undefined {
   if (!req) return undefined;
   let r: string | null = null;
   try {
@@ -35,7 +35,9 @@ export function refFromRequest(req: Request | undefined): string | undefined {
   } catch {
     // ignore malformed URLs
   }
-  r = r ?? req.headers.get("x-aipaygen-ref");
+  // Edge-cached responses (src/edgecache.ts) are keyed by URL only, so they must not
+  // pick up a code from a header: it would be served to every later caller.
+  if (!opts.urlOnly) r = r ?? req.headers.get("x-aipaygen-ref");
   return r && REF_RE.test(r) ? r : undefined;
 }
 

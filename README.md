@@ -12,7 +12,7 @@ Workers.
 - **Runnable skills:** `run_skill` runs any marketplace skill on your input.
 - **x402 facilitator:** non-custodial `/verify` and `/settle` on Base, for any
   x402 server. See [docs/FACILITATOR.md](docs/FACILITATOR.md).
-- **40 paid tools:** web and company intelligence, AI text and media, crypto
+- **51 paid tools:** web and company intelligence, AI text and media, crypto
   data, reference data and developer lookups. `find_tool` (free) picks the best
   working option for a need, ours or anyone's.
 
@@ -33,11 +33,11 @@ Paid per call (prices are quoted in the 402 reply or by `pricing`):
 
 | Group | Tools |
 |---|---|
-| Web and company intelligence | `dns_lookup`, `domain_whois`, `domain_available`, `ssl_certificates`, `security_headers`, `email_security`, `tech_stack`, `site_metadata`, `page_to_markdown`, `redirect_check`, `ip_lookup`, `company_profile`, `domain_report` |
-| AI text | `summarize`, `extract_data`, `classify_text`, `translate`, `ask_llm`, `embed_text`, `rank_texts`, `run_skill` |
+| Web and company intelligence | `dns_lookup`, `email_verify`, `domain_whois`, `domain_available`, `ssl_certificates`, `security_headers`, `email_security`, `tech_stack`, `site_metadata`, `page_to_markdown`, `redirect_check`, `ip_lookup`, `company_profile`, `domain_report` |
+| AI text | `summarize`, `document_to_markdown`, `text_utils`, `extract_data`, `classify_text`, `translate`, `ask_llm`, `embed_text`, `rank_texts`, `run_skill` |
 | AI media | `transcribe_audio`, `text_to_speech`, `describe_image`, `generate_image` |
 | Crypto | `crypto_price`, `dex_token`, `token_security`, `wallet_balance`, `gas_price` |
-| Reference data | `weather`, `geocode`, `currency_convert`, `public_holidays`, `earthquakes`, `wikipedia`, `hacker_news`, `paper_search` |
+| Reference data | `weather`, `weather_alerts`, `geocode`, `currency_convert`, `public_holidays`, `earthquakes`, `wikipedia`, `hacker_news`, `paper_search`, `scholar_search`, `book_search`, `economic_data`, `regulations_search`, `drug_info`, `clinical_trials`, `product_lookup` |
 | Developer | `package_info`, `package_vulns` |
 
 Also free: `pricing`, `create_api_key`, `account_balance`.

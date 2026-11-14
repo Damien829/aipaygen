@@ -116,7 +116,7 @@ export function apiRoutes(): Hono<AppEnv> {
     const kind = KINDS.includes(q.kind as Kind) ? (q.kind as Kind) : undefined;
     const r = await searchCatalog(c.env, { q: q.q, kind, category: q.category, limit: Number(q.limit) || undefined, offset: Number(q.offset) || undefined });
     if (q.q) logSearch(c.env, c.executionCtx as unknown as ExecutionContext, q.q, kind, r.total, "http");
-    return json(c, 200, { ...r, share: shareBlock(c.env, { ref: refFromRequest(c.req.raw) }) }, { "cache-control": "public, max-age=300" });
+    return json(c, 200, { ...r, share: shareBlock(c.env, { ref: refFromRequest(c.req.raw, { urlOnly: true }) }) }, { "cache-control": "public, max-age=300" });
   });
 
   api.post("/agents/register", async (c) => {
