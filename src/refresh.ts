@@ -1,4 +1,5 @@
 import { OWNER_HIDDEN, upsertCatalogItem } from "./catalog";
+import { payReferralShares } from "./billing/refshare";
 import type { Env } from "./env";
 import { facilitatorAlert } from "./facilitator";
 import { registerAgent } from "./growth";
@@ -279,8 +280,11 @@ async function withNewItemCap<T extends { added?: number }>(env: Env, job: () =>
  * Search text 90 days (demand reports read 30), free-call counters 2 days,
  * payment replay guards 7 days. Matches /privacy.
  */
+/** True for the one 10-minute run that starts the 03:00 UTC hour. */
+export const isDailyRun = (now = new Date()) => now.getUTCHours() === 3 && now.getUTCMinutes() < 10;
+
 export async function pruneLogs(env: Env, now = new Date()) {
-  if (now.getUTCHours() !== 3 || now.getUTCMinutes() >= 10) return { skipped: "runs daily at 03:00 UTC" };
+  if (!isDailyRun(now)) return { skipped: "runs daily at 03:00 UTC" };
   const day = (ms: number) => new Date(now.getTime() - ms).toISOString().slice(0, 10);
   const r = await env.DB.batch([
     env.DB.prepare("DELETE FROM search_log WHERE created_at < ?").bind(now.getTime() - 90 * 86_400_000),
@@ -301,6 +305,8 @@ export async function runFreshness(env: Env) {
     ["skills_from_demand", () => skillsFromDemand(env)],
     ["facilitator_alert", () => facilitatorAlert(env)],
     ["prune", () => pruneLogs(env)],
+    // Referral shares for wallet payers: yesterday's earnings, once a day (idempotent per key and day).
+    ["refshare", () => (isDailyRun() ? payReferralShares(env) : Promise.resolve({ skipped: "runs daily at 03:00 UTC" }))],
   ] as const) {
     try {
       out[name] = await job();
