@@ -290,7 +290,7 @@ def buyer_sdk_example() -> dict:
         "description": "AiPayGen Buyer SDK — auto-402 payment handling with policy engine",
         "sync_example": 'from aipaygen_buyer import AiPayGenBuyer\n\nclient = AiPayGenBuyer(\n    private_key="0xYOUR_PRIVATE_KEY",\n    max_price=0.05,\n    daily_budget=5.0,\n)\n\nresult = client.call("/ask", prompt="What is x402?")\nprint(result.data)\nprint(f"Paid: {result.paid}, Receipt: {result.receipt}")\nprint(f"Budget remaining: ${client.budget_remaining:.2f}")',
         "async_example": 'import asyncio\nfrom aipaygen_buyer import AsyncAiPayGenBuyer\n\nasync def main():\n    async with AsyncAiPayGenBuyer(private_key="0x...") as client:\n        result = await client.call("/ask", prompt="Hello!")\n        print(result.data)\n\nasyncio.run(main())',
-        "policy_example": 'from aipaygen_buyer import AiPayGenBuyer, SpendingPolicy\n\npolicy = SpendingPolicy(\n    max_price_per_call=0.02,\n    daily_budget=2.0,\n    monthly_budget=50.0,\n    vendor_allowlist={"0x366D488a48de1B2773F3a21F1A6972715056Cb30"},\n)\nclient = AiPayGenBuyer(private_key="0x...", policy=policy)',
+        "policy_example": 'from aipaygen_buyer import AiPayGenBuyer, SpendingPolicy\n\npolicy = SpendingPolicy(\n    max_price_per_call=0.02,\n    daily_budget=2.0,\n    monthly_budget=50.0,\n    vendor_allowlist={"0xebA22e8CD05Cb72A2F913099D6cCA666DD6D35B0"},\n)\nclient = AiPayGenBuyer(private_key="0x...", policy=policy)',
     }
 
 

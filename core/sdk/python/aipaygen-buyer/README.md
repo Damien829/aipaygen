@@ -47,7 +47,7 @@ policy = SpendingPolicy(
     daily_budget=2.0,            # $2/day cap
     monthly_budget=50.0,         # $50/month cap
     vendor_allowlist={           # only pay these wallets
-        "0x366D488a48de1B2773F3a21F1A6972715056Cb30",
+        "0xebA22e8CD05Cb72A2F913099D6cCA666DD6D35B0",
     },
     endpoint_allowlist={"/ask", "/summarize", "/translate"},
 )

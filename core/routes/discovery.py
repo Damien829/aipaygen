@@ -373,7 +373,7 @@ def discover_openapi():
             "x-402-price": price,
             "x-402-currency": "USDC",
             "x-402-network": network,
-            "x-402-pay-to": "0x366D488a48de1B2773F3a21F1A6972715056Cb30",
+            "x-402-pay-to": "0xebA22e8CD05Cb72A2F913099D6cCA666DD6D35B0",
             "responses": {
                 "200": {"description": "Success"},
                 "402": {"description": f"Payment Required — ${price} USDC"},
@@ -394,7 +394,7 @@ def discover_openapi():
             "chains": ["eip155:8453"],
             "currency": "USDC",
             "facilitator": "https://api.cdp.coinbase.com/platform/v2/x402",
-            "wallet": "0x366D488a48de1B2773F3a21F1A6972715056Cb30",
+            "wallet": "0xebA22e8CD05Cb72A2F913099D6cCA666DD6D35B0",
         },
         "paths": paths,
     }
@@ -426,7 +426,7 @@ def well_known_x402():
                 "settlement_time": "~400ms",
             },
         ],
-        "wallet": "0x366D488a48de1B2773F3a21F1A6972715056Cb30",
+        "wallet": "0xebA22e8CD05Cb72A2F913099D6cCA666DD6D35B0",
         "facilitator": "https://api.cdp.coinbase.com/platform/v2/x402",
         "payment_scheme": "exact",
         "pricing": {

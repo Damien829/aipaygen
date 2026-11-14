@@ -19,7 +19,7 @@ import urllib.parse
 from datetime import datetime, timedelta, timezone
 
 BASE_URL = os.getenv("BASE_URL", "https://api.aipaygen.com")
-WALLET = os.getenv("WALLET_ADDRESS", "0x366D488a48de1B2773F3a21F1A6972715056Cb30")
+WALLET = os.getenv("WALLET_ADDRESS", "0xebA22e8CD05Cb72A2F913099D6cCA666DD6D35B0")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 DB_PATH = os.path.join(DATA_DIR, "discovery_engine.db")
 USER_AGENT = "AiPayGen-OutboundAgent/2.0 (+https://api.aipaygen.com)"

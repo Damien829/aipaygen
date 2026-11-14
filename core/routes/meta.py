@@ -72,7 +72,7 @@ def _get_popular_tools(limit=10):
         pass
     return _CURATED_POPULAR[:limit]
 
-WALLET_ADDRESS = os.getenv("WALLET_ADDRESS", "0x366D488a48de1B2773F3a21F1A6972715056Cb30")
+WALLET_ADDRESS = os.getenv("WALLET_ADDRESS", "0xebA22e8CD05Cb72A2F913099D6cCA666DD6D35B0")
 EVM_NETWORK = os.getenv("EVM_NETWORK", "eip155:8453")
 
 # Pre-compute MCP tool count at import time (avoid reading file on every /api/stats call)

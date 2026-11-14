@@ -473,7 +473,7 @@ def generate_openapi_spec(routes=None):
                     "description": (
                         "x402 USDC micropayment on Base (eip155:8453). "
                         "See https://x402.org for protocol details. "
-                        "Pay-to wallet: 0x366D488a48de1B2773F3a21F1A6972715056Cb30"
+                        "Pay-to wallet: 0xebA22e8CD05Cb72A2F913099D6cCA666DD6D35B0"
                     ),
                 },
             },

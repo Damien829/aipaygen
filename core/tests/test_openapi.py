@@ -11,7 +11,7 @@ from x402.http.types import RouteConfig
 
 def _make_routes():
     """Build a minimal routes dict matching the app.py structure."""
-    wallet = "0x366D488a48de1B2773F3a21F1A6972715056Cb30"
+    wallet = "0xebA22e8CD05Cb72A2F913099D6cCA666DD6D35B0"
     net = "eip155:8453"
 
     def _r(price, desc, mime="application/json"):

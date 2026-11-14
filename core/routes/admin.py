@@ -1464,7 +1464,7 @@ _KNOWLEDGE_SEEDS = [
         "topic": "x402-payment-protocol",
         "content": (
             "x402 V2 is the open payment protocol for AI agents. HTTP 402 response includes PAYMENT-REQUIRED header with payment details. "
-            "Agents pay USDC on Base, Solana, or Stellar. AiPayGen wallet: 0x366D488a48de1B2773F3a21F1A6972715056Cb30. "
+            "Agents pay USDC on Base, Solana, or Stellar. AiPayGen wallet: 0xebA22e8CD05Cb72A2F913099D6cCA666DD6D35B0. "
             "Facilitator: https://api.cdp.coinbase.com/platform/v2/x402. Use x402 SDK (pip install x402). "
             "x402 Foundation: Coinbase, Cloudflare, Google, Visa. Google AP2 compatible."
         ),

@@ -7,7 +7,7 @@ from unittest.mock import patch, call
 class TestProcessBaseTransfers(unittest.TestCase):
     """Test process_base_transfers with mocked DB/key functions."""
 
-    WALLET = "0x366D488a48de1B2773F3a21F1A6972715056Cb30"
+    WALLET = "0xebA22e8CD05Cb72A2F913099D6cCA666DD6D35B0"
 
     def _make_transfer(self, tx_hash="0xabc123", amount=5.0):
         return {

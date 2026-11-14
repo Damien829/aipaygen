@@ -247,7 +247,7 @@ def _issue_refund_credit(amount_usd: float, endpoint: str = "", request_id: str 
 # ── Wallet Integrity Protection ──────────────────────────────────────────────
 # The wallet address is hardcoded and verified at startup. It CANNOT be changed
 # via environment variables alone — the checksum must match.
-_VERIFIED_WALLET = "0x366D488a48de1B2773F3a21F1A6972715056Cb30"
+_VERIFIED_WALLET = "0xebA22e8CD05Cb72A2F913099D6cCA666DD6D35B0"
 _WALLET_CHECKSUM = "a3f7d2e1"  # first 8 chars of sha256 of the address
 import hashlib as _hashlib
 def _verify_wallet(addr: str) -> str:

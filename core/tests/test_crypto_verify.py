@@ -12,7 +12,7 @@ import crypto_verify
 # Helpers to build mock objects
 # ---------------------------------------------------------------------------
 
-RECIPIENT = "0x366D488a48de1B2773F3a21F1A6972715056Cb30"
+RECIPIENT = "0xebA22e8CD05Cb72A2F913099D6cCA666DD6D35B0"
 SENDER = "0xAbCdEf0123456789AbCdEf0123456789AbCdEf01"
 TX_HASH = "0x" + "aa" * 32
 
