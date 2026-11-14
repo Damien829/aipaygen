@@ -83,7 +83,8 @@ export async function healthCheck(env: Env, limit = 34) {
   // One indexed query per kind (idx_catalog_health), least recently checked first.
   // MCP servers and APIs get most of the budget: they are what agents call.
   type HealthRow = { id: string; kind: string; url: string; x402: number; fail_count: number; latency_ms: number | null };
-  const share: [string, number][] = [["mcp", 0.375], ["api", 0.375], ["agent", 0.125], ["service", 0.125]];
+  // APIs get half: the x402 feeds add thousands of them and about a quarter are dead.
+  const share: [string, number][] = [["mcp", 0.25], ["api", 0.5], ["agent", 0.125], ["service", 0.125]];
   const batches = await env.DB.batch(share.map(([kind, part]) => env.DB.prepare(
     `SELECT id, kind, url, x402, fail_count, latency_ms FROM catalog WHERE kind = ? AND url LIKE 'https://%' AND fail_count < ${OWNER_HIDDEN} ORDER BY checked_at LIMIT ?`,
   ).bind(kind, Math.max(1, Math.round(limit * part)))));
@@ -139,16 +140,40 @@ interface BazaarItem {
   description?: string;
   type?: string;
   lastUpdated?: string;
-  accepts?: { amount?: string; asset?: string; network?: string; payTo?: string; scheme?: string }[];
+  metadata?: { description?: string };
+  accepts?: { amount?: string; asset?: string; network?: string; payTo?: string; scheme?: string; description?: string }[];
   extensions?: { bazaar?: { info?: { input?: { method?: string } } } };
 }
 
-export async function ingestBazaar(env: Env, limit = 10) {
-  const offset = Number(await getState(env, "bazaar_offset")) || 0;
-  const res = await fetch(`${BAZAAR}?limit=${limit}&offset=${offset}`, { headers: { accept: "application/json", "user-agent": UA }, signal: AbortSignal.timeout(10000) });
-  if (!res.ok) return { error: `bazaar ${res.status}` };
+/** x402 discovery feeds (same /discovery/resources shape). Each keeps its own offset. */
+export const X402_FEEDS = [
+  { name: "cdp", url: BAZAAR, offsetKey: "bazaar_offset", source: "x402-bazaar" },
+  { name: "payai", url: "https://facilitator.payai.network/discovery/resources", offsetKey: "payai_offset", source: "x402-payai" },
+] as const;
+
+/** Lowercased words only, so trivially different copies of one description match. */
+export function normalizeDescription(d: string): string {
+  return d.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 200);
+}
+
+/**
+ * Catalog id for an x402 resource. Sellers often list many paths with one shared
+ * description; those collapse into one item per host (the first URL seen is kept).
+ * Short or missing descriptions can't be told apart, so those stay one item per URL.
+ */
+export async function x402ItemId(resource: string, description: string): Promise<{ id: string; grouped: boolean }> {
+  const norm = normalizeDescription(description);
+  if (norm.length < 40) return { id: `api:x402-${await sha16(resource)}`, grouped: false };
+  return { id: `api:x402g-${await sha16(`${new URL(resource).hostname}|${norm}`)}`, grouped: true };
+}
+
+export async function ingestX402Feed(env: Env, feed: (typeof X402_FEEDS)[number], limit = 10) {
+  const offset = Number(await getState(env, feed.offsetKey)) || 0;
+  const res = await fetch(`${feed.url}?limit=${limit}&offset=${offset}`, { headers: { accept: "application/json", "user-agent": UA }, signal: AbortSignal.timeout(10000) });
+  if (!res.ok) return { error: `${feed.name} ${res.status}` };
   const d = (await res.json()) as { items?: BazaarItem[]; pagination?: { total?: number } };
   let added = 0;
+  let duplicates = 0;
   for (const it of d.items ?? []) {
     let u: URL;
     try {
@@ -157,18 +182,31 @@ export async function ingestBazaar(env: Env, limit = 10) {
       continue;
     }
     if (u.protocol !== "https:") continue;
-    const a = it.accepts?.[0];
+    // Prefer USDC on Base: it's what our price and payment info describe.
+    const a = it.accepts?.find((x) => x.network === "eip155:8453" && x.asset?.toLowerCase() === BASE_USDC) ?? it.accepts?.[0];
     const usdc = a?.asset?.toLowerCase() === BASE_USDC && a.network === "eip155:8453";
+    const description = (it.description || it.metadata?.description || a?.description || "").trim();
+    // Items stored before grouping keep their per-URL id, so they aren't added twice.
+    const legacy = `api:x402-${await sha16(it.resource)}`;
+    const old = await env.DB.prepare("SELECT 1 AS x FROM catalog WHERE id = ?").bind(legacy).first();
+    const { id, grouped } = old ? { id: legacy, grouped: false } : await x402ItemId(it.resource, description);
+    if (grouped) {
+      const kept = await env.DB.prepare("SELECT url FROM catalog WHERE id = ?").bind(id).first<{ url: string }>();
+      if (kept && kept.url !== it.resource) {
+        duplicates++;
+        continue;
+      }
+    }
     if ((await upsertCatalogItem(env, {
-      id: `api:x402-${await sha16(it.resource)}`, kind: "api", name: `${u.hostname}${u.pathname === "/" ? "" : u.pathname}`.slice(0, 120),
-      description: it.description ?? "", category: "x402", url: it.resource,
-      priceMicro: usdc && a?.amount && /^\d+$/.test(a.amount) ? Number(a.amount) : null, x402: true, source: "x402-bazaar",
+      id, kind: "api", name: `${u.hostname}${u.pathname === "/" ? "" : u.pathname}`.slice(0, 120),
+      description, category: "x402", url: it.resource,
+      priceMicro: usdc && a?.amount && /^\d+$/.test(a.amount) && a.amount !== "0" ? Number(a.amount) : null, x402: true, source: feed.source,
       meta: { network: a?.network, scheme: a?.scheme, pay_to: a?.payTo, method: it.extensions?.bazaar?.info?.input?.method },
     })) === "inserted") added++;
   }
   const total = d.pagination?.total ?? 0;
-  await setState(env, "bazaar_offset", String(offset + limit >= total ? 0 : offset + limit));
-  return { seen: d.items?.length ?? 0, added, offset, total };
+  await setState(env, feed.offsetKey, String(offset + limit >= total ? 0 : offset + limit));
+  return { seen: d.items?.length ?? 0, added, duplicates, offset, total };
 }
 
 /**
@@ -215,7 +253,8 @@ export async function runFreshness(env: Env) {
     ["agents", () => refreshAgents(env)],
     ["health", () => healthCheck(env)],
     ["mcp_registry", () => withNewItemCap(env, () => ingestMcpRegistry(env))],
-    ["x402_bazaar", () => withNewItemCap(env, () => ingestBazaar(env))],
+    ["x402_bazaar", () => withNewItemCap(env, () => ingestX402Feed(env, X402_FEEDS[0]))],
+    ["x402_payai", () => withNewItemCap(env, () => ingestX402Feed(env, X402_FEEDS[1]))],
     ["skills_from_demand", () => skillsFromDemand(env)],
     ["facilitator_alert", () => facilitatorAlert(env)],
     ["prune", () => pruneLogs(env)],
