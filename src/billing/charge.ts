@@ -58,7 +58,7 @@ export type ChargeOutcome =
 
 const CACHE_ORIGIN = "https://cache.aipaygen.internal";
 /** Bump whenever a tool's output changes so stale cached results are not served. */
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 
 async function cacheKey(tool: ToolDef, args: unknown): Promise<Request> {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(JSON.stringify(args)));

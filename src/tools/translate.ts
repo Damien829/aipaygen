@@ -19,12 +19,16 @@ const SYSTEM =
   "Reply with only the translation: no quotes, tags, notes or explanations.";
 
 /** Removes wrappers a model sometimes adds despite instructions. */
-export function cleanTranslation(raw: string): string {
-  return raw
+export function cleanTranslation(raw: string, source = ""): string {
+  const out = raw
     .replace(/<think>[\s\S]*?<\/think>/g, "")
     .replace(/^\s*<text>|<\/text>\s*$/g, "")
     .replace(/^(here is|here's) (the )?translation[^:\n]*:\s*/i, "")
     .trim();
+  // Models sometimes swap the closing mark ("¿Dónde está...!"). Keep the source's ? / ! / . when both use ASCII marks.
+  const end = source.trim().slice(-1);
+  if ("?!.".includes(end) && end && /[?!.]$/.test(out) && !out.endsWith(end)) return out.slice(0, -1) + end;
+  return out;
 }
 
 export const translate = defineTool({
@@ -50,9 +54,9 @@ export const translate = defineTool({
           { role: "user", content: `Translate${from} into ${target_lang}.\n<text>\n${text}\n</text>` },
         ],
         max_tokens: 2048,
-        temperature: 0.2,
+        temperature: 0,
       } as never)) as { response?: unknown };
-      const translation = typeof out.response === "string" ? cleanTranslation(out.response) : "";
+      const translation = typeof out.response === "string" ? cleanTranslation(out.response, text) : "";
       if (translation) return { translation, source_lang: source_lang ?? "auto-detected", target_lang, model: LLM };
     } catch (err) {
       console.log("translate llm failed", err instanceof Error ? err.message : String(err));

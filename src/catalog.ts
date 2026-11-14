@@ -119,10 +119,15 @@ export async function searchCatalog(env: Env, o: SearchOpts): Promise<{ total: n
     return { total: o.kind ? counts.visible[o.kind] ?? 0 : sum(counts.visible), items: page.results.map(toItem) };
   }
   const [count, page] = await env.DB.batch([env.DB.prepare(`SELECT COUNT(*) AS n FROM catalog c ${w}`).bind(...binds), pageQuery]);
-  return {
-    total: ((count?.results[0] as { n: number } | undefined)?.n) ?? 0,
-    items: ((page?.results ?? []) as unknown as Row[]).map(toItem),
-  };
+  const total = ((count?.results[0] as { n: number } | undefined)?.n) ?? 0;
+  const items = ((page?.results ?? []) as unknown as Row[]).map(toItem);
+  // AIPayGen's own tools aren't catalog rows: put matching ones first (first page only, in memory, no reads).
+  if (o.q && offset === 0 && (!o.kind || o.kind === "api") && !o.category) {
+    const { ownMatches } = await import("./owntools"); // lazy: tools/index imports this module
+    const own = ownMatches(env, o.q, Math.min(3, limit));
+    if (own.length) return { total: total + own.length, items: [...own, ...items].slice(0, limit) };
+  }
+  return { total, items };
 }
 
 export async function getCatalogItem(env: Env, id: string): Promise<CatalogItem | null> {

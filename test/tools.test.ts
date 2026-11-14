@@ -228,5 +228,33 @@ describe("translate", () => {
     expect(cleanTranslation("<think>hmm</think>Hola")).toBe("Hola");
     expect(cleanTranslation("Here is the translation: ¿Dónde está?")).toBe("¿Dónde está?");
     expect(cleanTranslation("<text>Bonjour</text>")).toBe("Bonjour");
+    expect(cleanTranslation("¿Dónde está la estación de tren!", "Where is the train station?")).toBe("¿Dónde está la estación de tren?");
+    expect(cleanTranslation("Hola.", "Hello.")).toBe("Hola.");
+    expect(cleanTranslation("こんにちは。", "Hello.")).toBe("こんにちは。");
+  });
+});
+
+import { matchScore, ownItem, ownMatches } from "../src/owntools";
+
+describe("own tools in marketplace search", () => {
+  const env = { PUBLIC_URL: "https://aipaygen.com" };
+  it("finds our tools by name and synonyms", () => {
+    expect(ownMatches(env, "weather")[0]?.url).toBe("https://aipaygen.com/v1/weather");
+    expect(ownMatches(env, "weather forecast api")[0]?.meta.tool).toBe("weather");
+    expect(ownMatches(env, "translation")[0]?.meta.tool).toBe("translate");
+    expect(ownMatches(env, "translate text between languages")[0]?.meta.tool).toBe("translate");
+    expect(ownMatches(env, "dmarc spf")[0]?.meta.tool).toBe("email_security");
+    expect(ownMatches(env, "whois")[0]?.meta.tool).toBe("domain_whois");
+  });
+  it("stays out of unrelated searches and skips free helpers", () => {
+    expect(ownMatches(env, "postgres mcp server")).toEqual([]);
+    expect(ownMatches(env, "image generation")).toEqual([]);
+    expect(ownMatches(env, "search marketplace").some((i) => i.meta.tool === "search_marketplace")).toBe(false);
+    expect(matchScore("the api", "anything")).toBe(0);
+  });
+  it("resolves market page ids", () => {
+    expect(ownItem(env, "aipaygen-dns-lookup")?.name).toBe("DNS lookup (AIPayGen)");
+    expect(ownItem(env, "aipaygen-search-marketplace")).toBeNull();
+    expect(ownItem(env, "aipaygen-nope")).toBeNull();
   });
 });
