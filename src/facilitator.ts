@@ -1,4 +1,5 @@
 import { x402Facilitator } from "@x402/core/facilitator";
+import { CDP_FACILITATOR, cdpJwt } from "./billing/cdpauth";
 import { toFacilitatorEvmSigner } from "@x402/evm";
 import { registerExactEvmScheme } from "@x402/evm/exact/facilitator";
 import { createPublicClient, createWalletClient, http, publicActions } from "viem";
@@ -95,6 +96,45 @@ function getFacilitator(env: Env): x402Facilitator {
   return facilitator;
 }
 
+/**
+ * Upstream facilitators for mainnet when our fee wallet can't pay gas: one AIPayGen
+ * endpoint, routed across networks with failover. PayAI first (free, no account),
+ * then Coinbase CDP (free for 1,000 settlements a month) when its key is set.
+ */
+type Upstream = { name: string; url: string; auth?: (path: string) => Promise<Record<string, string>> };
+export function upstreams(env: Env): Upstream[] {
+  const list: Upstream[] = [{ name: "payai", url: "https://facilitator.payai.network" }];
+  if (env.CDP_API_KEY_ID && env.CDP_API_KEY_SECRET) {
+    list.push({ name: "cdp", url: CDP_FACILITATOR, auth: async (path) => ({ Authorization: `Bearer ${await cdpJwt(env.CDP_API_KEY_ID!, env.CDP_API_KEY_SECRET!, "POST", `${CDP_FACILITATOR}/${path}`)}` }) });
+  }
+  return list;
+}
+
+type SettleResult = { success: boolean; payer?: string; transaction?: string; network?: string; errorReason?: string; errorMessage?: string };
+
+/** Settle through the first upstream that succeeds. Payment errors (bad signature, funds) are final; outages fail over. */
+export async function settleUpstream(env: Env, body: Body): Promise<{ result: SettleResult; via: string }> {
+  let last: { result: SettleResult; via: string } | null = null;
+  for (const u of upstreams(env)) {
+    try {
+      const res = await fetch(`${u.url}/settle`, {
+        method: "POST",
+        headers: { "content-type": "application/json", ...(u.auth ? await u.auth("settle") : {}) },
+        body: JSON.stringify({ x402Version: body.x402Version ?? 2, paymentPayload: body.paymentPayload, paymentRequirements: body.paymentRequirements }),
+        signal: AbortSignal.timeout(CONFIRMATION_TIMEOUT_MS + 5_000),
+      });
+      const r = (await res.json().catch(() => ({}))) as SettleResult;
+      if (r.success) return { result: r, via: u.name };
+      last = { result: { ...r, success: false }, via: u.name };
+      // The upstream answered about the payment itself: another one would say the same.
+      if (res.status < 500 && r.errorReason && !/unavailable|internal|timeout|rate/i.test(r.errorReason)) return last;
+    } catch {
+      last = { result: { success: false, errorReason: "upstream_unreachable", errorMessage: `${u.name} unreachable` }, via: u.name };
+    }
+  }
+  return last ?? { result: { success: false, errorReason: "facilitator_unavailable" }, via: "none" };
+}
+
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json", "access-control-allow-origin": "*" } });
 
 interface Body {
@@ -151,20 +191,26 @@ export async function handleFacilitator(request: Request, env: Env, ctx?: Execut
     if (!b) return json({ success: false, errorReason: "invalid_request", errorMessage: "Send { x402Version, paymentPayload, paymentRequirements }.", transaction: "", network: "" }, 400);
     if (!served(b)) return json({ success: false, errorReason: "unsupported_network", errorMessage: `Supported networks: ${networks.join(", ")}`, transaction: "", network: "" }, 400);
     const req = b.paymentRequirements as unknown as { network?: string; payTo?: string; amount?: string; asset?: string };
-    const record = (r: { success: boolean; payer?: string; transaction?: string; errorReason?: string }) => {
+    const record = (r: { success: boolean; payer?: string; transaction?: string; errorReason?: string }, via = "self") => {
       const p = env.DB.prepare(
-        "INSERT INTO facilitator_settlements (key_id, network, payer, pay_to, asset, amount, tx, success, error, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO facilitator_settlements (key_id, network, payer, pay_to, asset, amount, tx, success, error, via, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       ).bind(key.id, req.network ?? "", r.payer ?? null, req.payTo ?? null, req.asset ?? null, req.amount ?? null,
-        r.transaction ?? "", r.success ? 1 : 0, r.errorReason ?? null, Date.now()).run().catch(() => {});
+        r.transaction ?? "", r.success ? 1 : 0, r.errorReason ?? null, via, Date.now()).run().catch(() => {});
       if (ctx) ctx.waitUntil(p);
     };
     if (await facilitatorPaused(env).catch(() => false)) {
       return json({ success: false, errorReason: "facilitator_unavailable", errorMessage: "Settlement is paused by the operator. Retry later or use another facilitator.", transaction: "", network: req.network ?? "" }, 503);
     }
     if (req.network === MAINNET && !(await mainnetHasGas(env).catch(() => false))) {
+      // Our fee wallet can't pay gas: route to an upstream facilitator instead of turning the merchant away.
+      const { result, via } = await settleUpstream(env, b);
+      if (result.success) {
+        record(result, via);
+        return json({ ...result, network: result.network ?? MAINNET }, 200);
+      }
       // Recorded so the owner can see real demand waiting on the fee wallet (facilitatorAlert).
-      record({ success: false, errorReason: PAUSED });
-      return json({ success: false, errorReason: "facilitator_unavailable", errorMessage: "Mainnet settlement is paused. Retry later or use another facilitator.", transaction: "", network: MAINNET }, 503);
+      record({ success: false, errorReason: result.errorReason === "upstream_unreachable" || result.errorReason === "facilitator_unavailable" ? PAUSED : result.errorReason }, via);
+      return json({ success: false, errorReason: result.errorReason ?? "facilitator_unavailable", errorMessage: result.errorMessage ?? "Mainnet settlement is unavailable. Retry later.", transaction: "", network: MAINNET }, result.errorReason === "upstream_unreachable" ? 503 : 400);
     }
     let result;
     try {

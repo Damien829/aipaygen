@@ -78,6 +78,7 @@ app.get("/facilitator", async (c) => c.json({
   enabled: facilitatorEnabled(c.env),
   paused: await facilitatorPaused(c.env).catch(() => false),
   networks: facilitatorNetworks(c.env),
+  routing: "Base mainnet settles from our own fee wallet, or is routed to PayAI or Coinbase CDP (with failover) when it can't pay gas. One endpoint, always gasless for merchants.",
   stats: await facilitatorStats(c.env).catch(() => null),
   use_it: "Set your x402 resource server's facilitator URL to https://aipaygen.com/facilitator and pass your apg_ key for settle.",
 }));

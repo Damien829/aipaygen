@@ -42,6 +42,7 @@ That's the Visa-like seat: it touches every transaction it handles, and the mone
   - `POST /facilitator/verify`
   - `POST /facilitator/settle`
 - **Settlement wallet:** a dedicated key in a Worker secret (`FACILITATOR_PRIVATE_KEY`). It holds only a little ETH for gas and **never** holds customer funds. Watch its balance.
+- **Routing:** when the mainnet fee wallet can't pay gas, settlements are routed to PayAI's public facilitator, then Coinbase CDP (when `CDP_API_KEY_*` are set), with failover. Merchants keep one URL; each settlement records which network carried it (`facilitator_settlements.via`: self, payai, cdp). Funding the fee wallet makes "self" the default again.
 - **Access:** verify is open. Settle needs an `apg_` key (abuse and gas control, plus per-merchant analytics) and is rate limited. Every settlement is recorded in D1.
 - **Rollout:** Base Sepolia (testnet) → AIPayGen's own payments on mainnet → invited merchants → public.
 
