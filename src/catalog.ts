@@ -114,9 +114,7 @@ export async function searchCatalog(env: Env, o: SearchOpts): Promise<{ total: n
     : o.kind
       ? `ORDER BY ${TRUST_SQL} DESC, c.name`
       : `ORDER BY (c.kind = 'listing') DESC, ${TRUST_SQL} DESC, c.name`;
-  // Text searches fetch extra rows on page 1 so one seller's many near-identical endpoints can be capped (see hostCap).
-  const fetchN = fts && offset === 0 ? Math.min(limit * 3, 150) : limit;
-  const pageQuery = env.DB.prepare(`SELECT ${COLS} FROM catalog c ${w} ${order} LIMIT ? OFFSET ?`).bind(...binds, ...(fts ? [fts] : []), fetchN, offset);
+  const pageQuery = env.DB.prepare(`SELECT ${COLS} FROM catalog c ${w} ${order} LIMIT ? OFFSET ?`).bind(...binds, ...(fts ? [fts] : []), limit, offset);
   // Plain browsing uses the stored counts; counting live would read every row.
   if (!fts && !o.category) {
     const [counts, page] = await Promise.all([catalogCounts(env), pageQuery.all<Row>()]);
@@ -125,7 +123,9 @@ export async function searchCatalog(env: Env, o: SearchOpts): Promise<{ total: n
   const [count, page] = await env.DB.batch([env.DB.prepare(`SELECT COUNT(*) AS n FROM catalog c ${w}`).bind(...binds), pageQuery]);
   const total = ((count?.results[0] as { n: number } | undefined)?.n) ?? 0;
   const rows = ((page?.results ?? []) as unknown as Row[]).map(toItem);
-  const items = fetchN > limit ? hostCap(rows, 2).slice(0, limit) : rows;
+  // Within a page, a host's 3rd+ results move to the bottom so one seller can't fill the top.
+  // Reordering inside the page (not dropping or over-fetching) keeps offset paging exact: no repeats, nothing lost.
+  const items = fts ? spreadHosts(rows, 2) : rows;
   // AIPayGen's own tools aren't catalog rows: put matching ones first (first page only, in memory, no reads).
   if (o.q && offset === 0 && (!o.kind || o.kind === "api") && !o.category) {
     const own = ownMatches(env, o.q, Math.min(3, limit));
@@ -262,22 +262,25 @@ export async function upsertCatalogItem(env: Env, it: UpsertItem): Promise<"inse
 }
 
 /**
- * At most `per` results from one host, keeping order. A few sellers list hundreds of
- * near-identical endpoints (the top 20 hold almost half the Bazaar); without this one
- * of them can fill a whole results page. Items without a URL are never capped.
+ * Keeps order but moves each host's results beyond the first `per` to the end of the
+ * list. A few sellers list hundreds of near-identical endpoints (the top 20 hold almost
+ * half the Bazaar); this stops one of them filling the top of a page. Items without a
+ * URL are never moved.
  */
-export function hostCap<T extends { url: string | null }>(items: T[], per: number): T[] {
+export function spreadHosts<T extends { url: string | null }>(items: T[], per: number): T[] {
   const seen = new Map<string, number>();
-  return items.filter((i) => {
-    let host: string;
+  const head: T[] = [];
+  const tail: T[] = [];
+  for (const i of items) {
+    let host = "";
     try {
       host = i.url ? new URL(i.url).hostname.replace(/^www\./, "") : "";
     } catch {
-      host = "";
+      // no host: keep in place
     }
-    if (!host) return true;
-    const n = (seen.get(host) ?? 0) + 1;
-    seen.set(host, n);
-    return n <= per;
-  });
+    const n = host ? (seen.get(host) ?? 0) + 1 : 0;
+    if (host) seen.set(host, n);
+    (n > per ? tail : head).push(i);
+  }
+  return [...head, ...tail];
 }

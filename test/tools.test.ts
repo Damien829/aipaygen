@@ -507,11 +507,13 @@ describe("utility tools", () => {
   });
 });
 
-import { hostCap } from "../src/catalog";
+import { spreadHosts } from "../src/catalog";
 
 describe("search diversity", () => {
-  it("keeps at most two results per host, in order", () => {
+  it("moves a host's 3rd+ results to the end of the page without dropping any", () => {
     const items = ["https://a.com/1", "https://a.com/2", "https://www.a.com/3", "https://b.com/1", null, "https://a.com/4"].map((url) => ({ url }));
-    expect(hostCap(items, 2).map((i) => i.url)).toEqual(["https://a.com/1", "https://a.com/2", "https://b.com/1", null]);
+    const out = spreadHosts(items, 2).map((i) => i.url);
+    expect(out).toEqual(["https://a.com/1", "https://a.com/2", "https://b.com/1", null, "https://www.a.com/3", "https://a.com/4"]);
+    expect(out).toHaveLength(items.length);
   });
 });
