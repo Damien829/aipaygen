@@ -114,7 +114,9 @@ export async function searchCatalog(env: Env, o: SearchOpts): Promise<{ total: n
     : o.kind
       ? `ORDER BY ${TRUST_SQL} DESC, c.name`
       : `ORDER BY (c.kind = 'listing') DESC, ${TRUST_SQL} DESC, c.name`;
-  const pageQuery = env.DB.prepare(`SELECT ${COLS} FROM catalog c ${w} ${order} LIMIT ? OFFSET ?`).bind(...binds, ...(fts ? [fts] : []), limit, offset);
+  // Text searches fetch extra rows on page 1 so one seller's many near-identical endpoints can be capped (see hostCap).
+  const fetchN = fts && offset === 0 ? Math.min(limit * 3, 150) : limit;
+  const pageQuery = env.DB.prepare(`SELECT ${COLS} FROM catalog c ${w} ${order} LIMIT ? OFFSET ?`).bind(...binds, ...(fts ? [fts] : []), fetchN, offset);
   // Plain browsing uses the stored counts; counting live would read every row.
   if (!fts && !o.category) {
     const [counts, page] = await Promise.all([catalogCounts(env), pageQuery.all<Row>()]);
@@ -122,7 +124,8 @@ export async function searchCatalog(env: Env, o: SearchOpts): Promise<{ total: n
   }
   const [count, page] = await env.DB.batch([env.DB.prepare(`SELECT COUNT(*) AS n FROM catalog c ${w}`).bind(...binds), pageQuery]);
   const total = ((count?.results[0] as { n: number } | undefined)?.n) ?? 0;
-  const items = ((page?.results ?? []) as unknown as Row[]).map(toItem);
+  const rows = ((page?.results ?? []) as unknown as Row[]).map(toItem);
+  const items = fetchN > limit ? hostCap(rows, 2).slice(0, limit) : rows;
   // AIPayGen's own tools aren't catalog rows: put matching ones first (first page only, in memory, no reads).
   if (o.q && offset === 0 && (!o.kind || o.kind === "api") && !o.category) {
     const own = ownMatches(env, o.q, Math.min(3, limit));
@@ -256,4 +259,25 @@ export async function upsertCatalogItem(env: Env, it: UpsertItem): Promise<"inse
     .bind(it.id, it.kind, name, description, category, it.url, it.priceMicro, it.x402 ? 1 : 0, meta, it.source, now).run();
   await env.DB.prepare("INSERT INTO catalog_fts (rowid, name, description, category) VALUES (?, ?, ?, ?)").bind(ins.meta.last_row_id, name, description, category).run();
   return "inserted";
+}
+
+/**
+ * At most `per` results from one host, keeping order. A few sellers list hundreds of
+ * near-identical endpoints (the top 20 hold almost half the Bazaar); without this one
+ * of them can fill a whole results page. Items without a URL are never capped.
+ */
+export function hostCap<T extends { url: string | null }>(items: T[], per: number): T[] {
+  const seen = new Map<string, number>();
+  return items.filter((i) => {
+    let host: string;
+    try {
+      host = i.url ? new URL(i.url).hostname.replace(/^www\./, "") : "";
+    } catch {
+      host = "";
+    }
+    if (!host) return true;
+    const n = (seen.get(host) ?? 0) + 1;
+    seen.set(host, n);
+    return n <= per;
+  });
 }

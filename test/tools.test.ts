@@ -506,3 +506,12 @@ describe("utility tools", () => {
     expect(easy.flesch_reading_ease).toBeGreaterThan(hard.flesch_reading_ease);
   });
 });
+
+import { hostCap } from "../src/catalog";
+
+describe("search diversity", () => {
+  it("keeps at most two results per host, in order", () => {
+    const items = ["https://a.com/1", "https://a.com/2", "https://www.a.com/3", "https://b.com/1", null, "https://a.com/4"].map((url) => ({ url }));
+    expect(hostCap(items, 2).map((i) => i.url)).toEqual(["https://a.com/1", "https://a.com/2", "https://b.com/1", null]);
+  });
+});
