@@ -552,11 +552,11 @@ export const textUtils = defineTool({
   name: "text_utils",
   title: "Text utilities (hash, encode, UUID, stats)",
   description:
-    "Everyday text operations in one call: SHA-1/256/512 hashes, Base64 and URL encode/decode, slugs, UUIDs, JSON validation and pretty-printing, and word/character/sentence counts with reading time.",
+    "Everyday text operations in one call: SHA-1/256/512 hashes, Base64 and URL encode/decode, slugs, UUIDs, JSON validation and pretty-printing, word/character/sentence counts with reading time, and readability scores (Flesch, grade level).",
   priceMicro: 1000,
   cacheTtl: 0,
   input: z.object({
-    op: z.enum(["sha256", "sha1", "sha512", "base64_encode", "base64_decode", "url_encode", "url_decode", "slugify", "uuid", "json_format", "stats"]).describe("The operation."),
+    op: z.enum(["sha256", "sha1", "sha512", "base64_encode", "base64_decode", "url_encode", "url_decode", "slugify", "uuid", "json_format", "stats", "readability"]).describe("The operation."),
     text: z.string().max(100_000).optional().describe("Input text (not needed for uuid)."),
     count: z.number().int().min(1).max(100).optional().describe("How many UUIDs. Default 1."),
   }),
@@ -606,6 +606,11 @@ export const textUtils = defineTool({
         } catch (err) {
           return { op, valid: false, error: err instanceof Error ? err.message : "Invalid JSON" };
         }
+      case "readability": {
+        need();
+        const r = readability(t);
+        return { op, ...r };
+      }
       case "stats": {
         need();
         const words = t.trim() ? t.trim().split(/\s+/).length : 0;
@@ -619,3 +624,30 @@ export const textUtils = defineTool({
     }
   },
 });
+
+/** Syllables by vowel groups (English heuristic, the usual one for Flesch scores). */
+export function syllables(word: string): number {
+  const w = word.toLowerCase().replace(/[^a-z]/g, "");
+  if (!w) return 0;
+  if (w.length <= 3) return 1;
+  const groups = w.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/, "").replace(/^y/, "").match(/[aeiouy]{1,2}/g);
+  return Math.max(1, groups?.length ?? 1);
+}
+
+export function readability(text: string) {
+  const words = text.match(/[A-Za-z][A-Za-z'-]*/g) ?? [];
+  const sentences = Math.max(1, (text.match(/[^.!?]+[.!?]+/g) ?? []).length || (text.trim() ? 1 : 0));
+  const syl = words.reduce((a, w) => a + syllables(w), 0);
+  const complex = words.filter((w) => syllables(w) >= 3).length;
+  const W = Math.max(1, words.length);
+  const ease = 206.835 - 1.015 * (W / sentences) - 84.6 * (syl / W);
+  const grade = 0.39 * (W / sentences) + 11.8 * (syl / W) - 15.59;
+  const fog = 0.4 * (W / sentences + 100 * (complex / W));
+  const r1 = (x: number) => Math.round(x * 10) / 10;
+  const level = ease >= 90 ? "very easy" : ease >= 70 ? "easy" : ease >= 60 ? "plain English" : ease >= 50 ? "fairly difficult" : ease >= 30 ? "difficult" : "very difficult";
+  return {
+    flesch_reading_ease: r1(ease), level, flesch_kincaid_grade: r1(grade), gunning_fog: r1(fog),
+    words: words.length, sentences, avg_words_per_sentence: r1(W / sentences), avg_syllables_per_word: r1(syl / W),
+    note: "English formulas; scores for other languages are rough.",
+  };
+}

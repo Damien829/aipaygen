@@ -449,3 +449,60 @@ describe("x402 discovery API", () => {
     expect(item.accepts).toEqual([]);
   });
 });
+
+import { convertUnits, countBusinessDays, decodeJwt, evalMath, findCountry, isoWeek, offsetMinutes, parseCsv, stats, toCsv, toXml, toYaml, zoneOf } from "../src/tools/utils";
+import { readability } from "../src/tools/reference";
+
+describe("utility tools", () => {
+  it("decodes JWTs and flags risks", () => {
+    const enc = (o: object) => btoa(JSON.stringify(o)).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
+    const t = `${enc({ alg: "none" })}.${enc({ sub: "1", exp: 1000 })}.`;
+    const r = decodeJwt(t, 2_000_000);
+    expect(r.payload.sub).toBe("1");
+    expect(r.expired).toBe(true);
+    expect(r.warnings.join(" ")).toMatch(/unsigned/);
+    expect(() => decodeJwt("nope")).toThrow(/isn't a JWT/);
+  });
+  it("parses and writes CSV, YAML and XML", () => {
+    expect(parseCsv('a,b\n"x, y","he said ""hi"""\n')).toEqual([["a", "b"], ["x, y", 'he said "hi"']]);
+    expect(toCsv([{ a: 1, b: "x,y" }, { a: 2, c: true }])).toBe('a,b,c\n1,"x,y",\n2,,true');
+    expect(toYaml({ name: "Ada", tags: ["x", "y"], n: 3, flag: "yes" })).toBe('name: Ada\ntags:\n  - x\n  - y\nn: 3\nflag: "yes"');
+    expect(toXml({ a: 1, list: [1, 2] })).toContain("<list>1</list>");
+  });
+  it("does date math", () => {
+    const d = (s: string) => new Date(`${s}T00:00:00Z`);
+    expect(countBusinessDays(d("2026-11-13"), d("2026-11-20"), new Set())).toBe(5); // Fri -> next Fri
+    expect(countBusinessDays(d("2026-11-25"), d("2026-11-27"), new Set(["2026-11-26"]))).toBe(1);
+    expect(isoWeek(d("2026-01-01"))).toBe(1);
+  });
+  it("handles time zones with DST", () => {
+    expect(zoneOf("pst")).toBe("America/Los_Angeles");
+    expect(offsetMinutes("America/New_York", new Date("2026-07-01T12:00:00Z"))).toBe(-240);
+    expect(offsetMinutes("America/New_York", new Date("2026-12-01T12:00:00Z"))).toBe(-300);
+    expect(() => zoneOf("Mars/Base")).toThrow(/Unknown time zone/);
+  });
+  it("finds countries", () => {
+    expect(findCountry("jp")?.[2]).toBe("Japan");
+    expect(findCountry("Germany")?.[0]).toBe("DE");
+    expect(findCountry("BRA")?.[2]).toBe("Brazil");
+  });
+  it("evaluates math safely", () => {
+    expect(evalMath("2+3*4")).toBe(14);
+    expect(evalMath("2^3^2")).toBe(512);
+    expect(evalMath("-(1+2)*sqrt(16)")).toBe(-12);
+    expect(evalMath("max(1, 5, 3) + 10%")).toBeCloseTo(5.1);
+    expect(() => evalMath("constructor.constructor('x')()")).toThrow();
+    expect(() => evalMath("2+")).toThrow();
+  });
+  it("computes stats and converts units", () => {
+    expect(stats([1, 2, 3, 4, 100])).toMatchObject({ count: 5, median: 3, mean: 22, min: 1, max: 100 });
+    expect(convertUnits(100, "c", "f")).toBeCloseTo(212);
+    expect(convertUnits(1, "mi", "km")).toBeCloseTo(1.609344);
+    expect(() => convertUnits(1, "kg", "km")).toThrow(/Can't convert/);
+  });
+  it("scores readability", () => {
+    const easy = readability("The cat sat on the mat. It was a good cat.");
+    const hard = readability("Notwithstanding considerable organizational complexity, interdisciplinary collaboration necessitates comprehensive documentation.");
+    expect(easy.flesch_reading_ease).toBeGreaterThan(hard.flesch_reading_ease);
+  });
+});
