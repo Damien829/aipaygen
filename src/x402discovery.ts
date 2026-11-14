@@ -18,7 +18,8 @@ const BASE_USDC = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 // Must match TRUST_SQL in catalog.ts and idx_catalog_browse_kind (migration 0012), or SQLite scans the table.
 const TRUST_SQL = "(c.verified * 2.0 + CASE WHEN c.checks_total > 0 THEN 1.0 * c.checks_ok / c.checks_total ELSE 0.5 END)";
 const MAX_LIMIT = 100;
-const MAX_OFFSET = 5000;
+// Deep offsets read every skipped row; 1,000 keeps a full crawl cheap. Use search for anything further down.
+const MAX_OFFSET = 1000;
 
 interface Row {
   id: string; name: string; description: string; url: string; price_micro: number | null; meta: string;
@@ -117,14 +118,15 @@ export async function discoveryResources(env: Env, params: URLSearchParams) {
 
   // Only payable endpoints with known terms (Bazaar imports); seed rows tagged x402 are often repos or docs pages.
   const where = ["c.kind = 'api'", "c.x402 = 1", "c.fail_count < 3", "c.url IS NOT NULL", "c.price_micro IS NOT NULL"];
-  if (verifiedOnly) where.push("c.verified = 1");
+  // verified=true: proven-callable rows sort first (TRUST_SQL weights verified x2), so filter the page in memory.
+  // A SQL filter would keep walking the index past them, reading the whole table once they run out.
   let rows: Row[] = [];
   if (rowLimit > 0) {
     const page = await env.DB.prepare(
       `SELECT c.id, c.name, c.description, c.url, c.price_micro, c.meta, c.checks_total, c.checks_ok, c.latency_ms, c.verified, c.checked_at, c.source
        FROM catalog c WHERE ${where.join(" AND ")} ORDER BY ${TRUST_SQL} DESC, c.name LIMIT ? OFFSET ?`,
     ).bind(rowLimit, rowOffset).all<Row>();
-    rows = page.results;
+    rows = verifiedOnly ? page.results.filter((r) => r.verified === 1) : page.results;
   }
   // Exact totals would read every row; use the stored counts (refreshed every 6 hours).
   const counts = await catalogCounts(env).catch(() => null);
@@ -137,7 +139,7 @@ export async function discoveryResources(env: Env, params: URLSearchParams) {
     about: {
       provider: "AIPayGen",
       what: "Bazaar-compatible x402 discovery: our tools plus indexed x402 resources, with dead listings removed and health data in metadata.trust.",
-      params: "limit (max 100), offset (max 5000), verified=true (only proven-callable), include_aipaygen=false",
+      params: "limit (max 100), offset (max 1000), verified=true (only proven-callable), include_aipaygen=false",
       search: `${env.PUBLIC_URL}/v1/catalog/search?q=<words>&kind=api`,
       best_option_for_a_task: `${env.PUBLIC_URL}/v1/find_tool?need=<what you need>`,
     },

@@ -141,13 +141,14 @@ const codeMemo = new Map<string, string>();
 /** The referral code for a raw API key, or undefined if the key isn't valid. Memoized per isolate. */
 export async function referralCodeForKey(env: Env, rawKey: string | null | undefined): Promise<string | undefined> {
   if (!rawKey) return undefined;
-  const hit = codeMemo.get(rawKey);
+  const memoKey = await sha256Hex(rawKey); // never keep raw secrets in isolate memory
+  const hit = codeMemo.get(memoKey);
   if (hit) return hit;
   const key = await findApiKey(env, rawKey).catch(() => null);
   if (!key) return undefined;
   const code = await referralCode(env, key.id).catch(() => "");
   if (!code) return undefined;
   if (codeMemo.size > 5000) codeMemo.clear();
-  codeMemo.set(rawKey, code);
+  codeMemo.set(memoKey, code);
   return code;
 }
