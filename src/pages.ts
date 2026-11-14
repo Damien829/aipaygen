@@ -1,4 +1,5 @@
 import { APP_VERSION, SERVICE_NAME, type Env } from "./env";
+import { SIZES } from "./copy";
 import { TOOLS } from "./tools";
 import { formatPrice } from "./tools/types";
 import { microToUsd, toolJsonSchema, x402Enabled } from "./billing/x402";
@@ -60,7 +61,7 @@ export function landingPage(env: Env): string {
 
   const body = `
 <h1>Everything your AI agent needs, one search away.</h1>
-<p>Search 11,000+ APIs, skills, agents and MCP servers for free, then pay per call only for what you use. No account needed with x402.</p>
+<p>Search ${SIZES.total} APIs, skills, agents and MCP servers for free, then pay per call only for what you use. No account needed with x402.</p>
 <form action="/market" role="search" aria-label="Search the marketplace" style="display:flex;gap:8px;margin:16px 0 28px"><input name="q" type="search" placeholder="e.g. weather API, translate, summarize PDF" aria-label="Search query" style="flex:1;min-width:0;padding:12px 14px;font:inherit;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--fg)"><button type="submit" style="padding:12px 18px;font:inherit;border:0;border-radius:10px;background:var(--accent);color:var(--accent-fg);cursor:pointer">Search</button></form>
 <h2>Website and company intelligence for AI agents.</h2>
 <p class="lead">Give your agent ten tools for DNS, domain registration, certificates and subdomains, tech stack, email security, page content and full company profiles. Built on public data. Pay per call, only for calls that succeed.</p>
@@ -105,7 +106,7 @@ ${x402 ? `<p class="small muted">No key? Call any paid endpoint without one: it 
 document.querySelectorAll('[data-tab]').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('[data-tab]').forEach(function(x){x.setAttribute('aria-selected',x===b)});document.querySelectorAll('[data-panel]').forEach(function(p){p.hidden=p.dataset.panel!==b.dataset.tab})})});
 document.getElementById('getkey').addEventListener('click',async function(){var btn=this;btn.disabled=true;btn.textContent='Creating…';try{var r=await fetch('/v1/keys',{method:'POST',headers:{'content-type':'application/json'},body:'{}'});var d=await r.json();if(!r.ok)throw new Error(d.error&&d.error.message||'Failed');document.getElementById('keyval').textContent=d.api_key;document.getElementById('keybox').style.display='block';btn.textContent='Key created';}catch(e){btn.disabled=false;btn.textContent='Get a free API key';alert(e.message)}});
 </script>`;
-  return layout(env, "AIPayGen: website and company intelligence for AI agents", body, "Pay-per-call MCP and HTTP tools for DNS, WHOIS, certificates, tech stack, email security and company profiles.");
+  return layout(env, "AIPayGen: tools, marketplace and payments for AI agents", body, `${TOOLS.length} pay-per-call MCP and HTTP tools for agents (web intel, AI text and media, crypto and reference data), a free marketplace of ${SIZES.total} APIs and MCP servers, and an x402 facilitator on Base.`);
 }
 
 export function billingPage(env: Env, paid: boolean): string {
@@ -140,22 +141,22 @@ export function docsPage(env: Env): string {
 <p>Send <code>Authorization: Bearer apg_…</code> to pay from prepaid credits. Create a key with <code>POST /v1/keys</code>.${x402Enabled(env) ? " Without a key, paid endpoints answer <code>402 Payment Required</code> with a <code>PAYMENT-REQUIRED</code> header (x402 v2). Retry with a <code>PAYMENT-SIGNATURE</code> header; the receipt comes back in <code>PAYMENT-RESPONSE</code>. Over MCP, the payment goes in <code>_meta[\"x402/payment\"]</code>." : ""}</p>
 <p>Successful responses look like <code>{"tool": "...", "data": {...}, "receipt": {...}}</code>. Errors look like <code>{"error": {"code": "...", "message": "..."}}</code>.</p>
 ${sections}`;
-  return layout(env, "AIPayGen API docs", body, "API reference for AIPayGen Site Intel tools.");
+  return layout(env, "AIPayGen API docs", body, "API reference for AIPayGen's pay-per-call tools for AI agents.");
 }
 
 export function llmsTxt(env: Env): string {
-  return `# AIPayGen Site Intel
+  return `# AIPayGen
 
-> Pay-per-call website and company intelligence for AI agents: DNS, domain registration (RDAP), certificates and subdomains, tech stack, email security, security headers, page-to-markdown, and combined company profiles. Public data only. Failed calls are never charged.
+> Tools, a marketplace and payments for AI agents. ${TOOLS.length} tools callable over MCP or HTTP: web and company intelligence (DNS, RDAP, certificates, tech stack, email security, page-to-markdown), AI text and media (summarize, extract, classify, translate, transcribe, describe and generate images), crypto data (prices, token security, wallet balances, gas) and reference data (weather, currencies, holidays, papers, packages). Free tools: find_tool (describe a need, get the best working option to call) and search_marketplace. Pay per call with x402 (USDC on Base) or prepaid credits. Failed calls are never charged.
 
 - MCP endpoint (Streamable HTTP): ${env.PUBLIC_URL}/mcp
 - HTTP API: ${env.PUBLIC_URL}/v1/<tool> (GET query params or POST JSON)
 
 ## Marketplace (free to search)
 
-11,000+ resources for agents: AIPayGen tools, 4,300+ third-party APIs (docs, auth, x402 support), 4,300+ skills, 950+ agents, 1,500+ agent services.
+${SIZES.total} resources for agents: AIPayGen tools, ${SIZES.apis} third-party APIs (docs, auth, x402 support), ${SIZES.mcp} MCP servers, ${SIZES.skills} skills, ${SIZES.agents} agents, ${SIZES.services} agent services.
 
-- Search: ${env.PUBLIC_URL}/v1/catalog/search?q=<words>&kind=<listing|api|skill|agent|service>
+- Search: ${env.PUBLIC_URL}/v1/catalog/search?q=<words>&kind=<listing|api|mcp|skill|agent|service>
 - One item: ${env.PUBLIC_URL}/v1/catalog/<kind>/<id>
 - Overview: ${env.PUBLIC_URL}/v1/catalog/stats
 - MCP tool: search_marketplace (free)
@@ -203,7 +204,7 @@ export function openApi(env: Env): Record<string, unknown> {
   }
   return {
     openapi: "3.1.0",
-    info: { title: SERVICE_NAME, version: APP_VERSION, description: "Pay-per-call website and company intelligence for AI agents." },
+    info: { title: SERVICE_NAME, version: APP_VERSION, description: "Pay-per-call tools for AI agents: web and company intelligence, AI text and media, crypto and reference data." },
     servers: [{ url: env.PUBLIC_URL }],
     components: { securitySchemes: { apiKey: { type: "http", scheme: "bearer", bearerFormat: "apg_..." } } },
     security: [{ apiKey: [] }],
@@ -217,7 +218,7 @@ export function serverCard(env: Env): Record<string, unknown> {
     name: "com.aipaygen/site-intel",
     title: SERVICE_NAME,
     version: APP_VERSION,
-    description: "Pay-per-call website and company intelligence: DNS, RDAP, certificates, tech stack, email security, company profiles.",
+    description: "Pay-per-call tools for AI agents (web intel, AI text and media, crypto, reference data), a free marketplace search and find_tool to pick the best option for a need.",
     websiteUrl: env.PUBLIC_URL,
     remotes: [{ type: "streamable-http", url: `${env.PUBLIC_URL}/mcp` }],
     authentication: { type: "bearer", description: "Optional API key (apg_...). Without one, paid tools use x402 when enabled." },

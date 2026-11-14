@@ -24,7 +24,9 @@ const NETWORKS: Record<string, { rpcs: (env: Env) => string[]; usdc: string }> =
   },
 };
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
-const PER_RUN = 8; // RPC calls per cron run
+/** Its own hourly cron (wrangler.jsonc), so it has the invocation's 50 outbound requests to itself. */
+export const RECONCILE_CRON = "5 * * * *";
+const PER_RUN = 20; // payments per run: one receipt lookup each, more only when an RPC fails
 const SETTLE_DELAY = 10 * 60_000;
 const KEEP_MISSING = 20;
 

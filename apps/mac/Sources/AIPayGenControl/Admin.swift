@@ -39,9 +39,17 @@ struct Overview: Decodable {
         let name: String
     }
     struct LastRun: Decodable { let at: String? }
+    struct Reconcile: Decodable {
+        struct Missing: Decodable { let source: String; let tx: String; let verdict: String }
+        let confirmed: Int
+        let problems: Int
+        let missing: [Missing]
+        let checked_at: String?
+    }
     let facilitator_paused: Bool
     let last_run: LastRun?
     let hidden: [Hidden]
+    let reconcile: Reconcile?
 }
 
 enum AdminError: Error {
@@ -226,6 +234,21 @@ struct ControlsView: View {
                     Button("Pause settlements", role: .destructive) { Task { await admin.setPaused(true); await store.refresh() } }
                 } message: {
                     Text("Test and real payments both stop settling until you resume. Verifying payments keeps working.")
+                }
+            }
+            section("PAYMENT CHECKS") {
+                let r = admin.overview?.reconcile
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(r == nil ? "Not run yet" : "\(r!.confirmed) confirmed on-chain, \(r!.problems) problem\(r!.problems == 1 ? "" : "s")")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle((r?.problems ?? 0) > 0 ? Color.orange : Color.primary)
+                    Text("Checks hourly that each recorded payment really landed on Base.")
+                        .font(.system(size: 11)).foregroundStyle(.secondary)
+                    ForEach(Array((r?.missing ?? []).prefix(3).enumerated()), id: \.offset) { _, m in
+                        Link("\(m.verdict.replacingOccurrences(of: "_", with: " ")): \(String(m.tx.prefix(10)))…",
+                             destination: URL(string: "https://basescan.org/tx/\(m.tx)")!)
+                            .font(.system(size: 11))
+                    }
                 }
             }
             section("CATALOG") {

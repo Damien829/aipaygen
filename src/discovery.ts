@@ -1,4 +1,5 @@
 import { type CatalogItem, catalogStats, KINDS, type Kind, getCatalogItem, searchCatalog } from "./catalog";
+import { SIZES } from "./copy";
 import { CORE_ROUTES } from "./core/proxy";
 import { APP_VERSION, type Env } from "./env";
 import { esc, layout } from "./pages";
@@ -115,7 +116,7 @@ document.querySelector(".mk-search").addEventListener("submit",ev=>{ev.preventDe
 document.querySelectorAll(".chip[data-kind]").forEach(c=>c.addEventListener("click",ev=>{ev.preventDefault();kind=c.dataset.kind;document.querySelectorAll(".chip[data-kind]").forEach(x=>x.setAttribute("aria-pressed",String(x===c)));load(true);}));
 more.addEventListener("click",()=>load(false));})();</script>`;
   return layout(env, q ? `${q} · AIPayGen Marketplace` : "AIPayGen Marketplace · tools, APIs and skills for AI agents", body,
-    "Search 11,000+ APIs, skills, agents, MCP servers and pay-per-call tools for AI agents. Free to search; pay per call with x402 or credits.", MARKET_CSS + webMcpScript());
+    `Search ${SIZES.total} APIs, skills, agents, MCP servers and pay-per-call tools for AI agents. Free to search; pay per call with x402 or credits.`, MARKET_CSS + webMcpScript());
 }
 
 /** Sitemap index plus one sitemap per kind (each well under the 50,000-URL limit). */
@@ -151,7 +152,7 @@ export function agentCard(env: Env): Record<string, unknown> {
   return {
     protocolVersion: "0.3.0",
     name: "AIPayGen",
-    description: "Pay-per-call tools for AI agents: website and company intelligence, plus a free searchable marketplace of 11,000+ APIs, skills, agents and services. Pay with x402 (USDC on Base) or prepaid credits; no account needed for x402.",
+    description: `Pay-per-call tools for AI agents (web and company intelligence, AI text and media, crypto and reference data), a free searchable marketplace of ${SIZES.total} APIs, MCP servers, skills and agents, and an x402 facilitator on Base. Pay with x402 (USDC on Base) or prepaid credits; no account needed for x402.`,
     url: `${env.PUBLIC_URL}/a2a`,
     preferredTransport: "JSONRPC",
     version: APP_VERSION,
@@ -164,7 +165,7 @@ export function agentCard(env: Env): Record<string, unknown> {
     skills: [{
       id: "find_agent_resources",
       name: "Find APIs, agents and tools",
-      description: "Describe what you need in plain language; get verified APIs, MCP servers, agents and skills from 11,000+ listings, with uptime and how to pay. Free.",
+      description: `Describe what you need in plain language; get verified APIs, MCP servers, agents and skills from ${SIZES.total} listings, with uptime and how to pay. Free.`,
       tags: ["free", "search", "marketplace", "discovery"],
       examples: ["I need a weather API my agent can pay per call", "MCP server for reading PDFs"],
     }, ...TOOLS.map((t) => ({
@@ -211,7 +212,7 @@ export function webMcpScript(): string {
   const js = `(()=>{const mc=navigator.modelContext;if(!mc)return;
 const j=async(u)=>{const r=await fetch(u,{headers:{accept:"application/json"}});return{content:[{type:"text",text:await r.text()}]};};
 const tools=[
-{name:"search_marketplace",description:"Search 11,000+ APIs, skills, agents, services and AIPayGen pay-per-call tools. Free.",
+{name:"search_marketplace",description:"Search ${SIZES.total} APIs, skills, agents, services and AIPayGen pay-per-call tools. Free.",
 inputSchema:{type:"object",properties:{query:{type:"string"},kind:{type:"string",enum:["listing","api","skill","agent","service"]},limit:{type:"number"}},required:["query"]},
 execute:(a)=>j("/v1/catalog/search?"+new URLSearchParams({q:a.query,...(a.kind?{kind:a.kind}:{}),limit:String(a.limit||10)}))},
 {name:"get_catalog_item",description:"Full details for one marketplace item by kind and id (from search results, id is 'kind:id').",

@@ -5,37 +5,40 @@ it, and pay for what they use with **x402** (USDC on Base) or prepaid credits.
 Served over **MCP**, **A2A** and a plain **HTTP API**. Runs on Cloudflare
 Workers.
 
-- **Marketplace:** 17,000+ resources agents can search for free: 9,700+ APIs
-  (many payable with x402), 1,200+ MCP servers, 4,000+ skills, 950+ agents and
+- **Marketplace:** 19,000+ resources agents can search for free: 11,000+ APIs
+  (many payable with x402), 1,500+ MCP servers, 3,900+ skills, 950+ agents and
   1,500+ services. Listings are health-checked and trust-ranked, and stay fresh
   from the MCP Registry and the x402 Bazaar.
 - **Runnable skills:** `run_skill` runs any marketplace skill on your input.
 - **x402 facilitator:** non-custodial `/verify` and `/settle` on Base, for any
   x402 server. See [docs/FACILITATOR.md](docs/FACILITATOR.md).
-- **Web and company intelligence:** DNS, WHOIS/RDAP, certificates and
-  subdomains, tech stack, email security, page-to-markdown, company profiles.
+- **40 paid tools:** web and company intelligence, AI text and media, crypto
+  data, reference data and developer lookups. `find_tool` (free) picks the best
+  working option for a need, ours or anyone's.
 
 Failed calls are never charged. Prices are quoted in each `402 Payment Required`
 response and by the free `pricing` tool.
 
 ## Tools
 
+Free:
+
 | Tool | What it does |
 |---|---|
-| `search_marketplace` | Search APIs, MCP servers, skills, agents and services (free) |
-| `find_tool` | Describe a need, get the best working, cheapest API or MCP server and how to call it (free) |
-| `run_skill` | Run a marketplace skill on your input |
-| `register_agent` | List your agent from its A2A card (free) |
-| `dns_lookup` | DNS records, DNS host, email provider |
-| `security_headers` | HTTP security headers grade A–F |
-| `domain_whois` | Registrar, created/expiry dates, age (RDAP) |
-| `email_security` | SPF / DMARC / DKIM / MTA-STS grade, spoofability |
-| `site_metadata` | Title, socials, contact emails, key pages, schema.org org |
-| `page_to_markdown` | Main page content as clean Markdown |
-| `ssl_certificates` | Current cert, expiry, every subdomain from CT logs |
-| `tech_stack` | 90+ technologies with evidence |
-| `company_profile` | One-call company enrichment from a domain |
-| `domain_report` | Everything above in one report |
+| `find_tool` | Describe a need, get the best working, cheapest API or MCP server and how to call it |
+| `search_marketplace` | Search APIs, MCP servers, skills, agents and services |
+| `register_agent` | List your agent from its A2A card |
+
+Paid per call (prices are quoted in the 402 reply or by `pricing`):
+
+| Group | Tools |
+|---|---|
+| Web and company intelligence | `dns_lookup`, `domain_whois`, `domain_available`, `ssl_certificates`, `security_headers`, `email_security`, `tech_stack`, `site_metadata`, `page_to_markdown`, `redirect_check`, `ip_lookup`, `company_profile`, `domain_report` |
+| AI text | `summarize`, `extract_data`, `classify_text`, `translate`, `ask_llm`, `embed_text`, `rank_texts`, `run_skill` |
+| AI media | `transcribe_audio`, `text_to_speech`, `describe_image`, `generate_image` |
+| Crypto | `crypto_price`, `dex_token`, `token_security`, `wallet_balance`, `gas_price` |
+| Reference data | `weather`, `geocode`, `currency_convert`, `public_holidays`, `earthquakes`, `wikipedia`, `hacker_news`, `paper_search` |
+| Developer | `package_info`, `package_vulns` |
 
 Also free: `pricing`, `create_api_key`, `account_balance`.
 

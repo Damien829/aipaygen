@@ -62,7 +62,9 @@ export function buildMcpServer(env: Env, execCtx?: ExecutionContext): McpServer 
     { name: "aipaygen-site-intel", title: SERVICE_NAME, version: APP_VERSION, websiteUrl: env.PUBLIC_URL },
     {
       instructions:
-        "Website and company intelligence from public data. Paid tools accept an API key (Authorization: Bearer apg_...)" +
+        "Tools for agents: web and company intelligence, AI text and media, crypto and reference data, plus a free marketplace. " +
+        "Not sure which tool fits? Call `find_tool` (free) with what you need; it picks the best working option, ours or another provider's. " +
+        "Paid tools accept an API key (Authorization: Bearer apg_...)" +
         (x402Enabled(env) ? " or x402 USDC payments per call. " : ". ") +
         "Call `pricing` to see costs. No key yet? Call `create_api_key` for free trial credits. Failed calls are never charged.",
     },

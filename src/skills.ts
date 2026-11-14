@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { SIZES } from "./copy";
 import { z } from "zod";
 import { upsertCatalogItem } from "./catalog";
 import type { Env } from "./env";
@@ -95,7 +96,7 @@ export const runSkill = defineTool({
   name: "run_skill",
   title: "Run a marketplace skill",
   description:
-    "Run any of 3,900+ ready-made AI skills from the AIPayGen marketplace on your input: research, code review, market analysis, writing, extraction, summarizing and more. Find skill ids with search_marketplace (kind: skill). Failed or refused runs are never charged.",
+    `Run any of ${SIZES.skills} ready-made AI skills from the AIPayGen marketplace on your input: research, code review, market analysis, writing, extraction, summarizing and more. Find skill ids with search_marketplace (kind: skill). Failed or refused runs are never charged.`,
   priceMicro: 5_000,
   cacheTtl: 3600,
   httpMethod: "POST",

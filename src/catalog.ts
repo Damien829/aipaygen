@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SIZES } from "./copy";
 import type { Env } from "./env";
 import { ToolError } from "./lib/errors";
 import { defineTool } from "./tools/types";
@@ -200,7 +201,7 @@ export const searchMarketplace = defineTool({
   name: "search_marketplace",
   title: "Search the AIPayGen marketplace",
   description:
-    "Search 11,000+ AI-agent resources: AIPayGen's paid tools, 4,300+ third-party APIs (with docs and auth info, some x402-payable), 4,300+ reusable skills, 950+ registered agents and 1,500+ agent services. Free.",
+    `Search ${SIZES.total} AI-agent resources: AIPayGen's paid tools, ${SIZES.apis} third-party APIs (with docs and auth info, many x402-payable), ${SIZES.mcp} MCP servers, ${SIZES.skills} reusable skills, ${SIZES.agents} registered agents and ${SIZES.services} agent services. Free.`,
   priceMicro: 0,
   cacheTtl: 300,
   input: z.object({

@@ -8,10 +8,10 @@ Numbers are from the live catalog on 2026-11-14. Update them before each submiss
 
 **Name:** AIPayGen
 
-**One line (100 characters max):** 17k+ agent APIs, MCP servers and skills to search, plus an x402 facilitator and pay-per-call tools
+**One line (100 characters max):** 19k+ agent APIs, MCP servers and skills to search, 40 pay-per-call tools and an x402 facilitator
 
 **Short description:**
-AIPayGen is a marketplace for AI agents. Agents search 17,000+ resources for free: 9,700+ APIs (many payable with x402), 1,200+ MCP servers, 4,000+ runnable skills, 950+ agents and 1,500+ services, with health checks and trust scores so dead listings drop out. It runs a non-custodial x402 facilitator (verify and settle on Base), and pay-per-call tools for website and company intelligence: DNS, WHOIS/RDAP, certificates, tech stack, email security and page-to-markdown. Agents pay per call in USDC with x402 (no account), or with prepaid credits. Failed calls are never charged.
+AIPayGen is a marketplace for AI agents. Agents search 19,000+ resources for free: 11,000+ APIs (many payable with x402), 1,500+ MCP servers, 3,900+ runnable skills, 950+ agents and 1,500+ services, with health checks and trust scores so dead listings drop out. It runs a non-custodial x402 facilitator (verify and settle on Base), and pay-per-call tools for website and company intelligence: DNS, WHOIS/RDAP, certificates, tech stack, email security and page-to-markdown. Agents pay per call in USDC with x402 (no account), or with prepaid credits. Failed calls are never charged.
 
 **Links:**
 - MCP (Streamable HTTP): `https://mcp.aipaygen.com/mcp`
@@ -52,7 +52,7 @@ AIPayGen is a marketplace for AI agents. Agents search 17,000+ resources for fre
 | 6 | **mcp.so** | Only a $39 paid listing is offered (checked 2026-11-14) | Skip (free hosting only). |
 | 7 | **awesome-x402** | Pull request to xpaysh/awesome-x402 (Facilitators section; entry above) | After the mainnet fee wallet is funded. |
 | 8 | **awesome-mcp-servers** | Pull request to punkpeye/awesome-mcp-servers (Aggregators; entry above) | Needs the Glama listing first. |
-| 9 | **Google Search Console + Bing Webmaster Tools** | Verify aipaygen.com, then submit `https://aipaygen.com/sitemap.xml` | Gets the 17,000+ marketplace pages indexed faster, which also feeds AI answer engines. |
+| 9 | **Google Search Console + Bing Webmaster Tools** | Verify aipaygen.com, then submit `https://aipaygen.com/sitemap.xml` | Gets the 19,000+ marketplace pages indexed faster, which also feeds AI answer engines. |
 | 10 | **PyPI** (`aipaygen-mcp` 2.0.0 is already there) | Bump the description to mention the marketplace on the next release | |
 
 ## After listing

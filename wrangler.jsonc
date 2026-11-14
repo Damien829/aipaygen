@@ -47,7 +47,9 @@
   ],
 
   // Every 10 minutes: refresh agent cards, health-check listings, pull MCP Registry and x402 Bazaar (src/refresh.ts).
-  "triggers": { "crons": ["*/10 * * * *"] },
+  // Every 10 minutes: catalog freshness. Hourly at :05: payment reconciliation, in its own
+  // invocation because the free plan allows 50 outbound requests per invocation.
+  "triggers": { "crons": ["*/10 * * * *", "5 * * * *"] },
 
   "ratelimits": [
     { "name": "TOOL_LIMITER", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } },

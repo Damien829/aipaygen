@@ -38,5 +38,5 @@ export interface Env {
   FACILITATOR_RPC_BASE_SEPOLIA?: string;
 }
 
-export const APP_VERSION = "2.1.0";
+export const APP_VERSION = "2.2.0";
 export const SERVICE_NAME = "AIPayGen";

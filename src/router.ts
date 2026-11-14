@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { SIZES } from "./copy";
 import { ftsQuery } from "./catalog";
 import type { Env } from "./env";
 import { ToolError } from "./lib/errors";
@@ -82,7 +83,7 @@ export const findTool = defineTool({
   name: "find_tool",
   title: "Find the best tool for a job",
   description:
-    "Describe what you need (\"current weather in Tokyo\", \"OCR a receipt\", \"company data from a domain\") and get the best working, cheapest options from 17,000+ APIs and MCP servers, ranked by real health checks, with exactly how to call each one. Free. You call the provider directly.",
+    `Describe what you need ("current weather in Tokyo", "OCR a receipt", "company data from a domain") and get the best working, cheapest options from ${SIZES.apisAndMcp} APIs and MCP servers, ranked by real health checks, with exactly how to call each one. Free. You call the provider directly.`,
   priceMicro: 0,
   cacheTtl: 300,
   input: z.object({

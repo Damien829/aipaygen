@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { RECONCILE_CRON, reconcilePayments } from "./reconcile";
 import { createMcpHandler } from "agents/mcp/server";
 import { APP_VERSION, type Env } from "./env";
 import { buildMcpServer } from "./mcp";
@@ -174,7 +175,11 @@ app.notFound(async (c) => {
 
 export default {
   // Cron trigger (wrangler.jsonc): keep the catalog fresh. See src/refresh.ts.
-  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+  async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    if (event.cron === RECONCILE_CRON) {
+      ctx.waitUntil(reconcilePayments(env).then((r) => console.log("reconcile", JSON.stringify(r))));
+      return;
+    }
     ctx.waitUntil(runFreshness(env).then((r) => console.log("freshness", JSON.stringify(r))));
   },
 
