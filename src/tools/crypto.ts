@@ -300,7 +300,8 @@ export const dexToken = defineTool({
     if (address?.trim()) {
       const a = address.trim();
       if (!/^(0x[0-9a-fA-F]{40}|[1-9A-HJ-NP-Za-km-z]{32,44})$/.test(a)) throw new ToolError("That doesn't look like a token address.", "INVALID_INPUT", 400);
-      const { data } = await fetchJson<{ pairs?: DexPair[] | null }>(`https://api.dexscreener.com/latest/dex/tokens/${a}`, { timeoutMs: 8000 });
+      const { status, data } = await fetchJson<{ pairs?: DexPair[] | null }>(`https://api.dexscreener.com/latest/dex/tokens/${a}`, { timeoutMs: 8000 }).catch(() => ({ status: 0, data: null }));
+      if (!data?.pairs?.length) console.log("dex_token dexscreener empty", status);
       pairs = data?.pairs ?? [];
       // Pairs where the token is the quote side (e.g. USDC in AERO/USDC) describe the other token; prefer pairs that price this one.
       const own = pairs.filter((p) => p.baseToken.address.toLowerCase() === a.toLowerCase());
@@ -310,7 +311,8 @@ export const dexToken = defineTool({
         pairs = pairs.filter((p) => p.chainId === want || p.chainId === (CHAIN_ALIASES[want] ?? want));
       }
     } else if (query?.trim()) {
-      const { data } = await fetchJson<{ pairs?: DexPair[] | null }>(`https://api.dexscreener.com/latest/dex/search?q=${encodeURIComponent(query.trim())}`, { timeoutMs: 8000 });
+      const { status, data } = await fetchJson<{ pairs?: DexPair[] | null }>(`https://api.dexscreener.com/latest/dex/search?q=${encodeURIComponent(query.trim())}`, { timeoutMs: 8000 }).catch(() => ({ status: 0, data: null }));
+      if (!data?.pairs?.length) console.log("dex_token dexscreener empty", status);
       pairs = data?.pairs ?? [];
     } else throw new ToolError("Pass a query (name or ticker) or a token address.", "INVALID_INPUT", 400);
     let credit = "Market data: DexScreener.";
@@ -318,6 +320,10 @@ export const dexToken = defineTool({
       // DexScreener sometimes refuses shared cloud IPs; GeckoTerminal covers the same pools.
       pairs = await geckoPools(query?.trim(), address?.trim(), chain);
       credit = "Market data: GeckoTerminal.";
+    }
+    if (!pairs.length) {
+      pairs = await paprikaPools(query?.trim(), address?.trim(), chain);
+      credit = "Market data: DexPaprika.";
     }
     if (!pairs.length) throw new ToolError("No trading pairs found.", "NOT_FOUND", 404);
     pairs.sort((a, b) => (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0));
@@ -435,10 +441,11 @@ export async function geckoPools(query: string | undefined, address: string | un
     url = `https://api.geckoterminal.com/api/v2/networks/${net}/tokens/${address}/pools?include=base_token,quote_token`;
   } else if (query) url = `https://api.geckoterminal.com/api/v2/search/pools?query=${encodeURIComponent(query)}&include=base_token,quote_token`;
   else return [];
-  const { data } = await fetchJson<{ data?: GeckoPool[]; included?: { id: string; attributes: { address: string; name: string; symbol: string } }[] }>(url, {
+  const { status, data } = await fetchJson<{ data?: GeckoPool[]; included?: { id: string; attributes: { address: string; name: string; symbol: string } }[] }>(url, {
     timeoutMs: 8000,
     headers: { accept: "application/json;version=20230302" },
-  }).catch(() => ({ data: null }));
+  }).catch(() => ({ status: 0, data: null }));
+  if (!data?.data?.length) console.log("dex_token geckoterminal empty", status);
   const tokens = new Map((data?.included ?? []).map((t) => [t.id, t.attributes]));
   const num = (v: string | null | undefined) => (v == null || v === "" ? undefined : Number(v));
   return (data?.data ?? []).map((p) => {
@@ -456,4 +463,29 @@ export async function geckoPools(query: string | undefined, address: string | un
       priceChange: { h1: num(a.price_change_percentage?.h1), h24: num(a.price_change_percentage?.h24) }, txns: a.transactions?.h24 ? { h24: a.transactions.h24 } : undefined,
     };
   });
+}
+
+interface PaprikaPool {
+  id: string; dex_name?: string; chain: string; created_at?: string; volume_usd?: number; transactions?: number; price_usd?: number;
+  last_price_change_usd_1h?: number | null; last_price_change_usd_24h?: number | null; tokens?: { id: string; name: string; symbol: string }[];
+}
+
+/** DexPaprika pools (free, keyless) mapped to DexScreener's pair shape: the last fallback. */
+export async function paprikaPools(query: string | undefined, address: string | undefined, chain: string | undefined): Promise<DexPair[]> {
+  const q = address ?? query;
+  if (!q) return [];
+  const { status, data } = await fetchJson<{ pools?: PaprikaPool[] }>(`https://api.dexpaprika.com/search?query=${encodeURIComponent(q)}`, { timeoutMs: 8000 }).catch(() => ({ status: 0, data: null }));
+  if (!data?.pools?.length) console.log("dex_token dexpaprika empty", status);
+  const want = chain ? (CHAIN_ALIASES[chain.trim().toLowerCase()] ?? chain.trim().toLowerCase()) : null;
+  return (data?.pools ?? [])
+    .filter((p) => !want || p.chain === want)
+    .map((p) => {
+      const [base, quote] = p.tokens ?? [];
+      return {
+        chainId: p.chain, dexId: p.dex_name ?? "unknown", url: `https://dexpaprika.com/${p.chain}/pool/${p.id}`, pairAddress: p.id,
+        priceUsd: p.price_usd === undefined ? undefined : String(p.price_usd), pairCreatedAt: p.created_at ? Date.parse(p.created_at) : undefined,
+        baseToken: { address: base?.id ?? "", name: base?.name ?? "", symbol: base?.symbol ?? "" }, quoteToken: { symbol: quote?.symbol ?? "" },
+        volume: { h24: p.volume_usd }, priceChange: { h1: p.last_price_change_usd_1h ?? undefined, h24: p.last_price_change_usd_24h ?? undefined },
+      };
+    });
 }
