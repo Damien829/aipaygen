@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { reconcileState } from "./reconcile";
 import { OWNER_HIDDEN } from "./catalog";
 import type { Env } from "./env";
 import { facilitatorPaused, setFacilitatorPaused } from "./facilitator";
@@ -67,7 +68,7 @@ admin.get("/overview", async (c) => {
   } catch {
     // leave null
   }
-  return c.json({ facilitator_paused: await facilitatorPaused(c.env, true), last_run: lastRun, hidden: await hiddenList(c.env) });
+  return c.json({ facilitator_paused: await facilitatorPaused(c.env, true), last_run: lastRun, hidden: await hiddenList(c.env), reconcile: await reconcileState(c.env) });
 });
 
 admin.post("/refresh", async (c) => c.json({ ok: true, result: await runFreshness(c.env) }));

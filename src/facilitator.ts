@@ -6,6 +6,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { base, baseSepolia } from "viem/chains";
 import { findApiKey } from "./billing/keys";
 import type { Env } from "./env";
+import { openIssue } from "./lib/github";
 
 /**
  * AIPayGen's x402 facilitator (docs/FACILITATOR.md). Built on the official
@@ -213,19 +214,8 @@ export async function facilitatorAlert(env: Env) {
     title: `Facilitator: ${r.merchants} merchant(s) tried real payments, fee wallet needs ETH`,
     body: `In the last 24 hours, ${r.attempts} mainnet settlement(s) worth ${((r.amount_micro ?? 0) / 1_000_000).toFixed(2)} USDC from ${r.merchants} merchant key(s) were paused because the fee wallet is low on gas.\n\nSend about $5 of ETH **on Base** to \`${wallet}\`. Settlements resume within a minute.`,
   };
-  const post = (body: object) => fetch(`https://api.github.com/repos/${env.GITHUB_ALERT_REPO}/issues`, {
-    method: "POST",
-    headers: { authorization: `Bearer ${env.GITHUB_ALERT_TOKEN}`, accept: "application/vnd.github+json", "user-agent": "AIPayGenBot", "content-type": "application/json" },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(10_000),
-  });
-  let res = await post({ ...issue, labels: ["facilitator"] });
-  // Fine-grained tokens with only Issues: write may not be allowed to create a new label; retry without it.
-  if (res.status === 403 || res.status === 422) res = await post(issue);
-  if (!res.ok) {
-    const why = ((await res.json().catch(() => ({}))) as { message?: string }).message ?? "";
-    return { attempts: r.attempts, alerted: false, reason: `github ${res.status} ${why}`.trim().slice(0, 200) };
-  }
+  const why = await openIssue(env, issue.title, issue.body, "facilitator");
+  if (why) return { attempts: r.attempts, alerted: false, reason: why };
   await env.DB.prepare("INSERT INTO sync_state (key, value, updated_at) VALUES ('facilitator_alert_at', ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at")
     .bind(String(Date.now()), Date.now()).run();
   return { attempts: r.attempts, alerted: true };
