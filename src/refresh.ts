@@ -123,10 +123,13 @@ export async function healthCheck(env: Env, limit = 34) {
   // One indexed query per kind (idx_catalog_health), least recently checked first.
   // MCP servers and APIs get most of the budget: they are what agents call.
   type HealthRow = { id: string; kind: string; url: string; x402: number; fail_count: number; latency_ms: number | null; method: string | null };
-  // APIs get half: the x402 feeds add thousands of them and about a quarter are dead.
-  const share: [string, number][] = [["mcp", 0.25], ["api", 0.5], ["agent", 0.125], ["service", 0.125]];
-  const batches = await env.DB.batch(share.map(([kind, part]) => env.DB.prepare(
-    `SELECT id, kind, url, x402, fail_count, latency_ms, json_extract(meta, '$.method') AS method FROM catalog WHERE kind = ? AND url LIKE 'https://%' AND fail_count < ${OWNER_HIDDEN} ORDER BY checked_at LIMIT ?`,
+  // APIs get half, mostly x402 ones: the feeds add thousands, about a quarter are dead, and
+  // they're what discovery and find_tool sell. Never-checked seed APIs would otherwise go first.
+  const share: [string, string, number][] = [
+    ["mcp", "", 0.25], ["api", "AND x402 = 1", 0.375], ["api", "AND x402 = 0", 0.125], ["agent", "", 0.125], ["service", "", 0.125],
+  ];
+  const batches = await env.DB.batch(share.map(([kind, extra, part]) => env.DB.prepare(
+    `SELECT id, kind, url, x402, fail_count, latency_ms, json_extract(meta, '$.method') AS method FROM catalog WHERE kind = ? ${extra} AND url LIKE 'https://%' AND fail_count < ${OWNER_HIDDEN} ORDER BY checked_at LIMIT ?`,
   ).bind(kind, Math.max(1, Math.round(limit * part)))));
   const results = batches.flatMap((b) => b.results as HealthRow[]);
   if (!results.length) return { checked: 0, alive: 0, verified: 0 };
