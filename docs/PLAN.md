@@ -20,12 +20,12 @@ other session's latest commit, and the owner approves each deploy, migration and
 |---|---|---|---|
 | 1 | Apply migration 0014 (drop 2 unused indexes) after 00:00 UTC | A | Saves 2 rows written per catalog write |
 | 2 | Dedupe v1 kinds in `/facilitator/supported` | A | Cosmetic, but facilitator directories read it |
-| 3 | Real $1 top-up, then a $5 top-up on a referred key | B, **You** approve the spend | Proves credits and the referral reward end to end |
+| 3 | Real $1 top-up, then a $5 top-up on a referred key | B, **You** approve the spend ($1 approved) | Proves credits and the referral reward end to end. Blocked: this Mac's IP hit the 24 h new-key limit; `scripts/x402-topup-test.mjs` now saves a reusable TEST_API_KEY. The $5 run needs the test wallet funded (1.68 USDC left) |
 | 4 | Rescan the CDP Bazaar; list any tool still missing after 48 h | B | Agentic.Market is the biggest discovery channel |
 | 5 | Submit the x402 directories in `docs/LISTINGS.md` (x402scan resources and facilitators, x402.eco, x402 Registry, x402.org ecosystem, awesome-agentic-commerce, awesome-x402) | A drafts, **You** approve each | Free reach to x402 buyers and merchants |
 | 6 | Republish the MCP Registry entry (66 tools) | A, **You** approve | Registry still shows the earlier description |
 | 7 | Own-tool monitor: hourly cron calls a few free tools and alerts on failure | A | We only learn a tool broke when a buyer does |
-| 8 | Referral for wallet payers (x402 users have no key): credit the referrer when a new payer wallet first pays via a `?ref=` link | B | Most x402 buyers never create a key |
+| 8 | Referral for wallet payers (x402 users have no key): a wallet's first paid call carrying `?ref=CODE` links that wallet to the code's key; the referrer earns **20% of the linked wallet's spend for 90 days**, as credits | B, **You** approve the migration | Most x402 buyers never create a key. A flat $1 per new wallet could be farmed with $0.001 calls from throwaway wallets; a share of real spend can't (it's always less than the spend). Cost: 1 row written per new referred wallet (new `payer_refs` table); earnings are summed from the existing `usage` log, paid out by the daily cron |
 | 9 | Facilitator merchant onboarding page: one-line config for x402 sellers, live stats, "gasless, free" | A | 0 merchants today; this is the "Visa" seat |
 | 10 | Screenshot tool via Browser Rendering (small free tier) | A, **You** decide | v1 parity |
 
