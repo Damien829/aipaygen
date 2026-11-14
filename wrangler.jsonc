@@ -25,7 +25,7 @@
     // Wallet that receives USDC. Leave empty to disable x402 (API-key credits still work).
     // Owner's wallet (also v1's payout wallet).
     "PAY_TO": "0xebA22e8CD05Cb72A2F913099D6cCA666DD6D35B0",
-    "PAY_TO_PREVIOUS": "0x366D488a48de1B2773F3a21F1A6972715056Cb30",
+    "PAY_TO_SINCE": "2026-11-14T02:20:00Z",
     // Free trial balance for new API keys, in micro-USD (50000 = $0.05).
     "TRIAL_CREDITS_MICRO": "50000",
     // Facilitator networks. A network is served only when its fee-wallet key secret is set (docs/FACILITATOR.md).

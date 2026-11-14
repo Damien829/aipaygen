@@ -34,8 +34,6 @@ export interface Payment {
   network: string;
   tx: string;
   pay_to: string;
-  /** Earlier payout wallets that also count (sales made before PAY_TO changed). */
-  also_pay_to?: string[];
   amount_micro: number;
   created_at: number;
 }
@@ -53,12 +51,11 @@ export function judge(p: Payment, receipt: Receipt | null): Verdict {
   if (!net) return "unknown_network";
   if (!receipt) return "not_found";
   if (receipt.status !== "0x1") return "failed";
-  const topic = (a: string) => "0x" + a.toLowerCase().replace(/^0x/, "").padStart(64, "0");
-  const to = new Set([p.pay_to, ...(p.also_pay_to ?? [])].map(topic));
+  const to = "0x" + p.pay_to.toLowerCase().replace(/^0x/, "").padStart(64, "0");
   const paid = receipt.logs.some((l) =>
     l.address.toLowerCase() === net.usdc &&
     l.topics[0]?.toLowerCase() === TRANSFER &&
-    to.has(l.topics[2]?.toLowerCase() ?? "") &&
+    l.topics[2]?.toLowerCase() === to &&
     BigInt(l.data === "0x" ? 0 : l.data) >= BigInt(p.amount_micro));
   return paid ? "confirmed" : "wrong_transfer";
 }
@@ -111,6 +108,9 @@ export async function reconcilePayments(env: Env) {
   const before = Date.now() - SETTLE_DELAY;
   // First run starts from the last 7 days rather than the whole history.
   if (!state.sale_cursor) state.sale_cursor = Date.now() - 7 * 86_400_000;
+  // Sales before PAY_TO took effect went to an earlier wallet; only check from then on.
+  const since = Date.parse(env.PAY_TO_SINCE ?? "");
+  if (since > state.sale_cursor) state.sale_cursor = since;
 
   const [sales, fac] = await env.DB.batch([
     env.DB.prepare(
@@ -125,8 +125,7 @@ export async function reconcilePayments(env: Env) {
   ]);
   const queue: Payment[] = [
     ...(sales!.results as { id: number; tx: string; amount_micro: number; created_at: number }[]).map((r) => ({
-      source: "sale" as const, network: env.X402_NETWORK, pay_to: env.PAY_TO,
-      also_pay_to: (env.PAY_TO_PREVIOUS ?? "").split(",").map((a) => a.trim()).filter(Boolean), ...r,
+      source: "sale" as const, network: env.X402_NETWORK, pay_to: env.PAY_TO, ...r,
     })),
     ...(fac!.results as Omit<Payment, "source">[]).map((r) => ({ source: "facilitator" as const, ...r })),
   ].sort((a, b) => a.created_at - b.created_at).slice(0, PER_RUN);

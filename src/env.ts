@@ -9,8 +9,8 @@ export interface Env {
   X402_NETWORK: string;
   FACILITATOR_URL: string;
   PAY_TO: string;
-  /** Comma-separated earlier payout wallets; payment reconciliation accepts sales paid to them. */
-  PAY_TO_PREVIOUS?: string;
+  /** When PAY_TO took effect (ISO time); payment reconciliation checks sales from then on. */
+  PAY_TO_SINCE?: string;
   TRIAL_CREDITS_MICRO: string;
 
   ADMIN_TOKEN?: string;
