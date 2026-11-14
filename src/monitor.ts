@@ -1,5 +1,6 @@
 import type { Env } from "./env";
 import { openIssue } from "./lib/github";
+import { parseQuote } from "./refresh";
 import { TOOLS } from "./tools";
 import type { ToolDef } from "./tools/types";
 
@@ -20,7 +21,7 @@ const SKIP = new Set(["generate_image", "text_to_speech", "transcribe_audio", "d
   "company_profile", "domain_report"]);
 
 interface Result { ok: boolean; ms: number; error?: string; at: string; fails: number }
-interface State { cursor: number; results: Record<string, Result>; alerted_day?: string }
+interface State { cursor: number; results: Record<string, Result>; alerted_day?: string; payment_day?: string }
 
 export function monitoredTools(tools: ToolDef[] = TOOLS): ToolDef[] {
   return tools.filter((t) => t.priceMicro > 0 && !SKIP.has(t.name) && t.example);
@@ -42,7 +43,7 @@ export async function monitorTools(env: Env) {
   const batch = Array.from({ length: Math.min(PER_RUN, tools.length) }, (_, i) => tools[(state.cursor + i) % tools.length]!);
   state.cursor = (state.cursor + batch.length) % tools.length;
 
-  const outcomes = await Promise.all(batch.map(async (t) => {
+  const outcomes: { name: string; ok: boolean; ms: number; error?: string }[] = await Promise.all(batch.map(async (t) => {
     const t0 = Date.now();
     try {
       await Promise.race([
@@ -54,6 +55,25 @@ export async function monitorTools(env: Env) {
       return { name: t.name, ok: false, ms: Date.now() - t0, error: (err instanceof Error ? err.message : String(err)).slice(0, 200) };
     }
   }));
+
+  // Once a day, the payment path end to end: an unpaid call over HTTP must get a payable x402
+  // quote (which also proves the facilitator connection) or be served from the free allowance.
+  const day0 = new Date().toISOString().slice(0, 10);
+  if (state.payment_day !== day0) {
+    state.payment_day = day0;
+    const t0 = Date.now();
+    try {
+      const res = await fetch(`${env.PUBLIC_URL}/v1/dns_lookup?domain=example.com`, {
+        headers: { accept: "application/json", "user-agent": "AIPayGen monitor" },
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      });
+      const body = (await res.text()).slice(0, 50_000);
+      const ok = res.status === 200 || (res.status === 402 && parseQuote(res.headers.get("payment-required"), body));
+      outcomes.push({ name: "payment_path", ok, ms: Date.now() - t0, ...(ok ? {} : { error: `status ${res.status}: ${body.slice(0, 120)}` }) });
+    } catch (err) {
+      outcomes.push({ name: "payment_path", ok: false, ms: Date.now() - t0, error: err instanceof Error ? err.message : String(err) });
+    }
+  }
 
   const at = new Date().toISOString();
   for (const o of outcomes) {
