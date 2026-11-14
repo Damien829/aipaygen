@@ -241,3 +241,90 @@ export const paperSearch = defineTool({
     return { query, total, papers, credit: "Metadata from arXiv.org (thank you to arXiv for use of its open access interoperability)." };
   },
 });
+
+// ---------- geocoding ----------
+
+interface NominatimPlace { lat: string; lon: string; display_name: string; type?: string; category?: string; importance?: number; address?: Record<string, string> }
+
+export const geocode = defineTool({
+  name: "geocode",
+  title: "Geocode and reverse geocode",
+  description:
+    "Turn an address or place name into coordinates, or coordinates into a street address, anywhere in the world (OpenStreetMap). Returns the formatted address, city, region, postcode and country.",
+  priceMicro: 1000,
+  cacheTtl: 2_592_000,
+  input: z.object({
+    query: z.string().max(300).optional().describe('Address or place, e.g. "1600 Pennsylvania Ave, Washington". Use this or lat/lon.'),
+    lat: z.number().min(-90).max(90).optional().describe("Latitude, for reverse geocoding."),
+    lon: z.number().min(-180).max(180).optional().describe("Longitude, for reverse geocoding."),
+    limit: z.number().int().min(1).max(5).optional().describe("Matches to return for a forward search. Default 1."),
+  }),
+  example: { query: "Eiffel Tower, Paris" },
+  async run({ query, lat, lon, limit }) {
+    const base = "https://nominatim.openstreetmap.org";
+    let places: NominatimPlace[];
+    if (typeof lat === "number" && typeof lon === "number") {
+      const { data } = await fetchJson<NominatimPlace & { error?: string }>(`${base}/reverse?lat=${lat}&lon=${lon}&format=jsonv2&addressdetails=1`, { timeoutMs: 8000 });
+      if (!data || data.error) throw new ToolError("No address found at those coordinates.", "NOT_FOUND", 404);
+      places = [data];
+    } else if (query?.trim()) {
+      const { data } = await fetchJson<NominatimPlace[]>(`${base}/search?q=${encodeURIComponent(query.trim())}&format=jsonv2&addressdetails=1&limit=${limit ?? 1}`, { timeoutMs: 8000 });
+      places = data ?? [];
+      if (!places.length) throw new ToolError(`Couldn't find "${query}".`, "NOT_FOUND", 404);
+    } else throw new ToolError("Pass a query, or both lat and lon.", "INVALID_INPUT", 400);
+    return {
+      results: places.map((p) => {
+        const a = p.address ?? {};
+        return {
+          lat: Number(p.lat), lon: Number(p.lon), address: p.display_name, type: p.type ?? p.category ?? null,
+          house_number: a.house_number ?? null, street: a.road ?? null, city: a.city ?? a.town ?? a.village ?? a.hamlet ?? null,
+          region: a.state ?? a.region ?? null, postcode: a.postcode ?? null, country: a.country ?? null, country_code: a.country_code?.toUpperCase() ?? null,
+        };
+      }),
+      credit: "© OpenStreetMap contributors (ODbL), via Nominatim.",
+    };
+  },
+});
+
+// ---------- earthquakes ----------
+
+interface UsgsFeature { id: string; properties: { mag: number; place: string; time: number; url: string; tsunami: number; alert: string | null; felt: number | null }; geometry: { coordinates: [number, number, number] } }
+
+export const earthquakes = defineTool({
+  name: "earthquakes",
+  title: "Recent earthquakes",
+  description:
+    "Recent earthquakes worldwide or near a location from the USGS: magnitude, place, time, depth, tsunami flag and alert level. Filter by minimum magnitude, days back and radius around a point.",
+  priceMicro: 1000,
+  cacheTtl: 300,
+  input: z.object({
+    min_magnitude: z.number().min(0).max(10).optional().describe("Smallest magnitude to include. Default 4.5."),
+    days: z.number().int().min(1).max(30).optional().describe("How many days back. Default 7."),
+    lat: z.number().min(-90).max(90).optional().describe("Center latitude for a radius search."),
+    lon: z.number().min(-180).max(180).optional().describe("Center longitude for a radius search."),
+    radius_km: z.number().min(1).max(20_000).optional().describe("Radius around lat/lon in km. Default 500 when lat/lon are given."),
+    limit: z.number().int().min(1).max(100).optional().describe("Most recent N. Default 20."),
+  }),
+  example: { min_magnitude: 5, days: 7 },
+  async run({ min_magnitude, days, lat, lon, radius_km, limit }) {
+    const start = new Date(Date.now() - (days ?? 7) * 86_400_000).toISOString().slice(0, 10);
+    const qs = new URLSearchParams({ format: "geojson", starttime: start, minmagnitude: String(min_magnitude ?? 4.5), orderby: "time", limit: String(limit ?? 20) });
+    if (typeof lat === "number" && typeof lon === "number") {
+      qs.set("latitude", String(lat));
+      qs.set("longitude", String(lon));
+      qs.set("maxradiuskm", String(radius_km ?? 500));
+    }
+    const { status, data } = await fetchJson<{ features?: UsgsFeature[]; metadata?: { count: number } }>(`https://earthquake.usgs.gov/fdsnws/event/1/query?${qs}`, { timeoutMs: 10_000 });
+    if (!data?.features) throw new ToolError(`The USGS service didn't answer (status ${status}).`, "UPSTREAM_ERROR", 502);
+    return {
+      count: data.features.length,
+      since: start,
+      earthquakes: data.features.map((f) => ({
+        magnitude: f.properties.mag, place: f.properties.place, time: new Date(f.properties.time).toISOString(),
+        lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], depth_km: f.geometry.coordinates[2],
+        tsunami: f.properties.tsunami === 1, alert: f.properties.alert, felt_reports: f.properties.felt, url: f.properties.url,
+      })),
+      credit: "U.S. Geological Survey (public domain).",
+    };
+  },
+});

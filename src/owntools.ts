@@ -37,6 +37,21 @@ const SYNONYMS: Record<string, string> = {
   package_info: "package npm pypi crates library dependency version registry downloads",
   ip_lookup: "ip address geolocation owner asn network rdap reverse",
   redirect_check: "redirect unshorten shortener link url expand bitly tracking",
+  geocode: "geocode geocoding address coordinates latitude longitude location map reverse",
+  earthquakes: "earthquake earthquakes seismic quake usgs disaster",
+  crypto_price: "crypto cryptocurrency price bitcoin btc ethereum eth solana coin market cap fear greed",
+  dex_token: "dex token pair liquidity uniswap raydium memecoin dexscreener onchain",
+  wallet_balance: "wallet balance address eth usdc evm onchain holdings",
+  gas_price: "gas fee gwei ethereum base arbitrum chain",
+  token_security: "token security honeypot scam rug rugpull audit contract risk tax",
+  embed_text: "embedding embeddings vector vectors semantic similarity rag",
+  rank_texts: "rerank reranker ranking relevance rag search",
+  domain_available: "domain availability available register registration name check",
+  describe_image: "image vision ocr picture photo screenshot caption describe read",
+  text_to_speech: "tts speech voice audio speak narration",
+  ask_llm: "llm chat completion gpt ai model prompt llama",
+  transcribe_audio: "transcribe transcription speech stt audio whisper podcast voice",
+  generate_image: "image generation generate picture art text-to-image flux illustration",
 };
 
 /** Not offered as search results: free helpers, and run_skill (it runs other listings). */

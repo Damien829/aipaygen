@@ -14,8 +14,10 @@ import { runSkill } from "../skills";
 import { weather } from "./weather";
 import { translate } from "./translate";
 import { classifyText, extractData, summarize } from "./ai";
-import { currencyConvert, hackerNews, paperSearch, publicHolidays, wikipedia } from "./data";
-import { ipLookup, packageInfo, packageVulns, redirectCheck } from "./devtools";
+import { currencyConvert, earthquakes, geocode, hackerNews, paperSearch, publicHolidays, wikipedia } from "./data";
+import { domainAvailable, ipLookup, packageInfo, packageVulns, redirectCheck } from "./devtools";
+import { askLlm, describeImage, embedText, generateImage, rankTexts, textToSpeech, transcribeAudio } from "./media";
+import { cryptoPrice, dexToken, gasPrice, tokenSecurity, walletBalance } from "./crypto";
 import { registerTools } from "../registry";
 
 /** Every paid tool, cheapest first. Order is used in docs and listings. */
@@ -32,12 +34,22 @@ export const TOOLS: ToolDef[] = [
   packageInfo,
   ipLookup,
   redirectCheck,
+  geocode,
+  earthquakes,
+  cryptoPrice,
+  dexToken,
+  walletBalance,
+  gasPrice,
+  embedText,
   securityHeaders,
   weather,
   translate,
   classifyText,
   packageVulns,
   paperSearch,
+  domainAvailable,
+  rankTexts,
+  tokenSecurity,
   domainWhois,
   emailSecurity,
   siteMetadata,
@@ -46,6 +58,11 @@ export const TOOLS: ToolDef[] = [
   techStack,
   summarize,
   extractData,
+  describeImage,
+  textToSpeech,
+  askLlm,
+  transcribeAudio,
+  generateImage,
   companyProfile,
   domainReport,
 ] as unknown as ToolDef[];

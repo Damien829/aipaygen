@@ -250,7 +250,8 @@ describe("own tools in marketplace search", () => {
   });
   it("stays out of unrelated searches and skips free helpers", () => {
     expect(ownMatches(env, "postgres mcp server")).toEqual([]);
-    expect(ownMatches(env, "image generation")).toEqual([]);
+    expect(ownMatches(env, "flight booking")).toEqual([]);
+    expect(ownMatches(env, "image generation")[0]?.meta.tool).toBe("generate_image");
     expect(ownMatches(env, "search marketplace").some((i) => i.meta.tool === "search_marketplace")).toBe(false);
     expect(matchScore("the api", "anything")).toBe(0);
   });
@@ -352,5 +353,40 @@ describe("data and dev tool helpers", () => {
     expect(ownMatches(env, "sentiment analysis")[0]?.meta.tool).toBe("classify_text");
     expect(ownMatches(env, "unshorten url")[0]?.meta.tool).toBe("redirect_check");
     expect(ownMatches(env, "arxiv papers")[0]?.meta.tool).toBe("paper_search");
+  });
+});
+
+import { chainOf, decodeAbiString, formatUnits, tokenRisks } from "../src/tools/crypto";
+
+describe("crypto helpers", () => {
+  it("formats token units", () => {
+    expect(formatUnits(1_234_500n, 6)).toBe("1.2345");
+    expect(formatUnits(10n ** 18n, 18)).toBe("1");
+    expect(formatUnits(0n, 6)).toBe("0");
+  });
+  it("resolves chains by name, alias and id", () => {
+    expect(chainOf("Base").id).toBe(8453);
+    expect(chainOf("eth").key).toBe("ethereum");
+    expect(chainOf("137").key).toBe("polygon");
+    expect(() => chainOf("dogechain")).toThrow(/Unknown chain/);
+  });
+  it("decodes ABI strings and bytes32 symbols", () => {
+    const abi = "0x" + "20".padStart(64, "0") + "4".padStart(64, "0") + Buffer.from("USDC").toString("hex").padEnd(64, "0");
+    expect(decodeAbiString(abi)).toBe("USDC");
+    expect(decodeAbiString("0x" + Buffer.from("MKR").toString("hex").padEnd(64, "0"))).toBe("MKR");
+  });
+  it("scores token risks", () => {
+    expect(tokenRisks({ is_honeypot: "1", sell_tax: "0.99", is_open_source: "1" }).verdict).toBe("dangerous");
+    expect(tokenRisks({ is_open_source: "1", buy_tax: "0", sell_tax: "0" })).toMatchObject({ verdict: "no red flags", score: 0 });
+    expect(tokenRisks({ is_open_source: "1", is_mintable: "1" }).verdict).toBe("caution");
+  });
+  it("finds the new tools in search", () => {
+    const env = { PUBLIC_URL: "https://aipaygen.com" };
+    expect(ownMatches(env, "bitcoin price")[0]?.meta.tool).toBe("crypto_price");
+    expect(ownMatches(env, "honeypot check")[0]?.meta.tool).toBe("token_security");
+    expect(ownMatches(env, "speech to text").map((i) => i.meta.tool)).toContain("transcribe_audio");
+    expect(ownMatches(env, "transcribe podcast")[0]?.meta.tool).toBe("transcribe_audio");
+    expect(ownMatches(env, "ocr")[0]?.meta.tool).toBe("describe_image");
+    expect(ownMatches(env, "domain availability")[0]?.meta.tool).toBe("domain_available");
   });
 });

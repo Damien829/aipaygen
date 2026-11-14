@@ -198,3 +198,46 @@ export async function fetchJson<T>(url: string, opts: { timeoutMs?: number; head
     return { status: res.status, data: null };
   }
 }
+
+/**
+ * Fetch a public file (image, audio) as bytes, with the same public-host checks
+ * on every redirect hop as fetchPage, and a size cap.
+ */
+export async function fetchBytes(input: string, opts: { maxBytes: number; timeoutMs?: number; accept?: string }): Promise<{ url: string; bytes: Uint8Array; contentType: string }> {
+  let url = normalizeUrl(input);
+  const signal = AbortSignal.timeout(opts.timeoutMs ?? 15_000);
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    let res: Response;
+    try {
+      res = await fetch(url.toString(), { redirect: "manual", signal, headers: { "user-agent": USER_AGENT, accept: opts.accept ?? "*/*" } });
+    } catch (err) {
+      if (err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError")) throw new ToolError(`Timed out fetching ${url.hostname}.`, "UPSTREAM_TIMEOUT", 504);
+      throw new ToolError(`Could not connect to ${url.hostname}.`, "UPSTREAM_UNREACHABLE", 502);
+    }
+    if (res.status >= 300 && res.status < 400 && res.headers.get("location")) {
+      await res.body?.cancel();
+      url = normalizeUrl(new URL(res.headers.get("location")!, url).toString());
+      continue;
+    }
+    if (!res.ok) {
+      await res.body?.cancel();
+      throw new ToolError(`${url.hostname} returned ${res.status} for that file.`, "UPSTREAM_ERROR", 502);
+    }
+    const declared = Number(res.headers.get("content-length") ?? 0);
+    if (declared > opts.maxBytes) {
+      await res.body?.cancel();
+      throw new ToolError(`That file is too large (max ${Math.round(opts.maxBytes / 1_000_000)} MB).`, "TOO_LARGE", 413);
+    }
+    const buf = new Uint8Array(await res.arrayBuffer());
+    if (buf.byteLength > opts.maxBytes) throw new ToolError(`That file is too large (max ${Math.round(opts.maxBytes / 1_000_000)} MB).`, "TOO_LARGE", 413);
+    return { url: url.toString(), bytes: buf, contentType: (res.headers.get("content-type") ?? "").split(";")[0]!.trim().toLowerCase() };
+  }
+  throw new ToolError("Too many redirects.", "TOO_MANY_REDIRECTS", 502);
+}
+
+/** Base64 for binary data, in chunks so large files don't blow the call stack. */
+export function toBase64(bytes: Uint8Array): string {
+  let s = "";
+  for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(s);
+}

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { fetchJson, fetchPage, isIPv4, isPrivateIPv4, isPrivateIPv6 } from "../lib/net";
 import { ToolError } from "../lib/errors";
 import { defineTool } from "./types";
+import { resolve } from "./dns";
 
 /** Developer and network tools: OSV vulnerabilities, package registries, IP ownership, redirect chains. */
 
@@ -297,6 +298,89 @@ export const redirectCheck = defineTool({
       final_domain: final.hostname,
       notes,
       ms: page.ms,
+    };
+  },
+});
+
+// ---------- domain availability ----------
+
+let rdapBootstrap: { at: number; map: Map<string, string> } | null = null;
+
+/** TLD -> RDAP base URL, from IANA's bootstrap file (cached per isolate for a day). */
+async function rdapBase(tld: string): Promise<string | null> {
+  if (!rdapBootstrap || Date.now() - rdapBootstrap.at > 86_400_000) {
+    const { data } = await fetchJson<{ services: [string[], string[]][] }>("https://data.iana.org/rdap/dns.json", { timeoutMs: 8000 });
+    if (!data) throw new ToolError("The domain registry directory is unreachable right now.", "UPSTREAM_ERROR", 502);
+    const map = new Map<string, string>();
+    for (const [tlds, urls] of data.services) for (const t of tlds) map.set(t, urls.find((u) => u.startsWith("https")) ?? urls[0]!);
+    rdapBootstrap = { at: Date.now(), map };
+  }
+  return rdapBootstrap.map.get(tld) ?? null;
+}
+
+const DEFAULT_TLDS = ["com", "net", "org", "io", "ai", "co", "app", "dev", "xyz"];
+
+export const domainAvailable = defineTool({
+  name: "domain_available",
+  title: "Domain name availability",
+  description:
+    "Check whether a domain name is free to register across many extensions at once (.com, .net, .org, .io, .ai, .app, .dev, .xyz and 1,000+ more) using the registries' own RDAP data. Shows registrar and expiry for taken names.",
+  priceMicro: 2000,
+  cacheTtl: 3600,
+  input: z.object({
+    name: z.string().min(1).max(63).describe('The name to check, with or without an extension: "aipaygen" or "aipaygen.com".'),
+    tlds: z.array(z.string().min(2).max(24)).max(20).optional().describe(`Extensions to try. Default: ${DEFAULT_TLDS.join(", ")}.`),
+  }),
+  example: { name: "agentpayments", tlds: ["com", "ai", "io", "dev"] },
+  async run({ name, tlds }) {
+    const raw = name.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").split("/")[0]!;
+    const dot = raw.indexOf(".");
+    const label = dot > 0 ? raw.slice(0, dot) : raw;
+    if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)) throw new ToolError(`"${name}" isn't a valid domain name (letters, digits and hyphens only).`, "INVALID_INPUT", 400);
+    const list = [...new Set([...(dot > 0 ? [raw.slice(dot + 1)] : []), ...(tlds?.length ? tlds : dot > 0 ? [] : DEFAULT_TLDS)].map((t) => t.replace(/^\./, "").toLowerCase()))].slice(0, 20);
+    const results = await Promise.all(
+      list.map(async (tld) => {
+        const domain = `${label}.${tld}`;
+        const base = await rdapBase(tld.split(".").pop()!);
+        if (!base) {
+          // No RDAP (e.g. .io): a delegated name has NS records; none usually means unregistered.
+          const ns = await resolve(domain, "NS").catch(() => null);
+          if (ns === null) return { domain, status: "unknown", note: "This extension has no public RDAP service." };
+          return ns.length
+            ? { domain, status: "taken", note: "Has name servers (registry has no RDAP, so no registrar details)." }
+            : { domain, status: "likely available", note: "No name servers found; this extension has no RDAP, so confirm at a registrar." };
+        }
+        try {
+          const res = await fetch(`${base.replace(/\/?$/, "/")}domain/${domain}`, {
+            headers: { accept: "application/rdap+json", "user-agent": USER_AGENT },
+            signal: AbortSignal.timeout(8000),
+          });
+          if (res.status === 404) {
+            await res.body?.cancel();
+            return { domain, status: "available" };
+          }
+          if (!res.ok) {
+            await res.body?.cancel();
+            return { domain, status: "unknown", note: `Registry answered ${res.status}.` };
+          }
+          const d = (await res.json()) as { events?: { eventAction: string; eventDate: string }[]; entities?: RdapEntity[] };
+          const registrar = findRole(d.entities, "registrar");
+          return {
+            domain, status: "taken",
+            registrar: registrar ? ((vcard(registrar, "fn") as string) ?? null) : null,
+            expires: d.events?.find((e) => e.eventAction === "expiration")?.eventDate ?? null,
+          };
+        } catch {
+          return { domain, status: "unknown", note: "Registry didn't answer in time." };
+        }
+      }),
+    );
+    return {
+      name: label,
+      available: results.filter((r) => r.status === "available").map((r) => r.domain),
+      likely_available: results.filter((r) => r.status === "likely available").map((r) => r.domain),
+      results,
+      note: "Available means the registry has no record. Premium or reserved names can still be restricted at checkout.",
     };
   },
 });
