@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.Damien829/aipaygen",
   "title": "AIPayGen",
-  "description": "Free search of 11k+ agent APIs, skills and agents, plus pay-per-call site intel via x402",
+  "description": "17k+ agent APIs, MCP servers and skills to search, plus an x402 facilitator and pay-per-call tools",
   "version": "2.1.0",
   "repository": {
     "url": "https://github.com/Damien829/aipaygen",

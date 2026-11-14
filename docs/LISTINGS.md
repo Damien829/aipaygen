@@ -4,24 +4,41 @@ Each directory below is somewhere agents or their developers search for tools. M
 
 ## The copy
 
+Numbers are from the live catalog on 2026-11-14. Update them before each submission.
+
 **Name:** AIPayGen
 
-**One line (100 characters max):** Free search of 11k+ agent APIs, skills and agents, plus pay-per-call site intel via x402
+**One line (100 characters max):** 17k+ agent APIs, MCP servers and skills to search, plus an x402 facilitator and pay-per-call tools
 
 **Short description:**
-AIPayGen gives AI agents a free, searchable marketplace of 11,000+ resources (4,300+ APIs with docs and auth details, 4,300+ reusable skills, 950+ agents, 1,500+ agent services), plus pay-per-call tools for website and company intelligence: DNS, WHOIS/RDAP, SSL and subdomains, tech stack, email security, page-to-markdown and company profiles. Agents pay per call in USDC with x402 (no account, no API key), or use prepaid credits. Failed calls are never charged.
+AIPayGen is a marketplace for AI agents. Agents search 17,000+ resources for free: 9,700+ APIs (many payable with x402), 1,200+ MCP servers, 4,000+ runnable skills, 950+ agents and 1,500+ services, with health checks and trust scores so dead listings drop out. It runs a non-custodial x402 facilitator (verify and settle on Base), and pay-per-call tools for website and company intelligence: DNS, WHOIS/RDAP, certificates, tech stack, email security and page-to-markdown. Agents pay per call in USDC with x402 (no account), or with prepaid credits. Failed calls are never charged.
 
 **Links:**
 - MCP (Streamable HTTP): `https://mcp.aipaygen.com/mcp`
 - Website: `https://aipaygen.com`
 - Marketplace: `https://aipaygen.com/market`
+- x402 facilitator: `https://aipaygen.com/facilitator`
 - OpenAPI: `https://aipaygen.com/openapi.json`
 - llms.txt: `https://aipaygen.com/llms.txt`
 - A2A agent card: `https://aipaygen.com/.well-known/agent-card.json`
 - x402 resources: `https://aipaygen.com/.well-known/x402`
 - Repository: `https://github.com/Damien829/aipaygen`
 
-**Tags:** mcp, x402, ai-agents, marketplace, api-directory, web-intelligence, dns, whois, tech-stack, pay-per-call, usdc, base
+**Tags:** mcp, x402, x402-facilitator, a2a, ai-agents, marketplace, api-directory, skills, web-intelligence, pay-per-call, usdc, base
+
+### Ready-to-paste entries
+
+**awesome-mcp-servers** (punkpeye/awesome-mcp-servers, section "Aggregators", needs the Glama listing first for the badge):
+
+```
+- [Damien829/aipaygen](https://github.com/Damien829/aipaygen) [![Damien829/aipaygen MCP server](https://glama.ai/mcp/servers/Damien829/aipaygen/badges/score.svg)](https://glama.ai/mcp/servers/Damien829/aipaygen) 📇 ☁️ - Searchable marketplace of 17k+ agent APIs, MCP servers and skills with health checks and trust scores, runnable skills, and pay-per-call web intelligence tools paid with x402.
+```
+
+**awesome-x402** (xpaysh/awesome-x402, section "Facilitators", hosted). Submit once the Base mainnet fee wallet is funded, so merchants who read it can settle real payments:
+
+```
+- [AIPayGen](https://aipaygen.com/facilitator) - Non-custodial x402 facilitator on Base and Base Sepolia (exact scheme, USDC). Open /verify, /settle with a free API key, per-merchant settlement stats, and a 17k-listing agent marketplace on the same domain.
+```
 
 ## Directories, most valuable first
 
@@ -33,9 +50,9 @@ AIPayGen gives AI agents a free, searchable marketplace of 11,000+ resources (4,
 | 4 | **Glama** | glama.ai/mcp/servers → Add; `glama.json` is already in the repo | Claims via GitHub. |
 | 5 | **PulseMCP** | pulsemcp.com → Submit | Curated list, read by many developers. |
 | 6 | **mcp.so** | mcp.so → Submit | |
-| 7 | **x402 ecosystem list** | Pull request to the x402 Foundation's ecosystem/awesome list on GitHub | Lists x402-enabled services. |
-| 8 | **awesome-mcp-servers** | Pull request on GitHub, under "Search" or "Marketplace" | |
-| 9 | **Google Search Console + Bing Webmaster Tools** | Verify aipaygen.com, then submit `https://aipaygen.com/sitemap.xml` | Gets the 11,246 marketplace pages indexed faster, which also feeds AI answer engines. |
+| 7 | **awesome-x402** | Pull request to xpaysh/awesome-x402 (Facilitators section; entry above) | After the mainnet fee wallet is funded. |
+| 8 | **awesome-mcp-servers** | Pull request to punkpeye/awesome-mcp-servers (Aggregators; entry above) | Needs the Glama listing first. |
+| 9 | **Google Search Console + Bing Webmaster Tools** | Verify aipaygen.com, then submit `https://aipaygen.com/sitemap.xml` | Gets the 17,000+ marketplace pages indexed faster, which also feeds AI answer engines. |
 | 10 | **PyPI** (`aipaygen-mcp` 2.0.0 is already there) | Bump the description to mention the marketplace on the next release | |
 
 ## After listing
