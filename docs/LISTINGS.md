@@ -31,7 +31,7 @@ AIPayGen is a marketplace for AI agents. Agents search 17,000+ resources for fre
 **awesome-mcp-servers** (punkpeye/awesome-mcp-servers, section "Aggregators", needs the Glama listing first for the badge):
 
 ```
-- [Damien829/aipaygen](https://github.com/Damien829/aipaygen) [![Damien829/aipaygen MCP server](https://glama.ai/mcp/servers/Damien829/aipaygen/badges/score.svg)](https://glama.ai/mcp/servers/Damien829/aipaygen) 📇 ☁️ - Searchable marketplace of 17k+ agent APIs, MCP servers and skills with health checks and trust scores, runnable skills, and pay-per-call web intelligence tools paid with x402.
+- [Damien829/aipaygen](https://github.com/Damien829/aipaygen) [![Damien829/aipaygen MCP server](https://glama.ai/mcp/servers/Damien829/aipaygen/badges/score.svg)](https://glama.ai/mcp/servers/Damien829/aipaygen) 📇 ☁️ - Free search of 17k+ APIs, MCP servers and skills, health-checked and trust-ranked. Runs skills, sells web intel via x402 and hosts an x402 facilitator.
 ```
 
 **awesome-x402** (xpaysh/awesome-x402, section "Facilitators", hosted). Submit once the Base mainnet fee wallet is funded, so merchants who read it can settle real payments:
