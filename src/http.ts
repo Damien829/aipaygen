@@ -7,6 +7,7 @@ import { formatPrice, type ToolDef } from "./tools/types";
 import { apiKeyFromHeaders, createApiKey, findApiKey, linkReferral, REFERRAL_REWARD_MICRO, referralCode, referralCodeForKey, sha256Hex } from "./billing/keys";
 import { chargeAndRun } from "./billing/charge";
 import { topUp } from "./billing/topup";
+import { referralStats } from "./billing/refshare";
 import { catalogStats, catalogSummary, getCatalogItem, KINDS, searchCatalog, type Kind } from "./catalog";
 import { logSearch, refFromRequest, registerAgent, relatedTo, shareBlock } from "./growth";
 import { microToUsd, toolJsonSchema, x402Enabled } from "./billing/x402";
@@ -70,7 +71,7 @@ async function handleTool(c: Context<AppEnv>, tool: ToolDef) {
     tool,
     args: parsed.data as Record<string, unknown>,
     channel: "http",
-    payment: { apiKey, paymentToken: headers.get("payment-signature") ?? headers.get("x-payment"), idempotencyKey: headers.get("idempotency-key") ?? headers.get("x-idempotency-key"), clientIp: headers.get("cf-connecting-ip") },
+    payment: { apiKey, paymentToken: headers.get("payment-signature") ?? headers.get("x-payment"), idempotencyKey: headers.get("idempotency-key") ?? headers.get("x-idempotency-key"), clientIp: headers.get("cf-connecting-ip"), ref: refFromRequest(c.req.raw) },
     resourceUrl: `${c.env.PUBLIC_URL}/v1/${tool.name}`,
   });
 
@@ -191,7 +192,9 @@ export function apiRoutes(): Hono<AppEnv> {
       top_up: `POST ${c.env.PUBLIC_URL}/v1/topup {"amount_usd": 5} with this key, then pay the 402 with x402 (USDC on Base). $1-$100.`,
       referral: {
         code,
-        reward: `${microToUsd(REFERRAL_REWARD_MICRO)} in credits when an agent you refer makes its first paid top-up of $5 or more`,
+        reward: `20% of what each new wallet you refer spends for 90 days (paid daily as credits), plus ${microToUsd(REFERRAL_REWARD_MICRO)} when an agent you refer makes its first paid top-up of $5 or more`,
+        share_links: [`${c.env.PUBLIC_URL}/?ref=${code}`, `${c.env.PUBLIC_URL}/mcp?ref=${code}`, `${c.env.PUBLIC_URL}/v1/<tool>?ref=${code}`],
+        ...(await referralStats(c.env, key.id).then((s) => ({ referred_wallets: s.referred_wallets, earned: microToUsd(s.earned_micro) })).catch(() => ({}))),
         how: `New agents create a key with POST ${c.env.PUBLIC_URL}/v1/keys {"ref":"${code}"} or the create_api_key MCP tool with ref "${code}".`,
       },
     });

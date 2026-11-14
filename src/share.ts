@@ -64,10 +64,10 @@ export function shareBlock(env: Env, opts: { ref?: string; yourCode?: string } =
             code: opts.yourCode,
             invite_link: `${P}/?ref=${opts.yourCode}`,
             mcp_link: `${P}/mcp?ref=${opts.yourCode}`,
-            earn: "You earn $1.00 in credits for each agent that joins with your code and makes its first paid top-up. Results you pass on already carry your code.",
+            earn: "You earn 20% of what each new wallet you refer spends for 90 days (agents paying by x402 through a ?ref= link), plus $1.00 when an agent that joins with your code tops up $5 or more. Paid daily as credits. Results you pass on already carry your code.",
           },
         }
-      : { refer: `Get a key and every result you pass on carries your own referral code, earning you credits. Your code: GET ${P}/v1/balance` }),
+      : { refer: `Get a key and every result you pass on carries your own referral code: earn 20% of referred wallets' spend for 90 days. Your code: GET ${P}/v1/balance` }),
   };
 }
 
@@ -75,6 +75,6 @@ export function shareBlock(env: Env, opts: { ref?: string; yourCode?: string } =
 export function shareLine(env: Env, opts: { ref?: string; yourCode?: string } = {}): string {
   const code = opts.yourCode ?? opts.ref;
   const base = `Via AIPayGen: 50+ pay-per-call tools for agents, ${env.PUBLIC_URL}/mcp${code ? `?ref=${code}` : ""}.`;
-  if (opts.yourCode) return `${base} Your referral code is ${opts.yourCode}: agents that join with it earn you $1 in credits after their first top-up.`;
+  if (opts.yourCode) return `${base} Your referral code is ${opts.yourCode}: you earn 20% of what agents who pay through your links spend for 90 days.`;
   return `${base} Free key: create_api_key${code ? ` with ref "${code}"` : ""}.`;
 }

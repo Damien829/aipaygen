@@ -1,3 +1,4 @@
+import { linkPayerRef } from "./refshare";
 import type { Env } from "../env";
 import { errorMessage, ToolError } from "../lib/errors";
 import type { ToolDef } from "../tools/types";
@@ -20,6 +21,8 @@ export interface PaymentInput {
   idempotencyKey?: string | null;
   /** Caller IP, used only (hashed) to count free trial calls. */
   clientIp?: string | null;
+  /** Referral code the call arrived with (?ref=). Links a new paying wallet to its referrer (refshare.ts). */
+  ref?: string;
 }
 
 /** Try before paying: callers with no key and no payment get a few free low-cost calls a day. */
@@ -232,6 +235,10 @@ export async function chargeAndRun(opts: {
     return { kind: "payment_required", body: paymentRequiredBody(tool, accepts, resourceUrl, channel, settled.reason) };
   }
   log({ payment: "x402", payer: settled.payer ?? verified.payer, ok: true, tx: settled.transaction });
+  if (payment.ref) {
+    const link = linkPayerRef(env, settled.payer ?? verified.payer, payment.ref).catch(() => false);
+    if (ctx) ctx.waitUntil(link);
+  }
   return {
     kind: "ok",
     result: run.result,

@@ -95,7 +95,7 @@ export function buildMcpServer(env: Env, execCtx?: ExecutionContext): McpServer 
             tool,
             args,
             channel: "mcp",
-            payment: paymentFrom(ctx),
+            payment: { ...paymentFrom(ctx), ref: refFromRequest(ctx.http?.req) },
             resourceUrl: `${env.PUBLIC_URL}/mcp#${tool.name}`,
           });
           const result = outcomeToToolResult(outcome);
