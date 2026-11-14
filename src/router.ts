@@ -110,9 +110,22 @@ export const findTool = defineTool({
     const priced = pool.filter((c) => c.price_micro != null && c.kind !== "listing").map((c) => c.price_micro!);
     const cheapest = priced.length ? Math.min(...priced) : null;
 
+    // At most two options per host, so one seller with many listings can't fill the answer.
+    const perHost = new Map<string, number>();
     const ranked = pool
       .map((c, i) => ({ c, ...scoreCandidate(c, i, cheapest) }))
       .sort((a, b) => b.score - a.score)
+      .filter(({ c }) => {
+        let host = c.id;
+        try {
+          host = new URL(c.url ?? "").hostname;
+        } catch {
+          // no URL: count by id
+        }
+        const n = perHost.get(host) ?? 0;
+        perHost.set(host, n + 1);
+        return n < 2;
+      })
       .slice(0, args.limit ?? 5);
 
     logSearch(env, undefined, args.need, undefined, ranked.length, "tool");

@@ -54,8 +54,41 @@ export async function refreshAgents(env: Env, limit = 5) {
 
 interface Probe { alive: boolean; verified: boolean; ms: number }
 
-/** One test call. MCP servers must answer tools/list; x402 APIs must return a payment quote. */
-async function probe(kind: string, url: string, x402: boolean): Promise<Probe> {
+type Accept = { scheme?: string; network?: string; payTo?: string; asset?: string; amount?: string; maxAmountRequired?: string };
+
+/**
+ * A usable x402 quote: at least one accepts entry with a scheme, a CAIP-2 or v1
+ * network name, a payTo and an amount. Reads the v2 PAYMENT-REQUIRED header
+ * (base64 JSON) or a JSON body ({ accepts: [...] }, v1 and v2).
+ */
+export function parseQuote(header: string | null, body: string): boolean {
+  const docs: unknown[] = [];
+  if (header) {
+    try {
+      docs.push(JSON.parse(atob(header.trim())));
+    } catch {
+      try {
+        docs.push(JSON.parse(header));
+      } catch {
+        // not JSON
+      }
+    }
+  }
+  try {
+    docs.push(JSON.parse(body));
+  } catch {
+    // not JSON
+  }
+  return docs.some((d) => {
+    const accepts = (d as { accepts?: Accept[] } | null)?.accepts;
+    return Array.isArray(accepts) && accepts.some((a) =>
+      !!a && typeof a.scheme === "string" && typeof a.network === "string" && a.network.length > 2 &&
+      typeof a.payTo === "string" && a.payTo.length >= 20 && /^\d+$/.test(String(a.amount ?? a.maxAmountRequired ?? "")));
+  });
+}
+
+/** One test call. MCP servers must answer tools/list; x402 APIs must return a usable payment quote. */
+async function probe(kind: string, url: string, x402: boolean, method = "GET"): Promise<Probe> {
   const t0 = Date.now();
   const timeout = AbortSignal.timeout(6000);
   if (kind === "mcp") {
@@ -69,10 +102,17 @@ async function probe(kind: string, url: string, x402: boolean): Promise<Probe> {
     return { alive: res.status < 500, verified: res.ok && /"tools"\s*:/.test(text), ms: Date.now() - t0 };
   }
   if (x402) {
-    const res = await fetch(url, { method: "GET", headers: { accept: "application/json", "user-agent": UA }, redirect: "follow", signal: timeout });
-    let quoted = res.status === 402 && !!(res.headers.get("payment-required") || res.headers.get("x-payment-required"));
-    if (res.status === 402 && !quoted) quoted = /"accepts"\s*:/.test((await res.text()).slice(0, 50_000));
-    return { alive: res.status < 500, verified: quoted, ms: Date.now() - t0 };
+    const post = method.toUpperCase() === "POST";
+    const res = await fetch(url, {
+      method: post ? "POST" : "GET",
+      headers: { accept: "application/json", "user-agent": UA, ...(post ? { "content-type": "application/json" } : {}) },
+      ...(post ? { body: "{}" } : {}),
+      redirect: "follow", signal: timeout,
+    });
+    const quoted = res.status === 402 && parseQuote(res.headers.get("payment-required") ?? res.headers.get("x-payment-required"), (await res.text()).slice(0, 50_000));
+    // Up: 402, success, or a refusal that means a server is there (bad input, wrong method, bot shield,
+    // rate limit). Gone or broken: 404, 410 and 5xx, so dead listings drop out after 3 checks.
+    return { alive: res.ok || [400, 401, 402, 403, 405, 429].includes(res.status), verified: quoted, ms: Date.now() - t0 };
   }
   const res = await fetch(url, { method: "HEAD", headers: { "user-agent": UA }, redirect: "follow", signal: timeout });
   return { alive: res.status < 500, verified: false, ms: Date.now() - t0 };
@@ -82,15 +122,15 @@ async function probe(kind: string, url: string, x402: boolean): Promise<Probe> {
 export async function healthCheck(env: Env, limit = 34) {
   // One indexed query per kind (idx_catalog_health), least recently checked first.
   // MCP servers and APIs get most of the budget: they are what agents call.
-  type HealthRow = { id: string; kind: string; url: string; x402: number; fail_count: number; latency_ms: number | null };
+  type HealthRow = { id: string; kind: string; url: string; x402: number; fail_count: number; latency_ms: number | null; method: string | null };
   // APIs get half: the x402 feeds add thousands of them and about a quarter are dead.
   const share: [string, number][] = [["mcp", 0.25], ["api", 0.5], ["agent", 0.125], ["service", 0.125]];
   const batches = await env.DB.batch(share.map(([kind, part]) => env.DB.prepare(
-    `SELECT id, kind, url, x402, fail_count, latency_ms FROM catalog WHERE kind = ? AND url LIKE 'https://%' AND fail_count < ${OWNER_HIDDEN} ORDER BY checked_at LIMIT ?`,
+    `SELECT id, kind, url, x402, fail_count, latency_ms, json_extract(meta, '$.method') AS method FROM catalog WHERE kind = ? AND url LIKE 'https://%' AND fail_count < ${OWNER_HIDDEN} ORDER BY checked_at LIMIT ?`,
   ).bind(kind, Math.max(1, Math.round(limit * part)))));
   const results = batches.flatMap((b) => b.results as HealthRow[]);
   if (!results.length) return { checked: 0, alive: 0, verified: 0 };
-  const probes = await Promise.allSettled(results.map((r) => probe(r.kind, r.url, !!r.x402)));
+  const probes = await Promise.allSettled(results.map((r) => probe(r.kind, r.url, !!r.x402, r.method ?? "GET")));
   const now = Date.now();
   let alive = 0;
   let verified = 0;
