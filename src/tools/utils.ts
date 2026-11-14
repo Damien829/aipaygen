@@ -556,7 +556,7 @@ export const mathCalc = defineTool({
     if (op === "eval") {
       if (!expression) throw new ToolError("eval needs expression.", "INVALID_INPUT", 400);
       const result = evalMath(expression);
-      if (!Number.isFinite(result)) throw new ToolError("The result isn't a finite number (division by zero?).", "INVALID_INPUT", 400);
+      if (!Number.isFinite(result)) throw new ToolError("The result is too large or undefined (overflow or division by zero).", "INVALID_INPUT", 400);
       return { op, expression, result: Math.round(result * 1e12) / 1e12 };
     }
     if (op === "stats") {
@@ -574,7 +574,7 @@ export const mathCalc = defineTool({
 export const languageDetect = defineTool({
   name: "language_detect",
   title: "Language detection",
-  description: "Detect the language of any text (100+ languages): ISO 639-1 code, English name, script and a confidence score.",
+  description: "Detect the language of any text (100+ languages): ISO 639-1 code, English name and script, plus the model's self-reported confidence (not a calibrated probability).",
   priceMicro: 1000,
   cacheTtl: 86_400,
   input: z.object({ text: z.string().min(1).max(5000).describe("The text to identify.") }),
@@ -594,7 +594,8 @@ export const languageDetect = defineTool({
       code: p.code.toLowerCase().slice(0, 3),
       language: typeof p.language === "string" ? p.language : null,
       script: typeof p.script === "string" ? p.script : null,
-      confidence: Number.isFinite(conf) ? Math.max(0, Math.min(1, conf)) : null,
+      // Self-reported by a small LLM, not a calibrated probability.
+      model_confidence: Number.isFinite(conf) ? Math.max(0, Math.min(1, conf)) : null,
       model,
     };
   },
