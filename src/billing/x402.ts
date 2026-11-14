@@ -70,7 +70,13 @@ export function discoveryExtension(tool: ToolDef, channel: "mcp" | "http"): Reco
         example: tool.example as Record<string, unknown>,
       });
     }
-    const ext = declareDiscoveryExtension({ input: tool.example as Record<string, unknown>, inputSchema: toolJsonSchema(tool) }) as {
+    // POST tools take a JSON body; the query-style declaration with method POST is rejected by facilitators.
+    const post = tool.httpMethod === "POST";
+    const ext = declareDiscoveryExtension(
+      post
+        ? { bodyType: "json", input: tool.example as Record<string, unknown>, inputSchema: toolJsonSchema(tool) }
+        : { input: tool.example as Record<string, unknown>, inputSchema: toolJsonSchema(tool) },
+    ) as {
       bazaar?: { info?: { input?: Record<string, unknown> } };
     };
     // Normally injected per-route by the HTTP middleware; we build 402s ourselves, so set it here.

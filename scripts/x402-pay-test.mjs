@@ -17,7 +17,9 @@ const NET = MAINNET
   ? { chain: base, caip: "eip155:8453", usdc: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", explorer: "https://basescan.org", label: "USDC" }
   : { chain: baseSepolia, caip: "eip155:84532", usdc: "0x036CbD53842c5426634e7929541eC2318f3dCF7e", explorer: "https://sepolia.basescan.org", label: "test USDC" };
 const USDC = NET.usdc;
-const url = process.argv.slice(2).find((a) => !a.startsWith("--")) ?? "https://aipaygen.com/v1/dns_lookup?domain=anthropic.com";
+const postIdx = process.argv.indexOf("--post");
+const postBody = postIdx > 0 ? process.argv[postIdx + 1] : null; // --post '{"json":"body"}' sends a POST
+const url = process.argv.slice(2).find((a, i, all) => !a.startsWith("--") && all[i - 1] !== "--post") ?? "https://aipaygen.com/v1/dns_lookup?domain=anthropic.com";
 
 const secrets = Object.fromEntries(
   readFileSync(new URL("../.secrets.local", import.meta.url), "utf8")
@@ -46,7 +48,7 @@ const payingFetch = wrapFetchWithPaymentFromConfig(fetch, {
 });
 
 console.log(`\nCalling ${url} with no API key...`);
-const res = await payingFetch(url);
+const res = await payingFetch(url, postBody ? { method: "POST", headers: { "content-type": "application/json" }, body: postBody } : undefined);
 const body = await res.json();
 console.log(`HTTP ${res.status}`);
 
