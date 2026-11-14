@@ -154,7 +154,7 @@ app.route("/admin", admin);
 app.onError((err, c) => {
   const message = err instanceof Error ? err.message : String(err);
   console.log("unhandled", c.req.path, message.slice(0, 300));
-  if (!/D1_|d1 |daily|quota|limit/i.test(message)) return c.json({ error: { code: "INTERNAL", message: "Something went wrong. Try again." } }, 500);
+  if (!/D1_|row read limit|daily .*limit|exceeded .*quota/i.test(message)) return c.json({ error: { code: "INTERNAL", message: "Something went wrong. Try again." } }, 500);
   const now = new Date();
   const retry = Math.max(60, Math.ceil((Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1) - now.getTime()) / 1000));
   const headers = { "retry-after": String(retry), "cache-control": "no-store" };

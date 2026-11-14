@@ -108,11 +108,17 @@ export async function searchCatalog(env: Env, o: SearchOpts): Promise<{ total: n
   // Rank text matches by bm25; otherwise our own listings first, then name.
   const order = fts
     ? `ORDER BY (SELECT bm25(catalog_fts) FROM catalog_fts WHERE catalog_fts.rowid = c.rowid AND catalog_fts MATCH ?) - ${TRUST_SQL}`
-    : `ORDER BY (c.kind = 'listing') DESC, ${TRUST_SQL} DESC, c.name`;
-  const [count, page] = await env.DB.batch([
-    env.DB.prepare(`SELECT COUNT(*) AS n FROM catalog c ${w}`).bind(...binds),
-    env.DB.prepare(`SELECT ${COLS} FROM catalog c ${w} ${order} LIMIT ? OFFSET ?`).bind(...binds, ...(fts ? [fts] : []), limit, offset),
-  ]);
+    // Matches idx_catalog_browse / idx_catalog_browse_kind (migration 0012) exactly, so a page reads only what it shows.
+    : o.kind
+      ? `ORDER BY ${TRUST_SQL} DESC, c.name`
+      : `ORDER BY (c.kind = 'listing') DESC, ${TRUST_SQL} DESC, c.name`;
+  const pageQuery = env.DB.prepare(`SELECT ${COLS} FROM catalog c ${w} ${order} LIMIT ? OFFSET ?`).bind(...binds, ...(fts ? [fts] : []), limit, offset);
+  // Plain browsing uses the stored counts; counting live would read every row.
+  if (!fts && !o.category) {
+    const [counts, page] = await Promise.all([catalogCounts(env), pageQuery.all<Row>()]);
+    return { total: o.kind ? counts.visible[o.kind] ?? 0 : sum(counts.visible), items: page.results.map(toItem) };
+  }
+  const [count, page] = await env.DB.batch([env.DB.prepare(`SELECT COUNT(*) AS n FROM catalog c ${w}`).bind(...binds), pageQuery]);
   return {
     total: ((count?.results[0] as { n: number } | undefined)?.n) ?? 0,
     items: ((page?.results ?? []) as unknown as Row[]).map(toItem),
@@ -124,29 +130,64 @@ export async function getCatalogItem(env: Env, id: string): Promise<CatalogItem 
   return r ? toItem(r) : null;
 }
 
+interface Counts {
+  at: number;
+  visible: Partial<Record<Kind, number>>;
+  top_categories: { kind: Kind; category: string; n: number }[];
+}
+
+const sum = (o: Partial<Record<string, number>>) => Object.values(o).reduce((a: number, b) => a + (b ?? 0), 0);
+const COUNTS_TTL_MS = 6 * 3_600_000;
+let countsMemo: Counts | null = null;
+
+/**
+ * Catalog counts, recomputed at most every 6 hours and stored in sync_state.
+ * Counting reads every row (17k+), so doing it per request is what drained
+ * D1's daily read quota. Counts can lag new listings by up to 6 hours.
+ */
+export async function catalogCounts(env: Env): Promise<Counts> {
+  const fresh = (c: Counts | null) => !!c && Date.now() - c.at < COUNTS_TTL_MS;
+  if (fresh(countsMemo)) return countsMemo!;
+  const stored = await env.DB.prepare("SELECT value FROM sync_state WHERE key = 'catalog_counts'").first<{ value: string }>();
+  try {
+    const c = stored ? (JSON.parse(stored.value) as Counts) : null;
+    if (fresh(c)) return (countsMemo = c!);
+  } catch {
+    // recompute below
+  }
+  const [visible, cats] = await env.DB.batch([
+    env.DB.prepare("SELECT kind, COUNT(*) AS n FROM catalog WHERE fail_count < 3 GROUP BY kind"),
+    env.DB.prepare("SELECT kind, category, COUNT(*) AS n FROM catalog WHERE category != '' AND fail_count < 3 GROUP BY kind, category ORDER BY n DESC LIMIT 60"),
+  ]);
+  const c: Counts = {
+    at: Date.now(),
+    visible: Object.fromEntries(((visible?.results ?? []) as { kind: Kind; n: number }[]).map((r) => [r.kind, r.n])),
+    top_categories: (cats?.results ?? []) as Counts["top_categories"],
+  };
+  await env.DB.prepare("INSERT INTO sync_state (key, value, updated_at) VALUES ('catalog_counts', ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at")
+    .bind(JSON.stringify(c), c.at).run().catch(() => {});
+  return (countsMemo = c);
+}
+
 /**
  * Counts per kind plus a small sample of each, for dashboards (the Mac app).
  * One call replaces six listing searches; the samples use the kind index and no sort,
  * so they read about 25 rows each. Served from the edge cache for 30 minutes.
  */
 export async function catalogSummary(env: Env, perKind = 24) {
-  const [counts, ...samples] = await env.DB.batch([
-    env.DB.prepare("SELECT kind, COUNT(*) AS n FROM catalog WHERE fail_count < 3 GROUP BY kind"),
-    ...KINDS.map((k) => env.DB.prepare(`SELECT ${COLS} FROM catalog c WHERE c.kind = ? AND c.fail_count < 3 LIMIT ?`).bind(k, perKind)),
-  ]);
+  const [counts, samples] = await Promise.all([catalogCounts(env), env.DB.batch(
+    KINDS.map((k) => env.DB.prepare(`SELECT ${COLS} FROM catalog c WHERE c.kind = ? AND c.fail_count < 3 LIMIT ?`).bind(k, perKind)),
+  )]);
   return {
-    counts: Object.fromEntries(((counts?.results ?? []) as { kind: Kind; n: number }[]).map((r) => [r.kind, r.n])),
+    counts: counts.visible,
     nodes: samples.flatMap((s) => (s.results as Row[]).map(toItem)),
     generated_at: new Date().toISOString(),
   };
 }
 
 export async function catalogStats(env: Env) {
-  const { results } = await env.DB.prepare("SELECT kind, COUNT(*) AS n FROM catalog GROUP BY kind").all<{ kind: Kind; n: number }>();
-  const { results: cats } = await env.DB.prepare(
-    "SELECT kind, category, COUNT(*) AS n FROM catalog WHERE category != '' GROUP BY kind, category ORDER BY n DESC LIMIT 60",
-  ).all<{ kind: Kind; category: string; n: number }>();
-  return { counts: Object.fromEntries(results.map((r) => [r.kind, r.n])), top_categories: cats };
+  const c = await catalogCounts(env);
+  return { counts: c.visible, top_categories: c.top_categories };
 }
 
 /** Free tool: lets agents find APIs, skills, agents and AIPayGen listings. */
