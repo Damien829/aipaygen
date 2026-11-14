@@ -46,10 +46,10 @@ AIPayGen is a marketplace for AI agents. Agents search 17,000+ resources for fre
 |---|---|---|---|
 | 1 | **Official MCP Registry** | `mcp-publisher login github` then `mcp-publisher publish` (uses `server.json`, already updated to 2.1.0) | Feeds many MCP clients and other directories automatically. |
 | 2 | **x402 Bazaar** | Automatic. Our 402 responses carry Bazaar metadata, and resources are cataloged once paid calls settle through the facilitator. | Make one real paid call after deploy to get listed. |
-| 3 | **Smithery** | smithery.ai → Add server → remote URL `https://mcp.aipaygen.com/mcp` | Large MCP audience. |
+| 3 | **Smithery** | Closed to new submissions (curated-only since 2026-10-31, now part of Arcade) | Skip. |
 | 4 | **Glama** | glama.ai/mcp/servers → Add; `glama.json` is already in the repo | Claims via GitHub. |
-| 5 | **PulseMCP** | pulsemcp.com → Submit | Curated list, read by many developers. |
-| 6 | **mcp.so** | mcp.so → Submit | |
+| 5 | **PulseMCP** | Submissions paused (checked 2026-11-14); it imports from the MCP Registry, where we're already published | Nothing to do. |
+| 6 | **mcp.so** | Only a $39 paid listing is offered (checked 2026-11-14) | Skip (free hosting only). |
 | 7 | **awesome-x402** | Pull request to xpaysh/awesome-x402 (Facilitators section; entry above) | After the mainnet fee wallet is funded. |
 | 8 | **awesome-mcp-servers** | Pull request to punkpeye/awesome-mcp-servers (Aggregators; entry above) | Needs the Glama listing first. |
 | 9 | **Google Search Console + Bing Webmaster Tools** | Verify aipaygen.com, then submit `https://aipaygen.com/sitemap.xml` | Gets the 17,000+ marketplace pages indexed faster, which also feeds AI answer engines. |
