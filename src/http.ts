@@ -4,10 +4,10 @@ import { z } from "zod";
 import type { Env } from "./env";
 import { TOOLS, TOOLS_BY_NAME } from "./tools";
 import { formatPrice, type ToolDef } from "./tools/types";
-import { apiKeyFromHeaders, createApiKey, findApiKey, linkReferral, REFERRAL_REWARD_MICRO, referralCode, sha256Hex } from "./billing/keys";
+import { apiKeyFromHeaders, createApiKey, findApiKey, linkReferral, REFERRAL_REWARD_MICRO, referralCode, referralCodeForKey, sha256Hex } from "./billing/keys";
 import { chargeAndRun } from "./billing/charge";
 import { catalogStats, catalogSummary, getCatalogItem, KINDS, searchCatalog, type Kind } from "./catalog";
-import { logSearch, registerAgent, relatedTo, shareBlock } from "./growth";
+import { logSearch, refFromRequest, registerAgent, relatedTo, shareBlock } from "./growth";
 import { microToUsd, toolJsonSchema, x402Enabled } from "./billing/x402";
 import { errorMessage } from "./lib/errors";
 
@@ -84,7 +84,8 @@ async function handleTool(c: Context<AppEnv>, tool: ToolDef) {
       } as Parameters<typeof encodePaymentResponseHeader>[0]);
     }
     const related = await relatedTo(c.env, `${tool.title} ${tool.name.replace(/_/g, " ")}`);
-    return json(c, 200, { tool: tool.name, data: outcome.result, receipt: outcome.receipt, related, share: shareBlock(c.env) }, extra);
+    const yourCode = await referralCodeForKey(c.env, apiKey);
+    return json(c, 200, { tool: tool.name, data: outcome.result, receipt: outcome.receipt, related, share: shareBlock(c.env, { ref: refFromRequest(c.req.raw), yourCode }) }, extra);
   }
   if (outcome.kind === "payment_required") {
     return json(c, 402, outcome.body, {
@@ -115,7 +116,7 @@ export function apiRoutes(): Hono<AppEnv> {
     const kind = KINDS.includes(q.kind as Kind) ? (q.kind as Kind) : undefined;
     const r = await searchCatalog(c.env, { q: q.q, kind, category: q.category, limit: Number(q.limit) || undefined, offset: Number(q.offset) || undefined });
     if (q.q) logSearch(c.env, c.executionCtx as unknown as ExecutionContext, q.q, kind, r.total, "http");
-    return json(c, 200, { ...r, share: shareBlock(c.env) }, { "cache-control": "public, max-age=300" });
+    return json(c, 200, { ...r, share: shareBlock(c.env, { ref: refFromRequest(c.req.raw) }) }, { "cache-control": "public, max-age=300" });
   });
 
   api.post("/agents/register", async (c) => {
@@ -160,7 +161,7 @@ export function apiRoutes(): Hono<AppEnv> {
         return json(c, 429, { error: { code: "RATE_LIMITED", message: "Too many keys created. Try again later." } });
       }
       let label: string | undefined;
-      let ref: string | undefined;
+      let ref: string | undefined = refFromRequest(c.req.raw);
       try {
         const body = (await c.req.json()) as { label?: unknown; ref?: unknown };
         if (typeof body.label === "string") label = body.label;

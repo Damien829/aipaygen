@@ -204,7 +204,7 @@ export const askLlm = defineTool({
   title: "Ask an open LLM",
   description:
     "Send a prompt to an open-weight LLM (Llama 3.3 70B, or Llama 3.1 8B for speed) and get the answer. Pay per call with no account or API key: drafting, rewriting, reasoning, code help, brainstorming.",
-  priceMicro: 6000,
+  priceMicro: 4000,
   cacheTtl: 3600,
   httpMethod: "POST",
   input: z.object({

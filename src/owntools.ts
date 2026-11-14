@@ -52,6 +52,17 @@ const SYNONYMS: Record<string, string> = {
   ask_llm: "llm chat completion gpt ai model prompt llama",
   transcribe_audio: "transcribe transcription speech stt audio whisper podcast voice",
   generate_image: "image generation generate picture art text-to-image flux illustration",
+  document_to_markdown: "pdf docx word excel xlsx spreadsheet document parse parsing convert extract text file",
+  email_verify: "email verify verification validate validation deliverability bounce disposable mx",
+  scholar_search: "scholar academic paper papers journal article doi citation research crossref",
+  regulations_search: "regulation regulations rule rules legal law federal register compliance policy government agency",
+  drug_info: "drug drugs medicine medication fda pharmacy label recall health dosage",
+  clinical_trials: "clinical trial trials study studies medical health research recruiting",
+  book_search: "book books isbn author library novel reading publisher",
+  economic_data: "economy economic gdp inflation unemployment population world bank indicator macro country",
+  weather_alerts: "weather alert alerts warning storm tornado hurricane flood nws severe",
+  product_lookup: "product barcode upc ean food nutrition ingredients allergens grocery",
+  text_utils: "hash sha256 base64 encode decode uuid slug json format utility utilities word count",
 };
 
 /** Not offered as search results: free helpers, and run_skill (it runs other listings). */
@@ -109,7 +120,9 @@ export function ownMatches(env: Pick<Env, "PUBLIC_URL">, query: string, max = 3)
       // "Strong" words are the tool's name, title and synonyms: a hit there counts more than one in the description.
       const strong = matchScore(query, `${t.name.replace(/_/g, " ")} ${t.title} ${SYNONYMS[t.name] ?? ""}`);
       const score = matchScore(query, `${t.name.replace(/_/g, " ")} ${t.title} ${t.description} ${SYNONYMS[t.name] ?? ""}`);
-      return { t, score, strong, rank: score + strong / 2 };
+      // A query that is exactly a tool's name ("weather") should rank that tool above its relatives ("weather_alerts").
+      const exact = words(query).join(" ") === t.name.replace(/_/g, " ") ? 1 : 0;
+      return { t, score, strong, rank: score + strong / 2 + exact };
     })
     // Half the words matching only in the description is too weak ("image generation" vs "...an image...").
     .filter((x) => x.score >= 0.5 && (x.strong > 0 || x.score === 1))

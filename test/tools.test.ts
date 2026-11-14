@@ -250,7 +250,7 @@ describe("own tools in marketplace search", () => {
   });
   it("stays out of unrelated searches and skips free helpers", () => {
     expect(ownMatches(env, "postgres mcp server")).toEqual([]);
-    expect(ownMatches(env, "flight booking")).toEqual([]);
+    expect(ownMatches(env, "car rental")).toEqual([]);
     expect(ownMatches(env, "image generation")[0]?.meta.tool).toBe("generate_image");
     expect(ownMatches(env, "search marketplace").some((i) => i.meta.tool === "search_marketplace")).toBe(false);
     expect(matchScore("the api", "anything")).toBe(0);
@@ -388,5 +388,45 @@ describe("crypto helpers", () => {
     expect(ownMatches(env, "transcribe podcast")[0]?.meta.tool).toBe("transcribe_audio");
     expect(ownMatches(env, "ocr")[0]?.meta.tool).toBe("describe_image");
     expect(ownMatches(env, "domain availability")[0]?.meta.tool).toBe("domain_available");
+  });
+});
+
+import { refFromRequest, shareBlock, shareLine } from "../src/share";
+import { emailSyntax, textUtils } from "../src/tools/reference";
+
+describe("referrals everywhere", () => {
+  const env = { PUBLIC_URL: "https://aipaygen.com" } as never;
+  it("reads ref from the URL or a header and rejects junk", () => {
+    expect(refFromRequest(new Request("https://aipaygen.com/v1/weather?ref=AbC123xy"))).toBe("AbC123xy");
+    expect(refFromRequest(new Request("https://aipaygen.com/mcp", { headers: { "x-aipaygen-ref": "Zz99Zz99" } }))).toBe("Zz99Zz99");
+    expect(refFromRequest(new Request("https://aipaygen.com/?ref=<script>"))).toBeUndefined();
+    expect(refFromRequest(undefined)).toBeUndefined();
+  });
+  it("puts the caller's own code in results, else the code they arrived with", () => {
+    const mine = shareBlock(env, { yourCode: "MYCODE12", ref: "OTHER123" }) as Record<string, unknown>;
+    expect(mine.get_a_key).toContain('"ref":"MYCODE12"');
+    expect((mine.your_referral as { invite_link: string }).invite_link).toBe("https://aipaygen.com/?ref=MYCODE12");
+    const passed = shareBlock(env, { ref: "OTHER123" }) as Record<string, unknown>;
+    expect((passed.connect as { mcp: string }).mcp).toBe("https://aipaygen.com/mcp?ref=OTHER123");
+    expect(passed.your_referral).toBeUndefined();
+    expect(shareBlock(env).get_a_key).toContain("{}");
+    expect(shareLine(env, { yourCode: "MYCODE12" })).toContain("MYCODE12");
+  });
+});
+
+describe("reference helpers", () => {
+  it("checks email syntax", () => {
+    expect(emailSyntax("a.b+c@example.co.uk").ok).toBe(true);
+    expect(emailSyntax("a..b@example.com").ok).toBe(false);
+    expect(emailSyntax("nobody@").ok).toBe(false);
+    expect(emailSyntax("x@localhost").ok).toBe(false);
+  });
+  it("runs text utilities offline", async () => {
+    const env = {} as never;
+    expect((await textUtils.run({ op: "sha256", text: "abc" }, { env })).hex).toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    expect((await textUtils.run({ op: "base64_decode", text: (await textUtils.run({ op: "base64_encode", text: "héllo ✓" }, { env })).result as string }, { env })).result).toBe("héllo ✓");
+    expect((await textUtils.run({ op: "slugify", text: "Crème Brûlée & Co!" }, { env })).result).toBe("creme-brulee-co");
+    expect((await textUtils.run({ op: "json_format", text: "{bad" }, { env })).valid).toBe(false);
+    expect((await textUtils.run({ op: "uuid", count: 3 }, { env })).uuids).toHaveLength(3);
   });
 });

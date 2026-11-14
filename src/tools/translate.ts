@@ -36,7 +36,7 @@ export const translate = defineTool({
   title: "Translate text",
   description:
     "Translate text between any two languages (100+). The source language is detected automatically. Keeps formatting, names, numbers and URLs intact. Up to 4,000 characters per call.",
-  priceMicro: 2000,
+  priceMicro: 1000,
   cacheTtl: 86_400,
   input: z.object({
     text: z.string().min(1).max(MAX_CHARS).describe("The text to translate (up to 4,000 characters)."),

@@ -3,7 +3,8 @@ import { z } from "zod";
 import { APP_VERSION, SERVICE_NAME, type Env } from "./env";
 import { TOOLS } from "./tools";
 import { formatPrice } from "./tools/types";
-import { apiKeyFromHeaders, createApiKey, findApiKey, linkReferral, sha256Hex } from "./billing/keys";
+import { apiKeyFromHeaders, createApiKey, findApiKey, linkReferral, referralCodeForKey, sha256Hex } from "./billing/keys";
+import { refFromRequest, shareLine } from "./share";
 import { chargeAndRun, type ChargeOutcome } from "./billing/charge";
 import { microToUsd, x402Enabled } from "./billing/x402";
 import { errorMessage } from "./lib/errors";
@@ -97,7 +98,13 @@ export function buildMcpServer(env: Env, execCtx?: ExecutionContext): McpServer 
             payment: paymentFrom(ctx),
             resourceUrl: `${env.PUBLIC_URL}/mcp#${tool.name}`,
           });
-          return outcomeToToolResult(outcome);
+          const result = outcomeToToolResult(outcome);
+          if (outcome.kind === "ok") {
+            // Word of mouth: results carry the caller's referral code (or the one they arrived with).
+            const yourCode = await referralCodeForKey(env, paymentFrom(ctx).apiKey);
+            result.content.push({ type: "text", text: shareLine(env, { yourCode, ref: refFromRequest(ctx.http?.req) }) });
+          }
+          return result;
         } catch (err) {
           return { isError: true, content: [{ type: "text", text: errorMessage(err) }] };
         }
@@ -132,7 +139,7 @@ export function buildMcpServer(env: Env, execCtx?: ExecutionContext): McpServer 
       description: `Create an AIPayGen API key with ${microToUsd(Number(env.TRIAL_CREDITS_MICRO) || 0)} of free trial credits. Free. Store the key: it is shown only once.`,
       inputSchema: z.object({
         label: z.string().max(80).optional().describe("Optional name for the key, e.g. your agent's name"),
-        ref: z.string().max(16).optional().describe("Optional referral code from the agent that told you about AIPayGen"),
+        ref: z.string().max(16).optional().describe("Referral code from the agent that told you about AIPayGen (it earns them credits). Picked up automatically from a ?ref= MCP URL."),
       }),
       annotations: { readOnlyHint: false, openWorldHint: false, idempotentHint: false },
     },
@@ -144,7 +151,8 @@ export function buildMcpServer(env: Env, execCtx?: ExecutionContext): McpServer 
         }
         const creatorHash = await sha256Hex(`creator:${ip}`);
         const k = await createApiKey(env, { label, creatorHash });
-        await linkReferral(env, k.id, ref, creatorHash).catch(() => false);
+        // A code passed in the tool call wins; otherwise use the one on the MCP URL (/mcp?ref=CODE).
+        await linkReferral(env, k.id, ref ?? refFromRequest(ctx.http?.req), creatorHash).catch(() => false);
         const data = {
           api_key: k.api_key,
           balance: microToUsd(k.balance_micro),
@@ -171,7 +179,13 @@ export function buildMcpServer(env: Env, execCtx?: ExecutionContext): McpServer 
       if (!raw) return text("No API key was sent. Add `Authorization: Bearer apg_...` to your MCP connection headers.");
       const key = await findApiKey(env, raw);
       if (!key) return { isError: true, content: [{ type: "text", text: "INVALID_API_KEY: That API key is not valid." }] };
-      const data = { key: `${key.key_prefix}…`, label: key.label, balance: microToUsd(key.balance_micro), top_up: `${env.PUBLIC_URL}/billing` };
+      const code = await referralCodeForKey(env, raw);
+      const data = {
+        key: `${key.key_prefix}…`, label: key.label, balance: microToUsd(key.balance_micro), top_up: `${env.PUBLIC_URL}/billing`,
+        referral: code
+          ? { code, invite_link: `${env.PUBLIC_URL}/?ref=${code}`, mcp_link: `${env.PUBLIC_URL}/mcp?ref=${code}`, earn: "$1.00 in credits for each agent that joins with your code and makes its first paid top-up." }
+          : null,
+      };
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }], structuredContent: data };
     },
   );

@@ -17,6 +17,7 @@ import { classifyText, extractData, summarize } from "./ai";
 import { currencyConvert, earthquakes, geocode, hackerNews, paperSearch, publicHolidays, wikipedia } from "./data";
 import { domainAvailable, ipLookup, packageInfo, packageVulns, redirectCheck } from "./devtools";
 import { askLlm, describeImage, embedText, generateImage, rankTexts, textToSpeech, transcribeAudio } from "./media";
+import { bookSearch, clinicalTrials, documentToMarkdown, drugInfo, economicData, emailVerify, productLookup, regulationsSearch, scholarSearch, textUtils, weatherAlerts } from "./reference";
 import { cryptoPrice, dexToken, gasPrice, tokenSecurity, walletBalance } from "./crypto";
 import { registerTools } from "../registry";
 
@@ -27,6 +28,11 @@ export const TOOLS: ToolDef[] = [
   registerAgentTool,
   runSkill,
   dnsLookup,
+  textUtils,
+  bookSearch,
+  economicData,
+  weatherAlerts,
+  productLookup,
   currencyConvert,
   publicHolidays,
   wikipedia,
@@ -48,6 +54,11 @@ export const TOOLS: ToolDef[] = [
   packageVulns,
   paperSearch,
   domainAvailable,
+  emailVerify,
+  scholarSearch,
+  regulationsSearch,
+  drugInfo,
+  clinicalTrials,
   rankTexts,
   tokenSecurity,
   domainWhois,
@@ -58,6 +69,7 @@ export const TOOLS: ToolDef[] = [
   techStack,
   summarize,
   extractData,
+  documentToMarkdown,
   describeImage,
   textToSpeech,
   askLlm,

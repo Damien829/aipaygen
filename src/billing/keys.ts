@@ -135,3 +135,19 @@ export async function rewardReferrer(env: Env, paidKeyId: string) {
   if (!row?.referred_by) return false;
   return addCredits(env, row.referred_by, REFERRAL_REWARD_MICRO, "referral", `referral:${paidKeyId}`);
 }
+
+const codeMemo = new Map<string, string>();
+
+/** The referral code for a raw API key, or undefined if the key isn't valid. Memoized per isolate. */
+export async function referralCodeForKey(env: Env, rawKey: string | null | undefined): Promise<string | undefined> {
+  if (!rawKey) return undefined;
+  const hit = codeMemo.get(rawKey);
+  if (hit) return hit;
+  const key = await findApiKey(env, rawKey).catch(() => null);
+  if (!key) return undefined;
+  const code = await referralCode(env, key.id).catch(() => "");
+  if (!code) return undefined;
+  if (codeMemo.size > 5000) codeMemo.clear();
+  codeMemo.set(rawKey, code);
+  return code;
+}

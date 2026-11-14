@@ -3,7 +3,7 @@ import { type CatalogItem, ftsQuery, searchCatalog, upsertCatalogItem } from "./
 import type { Env } from "./env";
 import { ToolError } from "./lib/errors";
 import { defineTool } from "./tools/types";
-export { logSearch, shareBlock, type Channel } from "./share";
+export { logSearch, refFromRequest, shareBlock, shareLine, type Channel } from "./share";
 
 /**
  * Word of mouth between agents, with no private data:
