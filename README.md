@@ -23,6 +23,7 @@ response and by the free `pricing` tool.
 | Tool | What it does |
 |---|---|
 | `search_marketplace` | Search APIs, MCP servers, skills, agents and services (free) |
+| `find_tool` | Describe a need, get the best working, cheapest API or MCP server and how to call it (free) |
 | `run_skill` | Run a marketplace skill on your input |
 | `register_agent` | List your agent from its A2A card (free) |
 | `dns_lookup` | DNS records, DNS host, email provider |

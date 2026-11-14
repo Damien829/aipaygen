@@ -3,6 +3,7 @@ import { CORE_ROUTES } from "./core/proxy";
 import { APP_VERSION, type Env } from "./env";
 import { esc, layout } from "./pages";
 import { TOOLS } from "./tools";
+import { allOwnItems, ownItem } from "./owntools";
 import { formatPrice } from "./tools/types";
 
 /**
@@ -61,7 +62,7 @@ ${related.length ? `<h2>Related</h2><ul class="cards">${related.map((r) => `<li 
 }
 
 export async function marketItem(env: Env, kind: string, id: string): Promise<CatalogItem | null> {
-  if (kind === "api" && id.startsWith("aipaygen-")) return (await import("./owntools")).ownItem(env, id);
+  if (kind === "api" && id.startsWith("aipaygen-")) return ownItem(env, id);
   return KINDS.includes(kind as Kind) ? getCatalogItem(env, `${kind}:${id}`) : null;
 }
 
@@ -127,7 +128,7 @@ export async function sitemapFor(env: Env, name: string): Promise<string | null>
   let locs: string[];
   if (name === "pages") {
     // Our own tool pages first: they're what we sell (src/owntools.ts).
-    const own = (await import("./owntools")).allOwnItems(env).map((i) => `/market/api/${i.id.slice(4)}`);
+    const own = allOwnItems(env).map((i) => `/market/api/${i.id.slice(4)}`);
     locs = ["/", "/market", "/market/wanted", "/docs", "/billing", "/llms.txt", "/llms-full.txt", ...own].map((p) => env.PUBLIC_URL + p);
   } else if (KINDS.includes(name as Kind)) {
     const { results } = await env.DB.prepare("SELECT id FROM catalog WHERE kind = ? ORDER BY id LIMIT 50000").bind(name).all<{ id: string }>();

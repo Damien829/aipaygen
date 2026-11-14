@@ -3,6 +3,7 @@ import type { Env } from "./env";
 import { ToolError } from "./lib/errors";
 import { defineTool } from "./tools/types";
 import { logSearch, shareBlock } from "./share";
+import { ownMatches } from "./owntools";
 
 /** The marketplace catalog in D1 (migrations/0003): listings, APIs, skills, agents, services. */
 
@@ -123,7 +124,6 @@ export async function searchCatalog(env: Env, o: SearchOpts): Promise<{ total: n
   const items = ((page?.results ?? []) as unknown as Row[]).map(toItem);
   // AIPayGen's own tools aren't catalog rows: put matching ones first (first page only, in memory, no reads).
   if (o.q && offset === 0 && (!o.kind || o.kind === "api") && !o.category) {
-    const { ownMatches } = await import("./owntools"); // lazy: tools/index imports this module
     const own = ownMatches(env, o.q, Math.min(3, limit));
     if (own.length) return { total: total + own.length, items: [...own, ...items].slice(0, limit) };
   }

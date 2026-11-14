@@ -175,7 +175,7 @@ describe("tool registry", () => {
     expect(new Set(TOOLS.map((t) => t.name)).size).toBe(TOOLS.length);
     for (const t of TOOLS) {
       // Free on purpose: discovery helps agents find the paid tools.
-      if (["search_marketplace", "register_agent"].includes(t.name)) expect(t.priceMicro).toBe(0);
+      if (["search_marketplace", "register_agent", "find_tool"].includes(t.name)) expect(t.priceMicro).toBe(0);
       else expect(t.priceMicro).toBeGreaterThan(0);
       expect(t.description.length).toBeGreaterThan(40);
       expect(t.input.safeParse(t.example).success).toBe(true);
@@ -256,5 +256,24 @@ describe("own tools in marketplace search", () => {
     expect(ownItem(env, "aipaygen-dns-lookup")?.name).toBe("DNS lookup (AIPayGen)");
     expect(ownItem(env, "aipaygen-search-marketplace")).toBeNull();
     expect(ownItem(env, "aipaygen-nope")).toBeNull();
+  });
+});
+
+describe("find_tool ranking", () => {
+  const base = { id: "api:x", kind: "api" as const, name: "x", description: "", url: "https://x", meta: "{}", x402: 1, checks_total: 0, checks_ok: 0, latency_ms: null, verified: 0, price_micro: null };
+  it("prefers verified, healthy, cheap options over raw relevance", async () => {
+    const { scoreCandidate } = await import("../src/router");
+    const flaky = scoreCandidate({ ...base, checks_total: 10, checks_ok: 3, latency_ms: 4000, price_micro: 50_000 }, 0, 1_000);
+    const solid = scoreCandidate({ ...base, verified: 1, checks_total: 10, checks_ok: 10, latency_ms: 200, price_micro: 1_000 }, 5, 1_000);
+    expect(solid.score).toBeGreaterThan(flaky.score);
+    expect(solid.reasons).toContain("cheapest published price among matches");
+  });
+  it("keeps unchecked options in the middle", async () => {
+    const { scoreCandidate } = await import("../src/router");
+    const unchecked = scoreCandidate(base, 0, null).score;
+    const down = scoreCandidate({ ...base, checks_total: 10, checks_ok: 0 }, 0, null).score;
+    const up = scoreCandidate({ ...base, verified: 1, checks_total: 10, checks_ok: 10 }, 0, null).score;
+    expect(unchecked).toBeGreaterThan(down);
+    expect(up).toBeGreaterThan(unchecked);
   });
 });

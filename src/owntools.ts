@@ -1,6 +1,7 @@
 import type { Env } from "./env";
 import type { CatalogItem } from "./catalog";
-import { TOOLS } from "./tools";
+import { registeredTools } from "./registry";
+import type { ToolDef } from "./tools/types";
 import { formatPrice } from "./tools/types";
 
 /**
@@ -47,9 +48,9 @@ export function matchScore(query: string, haystack: string): number {
   return hit / q.length;
 }
 
-type Tool = (typeof TOOLS)[number];
+type Tool = ToolDef;
 
-const listed = () => TOOLS.filter((t) => t.priceMicro > 0 && !SKIP.has(t.name));
+const listed = () => registeredTools().filter((t) => t.priceMicro > 0 && !SKIP.has(t.name));
 
 function toItem(base: string, t: Tool): CatalogItem {
   return {
