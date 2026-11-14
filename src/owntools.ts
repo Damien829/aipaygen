@@ -80,7 +80,7 @@ const SYNONYMS: Record<string, string> = {
 /** Not offered as search results: free helpers, and run_skill (it runs other listings). */
 const SKIP = new Set(["search_marketplace", "register_agent", "run_skill"]);
 
-const STOP = new Set(["the", "and", "for", "api", "apis", "tool", "tools", "get", "with", "from", "data", "service", "free", "check", "find", "lookup", "look", "any", "all"]);
+const STOP = new Set(["an", "to", "of", "in", "on", "at", "is", "it", "my", "me", "or", "by", "be", "do", "how", "what", "can", "want", "need", "some", "this", "that", "the", "and", "for", "api", "apis", "tool", "tools", "get", "with", "from", "data", "service", "free", "check", "find", "lookup", "look", "any", "all"]);
 
 /** Crude stem: "translation"/"translate" -> "transl", "headers" -> "head", "pages" -> "page". */
 export const stem = (w: string) => w.replace(/(ations?|ions?|ings?|ers?|s)$/, "").slice(0, 6);

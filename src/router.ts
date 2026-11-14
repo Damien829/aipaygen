@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { SIZES } from "./copy";
 import { ftsQuery } from "./catalog";
+import { ownMatches } from "./owntools";
 import type { Env } from "./env";
 import { ToolError } from "./lib/errors";
 import { logSearch, shareBlock } from "./share";
@@ -128,11 +129,25 @@ export const findTool = defineTool({
       })
       .slice(0, args.limit ?? 5);
 
-    logSearch(env, undefined, args.need, undefined, ranked.length, "tool");
+    // Our own tools aren't catalog rows; offer the best one or two first when they fit the need.
+    const own = ownMatches(env, args.need, 2).map((o) => ({
+      id: o.id,
+      kind: "aipaygen",
+      name: o.name,
+      what_it_does: o.description.slice(0, 300),
+      price_usd: null, // quoted in the 402 reply or by the free pricing tool
+      score: null,
+      why: ["AIPayGen tool: maintained and monitored by us", "pay per call with x402, or an API key; failed calls are never charged"],
+      call: { protocol: "aipaygen", tool: o.meta.tool, http: o.meta.http, mcp: o.meta.mcp, example_input: o.meta.example, docs: o.meta.docs },
+    }));
+    const host = new URL(env.PUBLIC_URL).hostname;
+    const others = own.length ? ranked.filter(({ c }) => c.kind !== "listing" && !(c.url ?? "").includes(host)) : ranked;
+
+    logSearch(env, undefined, args.need, undefined, own.length + others.length, "tool");
     return {
       need: args.need,
-      considered: pool.length,
-      options: ranked.map(({ c, score, reasons }) => {
+      considered: pool.length + own.length,
+      options: [...own, ...others.slice(0, (args.limit ?? 5) - own.length).map(({ c, score, reasons }) => {
         let meta: Record<string, unknown> = {};
         try {
           meta = JSON.parse(c.meta) as Record<string, unknown>;
@@ -150,8 +165,8 @@ export const findTool = defineTool({
           why: reasons,
           call: howToCall(c, meta),
         };
-      }),
-      tip: ranked.length ? "Options are health-checked every few hours. If one fails, try the next." : "Nothing matched. Try fewer or simpler words; unmet needs are logged and may become new skills.",
+      })],
+      tip: own.length + others.length ? "Options are health-checked every few hours. If one fails, try the next." : "Nothing matched. Try fewer or simpler words; unmet needs are logged and may become new skills.",
       share: shareBlock(env),
     };
   },
