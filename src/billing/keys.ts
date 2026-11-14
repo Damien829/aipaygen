@@ -101,3 +101,37 @@ export async function recordUsage(
     .bind(u.tool, u.channel, u.payment, u.payer, u.priceMicro, u.ok ? 1 : 0, u.ms, u.tx ?? null, Date.now())
     .run();
 }
+
+// ── Referrals ──────────────────────────────────────────────────────────────
+
+/** Credits a referrer earns, once per referred key, when that key first pays for a top-up. */
+export const REFERRAL_REWARD_MICRO = 1_000_000;
+
+/** The key's referral code, created on first use. */
+export async function referralCode(env: Env, keyId: string): Promise<string> {
+  const row = await env.DB.prepare("SELECT referral_code FROM api_keys WHERE id = ?").bind(keyId).first<{ referral_code: string | null }>();
+  if (row?.referral_code) return row.referral_code;
+  for (let i = 0; i < 3; i++) {
+    const code = randomToken(8);
+    const r = await env.DB.prepare("UPDATE api_keys SET referral_code = ? WHERE id = ? AND referral_code IS NULL").bind(code, keyId).run().catch(() => null);
+    if (r?.meta.changes) return code;
+  }
+  const again = await env.DB.prepare("SELECT referral_code FROM api_keys WHERE id = ?").bind(keyId).first<{ referral_code: string | null }>();
+  return again?.referral_code ?? "";
+}
+
+/** Link a new key to its referrer. Ignored for unknown codes and same-origin (self) referrals. */
+export async function linkReferral(env: Env, newKeyId: string, code: string | undefined, creatorHash: string | undefined) {
+  if (!code || !/^[A-Za-z0-9]{6,16}$/.test(code)) return false;
+  const ref = await env.DB.prepare("SELECT id, creator_hash FROM api_keys WHERE referral_code = ? AND disabled = 0").bind(code).first<{ id: string; creator_hash: string | null }>();
+  if (!ref || ref.id === newKeyId || (creatorHash && ref.creator_hash === creatorHash)) return false;
+  await env.DB.prepare("UPDATE api_keys SET referred_by = ? WHERE id = ? AND referred_by IS NULL").bind(ref.id, newKeyId).run();
+  return true;
+}
+
+/** After a paid top-up: reward the referrer once. The ledger's unique ref makes this idempotent. */
+export async function rewardReferrer(env: Env, paidKeyId: string) {
+  const row = await env.DB.prepare("SELECT referred_by FROM api_keys WHERE id = ?").bind(paidKeyId).first<{ referred_by: string | null }>();
+  if (!row?.referred_by) return false;
+  return addCredits(env, row.referred_by, REFERRAL_REWARD_MICRO, "referral", `referral:${paidKeyId}`);
+}

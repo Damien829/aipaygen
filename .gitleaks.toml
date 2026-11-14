@@ -1,0 +1,22 @@
+# Secret scan settings (CI: gitleaks). Default rules, plus an allowlist for
+# placeholders in docs, templates and tests. None of these are real keys.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Documentation placeholders, template variables and test fixtures"
+# Made-up key and token formats that test the search log's secret filter.
+paths = ['''^test/prices\.test\.ts$''']
+regexTarget = "match"
+regexes = [
+  # apk_YOUR_KEY, apk_your_key, apk_testkey, apk_THE_KEY, apk_xxx, apk_...
+  '''(?i)apk_[a-z_]*key''',
+  '''apk_(xxx|\.\.\.)''',
+  # YOUR_API_KEY, YOUR_KEY_HERE, YOUR_ADMIN_SECRET
+  '''(?i)your_[a-z_]*(key|secret|token)''',
+  # Shell and template variables: $BILLING_KEY, ${token}, {api_key}, <key>, apg_...
+  '''(?i)(bearer|key:)\s*(\$\{?[a-z_]+|\{[a-z_.]+|<[a-z_ ]+>|apg_\.\.\.)''',
+  # Fixtures in core/tests
+  '''apk_live_abcdefghijklmnop9999''',
+  '''apk_existing123''',
+]

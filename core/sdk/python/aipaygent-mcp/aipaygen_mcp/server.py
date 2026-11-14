@@ -1,0 +1,1189 @@
+"""
+AiPayGen MCP Server — thin client that proxies 65+ AI tools via api.aipaygen.com.
+
+Install:
+    pip install aipaygen-mcp
+
+Add to Claude Desktop (claude_desktop_config.json):
+    {
+      "mcpServers": {
+        "aipaygen": {
+          "command": "aipaygen-mcp",
+          "env": { "AIPAYGEN_API_KEY": "apk_xxx" }
+        }
+      }
+    }
+
+Add to Claude Code:
+    claude mcp add aipaygen -- aipaygen-mcp
+
+Set AIPAYGEN_API_KEY for unlimited access, or use the free tier (1 call/day).
+"""
+
+import os
+import sys
+import json
+import urllib.request
+import urllib.error
+import urllib.parse
+
+from mcp.server.fastmcp import FastMCP
+
+BASE_URL = os.environ.get("AIPAYGEN_BASE_URL", "https://api.aipaygen.com")
+API_KEY = os.environ.get("AIPAYGEN_API_KEY", "")
+
+mcp = FastMCP(
+    "AiPayGen",
+    instructions=(
+        "AiPayGen provides 65+ AI-powered tools: research, write, code, translate, "
+        "analyze, summarize, vision, RAG, web scraping, custom agent builder, agent memory, marketplace, "
+        "utility APIs (geocode, WHOIS, SSL, security, math, finance, NLP, transforms), and more. "
+        "Free tier: 1 call/day. Set AIPAYGEN_API_KEY for unlimited access. "
+        "IMPORTANT: If you get a payment_required error, call the generate_api_key tool NOW to get "
+        "a free API key with $0.10 trial credits (~16 calls). Then set AIPAYGEN_API_KEY."
+    ),
+)
+
+
+def _call(endpoint: str, payload: dict) -> dict:
+    """Call an AiPayGen API endpoint and return the JSON response."""
+    url = f"{BASE_URL}/{endpoint.lstrip('/')}"
+    data = json.dumps(payload).encode()
+    headers = {"Content-Type": "application/json", "User-Agent": "aipaygen-mcp/1.9"}
+    if API_KEY:
+        headers["Authorization"] = f"Bearer {API_KEY}"
+    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            return json.loads(resp.read().decode())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        try:
+            return json.loads(body)
+        except Exception:
+            return {"error": e.reason, "status": e.code, "detail": body[:500]}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _get(endpoint: str, params: dict = None) -> dict:
+    """GET an AiPayGen API endpoint."""
+    url = f"{BASE_URL}/{endpoint.lstrip('/')}"
+    if params:
+        qs = "&".join(f"{k}={urllib.parse.quote(str(v))}" for k, v in params.items() if v is not None)
+        if qs:
+            url += f"?{qs}"
+    headers = {"User-Agent": "aipaygen-mcp/1.9"}
+    if API_KEY:
+        headers["Authorization"] = f"Bearer {API_KEY}"
+    req = urllib.request.Request(url, headers=headers, method="GET")
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            return json.loads(resp.read().decode())
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()
+        try:
+            return json.loads(body)
+        except Exception:
+            return {"error": e.reason, "status": e.code, "detail": body[:500]}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── AI Tools ──────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def research(topic: str) -> dict:
+    """Research any topic. Returns structured summary, key points, and sources."""
+    return _call("research", {"question": topic})
+
+
+@mcp.tool()
+def summarize(text: str, length: str = "short") -> dict:
+    """Summarize text. Length: short, medium, or long."""
+    return _call("summarize", {"text": text, "length": length})
+
+
+@mcp.tool()
+def analyze(content: str, question: str = "Provide a structured analysis") -> dict:
+    """Analyze content with a specific question or lens."""
+    return _call("analyze", {"content": content, "question": question})
+
+
+@mcp.tool()
+def translate(text: str, language: str = "Spanish") -> dict:
+    """Translate text to any language."""
+    return _call("translate", {"text": text, "language": language})
+
+
+@mcp.tool()
+def write(spec: str, type: str = "article") -> dict:
+    """Generate written content. Types: article, blog, report, story, etc."""
+    return _call("write", {"spec": spec, "type": type})
+
+
+@mcp.tool()
+def code(description: str, language: str = "Python") -> dict:
+    """Generate code from a description."""
+    return _call("code", {"description": description, "language": language})
+
+
+@mcp.tool()
+def explain(concept: str, level: str = "beginner", analogy: bool = True) -> dict:
+    """Explain a concept at a given level with optional analogy."""
+    return _call("explain", {"concept": concept, "level": level, "analogy": analogy})
+
+
+@mcp.tool()
+def qa(context: str, question: str) -> dict:
+    """Answer a question given context text."""
+    return _call("qa", {"context": context, "question": question})
+
+
+@mcp.tool()
+def sentiment(text: str) -> dict:
+    """Analyze sentiment of text."""
+    return _call("sentiment", {"text": text})
+
+
+@mcp.tool()
+def keywords(text: str, max_keywords: int = 10) -> dict:
+    """Extract keywords from text."""
+    return _call("keywords", {"text": text, "max_keywords": max_keywords})
+
+
+@mcp.tool()
+def classify(text: str, categories: list[str]) -> dict:
+    """Classify text into provided categories."""
+    return _call("classify", {"text": text, "categories": categories})
+
+
+@mcp.tool()
+def compare(text_a: str, text_b: str, focus: str = "") -> dict:
+    """Compare two texts with optional focus area."""
+    return _call("compare", {"text_a": text_a, "text_b": text_b, "focus": focus})
+
+
+@mcp.tool()
+def transform(text: str, instruction: str) -> dict:
+    """Transform text according to an instruction."""
+    return _call("transform", {"text": text, "instruction": instruction})
+
+
+@mcp.tool()
+def extract(text: str, fields: list[str] = None, schema: str = "") -> dict:
+    """Extract structured data from text."""
+    return _call("extract", {"text": text, "fields": fields or [], "schema": schema})
+
+
+@mcp.tool()
+def chat(messages: list[dict], system: str = "") -> dict:
+    """Multi-turn chat with Claude. Messages: [{"role":"user","content":"..."}]."""
+    return _call("chat", {"messages": messages, "system": system})
+
+
+@mcp.tool()
+def plan(goal: str, context: str = "", steps: int = 7) -> dict:
+    """Generate a step-by-step plan to achieve a goal."""
+    return _call("plan", {"goal": goal, "context": context, "steps": steps})
+
+
+@mcp.tool()
+def decide(decision: str, options: list[str] = None, criteria: str = "") -> dict:
+    """Help make a decision by analyzing options against criteria."""
+    return _call("decide", {"decision": decision, "options": options or [], "criteria": criteria})
+
+
+@mcp.tool()
+def proofread(text: str, style: str = "professional") -> dict:
+    """Proofread and suggest corrections."""
+    return _call("proofread", {"text": text, "style": style})
+
+
+@mcp.tool()
+def outline(topic: str, depth: int = 2, sections: int = 6) -> dict:
+    """Generate a structured outline for a topic."""
+    return _call("outline", {"topic": topic, "depth": depth, "sections": sections})
+
+
+@mcp.tool()
+def email(purpose: str, tone: str = "professional", context: str = "", recipient: str = "", length: str = "medium") -> dict:
+    """Draft an email."""
+    return _call("email", {"purpose": purpose, "tone": tone, "context": context, "recipient": recipient, "length": length})
+
+
+@mcp.tool()
+def sql(description: str, dialect: str = "postgresql", schema: str = "") -> dict:
+    """Generate SQL from a natural language description."""
+    return _call("sql", {"description": description, "dialect": dialect, "schema": schema})
+
+
+@mcp.tool()
+def regex(description: str, language: str = "python", flags: str = "") -> dict:
+    """Generate regex from a description."""
+    return _call("regex", {"description": description, "language": language, "flags": flags})
+
+
+@mcp.tool()
+def mock(description: str, count: int = 5, format: str = "json") -> dict:
+    """Generate mock/sample data."""
+    return _call("mock", {"description": description, "count": count, "format": format})
+
+
+@mcp.tool()
+def score(content: str, criteria: list[str] = None, scale: int = 10) -> dict:
+    """Score content against criteria."""
+    return _call("score", {"content": content, "criteria": criteria, "scale": scale})
+
+
+@mcp.tool()
+def timeline(text: str, direction: str = "chronological") -> dict:
+    """Extract a timeline of events from text."""
+    return _call("timeline", {"text": text, "direction": direction})
+
+
+@mcp.tool()
+def action(text: str) -> dict:
+    """Extract action items from text."""
+    return _call("action", {"text": text})
+
+
+@mcp.tool()
+def pitch(product: str, audience: str = "general", length: str = "30s") -> dict:
+    """Generate a pitch for a product/idea."""
+    return _call("pitch", {"product": product, "audience": audience, "length": length})
+
+
+@mcp.tool()
+def debate(topic: str, perspective: str = "balanced") -> dict:
+    """Generate a structured debate on a topic."""
+    return _call("debate", {"topic": topic, "perspective": perspective})
+
+
+@mcp.tool()
+def headline(content: str, count: int = 5, style: str = "engaging") -> dict:
+    """Generate headlines for content."""
+    return _call("headline", {"content": content, "count": count, "style": style})
+
+
+@mcp.tool()
+def fact(text: str, count: int = 10) -> dict:
+    """Extract or generate facts from text."""
+    return _call("fact", {"text": text, "count": count})
+
+
+@mcp.tool()
+def rewrite(text: str, audience: str = "general audience", tone: str = "neutral") -> dict:
+    """Rewrite text for a target audience and tone."""
+    return _call("rewrite", {"text": text, "audience": audience, "tone": tone})
+
+
+@mcp.tool()
+def tag(text: str, taxonomy: list[str] = None, max_tags: int = 10) -> dict:
+    """Tag text with categories from a taxonomy."""
+    return _call("tag", {"text": text, "taxonomy": taxonomy, "max_tags": max_tags})
+
+
+@mcp.tool()
+def questions(content: str, type: str = "faq", count: int = 5) -> dict:
+    """Generate questions from content."""
+    return _call("questions", {"content": content, "type": type, "count": count})
+
+
+@mcp.tool()
+def social(topic: str, platforms: list[str] = None, tone: str = "engaging") -> dict:
+    """Generate social media posts for a topic."""
+    return _call("social", {"topic": topic, "platforms": platforms or ["twitter", "linkedin"], "tone": tone})
+
+
+# ── Advanced AI ───────────────────────────────────────────────────────────
+
+@mcp.tool()
+def vision(image_url: str, question: str = "Describe this image in detail") -> dict:
+    """Analyze an image by URL. Supports any image format."""
+    return _call("vision", {"image_url": image_url, "question": question})
+
+
+@mcp.tool()
+def rag(documents: str, query: str) -> dict:
+    """RAG: Answer a query using provided documents as context."""
+    return _call("rag", {"documents": documents, "query": query})
+
+
+@mcp.tool()
+def diagram(description: str, diagram_type: str = "flowchart") -> dict:
+    """Generate a Mermaid diagram from a description."""
+    return _call("diagram", {"description": description, "type": diagram_type})
+
+
+@mcp.tool()
+def json_schema(description: str, example: str = "") -> dict:
+    """Generate a JSON schema from a description."""
+    return _call("json_schema", {"description": description, "example": example})
+
+
+@mcp.tool()
+def test_cases(code_or_description: str, language: str = "python") -> dict:
+    """Generate test cases for code or a feature description."""
+    return _call("test_cases", {"code": code_or_description, "language": language})
+
+
+@mcp.tool()
+def workflow(goal: str, context: str = "") -> dict:
+    """Design a multi-step workflow to achieve a goal."""
+    return _call("workflow", {"goal": goal, "context": context})
+
+
+@mcp.tool()
+def review_code(code: str, language: str = "auto", focus: str = "quality") -> dict:
+    """Review code for quality, security, and performance issues."""
+    return _call("review-code", {"code": code, "language": language, "focus": focus})
+
+
+@mcp.tool()
+def generate_docs(code: str, style: str = "jsdoc") -> dict:
+    """Generate documentation for code."""
+    return _call("generate-docs", {"code": code, "style": style})
+
+
+@mcp.tool()
+def convert_code(code: str, from_lang: str = "auto", to_lang: str = "python") -> dict:
+    """Convert code from one language to another."""
+    return _call("convert-code", {"code": code, "from_lang": from_lang, "to_lang": to_lang})
+
+
+@mcp.tool()
+def generate_api_spec(description: str, format: str = "openapi") -> dict:
+    """Generate an OpenAPI specification from description."""
+    return _call("generate-api-spec", {"description": description, "format": format})
+
+
+@mcp.tool()
+def diff(text_a: str, text_b: str) -> dict:
+    """Analyze differences between two texts or code snippets."""
+    return _call("diff", {"text_a": text_a, "text_b": text_b})
+
+
+@mcp.tool()
+def parse_csv(csv_text: str, question: str = "") -> dict:
+    """Analyze CSV data and answer questions about it."""
+    return _call("parse-csv", {"csv_text": csv_text, "question": question})
+
+
+@mcp.tool()
+def cron_expression(description: str) -> dict:
+    """Generate or explain cron expressions from natural language."""
+    return _call("cron", {"description": description})
+
+
+@mcp.tool()
+def changelog(commits: str, version: str = "") -> dict:
+    """Generate a changelog from commit messages."""
+    return _call("changelog", {"commits": commits, "version": version})
+
+
+@mcp.tool()
+def name_generator(description: str, count: int = 10, style: str = "startup") -> dict:
+    """Generate names for products, companies, or features."""
+    return _call("name-generator", {"description": description, "count": count, "style": style})
+
+
+@mcp.tool()
+def privacy_check(text: str) -> dict:
+    """Scan text for PII, secrets, and sensitive data."""
+    return _call("privacy-check", {"text": text})
+
+
+@mcp.tool()
+def think(problem: str, context: str = "", max_steps: int = 5) -> dict:
+    """Autonomous chain-of-thought reasoning. Breaks down a problem, reasons step-by-step, calls tools if needed, returns structured solution with confidence score."""
+    return _call("think", {"problem": problem, "context": context, "max_steps": max_steps})
+
+
+@mcp.tool()
+def pipeline(steps: list[dict]) -> dict:
+    """Chain multiple AI operations. Each step: {"tool":"research","input":{"topic":"X"}}."""
+    return _call("pipeline", {"steps": steps})
+
+
+# ── Data & Web ────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def web_search(query: str, n_results: int = 10) -> dict:
+    """Search the web and return results."""
+    return _call("search", {"query": query, "n_results": n_results})
+
+
+@mcp.tool()
+def get_weather(city: str) -> dict:
+    """Get current weather for a city."""
+    return _get("data/weather", {"city": city})
+
+
+@mcp.tool()
+def get_crypto_prices(symbols: str = "bitcoin,ethereum") -> dict:
+    """Get current cryptocurrency prices."""
+    return _get("data/crypto", {"symbols": symbols})
+
+
+@mcp.tool()
+def get_exchange_rates(base_currency: str = "USD") -> dict:
+    """Get current exchange rates."""
+    return _get("data/exchange-rates", {"base": base_currency})
+
+
+@mcp.tool()
+def get_joke() -> dict:
+    """Get a random joke."""
+    return _get("data/joke")
+
+
+@mcp.tool()
+def get_quote() -> dict:
+    """Get an inspirational quote."""
+    return _get("data/quote")
+
+
+@mcp.tool()
+def get_holidays(country: str = "US", year: str = "2026") -> dict:
+    """Get public holidays for a country."""
+    return _get("data/holidays", {"country": country, "year": year})
+
+
+# ── Web Scraping ──────────────────────────────────────────────────────────
+
+@mcp.tool()
+def scrape_google_maps(query: str, max_results: int = 5) -> dict:
+    """Scrape Google Maps for businesses matching a query."""
+    return _call("scrape", {"actor": "google_maps", "query": query, "max_results": max_results})
+
+
+@mcp.tool()
+def scrape_tweets(query: str, max_results: int = 20) -> dict:
+    """Scrape tweets matching a query."""
+    return _call("scrape", {"actor": "twitter", "query": query, "max_results": max_results})
+
+
+@mcp.tool()
+def scrape_website(url: str, max_pages: int = 3) -> dict:
+    """Scrape a website's content."""
+    return _call("scrape", {"actor": "website", "url": url, "max_pages": max_pages})
+
+
+@mcp.tool()
+def scrape_youtube(query: str, max_results: int = 5) -> dict:
+    """Search and scrape YouTube videos."""
+    return _call("scrape", {"actor": "youtube", "query": query, "max_results": max_results})
+
+
+@mcp.tool()
+def scrape_instagram(username: str, max_posts: int = 5) -> dict:
+    """Scrape Instagram posts from a user."""
+    return _call("scrape", {"actor": "instagram", "username": username, "max_posts": max_posts})
+
+
+@mcp.tool()
+def scrape_tiktok(username: str, max_videos: int = 5) -> dict:
+    """Scrape TikTok videos from a user."""
+    return _call("scrape", {"actor": "tiktok", "username": username, "max_videos": max_videos})
+
+
+# ── Agent Memory ──────────────────────────────────────────────────────────
+
+@mcp.tool()
+def memory_store(agent_id: str, key: str, value: str, tags: str = "") -> dict:
+    """Store a value in persistent agent memory. Survives across sessions."""
+    return _call("memory/set", {"agent_id": agent_id, "key": key, "value": value, "tags": tags})
+
+
+@mcp.tool()
+def memory_recall(agent_id: str, key: str) -> dict:
+    """Recall a specific memory by key."""
+    return _call("memory/get", {"agent_id": agent_id, "key": key})
+
+
+@mcp.tool()
+def memory_find(agent_id: str, query: str) -> dict:
+    """Search agent memory by semantic query."""
+    return _call("memory/search", {"agent_id": agent_id, "query": query})
+
+
+@mcp.tool()
+def memory_keys(agent_id: str) -> dict:
+    """List all memory keys for an agent."""
+    return _call("memory/list", {"agent_id": agent_id})
+
+
+# ── Marketplace ───────────────────────────────────────────────────────────
+
+@mcp.tool()
+def list_marketplace(category: str = None) -> dict:
+    """Browse the agent services marketplace."""
+    params = {}
+    if category:
+        params["category"] = category
+    return _get("marketplace/services", params)
+
+
+@mcp.tool()
+def post_to_marketplace(agent_id: str, name: str, description: str,
+                        category: str = "general", price: float = 0.0,
+                        endpoint: str = "") -> dict:
+    """List your agent service on the marketplace for other agents to discover."""
+    return _call("marketplace/list", {
+        "agent_id": agent_id, "name": name, "description": description,
+        "category": category, "price": price, "endpoint": endpoint,
+    })
+
+
+# ── Utility ───────────────────────────────────────────────────────────────
+
+@mcp.tool()
+def generate_api_key(label: str = "") -> dict:
+    """Generate a free AiPayGen API key. Top up at https://api.aipaygen.com/buy-credits."""
+    return _call("keys/generate", {"label": label})
+
+
+@mcp.tool()
+def check_balance(key: str) -> dict:
+    """Check the balance of an AiPayGen API key."""
+    return _get("auth/status", {"key": key})
+
+
+@mcp.tool()
+def list_models() -> dict:
+    """List all available AI models and their pricing."""
+    return _get("models")
+
+
+# ── Skills System ─────────────────────────────────────────────────────────
+
+@mcp.tool()
+def ask(question: str) -> dict:
+    """Universal endpoint — ask anything. AiPayGen picks the best skill and model automatically."""
+    return _call("ask", {"question": question})
+
+
+@mcp.tool()
+def list_skills(category: str = "") -> dict:
+    """List all available skills. AiPayGen has 65+ built-in tools and absorbs new ones dynamically."""
+    params = {}
+    if category:
+        params["category"] = category
+    return _get("skills", params)
+
+
+@mcp.tool()
+def execute_skill(skill_name: str, input_text: str) -> dict:
+    """Execute a specific skill by name. Use list_skills to see available skills."""
+    return _call("skills/execute", {"skill": skill_name, "input": input_text})
+
+
+@mcp.tool()
+def create_skill(name: str, description: str, prompt_template: str, category: str = "general") -> dict:
+    """Create a new reusable skill. prompt_template must contain {{input}} placeholder."""
+    return _call("skills/create", {
+        "name": name, "description": description,
+        "prompt_template": prompt_template, "category": category,
+    })
+
+
+@mcp.tool()
+def absorb_skill(url: str = "", text: str = "") -> dict:
+    """Absorb a new skill from a URL or text description. AiPayGen reads it and creates a callable skill."""
+    return _call("skills/absorb", {"url": url, "text": text})
+
+
+@mcp.tool()
+def search_skills(query: str) -> dict:
+    """Search for skills by keyword."""
+    return _get("skills/search", {"q": query})
+
+
+# ── Utilities ────────────────────────────────────────────────────────────────
+
+
+@mcp.tool()
+def get_current_time() -> dict:
+    """Get current UTC time, Unix timestamp, date, and week number. Free."""
+    return _get("free/time", {})
+
+
+@mcp.tool()
+def generate_uuid(count: int = 1) -> dict:
+    """Generate one or more UUID4 values. Free."""
+    return _get("free/uuid", {"count": count})
+
+
+@mcp.tool()
+def check_api_key_balance(key: str) -> dict:
+    """Check balance and usage stats for a prepaid AiPayGen API key."""
+    return _get("auth/status", {"key": key})
+
+
+@mcp.tool()
+def run_python_code(code: str, timeout: int = 10) -> dict:
+    """Execute Python code in a sandboxed subprocess. Returns stdout, stderr, returncode."""
+    return _call("code/run", {"code": code, "timeout": timeout})
+
+
+@mcp.tool()
+def enrich_entity(entity: str, entity_type: str) -> dict:
+    """Aggregate data about an entity. entity_type: ip | crypto | country | company."""
+    return _call("enrich", {"entity": entity, "type": entity_type})
+
+
+@mcp.tool()
+def batch(operations: list[dict]) -> dict:
+    """Run up to 5 independent operations in one call. Each: {"endpoint": "research", "input": {"topic": "AI"}}."""
+    return _call("batch", {"operations": operations})
+
+
+@mcp.tool()
+def chain_operations(steps: list[dict]) -> dict:
+    """Chain multiple AI operations in sequence. Output of each step feeds the next. steps: [{action, params}]."""
+    return _call("chain", {"steps": steps})
+
+
+# ── API Catalog ──────────────────────────────────────────────────────────────
+
+
+@mcp.tool()
+def browse_catalog(category: str = "", min_score: float = 0.0, free_only: bool = False, page: int = 1) -> dict:
+    """Browse 500+ discovered APIs. Filter by category, quality score, or free_only."""
+    return _get("catalog", {"category": category, "min_score": min_score, "free_only": free_only, "page": page})
+
+
+@mcp.tool()
+def get_catalog_api(api_id: int) -> dict:
+    """Get full details for a specific API in the catalog by its numeric ID."""
+    return _get(f"catalog/{api_id}", {})
+
+
+@mcp.tool()
+def invoke_catalog_api(api_id: int, endpoint: str = "/", params: str = "{}") -> dict:
+    """Call a catalog API. Get api_id from browse_catalog first. params: JSON string of query params."""
+    return _call(f"catalog/{api_id}/invoke", {"endpoint": endpoint, "params": params})
+
+
+# ── Agent Network ────────────────────────────────────────────────────────────
+
+
+@mcp.tool()
+def register_my_agent(agent_id: str, name: str, description: str,
+                      capabilities: str, endpoint: str = "") -> dict:
+    """Register your agent in the AiPayGen agent registry."""
+    return _call("agents/register", {
+        "agent_id": agent_id, "name": name, "description": description,
+        "capabilities": capabilities, "endpoint": endpoint,
+    })
+
+
+@mcp.tool()
+def list_registered_agents() -> dict:
+    """Browse all agents registered in the AiPayGen registry."""
+    return _get("agents", {})
+
+
+@mcp.tool()
+def send_agent_message(from_agent: str, to_agent: str, subject: str, body: str) -> dict:
+    """Send a direct message from one agent to another via the agent network."""
+    return _call("agents/message", {
+        "from": from_agent, "to": to_agent, "subject": subject, "body": body,
+    })
+
+
+@mcp.tool()
+def read_agent_inbox(agent_id: str, unread_only: bool = False) -> dict:
+    """Read messages from an agent's inbox."""
+    return _get(f"agents/{agent_id}/inbox", {"unread_only": unread_only})
+
+
+@mcp.tool()
+def submit_agent_task(posted_by: str, title: str, description: str,
+                      skills_needed: list[str] = None, reward_usd: float = 0.0) -> dict:
+    """Post a task to the agent task board for other agents to claim."""
+    return _call("agents/tasks", {
+        "posted_by": posted_by, "title": title, "description": description,
+        "skills_needed": skills_needed or [], "reward_usd": reward_usd,
+    })
+
+
+@mcp.tool()
+def browse_agent_tasks(status: str = "open", skill: str = None) -> dict:
+    """Browse tasks on the agent task board, optionally filtered by skill or status."""
+    params = {"status": status}
+    if skill:
+        params["skill"] = skill
+    return _get("agents/tasks", params)
+
+
+# ── Knowledge Base ───────────────────────────────────────────────────────────
+
+
+@mcp.tool()
+def add_to_knowledge_base(topic: str, content: str, author_agent: str,
+                          tags: list[str] = None) -> dict:
+    """Add an entry to the shared agent knowledge base."""
+    return _call("knowledge", {
+        "topic": topic, "content": content, "author_agent": author_agent, "tags": tags or [],
+    })
+
+
+@mcp.tool()
+def search_knowledge_base(query: str, limit: int = 10) -> dict:
+    """Search the shared agent knowledge base by keyword."""
+    return _get("knowledge/search", {"q": query, "limit": limit})
+
+
+@mcp.tool()
+def get_trending_knowledge() -> dict:
+    """Get the most popular topics in the shared agent knowledge base."""
+    return _get("knowledge/trending", {})
+
+
+# ── Agent Builder Tools ──────────────────────────────────────────────────────
+
+@mcp.tool()
+def create_agent(name: str, system_prompt: str, tools: list[str] = None,
+                 model: str = "auto", memory_enabled: bool = True) -> dict:
+    """Create a custom AI agent with specific tools, personality, and model. Returns agent ID and config."""
+    return _call("agents/build", {
+        "name": name, "system_prompt": system_prompt,
+        "tools": tools or [], "model": model, "memory_enabled": memory_enabled,
+    })
+
+
+@mcp.tool()
+def list_my_agents() -> dict:
+    """List all custom AI agents you've created."""
+    return _get("agents/custom", {})
+
+
+@mcp.tool()
+def run_agent(agent_id: str, task: str, max_steps: int = 10) -> dict:
+    """Run a custom AI agent on a specific task. The agent uses its configured tools and personality."""
+    return _call(f"agents/custom/{agent_id}/run", {"task": task, "max_steps": max_steps})
+
+
+@mcp.tool()
+def schedule_agent(agent_id: str, schedule_type: str, config: dict) -> dict:
+    """Schedule a custom agent to run automatically. Types: 'loop' (interval), 'cron' (schedule), 'event' (trigger).
+    Loop config: {"minutes": 30} or {"hours": 1}
+    Cron config: {"hour": 9, "minute": 0, "day_of_week": "mon-fri"}
+    Event config: {"trigger": "message"}"""
+    return _call(f"agents/custom/{agent_id}/schedule", {"type": schedule_type, "config": config})
+
+
+@mcp.tool()
+def pause_agent(agent_id: str) -> dict:
+    """Pause a custom AI agent. Stops any active schedules."""
+    return _call(f"agents/custom/{agent_id}", {"status": "paused"})
+
+
+@mcp.tool()
+def get_agent_runs(agent_id: str, limit: int = 20) -> dict:
+    """Get execution history for a custom AI agent."""
+    return _get(f"agents/custom/{agent_id}/runs", {"limit": limit})
+
+
+@mcp.tool()
+def delete_agent(agent_id: str) -> dict:
+    """Delete (archive) a custom AI agent."""
+    return _call(f"agents/custom/{agent_id}/delete", {})
+
+
+# ── Utility: Location ────────────────────────────────────────────────────
+
+@mcp.tool()
+def geocode(q: str) -> dict:
+    """Convert an address or place name to geographic coordinates (lat/lon) via Nominatim."""
+    return _get("data/geocode", {"q": q})
+
+
+@mcp.tool()
+def geocode_reverse(lat: str, lon: str) -> dict:
+    """Convert geographic coordinates (lat/lon) to a human-readable address."""
+    return _get("data/geocode/reverse", {"lat": lat, "lon": lon})
+
+
+# ── Utility: Company & Domain ────────────────────────────────────────────
+
+@mcp.tool()
+def company_search(q: str) -> dict:
+    """Search for company information via Wikipedia enrichment. Returns description, domain guess, thumbnail."""
+    return _get("data/company", {"q": q})
+
+
+@mcp.tool()
+def whois_lookup(domain: str) -> dict:
+    """WHOIS/RDAP lookup for a domain. Returns registrar, status, nameservers, and events."""
+    return _get("data/whois", {"domain": domain})
+
+
+@mcp.tool()
+def domain_profile(domain: str) -> dict:
+    """Full domain profile combining DNS records (A, AAAA, MX, TXT, NS, CNAME) and WHOIS data."""
+    return _get("data/domain", {"domain": domain})
+
+
+# ── Utility: Text Analysis ───────────────────────────────────────────────
+
+@mcp.tool()
+def readability_score(text: str) -> dict:
+    """Compute Flesch-Kincaid readability score and grade level for text."""
+    return _call("data/readability", {"text": text})
+
+
+@mcp.tool()
+def language_detect(text: str) -> dict:
+    """Detect the language of text using Unicode script analysis. Returns language code and confidence."""
+    return _get("data/language", {"text": text})
+
+
+@mcp.tool()
+def profanity_filter(text: str) -> dict:
+    """Detect and filter profanity from text. Returns cleaned text and list of found words."""
+    return _call("data/profanity", {"text": text})
+
+
+# ── Utility: Web & URL ───────────────────────────────────────────────────
+
+@mcp.tool()
+def url_meta(url: str) -> dict:
+    """Extract meta tags (Open Graph, Twitter Cards) from a URL. Returns title, OG data, and Twitter card data."""
+    return _get("data/meta", {"url": url})
+
+
+@mcp.tool()
+def extract_links(url: str) -> dict:
+    """Extract all links from a web page. Returns deduplicated absolute URLs."""
+    return _get("data/links", {"url": url})
+
+
+@mcp.tool()
+def parse_sitemap(domain: str) -> dict:
+    """Parse sitemap.xml from a domain. Returns list of indexed URLs."""
+    return _get("data/sitemap", {"domain": domain})
+
+
+@mcp.tool()
+def parse_robots(domain: str) -> dict:
+    """Parse robots.txt from a domain. Returns crawl rules, sitemaps, and raw content."""
+    return _get("data/robots", {"domain": domain})
+
+
+@mcp.tool()
+def http_headers(url: str) -> dict:
+    """Get HTTP response headers from a URL. Returns status code and all headers."""
+    return _get("data/headers", {"url": url})
+
+
+@mcp.tool()
+def ssl_info(domain: str) -> dict:
+    """Get SSL certificate details for a domain: subject, issuer, expiry, serial number."""
+    return _get("data/ssl", {"domain": domain})
+
+
+# ── Utility: Compute & Dev ───────────────────────────────────────────────
+
+@mcp.tool()
+def jwt_decode(token: str) -> dict:
+    """Decode a JWT token without verification. Returns header, payload, and expiry status."""
+    return _call("data/jwt/decode", {"token": token})
+
+
+@mcp.tool()
+def markdown_to_html(text: str) -> dict:
+    """Convert Markdown text to HTML. Supports tables, fenced code blocks, and syntax highlighting."""
+    return _call("data/markdown", {"text": text})
+
+
+# ── Utility: Media & Visual ──────────────────────────────────────────────
+
+@mcp.tool()
+def placeholder_image(width: int = 300, height: int = 200, bg: str = "cccccc",
+                       fg: str = "666666", text: str = "") -> dict:
+    """Generate a placeholder image (SVG). Returns SVG markup."""
+    params = {"width": width, "height": height, "bg": bg, "fg": fg}
+    if text:
+        params["text"] = text
+    return _get("data/placeholder", params)
+
+
+@mcp.tool()
+def favicon_extract(domain: str) -> dict:
+    """Extract favicon URLs from a domain. Returns list of icon URLs found."""
+    return _get("data/favicon", {"domain": domain})
+
+
+@mcp.tool()
+def identicon_avatar(input_str: str, size: int = 80) -> dict:
+    """Generate a deterministic identicon avatar (SVG) from any string."""
+    return _get("data/avatar", {"input": input_str, "size": size})
+
+
+# ── Utility: Blockchain ──────────────────────────────────────────────────
+
+@mcp.tool()
+def ens_resolve(name: str) -> dict:
+    """Resolve ENS name to Ethereum address, or reverse-resolve address to ENS name."""
+    return _get("data/ens", {"name": name})
+
+
+# ── Utility: Enrichment ──────────────────────────────────────────────────
+
+@mcp.tool()
+def enrich_domain(domain: str) -> dict:
+    """Domain enrichment: detect tech stack, social profiles, DNS records, and meta tags."""
+    return _get("data/enrich/domain", {"domain": domain})
+
+
+@mcp.tool()
+def enrich_github(username: str) -> dict:
+    """GitHub user enrichment: profile info, bio, follower count, and top repositories."""
+    return _get("data/enrich/github", {"username": username})
+
+
+# ── Utility: Email ───────────────────────────────────────────────────────
+
+@mcp.tool()
+def email_send(to: str, subject: str, body: str) -> dict:
+    """Send an email via Resend (from noreply@aipaygen.com)."""
+    return _call("data/email/send", {"to": to, "subject": subject, "body": body})
+
+
+# ── Utility: Document Extraction ─────────────────────────────────────────
+
+@mcp.tool()
+def extract_text(html: str = "", url: str = "") -> dict:
+    """Extract clean text from HTML content or a URL. Strips scripts, styles, and tags."""
+    payload = {}
+    if url:
+        payload["url"] = url
+    elif html:
+        payload["html"] = html
+    return _call("data/extract/text", payload)
+
+
+# ── Utility: Finance ─────────────────────────────────────────────────────
+
+@mcp.tool()
+def stock_history(symbol: str) -> dict:
+    """Get 1-month historical OHLCV candles for a stock symbol via yfinance."""
+    return _get("data/finance/history", {"symbol": symbol})
+
+
+@mcp.tool()
+def forex_rates(base: str = "USD") -> dict:
+    """Get 150+ currency exchange rates for a base currency."""
+    return _get("data/finance/forex", {"base": base})
+
+
+@mcp.tool()
+def currency_convert(amount: float = 1.0, from_currency: str = "USD", to_currency: str = "EUR") -> dict:
+    """Convert an amount between currencies using live exchange rates."""
+    return _get("data/finance/convert", {"amount": amount, "from": from_currency, "to": to_currency})
+
+
+# ── Utility: NLP ─────────────────────────────────────────────────────────
+
+@mcp.tool()
+def entity_extraction(text: str) -> dict:
+    """Extract named entities from text: emails, URLs, IPs, crypto addresses, phone numbers, dates, hashtags, mentions."""
+    return _call("data/entities", {"text": text})
+
+
+@mcp.tool()
+def text_similarity(text1: str, text2: str) -> dict:
+    """Compute similarity between two texts using Jaccard and cosine metrics."""
+    return _call("data/similarity", {"text1": text1, "text2": text2})
+
+
+# ── Utility: Data Transforms ─────────────────────────────────────────────
+
+@mcp.tool()
+def json_to_csv(data: list) -> dict:
+    """Convert a JSON array of objects to CSV format."""
+    return _call("data/transform/json-to-csv", {"data": data})
+
+
+@mcp.tool()
+def xml_to_json(xml: str) -> dict:
+    """Convert XML to JSON. Handles nested elements and attributes."""
+    return _call("data/transform/xml", {"xml": xml})
+
+
+@mcp.tool()
+def yaml_to_json(yaml_str: str) -> dict:
+    """Convert YAML to JSON."""
+    return _call("data/transform/yaml", {"yaml": yaml_str})
+
+
+# ── Utility: Date & Time ─────────────────────────────────────────────────
+
+@mcp.tool()
+def datetime_between(from_date: str, to_date: str) -> dict:
+    """Calculate duration between two dates: days, weeks, months, years, hours, minutes, seconds."""
+    return _get("data/datetime/between", {"from": from_date, "to": to_date})
+
+
+@mcp.tool()
+def business_days(from_date: str, to_date: str) -> dict:
+    """Count business days (weekdays) between two dates."""
+    return _get("data/datetime/business-days", {"from": from_date, "to": to_date})
+
+
+@mcp.tool()
+def unix_timestamp(timestamp: str = "") -> dict:
+    """Convert Unix timestamp to human-readable date, or get current Unix timestamp."""
+    params = {"timestamp": timestamp} if timestamp else {}
+    return _get("data/datetime/unix", params)
+
+
+# ── Utility: Security ────────────────────────────────────────────────────
+
+@mcp.tool()
+def security_headers_audit(url: str) -> dict:
+    """Audit security headers of a URL (HSTS, CSP, X-Frame-Options, etc.). Returns A+ to F grade."""
+    return _get("data/security/headers", {"url": url})
+
+
+@mcp.tool()
+def techstack_detect(url: str) -> dict:
+    """Detect technology stack of a website: frameworks, CDNs, analytics, server software."""
+    return _get("data/security/techstack", {"url": url})
+
+
+@mcp.tool()
+def uptime_check(url: str) -> dict:
+    """Check if a URL is up or down. Returns status, response time, and content length."""
+    return _get("data/security/uptime", {"url": url})
+
+
+# ── Utility: Math & Statistics ───────────────────────────────────────────
+
+@mcp.tool()
+def math_evaluate(expression: str) -> dict:
+    """Safely compute a math expression using AST parsing. Supports +, -, *, /, ^, sqrt, sin, cos, log, etc."""
+    return _call("data/math/eval", {"expression": expression})
+
+
+@mcp.tool()
+def unit_convert(value: float, from_unit: str, to_unit: str) -> dict:
+    """Convert between units: length, weight, volume, speed, data size, and temperature."""
+    return _get("data/math/convert", {"value": value, "from": from_unit, "to": to_unit})
+
+
+@mcp.tool()
+def math_stats(numbers: list) -> dict:
+    """Statistical analysis: mean, median, mode, std dev, variance, quartiles, min/max, range."""
+    return _call("data/math/stats", {"numbers": numbers})
+
+
+# ── Utility: Crypto ──────────────────────────────────────────────────────
+
+@mcp.tool()
+def crypto_trending() -> dict:
+    """Get trending cryptocurrency tokens and DeFi data from CoinGecko."""
+    return _get("data/crypto/trending")
+
+
+# ── Crypto Deposits ─────────────────────────────────────────────────────
+
+@mcp.tool()
+def get_crypto_deposit_info() -> dict:
+    """Get crypto deposit information — wallet address, supported networks (Base/Solana), fees, limits."""
+    return _get("crypto/deposit")
+
+
+@mcp.tool()
+def create_deposit(network: str = "base", amount_usd: float = 10.0) -> dict:
+    """Create a crypto deposit intent — returns unique address, QR code, and instructions."""
+    return _call("crypto/deposit", {"network": network, "amount_usd": amount_usd})
+
+
+@mcp.tool()
+def claim_deposit(tx_hash: str = "", network: str = "base") -> dict:
+    """Claim a crypto deposit by providing the transaction hash for onchain verification."""
+    return _call("crypto/claim", {"tx_hash": tx_hash, "network": network})
+
+
+@mcp.tool()
+def get_deposit_history(api_key: str = "") -> dict:
+    """Get deposit history for an API key."""
+    return _get("crypto/deposits", {"api_key": api_key})
+
+
+@mcp.tool()
+def get_deposit_address_for_key(api_key: str = "", network: str = "base") -> dict:
+    """Get or create a unique deposit address for an API key on a specific network."""
+    return _get("crypto/address", {"api_key": api_key, "network": network})
+
+
+# ── x402 Discovery ───────────────────────────────────────────────────────
+
+@mcp.tool()
+def discover_endpoints(category: str = "", search: str = "") -> dict:
+    """Discover all available paid API endpoints with pricing, categories, and x402 payment info."""
+    params = {}
+    if category:
+        params["category"] = category
+    if search:
+        params["search"] = search
+    return _get("discover", params)
+
+
+@mcp.tool()
+def discover_pricing() -> dict:
+    """Get pricing overview — min/max/avg prices, histogram, and total endpoint count."""
+    return _get("discover/pricing")
+
+
+@mcp.tool()
+def estimate_revenue(price_per_call: float = 0.005, daily_calls: int = 1000) -> dict:
+    """Estimate how much revenue a seller could earn from their API on the platform."""
+    return _call("sell/estimate", {"price_per_call": price_per_call, "daily_calls": daily_calls})
+
+
+@mcp.tool()
+def x402_protocol_info() -> dict:
+    """Get x402 protocol discovery metadata — chains, wallet, facilitator, discovery endpoints."""
+    return _get(".well-known/x402")
+
+
+@mcp.tool()
+def compare_platforms() -> dict:
+    """Compare AiPayGen with competitors (APIToll, RelAI) for agent decision-making."""
+    return _get("discover/compare")
+
+
+def _run_self_test():
+    """Quick smoke test: hit a free endpoint to verify connectivity."""
+    print(f"AiPayGen MCP self-test")
+    print(f"  Base URL: {BASE_URL}")
+    print(f"  API Key:  {'set' if API_KEY else 'not set (free tier)'}")
+    try:
+        result = _get("data/weather", {"city": "London"})
+        if "error" in result:
+            print(f"  FAIL: {result['error']}")
+            sys.exit(1)
+        temp = result.get("temperature_c", "?")
+        print(f"  OK: London weather = {temp}°C")
+        print(f"  65+ tools ready. Run 'aipaygen-mcp' to start the server.")
+    except Exception as e:
+        print(f"  FAIL: {e}")
+        sys.exit(1)
+
+
+def main():
+    if "--test" in sys.argv:
+        _run_self_test()
+    elif "--http" in sys.argv:
+        mcp.run(transport="streamable-http")
+    else:
+        mcp.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    main()

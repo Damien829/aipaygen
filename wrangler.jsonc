@@ -24,10 +24,17 @@
     "FACILITATOR_URL": "https://facilitator.payai.network",
     // Wallet that receives USDC. Leave empty to disable x402 (API-key credits still work).
     // Owner's wallet (also v1's payout wallet).
-    "PAY_TO": "0x366D488a48de1B2773F3a21F1A6972715056Cb30",
+    "PAY_TO": "0xebA22e8CD05Cb72A2F913099D6cCA666DD6D35B0",
     // Free trial balance for new API keys, in micro-USD (50000 = $0.05).
-    "TRIAL_CREDITS_MICRO": "50000"
+    "TRIAL_CREDITS_MICRO": "50000",
+    // Facilitator networks. A network is served only when its fee-wallet key secret is set (docs/FACILITATOR.md).
+    "FACILITATOR_NETWORKS": "eip155:84532,eip155:8453",
+    // Owner alerts open issues here (needs the GITHUB_ALERT_TOKEN secret).
+    "GITHUB_ALERT_REPO": "Damien829/aipaygen"
   },
+
+  // Workers AI: runs marketplace skills on the free daily allowance (src/skills.ts).
+  "ai": { "binding": "AI" },
 
   "d1_databases": [
     {
@@ -37,6 +44,9 @@
       "migrations_dir": "migrations"
     }
   ],
+
+  // Every 10 minutes: refresh agent cards, health-check listings, pull MCP Registry and x402 Bazaar (src/refresh.ts).
+  "triggers": { "crons": ["*/10 * * * *"] },
 
   "ratelimits": [
     { "name": "TOOL_LIMITER", "namespace_id": "1001", "simple": { "limit": 60, "period": 60 } },

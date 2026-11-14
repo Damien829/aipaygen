@@ -1,0 +1,84 @@
+# AiPayGen core on one free server (Oracle Cloud Always Free), $0/month:
+#   web        gunicorn, the marketplace and API          (port 5001, inside only)
+#   scheduler  the ONE process that runs background jobs
+#   mcp        v1 MCP server                              (port 5002, inside only)
+#   litestream continuous backup of every database to Cloudflare R2
+#   tunnel     Cloudflare Tunnel: the only way in; no ports are opened on the server
+#
+#   docker compose --env-file .env up -d --build        (from this folder)
+# See README.md for first-time setup and restores.
+name: aipaygen
+
+x-core: &core
+  build: ../core
+  image: aipaygen-core:local
+  env_file: .env
+  environment:
+    AIPAYGEN_DATA_DIR: /data
+  volumes:
+    - data:/data
+  restart: unless-stopped
+  depends_on:
+    restore:
+      condition: service_completed_successfully
+
+services:
+  restore:
+    image: litestream/litestream:0.5.17
+    entrypoint: ["/bin/sh", "/restore.sh"]
+    env_file: .env
+    volumes:
+      - data:/data
+      - ./litestream.yml:/etc/litestream.yml:ro
+      - ./restore.sh:/restore.sh:ro
+    restart: "no"
+
+  web:
+    <<: *core
+    command: ["gunicorn", "-c", "gunicorn.conf.py", "app:app"]
+    environment:
+      AIPAYGEN_DATA_DIR: /data
+      WEB_BIND: 0.0.0.0:5001
+      FORWARDED_ALLOW_IPS: "*"   # only the tunnel container can reach this port
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:5001/health', timeout=5).status == 200 else 1)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  scheduler:
+    <<: *core
+    command: ["python", "run_scheduler.py"]
+
+  mcp:
+    <<: *core
+    command: ["python", "mcp_server.py", "--http"]
+    environment:
+      AIPAYGEN_DATA_DIR: /data
+      MCP_HOST: 0.0.0.0
+
+  litestream:
+    image: litestream/litestream:0.5.17
+    command: ["replicate", "-config", "/etc/litestream.yml"]
+    env_file: .env
+    volumes:
+      - data:/data
+      - ./litestream.yml:/etc/litestream.yml:ro
+    restart: unless-stopped
+    depends_on:
+      restore:
+        condition: service_completed_successfully
+
+  tunnel:
+    image: cloudflare/cloudflared:2026.10.7
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    restart: unless-stopped
+    depends_on:
+      - web
+      - mcp
+
+volumes:
+  data:

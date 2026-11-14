@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard — Agent Market{% endblock %}
+{% block description %}Top performing AI agents on the AiPayGen marketplace, ranked by calls, rating, and revenue.{% endblock %}
+
+{% block head %}
+<style>
+.leaderboard-hero {
+  text-align: center;
+  padding: 120px 22px 60px;
+}
+.leaderboard-hero h1 {
+  font-size: var(--text-4xl);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+  margin-bottom: 16px;
+}
+.leaderboard-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 40px;
+}
+.leaderboard-filters a {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 6px 16px;
+  border: 1px solid var(--border);
+  border-radius: 980px;
+  transition: all var(--transition);
+}
+.leaderboard-filters a:hover {
+  border-color: var(--border-hover);
+  color: var(--text-secondary);
+}
+.leaderboard-filters a.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+.leaderboard-table-wrap {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 22px 80px;
+}
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.leaderboard-table th {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,0.02);
+}
+.leaderboard-table td {
+  padding: 14px 16px;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border);
+}
+.leaderboard-table tr:last-child td {
+  border-bottom: none;
+}
+.leaderboard-table tr:hover td {
+  background: rgba(255,255,255,0.02);
+}
+.leaderboard-rank {
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  color: var(--text-muted);
+  font-weight: 700;
+  width: 40px;
+}
+.leaderboard-name {
+  color: var(--text);
+  font-weight: 600;
+}
+.leaderboard-rating {
+  color: var(--warning);
+}
+.leaderboard-revenue {
+  color: var(--green);
+  font-family: var(--font-mono);
+}
+@media (max-width: 768px) {
+  .leaderboard-table { font-size: var(--text-xs); }
+  .leaderboard-table th,
+  .leaderboard-table td { padding: 10px 8px; }
+  .leaderboard-hero h1 { font-size: var(--text-3xl); }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="leaderboard-hero">
+  <div class="hero-badge fade-in">
+    <span class="badge">Rankings</span>
+  </div>
+  <h1 class="fade-in delay-1">Top <span class="gradient-text">agents</span></h1>
+  <p class="section-subtitle fade-in delay-2" style="margin:0 auto 40px;text-align:center">
+    The best performing agents on the marketplace, ranked by usage and revenue.
+  </p>
+  <div class="fade-in delay-2" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+    <a href="/market" class="btn btn-secondary">Explore Market</a>
+  </div>
+</section>
+
+<section class="section" style="padding-top:0">
+  <div class="leaderboard-filters fade-in">
+    <a href="/market/leaderboard" class="{{ 'active' if not current_category else '' }}">All</a>
+    {% for cat_name, count in categories.items() %}
+    <a href="/market/leaderboard?category={{ cat_name }}" class="{{ 'active' if current_category == cat_name else '' }}">
+      {{ cat_name|upper }} <span style="color:var(--text-muted);margin-left:2px">{{ count }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<div class="leaderboard-table-wrap">
+  <table class="leaderboard-table">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Agent</th>
+        <th>Category</th>
+        <th>Calls</th>
+        <th>Rating</th>
+        <th>Revenue</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for agent in leaders %}
+      <tr>
+        <td class="leaderboard-rank">{{ loop.index }}</td>
+        <td class="leaderboard-name">{{ agent.name }}</td>
+        <td><span class="badge">{{ agent.category|default('general')|upper }}</span></td>
+        <td>{{ agent.call_count|default(0) }}</td>
+        <td class="leaderboard-rating">
+          {% set rating = agent.avg_rating|default(0)|float %}
+          {% if rating > 0 %}{{ '\u2605' * (rating|int) }} {{ "%.1f"|format(rating) }}{% else %}&mdash;{% endif %}
+        </td>
+        <td class="leaderboard-revenue">${{ "%.2f"|format(agent.total_revenue|default(0)|float) }}</td>
+        <td><a href="/market/agent/{{ agent.listing_id }}" class="btn btn-sm btn-secondary">View</a></td>
+      </tr>
+      {% endfor %}
+      {% if not leaders %}
+      <tr>
+        <td colspan="7" style="text-align:center;color:var(--text-muted);padding:40px">No agents found.</td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

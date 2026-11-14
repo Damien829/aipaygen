@@ -1,0 +1,556 @@
+{% extends "base.html" %}
+
+{% block title %}Try AiPayGen — Free AI Tools, No Sign-Up{% endblock %}
+{% block description %}Try any AI tool right now — no sign-up needed. Summarize, translate, analyze, write code, and more. Completely free to try.{% endblock %}
+{% block canonical %}/try{% endblock %}
+{% block og_title %}Try AiPayGen Free — AI Tools You Can Use Right Now{% endblock %}
+{% block og_desc %}Try any AI tool instantly — no account, no credit card. Summarize text, translate languages, generate code, and more.{% endblock %}
+{% block tw_title %}Try AiPayGen Free — AI Tools You Can Use Right Now{% endblock %}
+{% block tw_desc %}Try any AI tool instantly — no account, no credit card. Summarize text, translate languages, generate code, and more.{% endblock %}
+
+{% block head %}
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="AiPayGen">
+<link rel="apple-touch-icon" href="/static/icon.png">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"AiPayGen Free AI Tools","description":"Try 65+ AI tools for free — summarize, translate, analyze, write, code, and more. No sign-up needed.","url":"https://aipaygen.com/try","applicationCategory":"DeveloperApplication","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+</script>
+<style>
+  .wrap { max-width: 680px; margin: 0 auto; padding: 0 16px; }
+  .wrap h1 { font-size: var(--text-xl); margin-bottom: 4px; }
+  .sub { color: var(--text-secondary); font-size: var(--text-sm); margin-bottom: 24px; }
+  .sub a { color: var(--accent); }
+
+  .demo-card { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 28px; margin-bottom: 16px; }
+  .tool-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+  .tool-btn { background: var(--bg-secondary); border: 1px solid var(--border-hover); border-radius: 980px; padding: 8px 14px; color: var(--text-secondary); font-size: 0.82rem; cursor: pointer; transition: all 0.15s; }
+  .tool-btn:hover, .tool-btn.active { background: var(--accent-dim); border-color: var(--accent); color: #99ccff; }
+  .tool-desc { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 14px; min-height: 20px; }
+
+  .try-textarea { width: 100%; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; color: var(--text); font-size: 0.9rem; resize: vertical; min-height: 80px; outline: none; font-family: inherit; }
+  .try-textarea:focus { border-color: var(--accent); }
+  .try-textarea::placeholder { color: var(--text-muted); }
+
+  .run-btn { margin-top: 14px; background: var(--accent); color: #fff; border: none; border-radius: 980px; padding: 12px 28px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  .run-btn:hover { background: var(--accent-hover); }
+  .run-btn:disabled { background: var(--border-hover); color: var(--text-muted); cursor: wait; }
+
+  .result-box { margin-top: 16px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; font-size: 0.85rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; display: none; max-height: 400px; overflow-y: auto; }
+  .result-box.show { display: block; }
+
+  .cost-hint { margin-top: 10px; font-size: var(--text-xs); color: var(--text-muted); line-height: 1.5; display: none; }
+  .cost-hint.show { display: block; }
+  .cost-hint a { color: var(--accent); }
+
+  .curl-wrap { margin-top: 12px; display: none; }
+  .curl-wrap.show { display: block; }
+  .curl-box { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; font-size: var(--text-xs); font-family: 'SF Mono', 'Fira Code', monospace; color: #8b8; white-space: pre-wrap; word-break: break-all; max-height: 160px; overflow-y: auto; }
+  .copy-curl-btn { margin-top: 6px; background: var(--bg-secondary); border: 1px solid var(--border-hover); border-radius: 6px; padding: 6px 14px; color: var(--text-secondary); font-size: var(--text-xs); cursor: pointer; transition: all 0.15s; }
+  .copy-curl-btn:hover { background: var(--accent-dim); border-color: var(--accent); color: #99ccff; }
+
+  .try-cta { text-align: center; margin-top: 24px; }
+  .try-cta a { display: inline-block; background: var(--accent); color: #fff; text-decoration: none; padding: 12px 28px; border-radius: 980px; font-weight: 600; font-size: 0.95rem; }
+  .try-cta p { color: var(--text-muted); font-size: 0.78rem; margin-top: 8px; }
+
+  .free-note { text-align: center; color: var(--text-muted); font-size: var(--text-xs); margin-top: 12px; }
+
+  /* Progress bar */
+  .demo-progress { margin-bottom: 18px; }
+  .demo-progress-label { font-size: var(--text-xs); color: var(--text-secondary); margin-bottom: 6px; display: flex; justify-content: space-between; }
+  .demo-progress-bar { height: 6px; background: var(--bg-secondary); border-radius: 3px; overflow: hidden; }
+  .demo-progress-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease, background 0.4s ease; width: 0%; background: var(--accent); }
+
+  /* Nudge banner */
+  .nudge-banner { display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--accent-dim); border: 1px solid var(--accent); border-radius: var(--radius-lg); padding: 16px 24px; z-index: 90; max-width: 480px; width: calc(100% - 32px); box-shadow: 0 8px 32px rgba(41,151,255,0.3); }
+  .nudge-banner a { color: var(--accent); font-weight: 600; text-decoration: none; }
+  .nudge-banner a:hover { text-decoration: underline; }
+  .nudge-banner.warn { border-color: var(--border-hover); color: var(--text-secondary); }
+  .nudge-banner.urgent { background: #2a1a1a; border-color: #6e3d3d; color: #e0a0a0; }
+  .nudge-banner.show { display: block; }
+
+  /* Email capture */
+  .email-capture { display: none; background: var(--bg-elevated); border: 1px solid var(--accent); border-radius: var(--radius-lg); padding: 24px; margin-top: 16px; text-align: center; }
+  .email-capture input { flex: 1; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 14px; color: var(--text); font-size: 0.9rem; outline: none; }
+  .email-capture button { background: var(--accent); color: #fff; border: none; border-radius: 980px; padding: 10px 18px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+
+  /* Email gate */
+  .email-gate { display: none; background: #111118; border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 16px 18px; margin-top: 12px; }
+  .email-gate.show { display: block; }
+  .email-gate p { font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 10px; line-height: 1.4; }
+  .email-gate-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .email-gate-form input { flex: 1; min-width: 180px; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px; color: var(--text); font-size: 0.85rem; outline: none; }
+  .email-gate-form input:focus { border-color: var(--accent); }
+  .email-gate-form button { background: var(--accent); color: #fff; border: none; border-radius: 980px; padding: 9px 18px; font-size: 0.85rem; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background 0.15s; }
+  .email-gate-form button:hover { background: var(--accent-hover); }
+  .email-gate-form button:disabled { background: var(--border-hover); color: var(--text-muted); cursor: wait; }
+  .email-gate-skip { font-size: 0.72rem; color: var(--text-muted); margin-top: 8px; text-align: right; }
+  .email-gate-skip a { color: var(--text-muted); cursor: pointer; text-decoration: underline; }
+  .email-gate-skip a:hover { color: var(--text-secondary); }
+  .email-gate-error { font-size: var(--text-xs); color: #ef4444; margin-top: 6px; display: none; }
+
+  /* Upsell modal */
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); z-index: 100; align-items: center; justify-content: center; padding: 16px; }
+  .modal-overlay.show { display: flex; }
+  .modal { background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 32px; max-width: 480px; width: 100%; position: relative; }
+  .modal-close { position: absolute; top: 12px; right: 16px; background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer; }
+  .modal-close:hover { color: var(--text); }
+  .modal h2 { font-size: 1.3rem; margin-bottom: 6px; }
+  .modal .modal-sub { color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 20px; }
+  .modal-plans { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+  .modal-plan { display: flex; align-items: center; justify-content: space-between; background: var(--bg-secondary); border: 2px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; cursor: pointer; transition: all 0.15s; }
+  .modal-plan:hover, .modal-plan.selected { border-color: var(--accent); background: var(--accent-dim); }
+  .modal-plan .mp-left { display: flex; align-items: center; gap: 12px; }
+  .modal-plan .mp-amount { font-size: 1.3rem; font-weight: 800; color: var(--text); min-width: 40px; }
+  .modal-plan .mp-detail { font-size: 0.8rem; color: var(--text-secondary); }
+  .modal-plan .mp-tag { font-size: 0.7rem; background: var(--accent); color: #fff; padding: 2px 8px; border-radius: var(--radius-md); }
+  .modal-plan .mp-tag.gold { background: #f59e0b; }
+  .modal-plan .mp-tag.green { background: var(--accent); }
+  .modal-btn { width: 100%; background: var(--accent); color: #fff; border: none; border-radius: 980px; padding: 14px; font-size: var(--text-base); font-weight: 600; cursor: pointer; transition: background 0.15s; }
+  .modal-btn:hover { background: var(--accent-hover); }
+  .modal-btn:disabled { background: var(--border-hover); color: var(--text-muted); cursor: not-allowed; }
+  .modal-or { text-align: center; color: var(--text-muted); font-size: 0.78rem; margin-top: 12px; }
+  .modal-or a { color: var(--accent); }
+  @media (max-width: 500px) { .modal { padding: 24px 18px; } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap">
+  <h1>Try Any AI Tool Right Now</h1>
+  <p class="sub">No sign-up needed. Just pick a tool, type something, and see the magic. <a href="/discover">Browse all 65+ tools &rarr;</a></p>
+
+  <!-- Popular Tools -->
+  <div class="demo-card" id="popular-section" style="display:none;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <span style="font-size:var(--text-base)">Popular Tools</span>
+      <span style="font-size:0.7rem;color:var(--text-muted);background:var(--bg-secondary);padding:2px 8px;border-radius:10px" id="popular-label">Loading...</span>
+    </div>
+    <div class="tool-row" id="popular-row"></div>
+  </div>
+
+  <div class="nudge-banner warn" id="nudge-warn">Out of free tries — <a href="/get-key">Get a free API key with $0.10 trial credits (~16 calls)</a></div>
+  <div class="nudge-banner urgent" id="nudge-urgent">No tries left — <a href="/get-key">Get free API key</a> for ~16 more calls</div>
+  <div class="demo-card">
+    <div class="demo-progress" id="demo-progress">
+      <div class="demo-progress-label"><span id="demo-progress-text">0 / 10 demo tries used</span><span id="demo-progress-pct">0%</span></div>
+      <div class="demo-progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="10" aria-label="Demo usage"><div class="demo-progress-fill" id="demo-progress-fill"></div></div>
+    </div>
+    <div class="tool-row">
+      <div class="tool-btn active" data-tool="sentiment" data-placeholder="Type anything — a review, a tweet, a message..." data-desc="Find out if text sounds positive, negative, or neutral">Sentiment</div>
+      <div class="tool-btn" data-tool="summarize" data-placeholder="Paste an article, email, or any long text..." data-desc="Get the key points from any long text in seconds">Summarize</div>
+      <div class="tool-btn" data-tool="translate" data-placeholder="Type what you want translated (add the language on the next line)..." data-desc="Translate text into any language instantly">Translate</div>
+      <div class="tool-btn" data-tool="keywords" data-placeholder="Paste any text to find the main topics..." data-desc="Pull out the most important words and topics from any text">Keywords</div>
+      <div class="tool-btn" data-tool="explain" data-placeholder="What do you want explained? (e.g. quantum computing, NFTs)..." data-desc="Get a simple, easy-to-understand explanation of anything">Explain</div>
+      <div class="tool-btn" data-tool="code" data-placeholder="Describe what you need (e.g. a countdown timer)..." data-desc="Describe what you want and get working code back">Code</div>
+      <div class="tool-btn" data-tool="research" data-placeholder="What topic do you want to learn about?..." data-desc="Get a quick research summary with key facts on any topic">Research</div>
+      <div class="tool-btn" data-tool="analyze" data-placeholder="Paste something to analyze (add your question on the next line)..." data-desc="Get AI-powered insights and answers about any content">Analyze</div>
+      <div class="tool-btn" data-tool="compare" data-placeholder="Enter two things to compare, separated by a blank line..." data-desc="See a side-by-side breakdown of similarities and differences">Compare</div>
+      <div class="tool-btn" data-tool="extract" data-placeholder="Paste text, then describe what you need on the next line..." data-desc="Pull out names, dates, numbers, or any details from text">Extract</div>
+      <div class="tool-btn" data-tool="questions" data-placeholder="Enter a topic to generate questions about..." data-desc="Generate great questions for interviews, quizzes, or FAQs">Questions</div>
+      <div class="tool-btn" data-tool="decide" data-placeholder="What decision are you making? (list options on the next line)..." data-desc="Get a pros-and-cons breakdown to help you decide">Decide</div>
+      <div class="tool-btn" data-tool="classify" data-placeholder="Paste text, then list categories on the next line..." data-desc="Sort text into categories you choose">Classify</div>
+      <div class="tool-btn" data-tool="rewrite" data-placeholder="Paste text to rewrite (add the style you want on the next line)..." data-desc="Rewrite anything in a different tone or style">Rewrite</div>
+      <div class="tool-btn" data-tool="headline" data-placeholder="Paste your content to get headline ideas..." data-desc="Generate catchy headlines and titles for your content">Headline</div>
+      <div class="tool-btn" data-tool="geocode" data-placeholder="Enter any address or place name..." data-desc="Look up the location coordinates for any address">Geocode</div>
+      <div class="tool-btn" data-tool="math-eval" data-placeholder="Type a math problem (e.g. 2^10 + sqrt(144))..." data-desc="Solve math problems instantly">Math</div>
+      <div class="tool-btn" data-tool="unit-convert" data-placeholder="Enter: value, from, to (e.g. 100, km, mi)..." data-desc="Convert between units — miles to km, lbs to kg, and more">Convert Units</div>
+      <div class="tool-btn" data-tool="readability" data-placeholder="Paste text to check how easy it is to read..." data-desc="Check how easy your writing is to read, with a grade level">Readability</div>
+      <div class="tool-btn" data-tool="language-detect" data-placeholder="Type or paste text in any language..." data-desc="Detect what language a piece of text is written in">Language</div>
+      <div class="tool-btn" data-tool="whois" data-placeholder="Enter a website address (e.g. example.com)..." data-desc="Look up who owns a website domain">WHOIS</div>
+      <div class="tool-btn" data-tool="security-headers" data-placeholder="Enter a website URL (e.g. https://example.com)..." data-desc="Check how secure a website is with a simple grade">Security Check</div>
+      <div class="tool-btn" data-tool="currency-convert" data-placeholder="Enter: amount, from, to (e.g. 100, USD, EUR)..." data-desc="Convert between 150+ currencies using live exchange rates">Currency</div>
+      <div class="tool-btn" data-tool="stats" data-placeholder="Enter numbers separated by commas (e.g. 10, 20, 30, 40, 50)..." data-desc="Get the average, median, and other stats for your numbers">Stats</div>
+    </div>
+    <p class="tool-desc" id="desc">Find out if text sounds positive, negative, or neutral</p>
+    <label for="input" class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0">Tool input</label>
+    <textarea id="input" class="try-textarea" placeholder="Type anything — a review, a tweet, a message..." aria-label="Enter text for the selected tool">Artificial intelligence is transforming how we build software. From code generation to automated testing, AI tools are becoming essential for modern developers. The challenge isn't whether to adopt AI, but how to integrate it effectively without sacrificing code quality or security.</textarea>
+    <button class="run-btn" id="run" onclick="runTool()" aria-label="Try this tool">&#9654; Try It</button>
+    <div class="result-box" id="result" aria-live="polite" role="status"></div>
+    <div class="cost-hint" id="cost-hint">Want unlimited access? <a href="/get-key">Get a free API key</a> or <a href="/buy-credits">buy credits from $0.50</a></div>
+    <div class="curl-wrap" id="curl-wrap">
+      <div class="curl-box" id="curl-cmd"></div>
+      <button class="copy-curl-btn" id="copy-curl" onclick="copyCurl()">Copy as curl</button>
+    </div>
+  </div>
+
+  <!-- Inline conversion banner (shown after 5 demos) -->
+  <div id="inline-convert" style="display:none;background:var(--bg-elevated);border:1px solid var(--accent);border-radius:var(--radius-lg);padding:24px;margin-top:16px;margin-bottom:16px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <span style="font-size:0.95rem;font-weight:600;">You've used <span id="inline-convert-count">5</span> demos</span>
+      <span style="font-size:var(--text-xs);color:var(--text-secondary);">Want more? Open the app or grab a plan from $1</span>
+    </div>
+    <form id="inlineKeyForm" onsubmit="return inlineGenKey(event)" style="display:flex;gap:8px;flex-wrap:wrap;">
+      <input type="email" id="inlineEmail" required placeholder="you@example.com" aria-label="Email for API key"
+        style="flex:1;min-width:180px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px;color:var(--text);font-size:0.9rem;outline:none;">
+      <button type="submit" id="inlineKeyBtn" style="background:var(--accent);color:#fff;border:none;border-radius:980px;padding:10px 20px;font-weight:600;cursor:pointer;white-space:nowrap;">Get Free Key</button>
+    </form>
+    <div id="inlineKeyResult" style="display:none;margin-top:12px;background:var(--bg);border:1px solid var(--accent);border-radius:var(--radius-sm);padding:12px;">
+      <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:4px;">YOUR API KEY</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <code id="inlineKeyValue" style="flex:1;font-size:0.85rem;color:#66b3ff;word-break:break-all;"></code>
+        <button type="button" onclick="copyInlineKey()" id="inlineKeyCopy" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:0.72rem;cursor:pointer;">Copy</button>
+      </div>
+      <div style="font-size:0.7rem;color:var(--text-muted);margin-top:6px;">$0.10 free credits loaded. <a href="/get-key" style="color:var(--accent);">Open App</a> | <a href="/playground" style="color:var(--accent);">Playground</a></div>
+    </div>
+    <div id="inlineKeyError" style="display:none;margin-top:8px;font-size:var(--text-xs);color:#ef4444;"></div>
+  </div>
+
+  <div class="try-cta">
+    <a href="/get-key" style="font-size:1.1rem;padding:16px 36px;border-radius:980px;">Open the App</a>
+    <p>65+ AI tools &middot; No limits &middot; Start free</p>
+  </div>
+  <p class="free-note">This demo uses the same AI as the full app. Limited to 10 tries per session.</p>
+  <div style="text-align:center;padding:32px 16px;margin-top:24px;border-top:1px solid var(--border)">
+    <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:12px">Want more? Browse the <strong style="color:var(--accent)">Agent Marketplace</strong> — 72+ agents ready to deploy</p>
+    <a href="/market" class="btn btn-primary" style="padding:12px 28px">Browse Agent Market →</a>
+  </div>
+</div>
+
+<!-- Upsell modal -->
+<div class="modal-overlay" id="upsell-modal" role="dialog" aria-modal="true" aria-label="Upgrade plan">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
+    <h2>You've used your free tries</h2>
+    <p class="modal-sub">Unlock unlimited access to all 65+ AI tools — plans start at just $0.50.</p>
+    <div class="modal-plans">
+      <div class="modal-plan" data-amt="0.50" onclick="selectModalPlan(this)">
+        <div class="mp-left"><span class="mp-amount">$0.50</span><span class="mp-detail">~80 calls</span></div>
+        <span class="mp-tag gold">Try it</span>
+      </div>
+      <div class="modal-plan selected" data-amt="5" onclick="selectModalPlan(this)">
+        <div class="mp-left"><span class="mp-amount">$5</span><span class="mp-detail">~830 calls</span></div>
+        <span class="mp-tag">Popular</span>
+      </div>
+      <div class="modal-plan" data-amt="20" onclick="selectModalPlan(this)">
+        <div class="mp-left"><span class="mp-amount">$20</span><span class="mp-detail">~3,300 calls</span></div>
+      </div>
+      <div class="modal-plan" data-amt="50" onclick="selectModalPlan(this)">
+        <div class="mp-left"><span class="mp-amount">$50</span><span class="mp-detail">~8,300 calls</span></div>
+        <span class="mp-tag green">Best value</span>
+      </div>
+    </div>
+    <button class="modal-btn" id="modal-buy" onclick="modalCheckout()">Get Started</button>
+    <p class="modal-or">or <a href="/get-key">get a free API key with $0.10 trial credits (~16 calls)</a> &middot; <a href="/pricing">see all plans</a></p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentTool = 'sentiment';
+let demoCount = 0;
+const MAX_DEMOS = 10;
+let lastCurl = '';
+let emailGatePassed = true;
+let pendingRunAfterGate = false;
+
+// Fetch and render popular tools
+(function loadPopular() {
+  fetch('/popular')
+    .then(r => r.json())
+    .then(data => {
+      const tools = (data.popular || []).slice(0, 5);
+      if (!tools.length) return;
+      const section = document.getElementById('popular-section');
+      const row = document.getElementById('popular-row');
+      document.getElementById('popular-label').textContent = 'Based on usage';
+      tools.forEach(t => {
+        const btn = document.createElement('div');
+        btn.className = 'tool-btn';
+        btn.style.cssText = 'display:flex;flex-direction:column;align-items:flex-start;gap:2px';
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = t.tool;
+        const countSpan = document.createElement('span');
+        countSpan.style.cssText = 'font-size:0.68rem;color:var(--text-muted)';
+        countSpan.textContent = t.calls.toLocaleString() + ' calls';
+        btn.appendChild(nameSpan);
+        btn.appendChild(countSpan);
+        btn.addEventListener('click', function() {
+          const target = document.querySelector('.tool-btn[data-tool="' + CSS.escape(t.tool) + '"]');
+          if (target) { target.click(); target.scrollIntoView({behavior:'smooth', block:'center'}); }
+        });
+        row.appendChild(btn);
+      });
+      section.style.display = 'block';
+    })
+    .catch(() => {});
+})();
+
+document.querySelectorAll('.tool-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTool = btn.dataset.tool;
+    document.getElementById('input').placeholder = btn.dataset.placeholder;
+    document.getElementById('desc').textContent = btn.dataset.desc;
+  });
+});
+
+// Pre-select tool from ?tool= URL param
+(function() {
+  const p = new URLSearchParams(window.location.search).get('tool');
+  if (p) {
+    const btn = document.querySelector('.tool-btn[data-tool="' + CSS.escape(p) + '"]');
+    if (btn) { btn.click(); btn.scrollIntoView({behavior:'smooth', block:'center'}); }
+  }
+})();
+
+function escapeHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.textContent;
+}
+
+let modalAmount = 5;
+function selectModalPlan(el) {
+  document.querySelectorAll('.modal-plan').forEach(p => p.classList.remove('selected'));
+  el.classList.add('selected');
+  modalAmount = parseInt(el.dataset.amt);
+}
+function showModal() { document.getElementById('upsell-modal').classList.add('show'); }
+function closeModal() { document.getElementById('upsell-modal').classList.remove('show'); }
+async function modalCheckout() {
+  const btn = document.getElementById('modal-buy');
+  btn.disabled = true; btn.textContent = 'Redirecting to Stripe...';
+  try {
+    const res = await fetch('/stripe/create-checkout', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ amount: modalAmount })
+    });
+    const data = await res.json();
+    if (data.url) { window.location.href = data.url; }
+    else { btn.disabled = false; btn.textContent = 'Get Started'; alert(data.error || 'Something went wrong'); }
+  } catch(e) { btn.disabled = false; btn.textContent = 'Get Started'; alert('Network error — try again'); }
+}
+document.getElementById('upsell-modal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
+async function runTool() {
+  const input = document.getElementById('input').value.trim();
+  if (!input) return;
+  const box = document.getElementById('result');
+  if (demoCount >= MAX_DEMOS) {
+    showModal();
+    return;
+  }
+  const btn = document.getElementById('run');
+  btn.disabled = true; btn.textContent = 'Working...';
+  box.className = 'result-box'; box.textContent = '';
+  try {
+    const body = {};
+    if (currentTool === 'sentiment') body.text = input;
+    else if (currentTool === 'summarize') { body.text = input; body.format = 'bullets'; }
+    else if (currentTool === 'translate') {
+      const lines = input.split('\n');
+      body.text = lines[0]; body.language = lines[1] || 'Spanish';
+    }
+    else if (currentTool === 'keywords') body.text = input;
+    else if (currentTool === 'explain') { body.concept = input; body.level = 'beginner'; }
+    else if (currentTool === 'code') { body.description = input; body.language = 'python'; }
+    else if (currentTool === 'research') body.topic = input;
+    else if (currentTool === 'analyze') {
+      const lines = input.split('\n');
+      body.content = lines[0]; body.question = lines.slice(1).join(' ') || 'general analysis';
+    }
+    else if (currentTool === 'compare') {
+      const parts = input.split('\n\n');
+      body.text_a = parts[0] || ''; body.text_b = parts.slice(1).join('\n\n') || '';
+    }
+    else if (currentTool === 'extract') {
+      const lines = input.split('\n');
+      body.text = lines[0]; body.schema_desc = lines.slice(1).join(' ') || '';
+    }
+    else if (currentTool === 'questions') body.content = input;
+    else if (currentTool === 'decide') {
+      const lines = input.split('\n');
+      body.decision = lines[0]; if (lines[1]) body.options = lines[1].split(',').map(s => s.trim());
+    }
+    else if (currentTool === 'classify') {
+      const lines = input.split('\n');
+      body.text = lines[0]; body.categories = (lines[1] || 'positive,negative,neutral').split(',').map(s => s.trim());
+    }
+    else if (currentTool === 'rewrite') {
+      const lines = input.split('\n');
+      body.text = lines[0]; body.audience = lines[1] || 'general';
+    }
+    else if (currentTool === 'headline') body.content = input;
+    else if (currentTool === 'geocode') body.q = input;
+    else if (currentTool === 'math-eval') body.expression = input;
+    else if (currentTool === 'unit-convert') {
+      const p = input.split(',').map(s => s.trim());
+      body.value = parseFloat(p[0]) || 0; body.from_unit = p[1] || ''; body.to_unit = p[2] || '';
+    }
+    else if (currentTool === 'readability') body.text = input;
+    else if (currentTool === 'language-detect') body.text = input;
+    else if (currentTool === 'whois') body.domain = input;
+    else if (currentTool === 'security-headers') body.url = input;
+    else if (currentTool === 'currency-convert') {
+      const p = input.split(',').map(s => s.trim());
+      body.amount = parseFloat(p[0]) || 1; body.from = p[1] || 'USD'; body.to = p[2] || 'EUR';
+    }
+    else if (currentTool === 'stats') body.numbers = input.split(',').map(s => parseFloat(s.trim())).filter(n => !isNaN(n));
+
+    const res = await fetch('/try/' + currentTool, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (res.status === 429) { showModal(); btn.disabled = false; btn.textContent = '\u25B6 Try It'; return; }
+    demoCount++;
+    updateNudge();
+    const output = typeof data.result === 'string' ? data.result : JSON.stringify(data.result || data, null, 2);
+    const remaining = MAX_DEMOS - demoCount;
+    if (remaining === 0) {
+      box.textContent = output;
+      box.className = 'result-box show';
+      setTimeout(showModal, 1500);
+    } else {
+      box.textContent = output + '\n\n--- ' + remaining + ' free tr' + (remaining !== 1 ? 'ies' : 'y') + ' remaining';
+      box.className = 'result-box show';
+    }
+    document.getElementById('cost-hint').className = 'cost-hint show';
+    const curlBody = JSON.stringify(body);
+    lastCurl = "curl -X POST https://api.aipaygen.com/" + currentTool + " \\\n  -H 'Content-Type: application/json' \\\n  -H 'Authorization: Bearer YOUR_API_KEY' \\\n  -d '" + curlBody.replace(/'/g, "'\\''") + "'";
+    const curlEl = document.getElementById('curl-cmd');
+    curlEl.textContent = lastCurl;
+    document.getElementById('curl-wrap').className = 'curl-wrap show';
+    document.getElementById('copy-curl').textContent = 'Copy as curl';
+  } catch(e) {
+    box.textContent = 'Error: ' + e.message;
+    box.className = 'result-box show';
+    document.getElementById('cost-hint').className = 'cost-hint';
+    document.getElementById('curl-wrap').className = 'curl-wrap';
+  }
+  btn.disabled = false; btn.textContent = '\u25B6 Try It';
+}
+
+function updateNudge() {
+  const remaining = MAX_DEMOS - demoCount;
+  const warn = document.getElementById('nudge-warn');
+  const urgent = document.getElementById('nudge-urgent');
+  const pFill = document.getElementById('demo-progress-fill');
+  const pText = document.getElementById('demo-progress-text');
+  const pPct = document.getElementById('demo-progress-pct');
+  if (pFill) { pFill.style.width = (demoCount / MAX_DEMOS * 100) + '%'; if (remaining <= 1) pFill.style.background = '#f59e0b'; if (remaining === 0) pFill.style.background = '#ef4444'; }
+  if (pText) pText.textContent = demoCount + ' / ' + MAX_DEMOS + ' free tries used';
+  if (pPct) pPct.textContent = Math.round(demoCount / MAX_DEMOS * 100) + '%';
+
+  if (demoCount >= 2) {
+    const ic = document.getElementById('inline-convert');
+    if (ic) { ic.style.display = 'block'; document.getElementById('inline-convert-count').textContent = demoCount; }
+  }
+
+  if (remaining <= 2) {
+    warn.classList.remove('show');
+    urgent.textContent = remaining + ' free tr' + (remaining !== 1 ? 'ies' : 'y') + ' remaining \u2014 ';
+    const a = document.createElement('a');
+    a.href = '/get-key'; a.textContent = 'Open the app for more';
+    urgent.appendChild(a);
+    urgent.classList.add('show');
+  } else if (remaining <= 5) {
+    urgent.classList.remove('show');
+    warn.textContent = remaining + ' free tries remaining \u2014 ';
+    const a = document.createElement('a');
+    a.href = '/get-key'; a.textContent = 'Open the app for unlimited access';
+    warn.appendChild(a);
+    warn.classList.add('show');
+  } else {
+    warn.classList.remove('show');
+    urgent.classList.remove('show');
+  }
+}
+
+function inlineGenKey(e) {
+  e.preventDefault();
+  const email = document.getElementById('inlineEmail').value.trim();
+  if (!email) return false;
+  const btn = document.getElementById('inlineKeyBtn');
+  const errEl = document.getElementById('inlineKeyError');
+  btn.disabled = true; btn.textContent = 'Generating...';
+  errEl.style.display = 'none';
+  fetch('/auth/generate-key', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({email: email, source: 'try_inline'})
+  }).then(r => r.json()).then(d => {
+    if (d.key) {
+      document.getElementById('inlineKeyValue').textContent = d.key;
+      document.getElementById('inlineKeyResult').style.display = 'block';
+      document.getElementById('inlineKeyForm').style.display = 'none';
+    } else {
+      errEl.textContent = d.error || d.message || 'Something went wrong';
+      errEl.style.display = 'block';
+      btn.disabled = false; btn.textContent = 'Get Free Key';
+    }
+  }).catch(() => {
+    errEl.textContent = 'Network error. Try again.';
+    errEl.style.display = 'block';
+    btn.disabled = false; btn.textContent = 'Get Free Key';
+  });
+  return false;
+}
+function copyInlineKey() {
+  const key = document.getElementById('inlineKeyValue').textContent;
+  navigator.clipboard.writeText(key).then(() => {
+    document.getElementById('inlineKeyCopy').textContent = 'Copied!';
+    setTimeout(() => { document.getElementById('inlineKeyCopy').textContent = 'Copy'; }, 2000);
+  });
+}
+
+async function submitEmailGate() {
+  const emailInput = document.getElementById('gate-email');
+  const email = emailInput.value.trim();
+  const errEl = document.getElementById('gate-error');
+  const btn = document.getElementById('gate-submit');
+  errEl.style.display = 'none';
+  if (!email || !emailInput.checkValidity()) {
+    errEl.textContent = 'Please enter a valid email.';
+    errEl.style.display = 'block';
+    return;
+  }
+  btn.disabled = true; btn.textContent = 'Working...';
+  try {
+    const res = await fetch('/auth/generate-key', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email: email, source: 'try_email_gate', label: 'try-page'})
+    });
+    const d = await res.json();
+    if (d.key) {
+      localStorage.setItem('aipaygen_key', d.key);
+      localStorage.setItem('aipaygen_email', email);
+    } else {
+      localStorage.setItem('aipaygen_email', email);
+    }
+  } catch(e) {
+    localStorage.setItem('aipaygen_email', email);
+  }
+  emailGatePassed = true;
+  document.getElementById('email-gate').classList.remove('show');
+  btn.disabled = false; btn.textContent = '\u25B6 Try It';
+  if (pendingRunAfterGate) { pendingRunAfterGate = false; runTool(); }
+}
+
+function skipEmailGate() {
+  localStorage.setItem('email_gate_skipped', '1');
+  emailGatePassed = true;
+  document.getElementById('email-gate').classList.remove('show');
+  try { fetch('/auth/generate-key', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({email: 'skip@funnel', source: 'try_email_gate_skip', label: 'try-page'}) }).catch(() => {}); } catch(e) {}
+  if (pendingRunAfterGate) { pendingRunAfterGate = false; runTool(); }
+}
+
+function copyCurl() {
+  navigator.clipboard.writeText(lastCurl).then(() => {
+    document.getElementById('copy-curl').textContent = 'Copied!';
+    setTimeout(() => { document.getElementById('copy-curl').textContent = 'Copy as curl'; }, 2000);
+  });
+}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
+</script>
+{% endblock %}

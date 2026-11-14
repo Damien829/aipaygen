@@ -1,0 +1,1075 @@
+{
+  "_comment": "Prices for core (v1) routes, charged by the edge Worker. Source of truth; edit here, not in code.",
+  "currency": "USD",
+  "unit": "micro-USD (1000000 = $1.00)",
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/data/arxiv",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/avatar",
+      "price_micro": 1000,
+      "description": "Deterministic identicon avatar"
+    },
+    {
+      "method": "GET",
+      "path": "/data/color",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/company",
+      "price_micro": 5000,
+      "description": "Company/corporate entity search"
+    },
+    {
+      "method": "GET",
+      "path": "/data/country",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/crypto",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/crypto/trending",
+      "price_micro": 1000,
+      "description": "Trending crypto tokens"
+    },
+    {
+      "method": "GET",
+      "path": "/data/datetime/between",
+      "price_micro": 1000,
+      "description": "Duration between dates"
+    },
+    {
+      "method": "GET",
+      "path": "/data/datetime/business-days",
+      "price_micro": 1000,
+      "description": "Business days calculator"
+    },
+    {
+      "method": "GET",
+      "path": "/data/datetime/unix",
+      "price_micro": 1000,
+      "description": "Unix timestamp converter"
+    },
+    {
+      "method": "GET",
+      "path": "/data/dns",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/domain",
+      "price_micro": 3000,
+      "description": "Full domain profile (DNS + WHOIS)"
+    },
+    {
+      "method": "GET",
+      "path": "/data/enrich/domain",
+      "price_micro": 20000,
+      "description": "Domain enrichment (tech stack, socials, DNS)"
+    },
+    {
+      "method": "GET",
+      "path": "/data/enrich/github",
+      "price_micro": 10000,
+      "description": "GitHub user profile + top repos"
+    },
+    {
+      "method": "GET",
+      "path": "/data/ens",
+      "price_micro": 2000,
+      "description": "ENS name/address resolution"
+    },
+    {
+      "method": "GET",
+      "path": "/data/exchange-rates",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/favicon",
+      "price_micro": 1000,
+      "description": "Favicon extraction"
+    },
+    {
+      "method": "GET",
+      "path": "/data/finance/convert",
+      "price_micro": 1000,
+      "description": "Currency conversion"
+    },
+    {
+      "method": "GET",
+      "path": "/data/finance/forex",
+      "price_micro": 1000,
+      "description": "150+ currency exchange rates"
+    },
+    {
+      "method": "GET",
+      "path": "/data/finance/history",
+      "price_micro": 5000,
+      "description": "Historical OHLCV stock candles"
+    },
+    {
+      "method": "GET",
+      "path": "/data/geocode",
+      "price_micro": 1000,
+      "description": "Address to coordinates (geocode)"
+    },
+    {
+      "method": "GET",
+      "path": "/data/geocode/reverse",
+      "price_micro": 1000,
+      "description": "Coordinates to address (reverse geocode)"
+    },
+    {
+      "method": "GET",
+      "path": "/data/github/trending",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/headers",
+      "price_micro": 1000,
+      "description": "HTTP response headers"
+    },
+    {
+      "method": "GET",
+      "path": "/data/holidays",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/ip",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/joke",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/language",
+      "price_micro": 1000,
+      "description": "Language detection"
+    },
+    {
+      "method": "GET",
+      "path": "/data/links",
+      "price_micro": 2000,
+      "description": "Extract all links from URL"
+    },
+    {
+      "method": "GET",
+      "path": "/data/math/convert",
+      "price_micro": 1000,
+      "description": "Unit converter"
+    },
+    {
+      "method": "GET",
+      "path": "/data/meta",
+      "price_micro": 2000,
+      "description": "URL meta tags (OG, Twitter Cards)"
+    },
+    {
+      "method": "GET",
+      "path": "/data/news",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/placeholder",
+      "price_micro": 1000,
+      "description": "Placeholder image (SVG)"
+    },
+    {
+      "method": "GET",
+      "path": "/data/qr",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/quote",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/random/name",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/reddit",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/robots",
+      "price_micro": 1000,
+      "description": "Parse robots.txt"
+    },
+    {
+      "method": "GET",
+      "path": "/data/screenshot",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/security/headers",
+      "price_micro": 3000,
+      "description": "Security headers audit (A+ to F)"
+    },
+    {
+      "method": "GET",
+      "path": "/data/security/techstack",
+      "price_micro": 5000,
+      "description": "Technology stack detection"
+    },
+    {
+      "method": "GET",
+      "path": "/data/security/uptime",
+      "price_micro": 1000,
+      "description": "URL uptime check"
+    },
+    {
+      "method": "GET",
+      "path": "/data/sitemap",
+      "price_micro": 2000,
+      "description": "Parse sitemap.xml"
+    },
+    {
+      "method": "GET",
+      "path": "/data/ssl",
+      "price_micro": 2000,
+      "description": "SSL certificate info"
+    },
+    {
+      "method": "GET",
+      "path": "/data/stocks",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/timezone",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/validate/email",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/validate/url",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/weather",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/whois",
+      "price_micro": 2000,
+      "description": "Domain WHOIS/RDAP lookup"
+    },
+    {
+      "method": "GET",
+      "path": "/data/wikipedia",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/data/youtube/transcript",
+      "price_micro": 1000,
+      "description": "Data utility endpoint"
+    },
+    {
+      "method": "GET",
+      "path": "/web/search",
+      "price_micro": 20000,
+      "description": "DuckDuckGo web search \u2014 instant answers + related results"
+    },
+    {
+      "method": "POST",
+      "path": "/action",
+      "price_micro": 20000,
+      "description": "Execute an AI action/command"
+    },
+    {
+      "method": "POST",
+      "path": "/agent",
+      "price_micro": 100000,
+      "description": "Run autonomous ReAct agent"
+    },
+    {
+      "method": "POST",
+      "path": "/agent/stream",
+      "price_micro": 100000,
+      "description": "Streaming autonomous agent \u2014 SSE events as agent reasons and acts"
+    },
+    {
+      "method": "POST",
+      "path": "/agents/build",
+      "price_micro": 50000,
+      "description": "Build a custom agent from spec"
+    },
+    {
+      "method": "POST",
+      "path": "/analyze",
+      "price_micro": 10000,
+      "description": "Claude analyzes data or text and returns structured insights"
+    },
+    {
+      "method": "POST",
+      "path": "/api-call",
+      "price_micro": 10000,
+      "description": "Call an API from the catalog"
+    },
+    {
+      "method": "POST",
+      "path": "/ask",
+      "price_micro": 20000,
+      "description": "Ask a question \u2014 AI routes to the best tool"
+    },
+    {
+      "method": "POST",
+      "path": "/batch",
+      "price_micro": 30000,
+      "description": "Run up to 5 AI operations in one payment \u2014 research, write, analyze, translate, social, code"
+    },
+    {
+      "method": "POST",
+      "path": "/chain",
+      "price_micro": 50000,
+      "description": "Chain multiple AI operations"
+    },
+    {
+      "method": "POST",
+      "path": "/chain-operations",
+      "price_micro": 50000,
+      "description": "Chain multiple AI operations together"
+    },
+    {
+      "method": "POST",
+      "path": "/changelog",
+      "price_micro": 10000,
+      "description": "Generate changelog entries from descriptions"
+    },
+    {
+      "method": "POST",
+      "path": "/chat",
+      "price_micro": 20000,
+      "description": "Stateless multi-turn chat \u2014 send message history, get Claude's reply"
+    },
+    {
+      "method": "POST",
+      "path": "/classify",
+      "price_micro": 10000,
+      "description": "Classify text into your defined categories with confidence scores"
+    },
+    {
+      "method": "POST",
+      "path": "/code",
+      "price_micro": 20000,
+      "description": "Claude generates code from a description in any language"
+    },
+    {
+      "method": "POST",
+      "path": "/code/run",
+      "price_micro": 20000,
+      "description": "Execute code in sandboxed environment"
+    },
+    {
+      "method": "POST",
+      "path": "/compare",
+      "price_micro": 10000,
+      "description": "Compare two texts \u2014 similarities, differences, recommendation"
+    },
+    {
+      "method": "POST",
+      "path": "/convert-code",
+      "price_micro": 20000,
+      "description": "Convert code between programming languages"
+    },
+    {
+      "method": "POST",
+      "path": "/credits/buy",
+      "price_micro": 5000000,
+      "description": "Buy $5 credit pack \u2014 returns prepaid API key for metered token-based billing"
+    },
+    {
+      "method": "POST",
+      "path": "/cron",
+      "price_micro": 10000,
+      "description": "Generate or explain cron expressions"
+    },
+    {
+      "method": "POST",
+      "path": "/data/email/send",
+      "price_micro": 3000,
+      "description": "Send email via Resend"
+    },
+    {
+      "method": "POST",
+      "path": "/data/entities",
+      "price_micro": 2000,
+      "description": "Named entity extraction"
+    },
+    {
+      "method": "POST",
+      "path": "/data/extract/pdf",
+      "price_micro": 10000,
+      "description": "PDF to text extraction"
+    },
+    {
+      "method": "POST",
+      "path": "/data/extract/text",
+      "price_micro": 2000,
+      "description": "HTML to clean text"
+    },
+    {
+      "method": "POST",
+      "path": "/data/jwt/decode",
+      "price_micro": 1000,
+      "description": "JWT token decode"
+    },
+    {
+      "method": "POST",
+      "path": "/data/markdown",
+      "price_micro": 2000,
+      "description": "Markdown to HTML"
+    },
+    {
+      "method": "POST",
+      "path": "/data/math/eval",
+      "price_micro": 1000,
+      "description": "Math expression evaluator"
+    },
+    {
+      "method": "POST",
+      "path": "/data/math/stats",
+      "price_micro": 2000,
+      "description": "Statistical analysis"
+    },
+    {
+      "method": "POST",
+      "path": "/data/profanity",
+      "price_micro": 1000,
+      "description": "Profanity filter/detection"
+    },
+    {
+      "method": "POST",
+      "path": "/data/readability",
+      "price_micro": 1000,
+      "description": "Readability score (Flesch-Kincaid)"
+    },
+    {
+      "method": "POST",
+      "path": "/data/similarity",
+      "price_micro": 2000,
+      "description": "Text similarity scoring"
+    },
+    {
+      "method": "POST",
+      "path": "/data/transform/json-to-csv",
+      "price_micro": 2000,
+      "description": "JSON to CSV conversion"
+    },
+    {
+      "method": "POST",
+      "path": "/data/transform/xml",
+      "price_micro": 2000,
+      "description": "XML to JSON conversion"
+    },
+    {
+      "method": "POST",
+      "path": "/data/transform/yaml",
+      "price_micro": 2000,
+      "description": "YAML to JSON conversion"
+    },
+    {
+      "method": "POST",
+      "path": "/debate",
+      "price_micro": 20000,
+      "description": "AI debate on a topic with multiple perspectives"
+    },
+    {
+      "method": "POST",
+      "path": "/decide",
+      "price_micro": 20000,
+      "description": "Decision framework \u2014 pros/cons, risks, and a recommendation"
+    },
+    {
+      "method": "POST",
+      "path": "/diagram",
+      "price_micro": 20000,
+      "description": "Generate diagrams from descriptions"
+    },
+    {
+      "method": "POST",
+      "path": "/diff",
+      "price_micro": 10000,
+      "description": "Compare and diff two text inputs"
+    },
+    {
+      "method": "POST",
+      "path": "/email",
+      "price_micro": 20000,
+      "description": "Compose professional emails \u2014 subject, body, tone, length"
+    },
+    {
+      "method": "POST",
+      "path": "/enrich",
+      "price_micro": 20000,
+      "description": "Enrich entity data with AI"
+    },
+    {
+      "method": "POST",
+      "path": "/enrich-entity",
+      "price_micro": 30000,
+      "description": "Enrich entity data \u2014 company, person, domain"
+    },
+    {
+      "method": "POST",
+      "path": "/explain",
+      "price_micro": 10000,
+      "description": "Explain any concept at beginner, intermediate, or expert level"
+    },
+    {
+      "method": "POST",
+      "path": "/extract",
+      "price_micro": 10000,
+      "description": "Extract structured data from any text using a schema you define"
+    },
+    {
+      "method": "POST",
+      "path": "/fact",
+      "price_micro": 10000,
+      "description": "Fact-check a claim"
+    },
+    {
+      "method": "POST",
+      "path": "/generate-api-spec",
+      "price_micro": 20000,
+      "description": "Generate OpenAPI spec from description"
+    },
+    {
+      "method": "POST",
+      "path": "/generate-docs",
+      "price_micro": 20000,
+      "description": "Generate documentation from code"
+    },
+    {
+      "method": "POST",
+      "path": "/generate-uuid",
+      "price_micro": 1000,
+      "description": "Generate one or more UUIDs"
+    },
+    {
+      "method": "POST",
+      "path": "/get-crypto-prices",
+      "price_micro": 1000,
+      "description": "Real-time crypto prices from CoinGecko"
+    },
+    {
+      "method": "POST",
+      "path": "/get-current-time",
+      "price_micro": 1000,
+      "description": "Current UTC time and timestamps"
+    },
+    {
+      "method": "POST",
+      "path": "/get-exchange-rates",
+      "price_micro": 1000,
+      "description": "Live exchange rates for 160+ currencies"
+    },
+    {
+      "method": "POST",
+      "path": "/get-holidays",
+      "price_micro": 1000,
+      "description": "Public holidays by country and year"
+    },
+    {
+      "method": "POST",
+      "path": "/get-joke",
+      "price_micro": 1000,
+      "description": "Random programming joke"
+    },
+    {
+      "method": "POST",
+      "path": "/get-quote",
+      "price_micro": 1000,
+      "description": "Inspirational quote"
+    },
+    {
+      "method": "POST",
+      "path": "/get-weather",
+      "price_micro": 1000,
+      "description": "Get current weather for any city"
+    },
+    {
+      "method": "POST",
+      "path": "/headline",
+      "price_micro": 10000,
+      "description": "Generate headlines or titles"
+    },
+    {
+      "method": "POST",
+      "path": "/json-schema",
+      "price_micro": 10000,
+      "description": "Generate JSON schema from description or sample"
+    },
+    {
+      "method": "POST",
+      "path": "/keywords",
+      "price_micro": 10000,
+      "description": "Extract keywords, topics, tags, and entities from any text"
+    },
+    {
+      "method": "POST",
+      "path": "/knowledge/add",
+      "price_micro": 10000,
+      "description": "Add an entry to the shared agent knowledge base"
+    },
+    {
+      "method": "POST",
+      "path": "/marketplace/call",
+      "price_micro": 20000,
+      "description": "Call a marketplace-listed API"
+    },
+    {
+      "method": "POST",
+      "path": "/memory-keys",
+      "price_micro": 1000,
+      "description": "List all agent memory keys"
+    },
+    {
+      "method": "POST",
+      "path": "/memory-recall",
+      "price_micro": 1000,
+      "description": "Recall stored agent memory"
+    },
+    {
+      "method": "POST",
+      "path": "/memory-store",
+      "price_micro": 1000,
+      "description": "Store persistent agent memory"
+    },
+    {
+      "method": "POST",
+      "path": "/memory/clear",
+      "price_micro": 10000,
+      "description": "Delete all memories for an agent_id"
+    },
+    {
+      "method": "POST",
+      "path": "/memory/get",
+      "price_micro": 10000,
+      "description": "Retrieve a stored memory by agent_id and key"
+    },
+    {
+      "method": "POST",
+      "path": "/memory/list",
+      "price_micro": 10000,
+      "description": "List all memory keys for an agent"
+    },
+    {
+      "method": "POST",
+      "path": "/memory/search",
+      "price_micro": 10000,
+      "description": "Search all memories for an agent by keyword \u2014 returns ranked matches"
+    },
+    {
+      "method": "POST",
+      "path": "/memory/set",
+      "price_micro": 10000,
+      "description": "Store a persistent memory value for an agent \u2014 survives across sessions"
+    },
+    {
+      "method": "POST",
+      "path": "/message/broadcast",
+      "price_micro": 10000,
+      "description": "Broadcast a message to all agents in the network"
+    },
+    {
+      "method": "POST",
+      "path": "/message/reply",
+      "price_micro": 10000,
+      "description": "Reply to a message, preserving the thread"
+    },
+    {
+      "method": "POST",
+      "path": "/message/send",
+      "price_micro": 10000,
+      "description": "Send a direct message from one agent to another"
+    },
+    {
+      "method": "POST",
+      "path": "/mock",
+      "price_micro": 10000,
+      "description": "Generate mock/sample data from a description"
+    },
+    {
+      "method": "POST",
+      "path": "/name-generator",
+      "price_micro": 10000,
+      "description": "Generate creative names for products/projects"
+    },
+    {
+      "method": "POST",
+      "path": "/outline",
+      "price_micro": 10000,
+      "description": "Generate a structured hierarchical outline from a topic or document"
+    },
+    {
+      "method": "POST",
+      "path": "/parse-csv",
+      "price_micro": 10000,
+      "description": "Parse and analyze CSV data"
+    },
+    {
+      "method": "POST",
+      "path": "/pipeline",
+      "price_micro": 50000,
+      "description": "Multi-step AI pipeline \u2014 chain operations"
+    },
+    {
+      "method": "POST",
+      "path": "/pitch",
+      "price_micro": 20000,
+      "description": "Generate a pitch or proposal"
+    },
+    {
+      "method": "POST",
+      "path": "/plan",
+      "price_micro": 20000,
+      "description": "Generate a step-by-step action plan for any goal"
+    },
+    {
+      "method": "POST",
+      "path": "/privacy-check",
+      "price_micro": 10000,
+      "description": "Analyze text for privacy/PII issues"
+    },
+    {
+      "method": "POST",
+      "path": "/proofread",
+      "price_micro": 10000,
+      "description": "Grammar, spelling, clarity corrections with tracked changes"
+    },
+    {
+      "method": "POST",
+      "path": "/qa",
+      "price_micro": 10000,
+      "description": "Answer a question given a context document \u2014 core RAG building block"
+    },
+    {
+      "method": "POST",
+      "path": "/questions",
+      "price_micro": 10000,
+      "description": "Generate interview, FAQ, or quiz questions from any content"
+    },
+    {
+      "method": "POST",
+      "path": "/rag",
+      "price_micro": 30000,
+      "description": "Retrieval-augmented generation \u2014 search + AI answer"
+    },
+    {
+      "method": "POST",
+      "path": "/regex",
+      "price_micro": 10000,
+      "description": "Generate regex patterns from plain English description"
+    },
+    {
+      "method": "POST",
+      "path": "/research",
+      "price_micro": 50000,
+      "description": "Deep research: search + scrape + Claude synthesis with citations"
+    },
+    {
+      "method": "POST",
+      "path": "/review-code",
+      "price_micro": 20000,
+      "description": "AI code review with suggestions"
+    },
+    {
+      "method": "POST",
+      "path": "/rewrite",
+      "price_micro": 10000,
+      "description": "Rewrite text in a different style or tone"
+    },
+    {
+      "method": "POST",
+      "path": "/score",
+      "price_micro": 10000,
+      "description": "Score or rate content based on criteria"
+    },
+    {
+      "method": "POST",
+      "path": "/scrape",
+      "price_micro": 10000,
+      "description": "Fetch any URL and return clean markdown text"
+    },
+    {
+      "method": "POST",
+      "path": "/scrape-website",
+      "price_micro": 10000,
+      "description": "Scrape website and extract text content"
+    },
+    {
+      "method": "POST",
+      "path": "/scrape/actor",
+      "price_micro": 30000,
+      "description": "Run custom scraping actor"
+    },
+    {
+      "method": "POST",
+      "path": "/scrape/facebook-ads",
+      "price_micro": 20000,
+      "description": "Scrape Facebook Ad Library"
+    },
+    {
+      "method": "POST",
+      "path": "/scrape/google-maps",
+      "price_micro": 20000,
+      "description": "Scrape Google Maps listings"
+    },
+    {
+      "method": "POST",
+      "path": "/scrape/instagram",
+      "price_micro": 20000,
+      "description": "Scrape Instagram profiles/posts"
+    },
+    {
+      "method": "POST",
+      "path": "/scrape/linkedin",
+      "price_micro": 20000,
+      "description": "Scrape LinkedIn profiles"
+    },
+    {
+      "method": "POST",
+      "path": "/scrape/tiktok",
+      "price_micro": 20000,
+      "description": "Scrape TikTok profiles/videos"
+    },
+    {
+      "method": "POST",
+      "path": "/scrape/tweets",
+      "price_micro": 20000,
+      "description": "Scrape tweets from Twitter/X"
+    },
+    {
+      "method": "POST",
+      "path": "/scrape/web",
+      "price_micro": 10000,
+      "description": "Scrape any website"
+    },
+    {
+      "method": "POST",
+      "path": "/scrape/youtube",
+      "price_micro": 20000,
+      "description": "Scrape YouTube video data"
+    },
+    {
+      "method": "POST",
+      "path": "/search",
+      "price_micro": 10000,
+      "description": "DuckDuckGo web search, returns top N results"
+    },
+    {
+      "method": "POST",
+      "path": "/sentiment",
+      "price_micro": 10000,
+      "description": "Deep sentiment analysis \u2014 polarity, emotions, confidence, key phrases"
+    },
+    {
+      "method": "POST",
+      "path": "/session/start",
+      "price_micro": 1000,
+      "description": "Start persistent agent session with shared context"
+    },
+    {
+      "method": "POST",
+      "path": "/skills/create",
+      "price_micro": 30000,
+      "description": "Create a new skill"
+    },
+    {
+      "method": "POST",
+      "path": "/skills/execute",
+      "price_micro": 20000,
+      "description": "Execute a skill from the skills library"
+    },
+    {
+      "method": "POST",
+      "path": "/social",
+      "price_micro": 20000,
+      "description": "Claude generates platform-optimized social media posts"
+    },
+    {
+      "method": "POST",
+      "path": "/sql",
+      "price_micro": 20000,
+      "description": "Natural language to SQL \u2014 describe what you want, get a query"
+    },
+    {
+      "method": "POST",
+      "path": "/stream/analyze",
+      "price_micro": 20000,
+      "description": "Streaming analysis \u2014 SSE events as Claude analyzes content"
+    },
+    {
+      "method": "POST",
+      "path": "/stream/chat",
+      "price_micro": 30000,
+      "description": "Streaming chat \u2014 SSE events for multi-turn AI conversation"
+    },
+    {
+      "method": "POST",
+      "path": "/stream/research",
+      "price_micro": 20000,
+      "description": "Streaming research \u2014 SSE events as Claude researches a topic"
+    },
+    {
+      "method": "POST",
+      "path": "/stream/write",
+      "price_micro": 20000,
+      "description": "Streaming write \u2014 SSE events as Claude writes content"
+    },
+    {
+      "method": "POST",
+      "path": "/summarize",
+      "price_micro": 10000,
+      "description": "Claude summarizes long text or articles into key points"
+    },
+    {
+      "method": "POST",
+      "path": "/tag",
+      "price_micro": 10000,
+      "description": "Auto-tag content with relevant labels"
+    },
+    {
+      "method": "POST",
+      "path": "/task/complete",
+      "price_micro": 10000,
+      "description": "Mark a claimed task as complete and submit the result"
+    },
+    {
+      "method": "POST",
+      "path": "/task/submit",
+      "price_micro": 10000,
+      "description": "Post a task to the agent task board"
+    },
+    {
+      "method": "POST",
+      "path": "/test-cases",
+      "price_micro": 20000,
+      "description": "Generate test cases for code or requirements"
+    },
+    {
+      "method": "POST",
+      "path": "/think",
+      "price_micro": 50000,
+      "description": "Deep reasoning with extended thinking"
+    },
+    {
+      "method": "POST",
+      "path": "/timeline",
+      "price_micro": 10000,
+      "description": "Generate a timeline from events or topics"
+    },
+    {
+      "method": "POST",
+      "path": "/transform",
+      "price_micro": 10000,
+      "description": "Transform text with any instruction \u2014 rewrite, reformat, clean, expand, condense"
+    },
+    {
+      "method": "POST",
+      "path": "/translate",
+      "price_micro": 10000,
+      "description": "Claude translates text to any language"
+    },
+    {
+      "method": "POST",
+      "path": "/vision",
+      "price_micro": 30000,
+      "description": "Analyze images with AI vision"
+    },
+    {
+      "method": "POST",
+      "path": "/web-search",
+      "price_micro": 10000,
+      "description": "Web search via DuckDuckGo"
+    },
+    {
+      "method": "POST",
+      "path": "/web/search",
+      "price_micro": 10000,
+      "description": "Web search with AI summary"
+    },
+    {
+      "method": "POST",
+      "path": "/workflow",
+      "price_micro": 100000,
+      "description": "Run multi-step AI workflow"
+    },
+    {
+      "method": "POST",
+      "path": "/workflow/generate",
+      "price_micro": 50000,
+      "description": "AI-generate a workflow from description"
+    },
+    {
+      "method": "POST",
+      "path": "/workflow/run",
+      "price_micro": 20000,
+      "description": "Run multi-step AI workflow \u2014 chain tools together with 15% discount"
+    },
+    {
+      "method": "POST",
+      "path": "/workflows/run",
+      "price_micro": 50000,
+      "description": "Run a saved workflow"
+    },
+    {
+      "method": "POST",
+      "path": "/write",
+      "price_micro": 20000,
+      "description": "Claude writes content (article, post, copy) to your spec"
+    }
+  ]
+}

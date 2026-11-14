@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Admin HQ — AiPayGen</title>
+<meta name="theme-color" content="#0a0a0a">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif; background: #0a0a0a; color: #e8e8e8; -webkit-tap-highlight-color: transparent; line-height: 1.5; }
+  a { color: #2997ff; text-decoration: none; }
+  a:hover { opacity: 0.85; }
+
+  /* LAYOUT */
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px 80px; }
+  header { background: #0a0a0a; border-bottom: 1px solid #1e2530; padding: 18px 16px; position: sticky; top: 0; z-index: 50; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+  header .inner { max-width: 1080px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { font-size: 1.15rem; font-weight: 700; letter-spacing: -0.3px; }
+  header h1 span { color: #2997ff; }
+  .ts { color: #444; font-size: 0.68rem; font-weight: 500; }
+
+  /* SECTION */
+  .section { margin-top: 36px; }
+  .section-title { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 1.2px; color: #555; font-weight: 700; margin-bottom: 14px; }
+  .card { background: #111318; border: 1px solid #1e2530; border-radius: 14px; padding: 20px; }
+
+  /* ═══ 1. HERO ═══ */
+  .hero { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 20px; }
+  .hero-card { background: #111318; border: 1px solid #1e2530; border-radius: 14px; padding: 22px 20px; position: relative; overflow: hidden; }
+  .hero-card::after { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; }
+  .hero-card.revenue::after { background: linear-gradient(90deg, #34d399, #2997ff); }
+  .hero-card.users::after { background: linear-gradient(90deg, #2997ff, #60a5fa); }
+  .hero-card.calls::after { background: linear-gradient(90deg, #e8e8e8, #888); }
+  .hero-card.status::after { background: linear-gradient(90deg, #34d399, #2997ff); }
+  .hero-val { font-size: 2rem; font-weight: 800; letter-spacing: -1.2px; line-height: 1; }
+  .hero-val.green { color: #34d399; }
+  .hero-val.blue { color: #2997ff; }
+  .hero-val.white { color: #e8e8e8; }
+  .hero-lbl { font-size: 0.65rem; color: #555; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 600; margin-top: 8px; }
+
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  .dot.ok { background: #34d399; box-shadow: 0 0 8px #34d39955; }
+  .dot.err { background: #ef4444; box-shadow: 0 0 8px #ef444455; }
+
+  /* ═══ 2. REVENUE ═══ */
+  .rev-nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+  .rev-n { font-size: 1.4rem; font-weight: 800; color: #34d399; letter-spacing: -0.5px; }
+  .rev-l { font-size: 0.62rem; color: #555; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-top: 2px; }
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .pill { display: inline-flex; align-items: center; gap: 8px; background: #161b22; border-radius: 10px; padding: 8px 14px; font-size: 0.78rem; }
+  .pill .amt { font-weight: 700; color: #e8e8e8; }
+  .pill .st { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; border-radius: 4px; padding: 2px 6px; }
+  .pill .st.complete { background: #052e16; color: #34d399; }
+  .pill .st.expired { background: #450a0a; color: #ef4444; }
+  .pill .st.open { background: #422006; color: #fbbf24; }
+  .pill .dt { color: #555; font-size: 0.65rem; }
+  .sub-row { margin-top: 14px; font-size: 0.82rem; color: #888; }
+  .sub-row b { color: #2997ff; font-weight: 700; }
+
+  /* ═══ 3. USAGE ═══ */
+  .usage-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .sub-title { font-size: 0.65rem; color: #555; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 12px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .bar-name { width: 90px; text-align: right; font-size: 0.76rem; color: #8b949e; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar-track { flex: 1; height: 18px; background: #161b22; border-radius: 6px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, #2997ff, #2997ff); min-width: 2px; }
+  .bar-val { width: 42px; font-size: 0.7rem; color: #666; text-align: right; }
+
+  .chart-7d { display: flex; align-items: flex-end; gap: 4px; height: 100px; padding: 8px 0; }
+  .chart-bar { flex: 1; background: linear-gradient(180deg, #2997ff, #1a6ed8); border-radius: 4px 4px 0 0; min-height: 2px; position: relative; cursor: default; }
+  .chart-bar:hover { opacity: 0.75; }
+  .chart-bar .tip { position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); background: #1e2530; color: #e8e8e8; padding: 3px 8px; border-radius: 6px; font-size: 0.62rem; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.15s; }
+  .chart-bar:hover .tip { opacity: 1; }
+  .chart-labels { display: flex; gap: 4px; }
+  .chart-labels span { flex: 1; text-align: center; font-size: 0.58rem; color: #444; }
+
+  .key-row { display: flex; gap: 18px; margin-top: 14px; font-size: 0.8rem; }
+  .key-row .g { color: #34d399; font-weight: 700; }
+  .key-row .dim { color: #555; font-weight: 700; }
+  .key-row .accent { color: #2997ff; font-weight: 700; }
+
+  /* ═══ 4. MARKETPLACE ═══ */
+  .mp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+  .mp-box { text-align: center; background: #161b22; border-radius: 10px; padding: 14px 8px; }
+  .mp-v { font-size: 1.15rem; font-weight: 800; color: #2997ff; }
+  .mp-l { font-size: 0.6rem; color: #555; text-transform: uppercase; margin-top: 2px; letter-spacing: 0.5px; }
+  .agent-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #161b22; }
+  .agent-row:last-child { border-bottom: none; }
+  .agent-rank { width: 24px; height: 24px; border-radius: 50%; background: #1e2530; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; color: #2997ff; flex-shrink: 0; }
+  .agent-name { flex: 1; font-size: 0.8rem; font-weight: 600; }
+  .agent-calls { font-size: 0.76rem; color: #888; }
+
+  /* ═══ 5. HEALTH ═══ */
+  .health-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 14px; }
+  .h-box { text-align: center; }
+  .h-lbl { font-size: 0.62rem; color: #555; text-transform: uppercase; margin-bottom: 5px; letter-spacing: 0.5px; }
+  .h-v { font-size: 1rem; font-weight: 700; margin-bottom: 5px; }
+  .pbar { width: 100%; height: 5px; background: #161b22; border-radius: 3px; overflow: hidden; }
+  .pfill { height: 100%; border-radius: 3px; }
+  .pfill.good { background: #2997ff; }
+  .pfill.warn { background: #fbbf24; }
+  .pfill.danger { background: #ef4444; }
+  .svc-row { display: flex; gap: 20px; justify-content: center; padding: 8px 0; }
+  .svc { font-size: 0.76rem; color: #888; display: flex; align-items: center; gap: 6px; }
+  .svc .sd { width: 8px; height: 8px; border-radius: 50%; }
+  .svc .sd.g { background: #34d399; box-shadow: 0 0 4px #34d39955; }
+  .svc .sd.r { background: #ef4444; box-shadow: 0 0 4px #ef444455; }
+  .svc .sd.y { background: #fbbf24; }
+
+  /* ═══ 6. ACTIONS ═══ */
+  .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+  .act { display: inline-block; background: #161b22; border: 1px solid #1e2530; border-radius: 10px; padding: 10px 18px; font-size: 0.78rem; font-weight: 600; color: #2997ff; cursor: pointer; transition: background 0.15s, border-color 0.15s; }
+  .act:hover { background: #1e2530; border-color: #2997ff33; }
+
+  /* ═══ RESPONSIVE ═══ */
+  @media (min-width: 640px) {
+    .hero { grid-template-columns: repeat(4, 1fr); }
+    .hero-val { font-size: 2.4rem; }
+  }
+  @media (max-width: 639px) {
+    .usage-grid { grid-template-columns: 1fr; }
+    .health-grid { grid-template-columns: repeat(2, 1fr); }
+    .rev-nums { grid-template-columns: 1fr; }
+    .mp-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="inner">
+    <h1><span>Admin</span> HQ</h1>
+    <span class="ts">{{ ts }} &middot; auto-refresh 5m</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ═══ 1. HERO STATS ═══ -->
+  <div class="hero">
+    <div class="hero-card revenue">
+      <div class="hero-val {% if stripe_revenue != '$0.00' %}green{% else %}white{% endif %}">{{ stripe_revenue }}</div>
+      <div class="hero-lbl">Revenue (Stripe)</div>
+    </div>
+    <div class="hero-card users">
+      <div class="hero-val blue">{{ users_active }}</div>
+      <div class="hero-lbl">Active Users</div>
+    </div>
+    <div class="hero-card calls">
+      <div class="hero-val white">{{ calls_today }}</div>
+      <div class="hero-lbl">API Calls Today</div>
+    </div>
+    <div class="hero-card status">
+      <div class="hero-val white">
+        <span class="dot {% if health.api_status == 'healthy' %}ok{% else %}err{% endif %}"></span>
+        {{ health.api_status|upper }}
+      </div>
+      <div class="hero-lbl">System Status</div>
+    </div>
+  </div>
+
+  <!-- ═══ 2. REVENUE ═══ -->
+  <div class="section">
+    <div class="section-title">Revenue</div>
+    <div class="card">
+      <div class="rev-nums">
+        <div>
+          <div class="rev-n">{{ stripe_revenue }}</div>
+          <div class="rev-l">Total Balance</div>
+        </div>
+        <div>
+          <div class="rev-n">{{ rev_today }}</div>
+          <div class="rev-l">Today</div>
+        </div>
+        <div>
+          <div class="rev-n">{{ rev_week }}</div>
+          <div class="rev-l">This Week</div>
+        </div>
+      </div>
+
+      <div class="sub-title">Recent Checkouts</div>
+      <div class="pills">
+        {{ checkout_pills|safe }}
+      </div>
+
+      <div class="sub-row">Subscriptions: <b>{{ subscription_count }}</b></div>
+    </div>
+  </div>
+
+  <!-- ═══ 3. USAGE ═══ -->
+  <div class="section">
+    <div class="section-title">Usage</div>
+    <div class="usage-grid">
+      <div class="card">
+        <div class="sub-title">Top 5 Tools</div>
+        {{ tool_bars_v2|safe }}
+      </div>
+      <div class="card">
+        <div class="sub-title">API Calls &mdash; Last 7 Days</div>
+        <div class="chart-7d">
+          {% for d in daily_chart %}
+          <div class="chart-bar" style="height:{{ d.pct }}%"><span class="tip">{{ d.label }}: {{ d.count }}</span></div>
+          {% endfor %}
+        </div>
+        <div class="chart-labels">
+          {% for d in daily_chart %}
+          <span>{{ d.short }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    <div class="key-row">
+      <span>Active keys: <span class="g">{{ users_active }}</span></span>
+      <span>Inactive: <span class="dim">{{ inactive_keys }}</span></span>
+      <span>Total calls: <span class="accent">{{ usage_total }}</span></span>
+    </div>
+  </div>
+
+  <!-- ═══ 4. MARKETPLACE ═══ -->
+  <div class="section">
+    <div class="section-title">Marketplace</div>
+    <div class="card">
+      <div class="mp-grid">
+        <div class="mp-box">
+          <div class="mp-v">{{ mp_total_agents }}</div>
+          <div class="mp-l">Total Agents</div>
+        </div>
+        <div class="mp-box">
+          <div class="mp-v">{{ mp_total_calls }}</div>
+          <div class="mp-l">Total Calls</div>
+        </div>
+        <div class="mp-box">
+          <div class="mp-v">{{ mp_new_week }}</div>
+          <div class="mp-l">New This Week</div>
+        </div>
+        <div class="mp-box">
+          <div class="mp-v">{{ contact_count }}</div>
+          <div class="mp-l">Contact Forms</div>
+        </div>
+      </div>
+
+      {% if mp_top_agents %}
+      <div class="sub-title">Top Agents</div>
+      {% for a in mp_top_agents %}
+      <div class="agent-row">
+        <div class="agent-rank">{{ loop.index }}</div>
+        <div class="agent-name">{{ a.name }}</div>
+        <div class="agent-calls">{{ a.calls }} calls</div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div style="color:#555;font-size:0.8rem">No marketplace agents yet</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ═══ 5. SYSTEM HEALTH ═══ -->
+  <div class="section">
+    <div class="section-title">System Health</div>
+    <div class="card">
+      <div class="health-grid">
+        <div class="h-box">
+          <div class="h-lbl">CPU</div>
+          <div class="h-v" style="color:{% if health.cpu_val < 70 %}#2997ff{% elif health.cpu_val < 90 %}#fbbf24{% else %}#ef4444{% endif %}">{{ health.cpu }}</div>
+          <div class="pbar"><div class="pfill {% if health.cpu_val < 70 %}good{% elif health.cpu_val < 90 %}warn{% else %}danger{% endif %}" style="width:{{ health.cpu_val }}%"></div></div>
+        </div>
+        <div class="h-box">
+          <div class="h-lbl">Memory</div>
+          <div class="h-v" style="color:{% if health.mem_val < 70 %}#2997ff{% elif health.mem_val < 85 %}#fbbf24{% else %}#ef4444{% endif %}">{{ health.mem }}</div>
+          <div class="pbar"><div class="pfill {% if health.mem_val < 70 %}good{% elif health.mem_val < 85 %}warn{% else %}danger{% endif %}" style="width:{{ health.mem_val }}%"></div></div>
+        </div>
+        <div class="h-box">
+          <div class="h-lbl">Disk</div>
+          <div class="h-v" style="color:{% if health.disk_pct < 70 %}#2997ff{% elif health.disk_pct < 85 %}#fbbf24{% else %}#ef4444{% endif %}">{{ health.disk_pct }}%</div>
+          <div class="pbar"><div class="pfill {% if health.disk_pct < 70 %}good{% elif health.disk_pct < 85 %}warn{% else %}danger{% endif %}" style="width:{{ health.disk_pct }}%"></div></div>
+        </div>
+        <div class="h-box">
+          <div class="h-lbl">Uptime</div>
+          <div class="h-v" style="color:#e8e8e8">{{ health.uptime }}</div>
+          <div class="pbar"><div class="pfill good" style="width:100%"></div></div>
+        </div>
+      </div>
+      <div class="svc-row">
+        <div class="svc"><span class="sd {% if health.api_status == 'healthy' %}g{% else %}r{% endif %}"></span> aipaygent</div>
+        <div class="svc"><span class="sd {% if health.alpha_scout|default('down') == 'up' %}g{% else %}y{% endif %}"></span> alpha-scout</div>
+        <div class="svc"><span class="sd {% if health.tunnel|default('down') == 'up' %}g{% else %}y{% endif %}"></span> tunnel</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ 6. QUICK ACTIONS ═══ -->
+  <div class="section">
+    <div class="section-title">Quick Actions</div>
+    <div class="actions">
+      <a class="act" href="https://dashboard.stripe.com" target="_blank">Stripe Dashboard</a>
+      <a class="act" href="/admin/support">Support Tickets{% if tickets_open %} ({{ tickets_open }}){% endif %}</a>
+      <a class="act" href="/admin/analytics">Full Analytics</a>
+      <a class="act" href="/admin/changelog">Changelog</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+setTimeout(function(){location.reload()},300000);
+</script>
+</body>
+</html>

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { APP_VERSION, SERVICE_NAME, type Env } from "./env";
 import { TOOLS } from "./tools";
 import { formatPrice } from "./tools/types";
-import { apiKeyFromHeaders, createApiKey, findApiKey, sha256Hex } from "./billing/keys";
+import { apiKeyFromHeaders, createApiKey, findApiKey, linkReferral, sha256Hex } from "./billing/keys";
 import { chargeAndRun, type ChargeOutcome } from "./billing/charge";
 import { microToUsd, x402Enabled } from "./billing/x402";
 import { errorMessage } from "./lib/errors";
@@ -73,7 +73,7 @@ export function buildMcpServer(env: Env, execCtx?: ExecutionContext): McpServer 
       tool.name,
       {
         title: tool.title,
-        description: `${tool.description} Price: ${formatPrice(tool.priceMicro)} per call.`,
+        description: tool.priceMicro === 0 ? `${tool.description} Free.` : `${tool.description} Pay per call; ask the pricing tool for a quote.`,
         inputSchema: tool.input,
         annotations: { readOnlyHint: true, openWorldHint: true, idempotentHint: true, destructiveHint: false },
         _meta: { "aipaygen/priceUSD": tool.priceMicro / 1_000_000, "agents-x402/paymentRequired": true, "agents-x402/priceUSD": tool.priceMicro / 1_000_000 },
@@ -128,16 +128,21 @@ export function buildMcpServer(env: Env, execCtx?: ExecutionContext): McpServer 
     {
       title: "Create a free API key",
       description: `Create an AIPayGen API key with ${microToUsd(Number(env.TRIAL_CREDITS_MICRO) || 0)} of free trial credits. Free. Store the key: it is shown only once.`,
-      inputSchema: z.object({ label: z.string().max(80).optional().describe("Optional name for the key, e.g. your agent's name") }),
+      inputSchema: z.object({
+        label: z.string().max(80).optional().describe("Optional name for the key, e.g. your agent's name"),
+        ref: z.string().max(16).optional().describe("Optional referral code from the agent that told you about AIPayGen"),
+      }),
       annotations: { readOnlyHint: false, openWorldHint: false, idempotentHint: false },
     },
-    async ({ label }: { label?: string }, ctx: McpContextLike) => {
+    async ({ label, ref }: { label?: string; ref?: string }, ctx: McpContextLike) => {
       try {
         const ip = clientIp(ctx);
         if (env.KEY_LIMITER && !(await env.KEY_LIMITER.limit({ key: ip })).success) {
           return { isError: true, content: [{ type: "text", text: "RATE_LIMITED: Too many keys created. Try again later." }] };
         }
-        const k = await createApiKey(env, { label, creatorHash: await sha256Hex(`creator:${ip}`) });
+        const creatorHash = await sha256Hex(`creator:${ip}`);
+        const k = await createApiKey(env, { label, creatorHash });
+        await linkReferral(env, k.id, ref, creatorHash).catch(() => false);
         const data = {
           api_key: k.api_key,
           balance: microToUsd(k.balance_micro),

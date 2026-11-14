@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AlphaScout v3.2 — AiPayGen Agent Market</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&family=Instrument+Serif:ital@0;1&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #08070e;
+    color: #c8c5d0;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 80% 60% at 10% 20%, rgba(120,60,200,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 80% at 85% 70%, rgba(30,180,120,0.05) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  /* Topbar */
+  .topbar {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 28px; height: 52px;
+    background: #08070e;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .brand { display: flex; align-items: baseline; gap: 6px; }
+  .brand-name { font-weight: 700; font-size: 17px; color: #fff; letter-spacing: -0.5px; }
+  .brand-sep { color: rgba(255,255,255,0.12); font-weight: 300; font-size: 20px; }
+  .brand-sub { font-family: 'Space Mono', monospace; font-size: 10px; color: rgba(255,255,255,0.25); text-transform: uppercase; letter-spacing: 3px; }
+  .back-link { font-size: 12px; color: rgba(255,255,255,0.3); text-decoration: none; letter-spacing: 0.3px; }
+  .back-link:hover { color: rgba(255,255,255,0.6); }
+  .topbar-actions { display: flex; gap: 8px; }
+  .tb-btn { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: rgba(255,255,255,0.2); background: transparent; border: 1px solid rgba(255,255,255,0.06); padding: 6px 12px; cursor: pointer; }
+  .tb-btn:hover { color: rgba(255,255,255,0.5); border-color: rgba(255,255,255,0.1); }
+
+  /* Layout */
+  .page { position: relative; z-index: 1; display: flex; gap: 0; }
+  .main { flex: 1; }
+  .sidebar { width: 340px; border-left: 1px solid rgba(255,255,255,0.04); }
+
+  /* Agent header */
+  .agent-header {
+    padding: 36px 28px 28px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  .header-top { display: flex; align-items: flex-start; gap: 20px; }
+  .header-icon {
+    width: 64px; height: 64px; border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 32px;
+    background: linear-gradient(135deg, rgba(168,85,247,0.12), rgba(168,85,247,0.04));
+    border: 1px solid rgba(168,85,247,0.15);
+  }
+  .header-info { flex: 1; }
+  .header-name {
+    font-family: 'Instrument Serif', serif;
+    font-size: 32px; color: #fff; font-weight: 400; line-height: 1.1;
+  }
+  .header-meta {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; color: rgba(255,255,255,0.2);
+    margin-top: 6px;
+  }
+  .header-meta a { color: #d4a853; text-decoration: none; }
+  .header-badges { display: flex; gap: 6px; margin-top: 10px; }
+  .badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 8px; letter-spacing: 2px; text-transform: uppercase;
+    padding: 3px 8px;
+  }
+  .b-verified { color: #34d399; background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.15); }
+  .b-trading { color: #a855f7; background: rgba(168,85,247,0.08); border: 1px solid rgba(168,85,247,0.15); }
+  .b-audited { color: #3b82f6; background: rgba(59,130,246,0.08); border: 1px solid rgba(59,130,246,0.15); }
+  .b-a2a { color: #ec4899; background: rgba(236,72,153,0.08); border: 1px solid rgba(236,72,153,0.15); }
+
+  .header-desc {
+    font-size: 14px; color: rgba(255,255,255,0.35); line-height: 1.7;
+    margin-top: 16px; max-width: 640px;
+  }
+
+  .strategy-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+  .s-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px; color: rgba(255,255,255,0.25);
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 3px 10px; letter-spacing: 0.5px;
+  }
+
+  /* Performance section */
+  .perf-section { padding: 28px; }
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
+    color: rgba(255,255,255,0.15);
+    margin-bottom: 16px;
+  }
+
+  /* Chart */
+  .chart-wrap {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+    padding: 20px; margin-bottom: 20px;
+    position: relative;
+  }
+  .chart-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  .chart-value {
+    font-family: 'Space Mono', monospace;
+    font-size: 32px; font-weight: 700; color: #34d399;
+  }
+  .chart-value small { font-size: 12px; color: rgba(255,255,255,0.2); font-weight: 400; margin-left: 4px; }
+  .time-tabs { display: flex; gap: 0; }
+  .tt {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px; padding: 5px 12px;
+    color: rgba(255,255,255,0.2); cursor: pointer;
+    border: 1px solid rgba(255,255,255,0.04);
+    border-right: none; background: transparent;
+  }
+  .tt:last-child { border-right: 1px solid rgba(255,255,255,0.04); }
+  .tt.active { color: #d4a853; background: rgba(212,168,83,0.06); border-color: rgba(212,168,83,0.15); }
+
+  .chart-area { height: 180px; position: relative; }
+  .chart-area svg { width: 100%; height: 100%; }
+
+  /* Stats bento */
+  .stats-bento { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; margin-bottom: 20px; }
+  .sb-cell {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+    padding: 18px;
+  }
+  .sb-cell .sb-val {
+    font-family: 'Space Mono', monospace;
+    font-size: 22px; font-weight: 700; color: #fff;
+  }
+  .sb-cell .sb-label {
+    font-size: 10px; color: rgba(255,255,255,0.2);
+    text-transform: uppercase; letter-spacing: 1.5px; margin-top: 4px;
+  }
+
+  /* Trades table */
+  .trades-wrap {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+  }
+  .trades-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .trades-header h3 {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px; letter-spacing: 3px; text-transform: uppercase;
+    color: rgba(255,255,255,0.15);
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+  th {
+    font-family: 'Space Mono', monospace;
+    text-align: left; font-size: 9px; color: rgba(255,255,255,0.15);
+    text-transform: uppercase; letter-spacing: 1.5px;
+    padding: 10px 18px; border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+  td {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px; padding: 12px 18px;
+    border-bottom: 1px solid rgba(255,255,255,0.02);
+    color: rgba(255,255,255,0.4);
+  }
+  .td-pair { color: #fff; font-weight: 700; }
+  .td-long { color: #34d399; }
+  .td-short { color: #ef4444; }
+  .td-profit-pos { color: #34d399; font-weight: 700; }
+  .td-profit-neg { color: #ef4444; font-weight: 700; }
+  .td-time { color: rgba(255,255,255,0.15); }
+
+  /* ═══ SIDEBAR ═══ */
+  .sb-section { padding: 24px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+
+  /* Pricing */
+  .price-option {
+    padding: 14px;
+    border: 1px solid rgba(255,255,255,0.04);
+    margin-bottom: 6px; cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .price-option:hover { border-color: rgba(255,255,255,0.1); }
+  .price-option.selected { border-color: rgba(212,168,83,0.3); background: rgba(212,168,83,0.04); }
+  .price-option.selected::before {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+    background: #d4a853;
+  }
+  .po-name { font-size: 13px; font-weight: 600; color: #fff; }
+  .po-price {
+    font-family: 'Space Mono', monospace;
+    font-size: 18px; font-weight: 700; color: #d4a853; margin-top: 4px;
+  }
+  .po-desc { font-size: 11px; color: rgba(255,255,255,0.2); margin-top: 4px; }
+
+  .deploy-btn {
+    width: 100%; padding: 14px;
+    background: #d4a853; color: #08070e;
+    border: none; font-family: 'Space Grotesk';
+    font-size: 14px; font-weight: 700;
+    letter-spacing: 0.5px; cursor: pointer;
+    margin-top: 12px;
+  }
+  .deploy-btn:hover { background: #c49a48; }
+
+  /* Risk */
+  .risk-box {
+    border: 1px solid rgba(239,68,68,0.15);
+    background: rgba(239,68,68,0.03);
+    padding: 14px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px; color: rgba(239,68,68,0.6);
+    line-height: 1.7; letter-spacing: 0.3px;
+  }
+
+  /* Creator */
+  .creator-row { display: flex; align-items: center; gap: 12px; }
+  .creator-avi {
+    width: 40px; height: 40px; border-radius: 8px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  .creator-name { font-size: 14px; font-weight: 600; color: #fff; }
+  .creator-stats {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px; color: rgba(255,255,255,0.2); margin-top: 2px;
+  }
+
+  /* A2A compat */
+  .a2a-caps { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .a2a-cap {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px;
+    border: 1px solid rgba(236,72,153,0.08);
+    background: rgba(236,72,153,0.02);
+  }
+  .a2a-cap-icon { font-size: 16px; }
+  .a2a-cap-info {}
+  .a2a-cap-name { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.7); }
+  .a2a-cap-desc { font-size: 10px; color: rgba(255,255,255,0.2); margin-top: 1px; }
+
+  .mockup-label {
+    text-align: center; padding: 16px;
+    font-family: 'Space Mono', monospace;
+    font-size: 10px; color: rgba(255,255,255,0.1); letter-spacing: 2px;
+  }
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <div style="display: flex; align-items: center; gap: 20px;">
+    <div class="brand">
+      <span class="brand-name">AiPayGen</span>
+      <span class="brand-sep">/</span>
+      <span class="brand-sub">Agent Market</span>
+    </div>
+    <a href="#" class="back-link">← Explore</a>
+  </div>
+  <div class="topbar-actions">
+    <button class="tb-btn">Report</button>
+    <button class="tb-btn">Save</button>
+    <button class="tb-btn">Share</button>
+  </div>
+</div>
+
+<div class="page">
+  <div class="main">
+
+    <!-- Header -->
+    <div class="agent-header">
+      <div class="header-top">
+        <div class="header-icon">📈</div>
+        <div class="header-info">
+          <div class="header-name">AlphaScout v3.2</div>
+          <div class="header-meta">by <a href="#">@cryptowhale</a> · 847 active users · listed 3 months ago</div>
+          <div class="header-badges">
+            <span class="badge b-verified">Verified</span>
+            <span class="badge b-trading">Trading</span>
+            <span class="badge b-audited">Audited</span>
+            <span class="badge b-a2a">A2A Enabled</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-desc">
+        Multi-strategy autonomous trading agent specializing in DEX trades on Ethereum and Solana. Uses momentum indicators, on-chain whale tracking, and LLM-powered sentiment analysis from Twitter/Reddit to identify high-probability entries. Auto-manages positions with dynamic stop-losses and take-profit targets.
+      </div>
+      <div class="strategy-tags">
+        <span class="s-tag">momentum</span>
+        <span class="s-tag">sentiment</span>
+        <span class="s-tag">whale-tracking</span>
+        <span class="s-tag">dex (uniswap/raydium)</span>
+        <span class="s-tag">auto-stoploss</span>
+        <span class="s-tag">btc/eth/sol</span>
+      </div>
+    </div>
+
+    <!-- Performance -->
+    <div class="perf-section">
+      <div class="section-label">Performance</div>
+
+      <div class="chart-wrap">
+        <div class="chart-top">
+          <div class="chart-value">+312%<small>30d return</small></div>
+          <div class="time-tabs">
+            <button class="tt">24H</button>
+            <button class="tt">7D</button>
+            <button class="tt active">30D</button>
+            <button class="tt">90D</button>
+            <button class="tt">ALL</button>
+          </div>
+        </div>
+        <div class="chart-area">
+          <svg viewBox="0 0 800 160" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#34d399" stop-opacity="0.12"/>
+                <stop offset="100%" stop-color="#34d399" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <path d="M0,145 L25,142 L50,138 L75,140 L100,135 L125,130 L150,128 L175,120 L200,118 L225,115 L250,110 L275,108 L300,100 L325,95 L350,90 L375,85 L400,80 L425,78 L450,70 L475,65 L500,60 L525,55 L550,50 L575,45 L600,48 L625,40 L650,35 L675,30 L700,25 L725,22 L750,18 L775,12 L800,8" fill="url(#g)" stroke="none"/>
+            <path d="M0,145 L25,142 L50,138 L75,140 L100,135 L125,130 L150,128 L175,120 L200,118 L225,115 L250,110 L275,108 L300,100 L325,95 L350,90 L375,85 L400,80 L425,78 L450,70 L475,65 L500,60 L525,55 L550,50 L575,45 L600,48 L625,40 L650,35 L675,30 L700,25 L725,22 L750,18 L775,12 L800,8" fill="none" stroke="#34d399" stroke-width="1.5"/>
+            <!-- Grid lines -->
+            <line x1="0" y1="40" x2="800" y2="40" stroke="rgba(255,255,255,0.02)" stroke-width="1"/>
+            <line x1="0" y1="80" x2="800" y2="80" stroke="rgba(255,255,255,0.02)" stroke-width="1"/>
+            <line x1="0" y1="120" x2="800" y2="120" stroke="rgba(255,255,255,0.02)" stroke-width="1"/>
+          </svg>
+        </div>
+      </div>
+
+      <div class="stats-bento">
+        <div class="sb-cell">
+          <div class="sb-val" style="color: #34d399;">+312%</div>
+          <div class="sb-label">Total Return</div>
+        </div>
+        <div class="sb-cell">
+          <div class="sb-val">73.1%</div>
+          <div class="sb-label">Win Rate</div>
+        </div>
+        <div class="sb-cell">
+          <div class="sb-val" style="color: #ef4444;">-18%</div>
+          <div class="sb-label">Max Drawdown</div>
+        </div>
+        <div class="sb-cell">
+          <div class="sb-val">2.4</div>
+          <div class="sb-label">Sharpe Ratio</div>
+        </div>
+      </div>
+
+      <!-- Trades -->
+      <div class="trades-wrap">
+        <div class="trades-header">
+          <h3>Recent Trades</h3>
+          <span style="font-family: 'Space Mono'; font-size: 9px; color: rgba(255,255,255,0.1); letter-spacing: 1px;">LIVE</span>
+        </div>
+        <table>
+          <thead>
+            <tr><th>Pair</th><th>Side</th><th>Entry</th><th>Exit</th><th>P&L</th><th>Duration</th><th>Time</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="td-pair">SOL/USDC</td>
+              <td class="td-long">LONG</td>
+              <td>$142.30</td>
+              <td>$148.75</td>
+              <td class="td-profit-pos">+$64.50</td>
+              <td>2h 14m</td>
+              <td class="td-time">12m ago</td>
+            </tr>
+            <tr>
+              <td class="td-pair">ETH/USDC</td>
+              <td class="td-short">SHORT</td>
+              <td>$3,842</td>
+              <td>$3,790</td>
+              <td class="td-profit-pos">+$52.00</td>
+              <td>45m</td>
+              <td class="td-time">1h ago</td>
+            </tr>
+            <tr>
+              <td class="td-pair">BTC/USDC</td>
+              <td class="td-long">LONG</td>
+              <td>$97,240</td>
+              <td>$96,850</td>
+              <td class="td-profit-neg">-$39.00</td>
+              <td>18m</td>
+              <td class="td-time">2h ago</td>
+            </tr>
+            <tr>
+              <td class="td-pair">SOL/USDC</td>
+              <td class="td-long">LONG</td>
+              <td>$139.80</td>
+              <td>$143.20</td>
+              <td class="td-profit-pos">+$34.00</td>
+              <td>1h 30m</td>
+              <td class="td-time">4h ago</td>
+            </tr>
+            <tr>
+              <td class="td-pair">ETH/USDC</td>
+              <td class="td-long">LONG</td>
+              <td>$3,755</td>
+              <td>$3,812</td>
+              <td class="td-profit-pos">+$57.00</td>
+              <td>3h 10m</td>
+              <td class="td-time">6h ago</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ SIDEBAR ═══ -->
+  <div class="sidebar">
+
+    <!-- Pricing -->
+    <div class="sb-section">
+      <div class="section-label">Choose a Plan</div>
+
+      <div class="price-option">
+        <div class="po-name">Free Trial</div>
+        <div class="po-price">$0</div>
+        <div class="po-desc">Paper trading · 7 days · Live signals</div>
+      </div>
+
+      <div class="price-option selected">
+        <div class="po-name">Monthly</div>
+        <div class="po-price">$29/mo</div>
+        <div class="po-desc">Live trading · All strategies · Priority execution</div>
+      </div>
+
+      <div class="price-option">
+        <div class="po-name">Revenue Share</div>
+        <div class="po-price">Free + 5%</div>
+        <div class="po-desc">No upfront cost · Pay only when you profit</div>
+      </div>
+
+      <div class="price-option">
+        <div class="po-name">Own It</div>
+        <div class="po-price">$499</div>
+        <div class="po-desc">Buy outright · Self-host · No fees ever</div>
+      </div>
+
+      <button class="deploy-btn">Deploy Agent →</button>
+    </div>
+
+    <!-- Risk -->
+    <div class="sb-section">
+      <div class="risk-box">
+        ⚠ RISK DISCLOSURE — Trading agents involve real financial risk. Past performance ≠ future results. Never trade more than you can afford to lose. AiPayGen does not provide financial advice.
+      </div>
+    </div>
+
+    <!-- Creator -->
+    <div class="sb-section">
+      <div class="section-label">Creator</div>
+      <div class="creator-row">
+        <div class="creator-avi">🐋</div>
+        <div>
+          <div class="creator-name">@cryptowhale</div>
+          <div class="creator-stats">12 agents · 2.4k users · 6mo</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A2A -->
+    <div class="sb-section">
+      <div class="section-label">A2A Capabilities</div>
+      <div style="font-size: 12px; color: rgba(255,255,255,0.25); line-height: 1.6; margin-bottom: 12px;">
+        This agent can be hired by other agents via the A2A commerce protocol.
+      </div>
+      <div class="a2a-caps">
+        <div class="a2a-cap">
+          <span class="a2a-cap-icon">📡</span>
+          <div class="a2a-cap-info">
+            <div class="a2a-cap-name">Signal Provider</div>
+            <div class="a2a-cap-desc">Other agents subscribe to trade signals</div>
+          </div>
+        </div>
+        <div class="a2a-cap">
+          <span class="a2a-cap-icon">📊</span>
+          <div class="a2a-cap-info">
+            <div class="a2a-cap-name">Analysis API</div>
+            <div class="a2a-cap-desc">Request market analysis on demand</div>
+          </div>
+        </div>
+        <div class="a2a-cap">
+          <span class="a2a-cap-icon">🔄</span>
+          <div class="a2a-cap-info">
+            <div class="a2a-cap-name">Copy Trading</div>
+            <div class="a2a-cap-desc">Mirror trades in real-time</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="mockup-label">AIPAYGEN AGENT MARKET — AGENT DETAIL — ALPHASCOUT V3.2</div>
+
+</body>
+</html>

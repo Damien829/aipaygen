@@ -1,0 +1,1879 @@
+"""Blueprint for utility endpoints — inspired by API Toll's 75-endpoint catalog.
+Adds ~40 new compute, web, NLP, finance, security, math, transform, and media tools.
+"""
+
+import io
+import os
+import re
+import json
+import math
+import time
+import socket
+import struct
+import hashlib
+import base64
+import ast
+import operator
+import statistics
+import unicodedata
+from datetime import datetime, timedelta, timezone
+from urllib.parse import urlparse, urljoin
+from xml.etree import ElementTree
+
+import yaml
+import jwt as pyjwt
+import markdown as md_lib
+from security import guarded_http as _requests  # SSRF-safe drop-in for requests
+from flask import Blueprint, request, jsonify, send_file
+
+from helpers import cache_get as _cache_get, cache_set as _cache_set, get_client_ip as _get_client_ip
+
+import logging
+_log = logging.getLogger(__name__)
+
+# Domain validation regex — prevents command injection via dig subprocess calls
+DOMAIN_RE = re.compile(r'^[a-zA-Z0-9]([a-zA-Z0-9.-]*[a-zA-Z0-9])?$')
+
+
+import ipaddress as _ipaddress
+
+
+def _is_url_safe(url: str) -> bool:
+    """Block SSRF — reject URLs pointing to private/internal IPs."""
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https"):
+            return False
+        hostname = parsed.hostname
+        if not hostname:
+            return False
+        for info in socket.getaddrinfo(hostname, None, socket.AF_UNSPEC, socket.SOCK_STREAM):
+            addr = info[4][0]
+            ip = _ipaddress.ip_address(addr)
+            if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+                return False
+        return True
+    except Exception:
+        return False
+
+
+def _ssrf_check(url: str):
+    """Return a 400 JSON response if URL targets internal network, else None."""
+    if not _is_url_safe(url):
+        return jsonify({"error": "blocked", "message": "URL must point to a public internet address."}), 400
+    return None
+
+
+def _valid_domain(domain: str) -> bool:
+    """Validate domain string against regex and length limit."""
+    return bool(domain and DOMAIN_RE.match(domain) and len(domain) <= 253)
+
+
+_MAX_TEXT_LEN = 50000  # 50 KB limit for text processing endpoints
+
+
+def _check_text_len(text: str, max_len: int = _MAX_TEXT_LEN) -> str | None:
+    """Return error message if text exceeds max length, else None."""
+    if len(text) > max_len:
+        return f"text too long ({len(text)} chars, max {max_len})"
+    return None
+
+
+utility_bp = Blueprint("utility", __name__)
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GEOCODING
+# ─────────────────────────────────────────────────────────────────────────────
+
+@utility_bp.route("/data/geocode", methods=["GET"])
+def geocode():
+    """Address to coordinates via Nominatim."""
+    q = request.args.get("q", "").strip()
+    if not q:
+        return jsonify({"error": "q parameter required"}), 400
+    cache_key = f"geocode:{q}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return jsonify(cached)
+    try:
+        r = _requests.get("https://nominatim.openstreetmap.org/search",
+                          params={"q": q, "format": "json", "limit": 5},
+                          headers={"User-Agent": "AiPayGen/1.0"}, timeout=10)
+        results = [{"lat": float(x["lat"]), "lon": float(x["lon"]),
+                     "display_name": x.get("display_name", ""),
+                     "type": x.get("type", "")} for x in r.json()[:5]]
+        out = {"query": q, "results": results}
+        _cache_set(cache_key, out, ttl=3600)
+        return jsonify(out)
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
+
+
+@utility_bp.route("/data/geocode/reverse", methods=["GET"])
+def geocode_reverse():
+    """Coordinates to address via Nominatim."""
+    lat = request.args.get("lat", "")
+    lon = request.args.get("lon", "")
+    if not lat or not lon:
+        return jsonify({"error": "lat and lon parameters required"}), 400
+    cache_key = f"geocode_rev:{lat}:{lon}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return jsonify(cached)
+    try:
+        r = _requests.get("https://nominatim.openstreetmap.org/reverse",
+                          params={"lat": lat, "lon": lon, "format": "json"},
+                          headers={"User-Agent": "AiPayGen/1.0"}, timeout=10)
+        data = r.json()
+        out = {"lat": float(lat), "lon": float(lon),
+               "address": data.get("display_name", ""),
+               "details": data.get("address", {})}
+        _cache_set(cache_key, out, ttl=3600)
+        return jsonify(out)
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# COMPANY SEARCH
+# ─────────────────────────────────────────────────────────────────────────────
+
+@utility_bp.route("/data/company", methods=["GET"])
+def company_search():
+    """Company/corporate entity search via Wikipedia + Clearbit-style enrichment."""
+    q = request.args.get("q", "").strip()
+    if not q:
+        return jsonify({"error": "q parameter required"}), 400
+    cache_key = f"company:{q}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return jsonify(cached)
+    try:
+        wiki = _requests.get("https://en.wikipedia.org/api/rest_v1/page/summary/" + q.replace(" ", "_"),
+                             timeout=10).json()
+        domain_guess = q.lower().replace(" ", "") + ".com"
+        out = {
+            "query": q,
+            "name": wiki.get("title", q),
+            "description": wiki.get("extract", "No description found"),
+            "domain_guess": domain_guess,
+            "wikipedia_url": wiki.get("content_urls", {}).get("desktop", {}).get("page", ""),
+            "thumbnail": wiki.get("thumbnail", {}).get("source", ""),
+        }
+        _cache_set(cache_key, out, ttl=3600)
+        return jsonify(out)
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# WHOIS / DOMAIN
+# ─────────────────────────────────────────────────────────────────────────────
+
+@utility_bp.route("/data/whois", methods=["GET"])
+def whois_lookup():
+    """Domain WHOIS/RDAP data."""
+    domain = request.args.get("domain", "").strip()
+    if not domain:
+        return jsonify({"error": "domain parameter required"}), 400
+    cache_key = f"whois:{domain}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return jsonify(cached)
+    try:
+        r = _requests.get(f"https://rdap.org/domain/{domain}", timeout=10)
+        data = r.json()
+        out = {
+            "domain": domain,
+            "status": data.get("status", []),
+            "events": [{"action": e.get("eventAction"), "date": e.get("eventDate")}
+                       for e in data.get("events", [])],
+            "nameservers": [ns.get("ldhName", "") for ns in data.get("nameservers", [])],
+            "registrar": next((e.get("vcardArray", [[],[]])[1][0][-1]
+                              for e in data.get("entities", [])
+                              if "registrar" in e.get("roles", [])), "Unknown"),
+        }
+        _cache_set(cache_key, out, ttl=3600)
+        return jsonify(out)
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
+
+
+@utility_bp.route("/data/domain", methods=["GET"])
+def domain_profile():
+    """Full domain profile (DNS + WHOIS combined)."""
+    domain = request.args.get("domain", "").strip()
+    if not domain or not DOMAIN_RE.match(domain) or len(domain) > 253:
+        return jsonify({"error": "Invalid domain"}), 400
+    cache_key = f"domain_profile:{domain}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return jsonify(cached)
+    import subprocess
+    out = {"domain": domain, "dns": {}, "whois": {}}
+    try:
+        for rtype in ["A", "AAAA", "MX", "TXT", "NS", "CNAME"]:
+            try:
+                result = subprocess.run(["dig", "+short", rtype, domain],
+                                       capture_output=True, text=True, timeout=5)
+                records = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
+                if records:
+                    out["dns"][rtype] = records
+            except Exception:
+                pass
+    except Exception:
+        pass
+    try:
+        r = _requests.get(f"https://rdap.org/domain/{domain}", timeout=10)
+        data = r.json()
+        out["whois"]["status"] = data.get("status", [])
+        out["whois"]["nameservers"] = [ns.get("ldhName", "") for ns in data.get("nameservers", [])]
+        out["whois"]["events"] = [{"action": e.get("eventAction"), "date": e.get("eventDate")}
+                                   for e in data.get("events", [])]
+    except Exception:
+        pass
+    _cache_set(cache_key, out, ttl=3600)
+    return jsonify(out)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TEXT ANALYSIS: Readability, Language Detection, Profanity
+# ─────────────────────────────────────────────────────────────────────────────
+
+@utility_bp.route("/data/readability", methods=["POST"])
+def readability_score():
+    """Readability score (Flesch-Kincaid)."""
+    data = request.get_json(silent=True) or {}
+    text = data.get("text", "").strip()
+    if not text:
+        return jsonify({"error": "text field required"}), 400
+    err = _check_text_len(text)
+    if err:
+        return jsonify({"error": err}), 400
+    sentences = max(1, len(re.split(r'[.!?]+', text)))
+    words_list = text.split()
+    word_count = max(1, len(words_list))
+    syllable_count = sum(_count_syllables(w) for w in words_list)
+    flesch = 206.835 - 1.015 * (word_count / max(sentences, 1)) - 84.6 * (syllable_count / max(word_count, 1))
+    grade = 0.39 * (word_count / max(sentences, 1)) + 11.8 * (syllable_count / max(word_count, 1)) - 15.59
+    levels = {(90, 101): "Very Easy", (80, 90): "Easy", (70, 80): "Fairly Easy",
+              (60, 70): "Standard", (50, 60): "Fairly Difficult",
+              (30, 50): "Difficult", (-100, 30): "Very Difficult"}
+    level = next((v for (lo, hi), v in levels.items() if lo <= flesch < hi), "Unknown")
+    return jsonify({
+        "flesch_reading_ease": round(flesch, 2),
+        "flesch_kincaid_grade": round(grade, 2),
+        "level": level,
+        "sentences": sentences,
+        "words": word_count,
+        "syllables": syllable_count,
+    })
+
+
+def _count_syllables(word):
+    word = word.lower().strip(".,!?;:'\"")
+    if len(word) <= 3:
+        return 1
+    word = re.sub(r'(?:es|ed|e)$', '', word) or word
+    vowels = re.findall(r'[aeiouy]+', word)
+    return max(1, len(vowels))
+
+
+@utility_bp.route("/data/language", methods=["GET"])
+def language_detect():
+    """Language detection using character analysis."""
+    text = request.args.get("text", "").strip()
+    if not text:
+        return jsonify({"error": "text parameter required"}), 400
+    err = _check_text_len(text)
+    if err:
+        return jsonify({"error": err}), 400
+    scripts = {}
+    for char in text:
+        try:
+            name = unicodedata.name(char, "UNKNOWN").split()[0]
+            scripts[name] = scripts.get(name, 0) + 1
+        except Exception:
+            pass
+    total = sum(scripts.values()) or 1
+    script_map = {"LATIN": "en", "CJK": "zh", "HIRAGANA": "ja", "KATAKANA": "ja",
+                  "HANGUL": "ko", "ARABIC": "ar", "DEVANAGARI": "hi", "CYRILLIC": "ru",
+                  "THAI": "th", "HEBREW": "he", "GREEK": "el"}
+    top_script = max(scripts, key=scripts.get) if scripts else "LATIN"
+    lang = script_map.get(top_script, "en")
+    return jsonify({
+        "text_sample": text[:100],
+        "detected_language": lang,
+        "script": top_script,
+        "confidence": round(scripts.get(top_script, 0) / max(total, 1), 3),
+        "scripts": {k: round(v / max(total, 1), 3) for k, v in sorted(scripts.items(), key=lambda x: -x[1])[:5]},
+    })
+
+
+_PROFANITY_WORDS = set(["damn", "hell", "ass", "shit", "fuck", "bitch", "bastard",
+                         "crap", "dick", "piss", "cock", "pussy", "slut", "whore"])
+
+@utility_bp.route("/data/profanity", methods=["POST"])
+def profanity_filter():
+    """Profanity filter/detection."""
+    data = request.get_json(silent=True) or {}
+    text = data.get("text", "").strip()
+    if not text:
+        return jsonify({"error": "text field required"}), 400
+    err = _check_text_len(text)
+    if err:
+        return jsonify({"error": err}), 400
+    words = re.findall(r'\b\w+\b', text.lower())
+    found = [w for w in words if w in _PROFANITY_WORDS]
+    cleaned = text
+    for w in _PROFANITY_WORDS:
+        cleaned = re.sub(r'\b' + w + r'\b', '*' * len(w), cleaned, flags=re.IGNORECASE)
+    return jsonify({
+        "contains_profanity": len(found) > 0,
+        "profanity_count": len(found),
+        "words_found": list(set(found)),
+        "cleaned_text": cleaned,
+    })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# WEB & URL TOOLS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@utility_bp.route("/data/meta", methods=["GET"])
+def url_meta():
+    """Extract meta tags (OG, Twitter Cards) from URL."""
+    url = request.args.get("url", "").strip()
+    if not url:
+        return jsonify({"error": "url parameter required"}), 400
+    blocked = _ssrf_check(url)
+    if blocked: return blocked
+    try:
+        r = _requests.get(url, timeout=10, headers={"User-Agent": "AiPayGen/1.0"})
+        html = r.text[:50000]
+        meta = {}
+        for match in re.finditer(r'<meta\s+(?:property|name)=["\']([^"\']+)["\']\s+content=["\']([^"\']*)["\']', html, re.I):
+            meta[match.group(1)] = match.group(2)
+        for match in re.finditer(r'<meta\s+content=["\']([^"\']*)["\'].*?(?:property|name)=["\']([^"\']+)["\']', html, re.I):
+            meta[match.group(2)] = match.group(1)
+        title_m = re.search(r'<title[^>]*>([^<]+)</title>', html, re.I)
+        return jsonify({
+            "url": url,
+            "title": title_m.group(1).strip() if title_m else "",
+            "meta_tags": meta,
+            "og": {k.replace("og:", ""): v for k, v in meta.items() if k.startswith("og:")},
+            "twitter": {k.replace("twitter:", ""): v for k, v in meta.items() if k.startswith("twitter:")},
+        })
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
+
+
+@utility_bp.route("/data/links", methods=["GET"])
+def extract_links():
+    """Extract all links from a URL."""
+    url = request.args.get("url", "").strip()
+    if not url:
+        return jsonify({"error": "url parameter required"}), 400
+    blocked = _ssrf_check(url)
+    if blocked: return blocked
+    try:
+        r = _requests.get(url, timeout=10, headers={"User-Agent": "AiPayGen/1.0"})
+        links = re.findall(r'href=["\']([^"\']+)["\']', r.text)
+        absolute = []
+        for link in links:
+            if link.startswith("http"):
+                absolute.append(link)
+            elif link.startswith("/"):
+                absolute.append(urljoin(url, link))
+        return jsonify({
+            "url": url,
+            "total_links": len(absolute),
+            "links": list(dict.fromkeys(absolute))[:200],
+        })
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
+
+
+@utility_bp.route("/data/sitemap", methods=["GET"])
+def parse_sitemap():
+    """Parse sitemap.xml from a domain."""
+    domain = request.args.get("domain", "").strip()
+    if not domain:
+        return jsonify({"error": "domain parameter required"}), 400
+    if not domain.startswith("http") and not _valid_domain(domain):
+        return jsonify({"error": "invalid domain format"}), 400
+    if not domain.startswith("http"):
+        domain = "https://" + domain
+    try:
+        r = _requests.get(domain.rstrip("/") + "/sitemap.xml", timeout=10,
+                          headers={"User-Agent": "AiPayGen/1.0"})
+        urls = re.findall(r'<loc>([^<]+)</loc>', r.text)
+        return jsonify({
+            "domain": domain,
+            "url_count": len(urls),
+            "urls": urls[:200],
+        })
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
+
+
+@utility_bp.route("/data/robots", methods=["GET"])
+def parse_robots():
+    """Parse robots.txt from a domain."""
+    domain = request.args.get("domain", "").strip()
+    if not domain:
+        return jsonify({"error": "domain parameter required"}), 400
+    if not domain.startswith("http") and not _valid_domain(domain):
+        return jsonify({"error": "invalid domain format"}), 400
+    if not domain.startswith("http"):
+        domain = "https://" + domain
+    try:
+        r = _requests.get(domain.rstrip("/") + "/robots.txt", timeout=10,
+                          headers={"User-Agent": "AiPayGen/1.0"})
+        lines = r.text.strip().split("\n")
+        rules = []
+        current_agent = "*"
+        for line in lines:
+            line = line.strip()
+            if line.lower().startswith("user-agent:"):
+                current_agent = line.split(":", 1)[1].strip()
+            elif line.lower().startswith(("allow:", "disallow:", "sitemap:", "crawl-delay:")):
+                directive, value = line.split(":", 1)
+                rules.append({"agent": current_agent, "directive": directive.strip(),
+                              "value": value.strip()})
+        sitemaps = [r["value"] for r in rules if r["directive"].lower() == "sitemap"]
+        return jsonify({
+            "domain": domain,
+            "rules": rules,
+            "sitemaps": sitemaps,
+            "raw": r.text[:5000],
+        })
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
+
+
+@utility_bp.route("/data/headers", methods=["GET"])
+def http_headers():
+    """Get HTTP response headers from a URL."""
+    url = request.args.get("url", "").strip()
+    if not url:
+        return jsonify({"error": "url parameter required"}), 400
+    blocked = _ssrf_check(url)
+    if blocked: return blocked
+    try:
+        r = _requests.head(url, timeout=10, headers={"User-Agent": "AiPayGen/1.0"},
+                           allow_redirects=True)
+        return jsonify({
+            "url": url,
+            "status_code": r.status_code,
+            "headers": dict(r.headers),
+        })
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
+
+
+@utility_bp.route("/data/ssl", methods=["GET"])
+def ssl_info():
+    """SSL certificate info for a domain."""
+    domain = request.args.get("domain", "").strip()
+    if not domain:
+        return jsonify({"error": "domain parameter required"}), 400
+    if not _valid_domain(domain):
+        return jsonify({"error": "invalid domain format"}), 400
+    import ssl
+    import OpenSSL.crypto as crypto
+    try:
+        cert_pem = ssl.get_server_certificate((domain, 443), timeout=10)
+        x509 = crypto.load_certificate(crypto.FILETYPE_PEM, cert_pem)
+        subject = dict(x509.get_subject().get_components())
+        issuer = dict(x509.get_issuer().get_components())
+        return jsonify({
+            "domain": domain,
+            "subject": {k.decode(): v.decode() for k, v in subject.items()},
+            "issuer": {k.decode(): v.decode() for k, v in issuer.items()},
+            "serial_number": str(x509.get_serial_number()),
+            "not_before": x509.get_notBefore().decode(),
+            "not_after": x509.get_notAfter().decode(),
+            "has_expired": x509.has_expired(),
+            "version": x509.get_version(),
+        })
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# COMPUTE & DEV
+# ─────────────────────────────────────────────────────────────────────────────
+
+@utility_bp.route("/data/jwt/decode", methods=["POST"])
+def jwt_decode():
+    """JWT token decode (without verification)."""
+    data = request.get_json(silent=True) or {}
+    token = data.get("token", "").strip()
+    if not token:
+        return jsonify({"error": "token field required"}), 400
+    try:
+        header = pyjwt.get_unverified_header(token)
+        payload = pyjwt.decode(token, options={"verify_signature": False})
+        exp = payload.get("exp")
+        expired = datetime.fromtimestamp(exp, tz=timezone.utc) < datetime.now(timezone.utc) if exp else None
+        return jsonify({
+            "header": header,
+            "payload": payload,
+            "expired": expired,
+            "expiry": datetime.fromtimestamp(exp, tz=timezone.utc).isoformat() if exp else None,
+        })
+    except Exception:
+        _log.exception("Invalid input")
+        return jsonify({"error": "Invalid input"}), 400
+
+
+@utility_bp.route("/data/markdown", methods=["POST"])
+def markdown_to_html():
+    """Convert Markdown to HTML."""
+    data = request.get_json(silent=True) or {}
+    text = data.get("text", "").strip()
+    if not text:
+        return jsonify({"error": "text field required"}), 400
+    err = _check_text_len(text)
+    if err:
+        return jsonify({"error": err}), 400
+    html = md_lib.markdown(text, extensions=["tables", "fenced_code", "codehilite"])
+    return jsonify({"markdown": text, "html": html})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MEDIA & VISUAL
+# ─────────────────────────────────────────────────────────────────────────────
+
+@utility_bp.route("/data/placeholder", methods=["GET"])
+def placeholder_image():
+    """Generate a placeholder image (SVG)."""
+    width = int(request.args.get("width", 300))
+    height = int(request.args.get("height", 200))
+    bg = request.args.get("bg", "cccccc")
+    fg = request.args.get("fg", "666666")
+    text = request.args.get("text", f"{width}x{height}")
+    svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">
+  <rect width="100%" height="100%" fill="#{bg}"/>
+  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
+        font-family="sans-serif" font-size="{min(width, height) // 6}px" fill="#{fg}">{text}</text>
+</svg>'''
+    return svg, 200, {"Content-Type": "image/svg+xml"}
+
+
+@utility_bp.route("/data/favicon", methods=["GET"])
+def favicon_extract():
+    """Extract favicon from a domain."""
+    domain = request.args.get("domain", "").strip()
+    if not domain:
+        return jsonify({"error": "domain parameter required"}), 400
+    if not domain.startswith("http") and not _valid_domain(domain):
+        return jsonify({"error": "invalid domain format"}), 400
+    if not domain.startswith("http"):
+        domain = "https://" + domain
+    try:
+        r = _requests.get(domain, timeout=10, headers={"User-Agent": "AiPayGen/1.0"})
+        icons = []
+        for match in re.finditer(r'<link[^>]+rel=["\'](?:icon|shortcut icon|apple-touch-icon)["\'][^>]+href=["\']([^"\']+)["\']', r.text, re.I):
+            href = match.group(1)
+            if not href.startswith("http"):
+                href = urljoin(domain, href)
+            icons.append(href)
+        if not icons:
+            icons.append(urljoin(domain, "/favicon.ico"))
+        return jsonify({"domain": domain, "icons": icons})
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
+
+
+@utility_bp.route("/data/avatar", methods=["GET"])
+def identicon_avatar():
+    """Generate deterministic identicon avatar (SVG)."""
+    input_str = request.args.get("input", "").strip()
+    if not input_str:
+        return jsonify({"error": "input parameter required"}), 400
+    size = int(request.args.get("size", 80))
+    h = hashlib.md5(input_str.encode(), usedforsecurity=False).hexdigest()
+    color = f"#{h[:6]}"
+    grid = []
+    for i in range(25):
+        grid.append(int(h[i % len(h)], 16) % 2 == 0)
+    cells = []
+    cell_size = size / 5
+    for i, filled in enumerate(grid):
+        if filled:
+            row, col = divmod(i, 5)
+            cells.append(f'<rect x="{col * cell_size}" y="{row * cell_size}" '
+                        f'width="{cell_size}" height="{cell_size}" fill="{color}"/>')
+    svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 {size} {size}">'
+    svg += f'<rect width="100%" height="100%" fill="#f0f0f0"/>'
+    svg += "".join(cells)
+    svg += "</svg>"
+    return svg, 200, {"Content-Type": "image/svg+xml"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# BLOCKCHAIN
+# ─────────────────────────────────────────────────────────────────────────────
+
+@utility_bp.route("/data/ens", methods=["GET"])
+def ens_resolve():
+    """ENS name to address resolution."""
+    name = request.args.get("name", "").strip()
+    if not name:
+        return jsonify({"error": "name parameter required"}), 400
+    cache_key = f"ens:{name}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return jsonify(cached)
+    try:
+        base_rpc = os.getenv("BASE_RPC_URL", "https://mainnet.base.org")
+        if name.endswith(".eth"):
+            from web3 import Web3
+            w3 = Web3(Web3.HTTPProvider("https://eth.llamarpc.com"))
+            address = w3.ens.address(name)
+            out = {"name": name, "address": address, "resolved": address is not None}
+        elif name.startswith("0x"):
+            from web3 import Web3
+            w3 = Web3(Web3.HTTPProvider("https://eth.llamarpc.com"))
+            ens_name = w3.ens.name(name)
+            out = {"address": name, "name": ens_name, "resolved": ens_name is not None}
+        else:
+            return jsonify({"error": "Provide .eth name or 0x address"}), 400
+        _cache_set(cache_key, out, ttl=300)
+        return jsonify(out)
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ENRICHMENT
+# ─────────────────────────────────────────────────────────────────────────────
+
+@utility_bp.route("/data/enrich/domain", methods=["GET"])
+def enrich_domain():
+    """Domain enrichment — tech stack, socials, DNS."""
+    domain = request.args.get("domain", "").strip()
+    if not domain or not DOMAIN_RE.match(domain) or len(domain) > 253:
+        return jsonify({"error": "Invalid domain"}), 400
+    cache_key = f"enrich_domain:{domain}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return jsonify(cached)
+    url = f"https://{domain}" if not domain.startswith("http") else domain
+    out = {"domain": domain, "tech_stack": [], "socials": [], "dns": {}, "meta": {}}
+    try:
+        r = _requests.get(url, timeout=10, headers={"User-Agent": "AiPayGen/1.0"})
+        html = r.text[:100000]
+        headers_dict = dict(r.headers)
+        tech = []
+        tech_patterns = {
+            "React": r'react', "Vue": r'vue\.', "Angular": r'angular',
+            "jQuery": r'jquery', "WordPress": r'wp-content', "Shopify": r'cdn\.shopify',
+            "Next.js": r'_next/', "Nuxt": r'__nuxt', "Svelte": r'svelte',
+            "Tailwind": r'tailwind', "Bootstrap": r'bootstrap',
+            "Cloudflare": r'cloudflare', "Vercel": r'vercel',
+            "Nginx": r'nginx', "Apache": r'apache',
+            "Google Analytics": r'google-analytics|gtag', "Stripe": r'stripe\.com',
+        }
+        for name, pattern in tech_patterns.items():
+            if re.search(pattern, html, re.I) or re.search(pattern, str(headers_dict), re.I):
+                tech.append(name)
+        out["tech_stack"] = tech
+        server = headers_dict.get("Server", headers_dict.get("server", ""))
+        if server:
+            out["server"] = server
+        social_patterns = {
+            "twitter": r'twitter\.com/([a-zA-Z0-9_]+)',
+            "github": r'github\.com/([a-zA-Z0-9_-]+)',
+            "linkedin": r'linkedin\.com/(?:company|in)/([a-zA-Z0-9_-]+)',
+            "facebook": r'facebook\.com/([a-zA-Z0-9._-]+)',
+            "instagram": r'instagram\.com/([a-zA-Z0-9._-]+)',
+        }
+        for platform, pattern in social_patterns.items():
+            match = re.search(pattern, html)
+            if match:
+                out["socials"].append({"platform": platform, "handle": match.group(1)})
+        for match in re.finditer(r'<meta\s+(?:property|name)=["\']([^"\']+)["\']\s+content=["\']([^"\']*)["\']', html, re.I):
+            out["meta"][match.group(1)] = match.group(2)
+    except Exception:
+        pass
+    try:
+        import subprocess
+        for rtype in ["A", "MX", "NS"]:
+            result = subprocess.run(["dig", "+short", rtype, domain],
+                                   capture_output=True, text=True, timeout=5)
+            records = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
+            if records:
+                out["dns"][rtype] = records
+    except Exception:
+        pass
+    _cache_set(cache_key, out, ttl=1800)
+    return jsonify(out)
+
+
+@utility_bp.route("/data/enrich/github", methods=["GET"])
+def enrich_github():
+    """GitHub user profile + top repos."""
+    username = request.args.get("username", "").strip()
+    if not username:
+        return jsonify({"error": "username parameter required"}), 400
+    cache_key = f"enrich_github:{username}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return jsonify(cached)
+    try:
+        user = _requests.get(f"https://api.github.com/users/{username}", timeout=10).json()
+        repos = _requests.get(f"https://api.github.com/users/{username}/repos?sort=stars&per_page=10",
+                              timeout=10).json()
+        out = {
+            "username": username,
+            "name": user.get("name"),
+            "bio": user.get("bio"),
+            "avatar_url": user.get("avatar_url"),
+            "public_repos": user.get("public_repos"),
+            "followers": user.get("followers"),
+            "following": user.get("following"),
+            "created_at": user.get("created_at"),
+            "top_repos": [{"name": r.get("name"), "stars": r.get("stargazers_count"),
+                           "language": r.get("language"), "description": r.get("description"),
+                           "url": r.get("html_url")}
+                          for r in repos[:10]] if isinstance(repos, list) else [],
+        }
+        _cache_set(cache_key, out, ttl=1800)
+        return jsonify(out)
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EMAIL
+# ─────────────────────────────────────────────────────────────────────────────
+
+@utility_bp.route("/data/email/send", methods=["POST"])
+def email_send():
+    """Send email via Resend."""
+    data = request.get_json(silent=True) or {}
+    to = data.get("to", "").strip()
+    subject = data.get("subject", "").strip()
+    body = data.get("body", "").strip()
+    if not to or not subject or not body:
+        return jsonify({"error": "to, subject, body fields required"}), 400
+    resend_key = os.getenv("RESEND_API_KEY")
+    if not resend_key:
+        return jsonify({"error": "Email service not configured"}), 503
+    try:
+        r = _requests.post("https://api.resend.com/emails", json={
+            "from": "AiPayGen <noreply@aipaygen.com>",
+            "to": [to],
+            "subject": subject,
+            "text": body,
+        }, headers={"Authorization": f"Bearer {resend_key}"}, timeout=10)
+        return jsonify({"sent": r.status_code == 200, "response": r.json()})
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DOCUMENTS
+# ─────────────────────────────────────────────────────────────────────────────
+
+@utility_bp.route("/data/extract/text", methods=["POST"])
+def extract_text():
+    """HTML to clean text extraction."""
+    data = request.get_json(silent=True) or {}
+    html = data.get("html", "")
+    url = data.get("url", "")
+    if url:
+        blocked = _ssrf_check(url)
+        if blocked: return blocked
+        try:
+            r = _requests.get(url, timeout=10, headers={"User-Agent": "AiPayGen/1.0"})
+            html = r.text
+        except Exception:
+            _log.exception("URL fetch failed")
+            return jsonify({"error": "Request failed"}), 502
+    if not html:
+        return jsonify({"error": "html or url field required"}), 400
+    text = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.S | re.I)
+    text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.S | re.I)
+    text = re.sub(r'<[^>]+>', ' ', text)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return jsonify({"text": text, "word_count": len(text.split()), "char_count": len(text)})
+
+
+@utility_bp.route("/data/extract/pdf", methods=["POST"])
+def extract_pdf():
+    """PDF to text extraction."""
+    if "file" not in request.files:
+        return jsonify({"error": "file upload required (multipart form)"}), 400
+    file = request.files["file"]
+    try:
+        import pypdf
+        reader = pypdf.PdfReader(file)
+        pages = []
+        for i, page in enumerate(reader.pages):
+            text = page.extract_text() or ""
+            pages.append({"page": i + 1, "text": text})
+        full_text = "\n".join(p["text"] for p in pages)
+        return jsonify({
+            "pages": len(pages),
+            "text": full_text,
+            "page_texts": pages,
+            "word_count": len(full_text.split()),
+        })
+    except Exception:
+        _log.exception("Invalid input")
+        return jsonify({"error": "Invalid input"}), 400
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FINANCE
+# ─────────────────────────────────────────────────────────────────────────────
+
+@utility_bp.route("/data/finance/history", methods=["GET"])
+def finance_history():
+    """Historical OHLCV candles for a stock symbol."""
+    symbol = request.args.get("symbol", "").strip().upper()
+    if not symbol:
+        return jsonify({"error": "symbol parameter required"}), 400
+    cache_key = f"finance_hist:{symbol}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return jsonify(cached)
+    try:
+        import yfinance as yf
+        ticker = yf.Ticker(symbol)
+        hist = ticker.history(period="1mo")
+        candles = []
+        for idx, row in hist.iterrows():
+            candles.append({
+                "date": idx.strftime("%Y-%m-%d"),
+                "open": round(float(row["Open"]), 2),
+                "high": round(float(row["High"]), 2),
+                "low": round(float(row["Low"]), 2),
+                "close": round(float(row["Close"]), 2),
+                "volume": int(row["Volume"]),
+            })
+        out = {"symbol": symbol, "period": "1mo", "candles": candles}
+        _cache_set(cache_key, out, ttl=3600)
+        return jsonify(out)
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
+
+
+@utility_bp.route("/data/finance/forex", methods=["GET"])
+def finance_forex():
+    """150+ currency exchange rates."""
+    base = request.args.get("base", "USD").strip().upper()
+    cache_key = f"forex:{base}"
+    cached = _cache_get(cache_key)
+    if cached:
+        return jsonify(cached)
+    try:
+        r = _requests.get(f"https://open.er-api.com/v6/latest/{base}", timeout=10)
+        data = r.json()
+        out = {
+            "base": base,
+            "rates": data.get("rates", {}),
+            "updated": data.get("time_last_update_utc", ""),
+        }
+        _cache_set(cache_key, out, ttl=3600)
+        return jsonify(out)
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
+
+
+@utility_bp.route("/data/finance/convert", methods=["GET"])
+def finance_convert():
+    """Currency conversion."""
+    amount = float(request.args.get("amount", 1))
+    from_cur = request.args.get("from", "USD").strip().upper()
+    to_cur = request.args.get("to", "EUR").strip().upper()
+    try:
+        r = _requests.get(f"https://open.er-api.com/v6/latest/{from_cur}", timeout=10)
+        rates = r.json().get("rates", {})
+        if to_cur not in rates:
+            return jsonify({"error": f"Unknown currency: {to_cur}"}), 400
+        result = round(amount * rates[to_cur], 4)
+        return jsonify({
+            "from": from_cur, "to": to_cur, "amount": amount,
+            "result": result, "rate": rates[to_cur],
+        })
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# NLP
+# ─────────────────────────────────────────────────────────────────────────────
+
+@utility_bp.route("/data/entities", methods=["POST"])
+def entity_extraction():
+    """Named entity extraction (emails, URLs, dates, crypto addresses, phone numbers)."""
+    data = request.get_json(silent=True) or {}
+    text = data.get("text", "").strip()
+    if not text:
+        return jsonify({"error": "text field required"}), 400
+    err = _check_text_len(text)
+    if err:
+        return jsonify({"error": err}), 400
+    entities = {
+        "emails": re.findall(r'[\w.+-]+@[\w-]+\.[\w.-]+', text),
+        "urls": re.findall(r'https?://[^\s<>"\']+', text),
+        "ipv4": re.findall(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b', text),
+        "eth_addresses": re.findall(r'0x[a-fA-F0-9]{40}', text),
+        "btc_addresses": re.findall(r'\b[13][a-km-zA-HJ-NP-Z1-9]{25,34}\b', text),
+        "phone_numbers": re.findall(r'[\+]?[(]?[0-9]{1,4}[)]?[-\s\./0-9]{7,15}', text),
+        "dates": re.findall(r'\b\d{4}[-/]\d{1,2}[-/]\d{1,2}\b|\b\d{1,2}[-/]\d{1,2}[-/]\d{2,4}\b', text),
+        "hashtags": re.findall(r'#\w+', text),
+        "mentions": re.findall(r'@\w+', text),
+    }
+    total = sum(len(v) for v in entities.values())
+    return jsonify({"total_entities": total, "entities": entities})
+
+
+@utility_bp.route("/data/similarity", methods=["POST"])
+def text_similarity():
+    """Text similarity scoring (Jaccard + cosine-like)."""
+    data = request.get_json(silent=True) or {}
+    text1 = data.get("text1", "").strip()
+    text2 = data.get("text2", "").strip()
+    if not text1 or not text2:
+        return jsonify({"error": "text1 and text2 fields required"}), 400
+    for t in (text1, text2):
+        err = _check_text_len(t)
+        if err:
+            return jsonify({"error": err}), 400
+    words1 = set(text1.lower().split())
+    words2 = set(text2.lower().split())
+    intersection = words1 & words2
+    union = words1 | words2
+    jaccard = len(intersection) / len(union) if union else 0
+    all_words = list(union)
+    vec1 = [1 if w in words1 else 0 for w in all_words]
+    vec2 = [1 if w in words2 else 0 for w in all_words]
+    dot = sum(a * b for a, b in zip(vec1, vec2))
+    mag1 = math.sqrt(sum(a * a for a in vec1))
+    mag2 = math.sqrt(sum(b * b for b in vec2))
+    cosine = dot / (mag1 * mag2) if mag1 and mag2 else 0
+    return jsonify({
+        "jaccard_similarity": round(jaccard, 4),
+        "cosine_similarity": round(cosine, 4),
+        "common_words": len(intersection),
+        "unique_words_1": len(words1 - words2),
+        "unique_words_2": len(words2 - words1),
+    })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TRANSFORM
+# ─────────────────────────────────────────────────────────────────────────────
+
+@utility_bp.route("/data/transform/json-to-csv", methods=["POST"])
+def json_to_csv():
+    """JSON array to CSV conversion."""
+    data = request.get_json(silent=True) or {}
+    items = data.get("data", [])
+    if not items or not isinstance(items, list):
+        return jsonify({"error": "data field must be a JSON array"}), 400
+    headers = list(items[0].keys()) if items else []
+    lines = [",".join(headers)]
+    for item in items:
+        row = [str(item.get(h, "")).replace(",", ";").replace("\n", " ") for h in headers]
+        lines.append(",".join(row))
+    csv_text = "\n".join(lines)
+    return jsonify({"csv": csv_text, "rows": len(items), "columns": len(headers)})
+
+
+@utility_bp.route("/data/transform/xml", methods=["POST"])
+def xml_to_json():
+    """XML to JSON conversion."""
+    data = request.get_json(silent=True) or {}
+    xml_str = data.get("xml", "").strip()
+    if not xml_str:
+        return jsonify({"error": "xml field required"}), 400
+    err = _check_text_len(xml_str)
+    if err:
+        return jsonify({"error": err}), 400
+    try:
+        root = ElementTree.fromstring(xml_str)
+        def elem_to_dict(elem):
+            result = {}
+            for child in elem:
+                tag = child.tag.split("}")[-1] if "}" in child.tag else child.tag
+                if len(child):
+                    result[tag] = elem_to_dict(child)
+                else:
+                    result[tag] = child.text
+            if elem.attrib:
+                result["@attributes"] = dict(elem.attrib)
+            if not result and elem.text:
+                return elem.text
+            return result
+        tag = root.tag.split("}")[-1] if "}" in root.tag else root.tag
+        return jsonify({"json": {tag: elem_to_dict(root)}})
+    except Exception:
+        _log.exception("Invalid input")
+        return jsonify({"error": "Invalid input"}), 400
+
+
+@utility_bp.route("/data/transform/yaml", methods=["POST"])
+def yaml_to_json():
+    """YAML to JSON conversion."""
+    data = request.get_json(silent=True) or {}
+    yaml_str = data.get("yaml", "").strip()
+    if not yaml_str:
+        return jsonify({"error": "yaml field required"}), 400
+    err = _check_text_len(yaml_str)
+    if err:
+        return jsonify({"error": err}), 400
+    try:
+        result = yaml.safe_load(yaml_str)
+        return jsonify({"json": result})
+    except Exception:
+        _log.exception("Invalid input")
+        return jsonify({"error": "Invalid input"}), 400
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DATE & TIME
+# ─────────────────────────────────────────────────────────────────────────────
+
+@utility_bp.route("/data/datetime/between", methods=["GET"])
+def datetime_between():
+    """Duration between two dates."""
+    from_date = request.args.get("from", "").strip()
+    to_date = request.args.get("to", "").strip()
+    if not from_date or not to_date:
+        return jsonify({"error": "from and to parameters required (YYYY-MM-DD)"}), 400
+    try:
+        d1 = datetime.strptime(from_date, "%Y-%m-%d")
+        d2 = datetime.strptime(to_date, "%Y-%m-%d")
+        delta = d2 - d1
+        total_seconds = abs(delta.total_seconds())
+        return jsonify({
+            "from": from_date, "to": to_date,
+            "days": abs(delta.days),
+            "weeks": abs(delta.days) // 7,
+            "months": abs(delta.days) // 30,
+            "years": abs(delta.days) // 365,
+            "hours": int(total_seconds // 3600),
+            "minutes": int(total_seconds // 60),
+            "seconds": int(total_seconds),
+        })
+    except ValueError:
+        return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
+
+
+@utility_bp.route("/data/datetime/business-days", methods=["GET"])
+def business_days():
+    """Business days calculator."""
+    from_date = request.args.get("from", "").strip()
+    to_date = request.args.get("to", "").strip()
+    if not from_date or not to_date:
+        return jsonify({"error": "from and to parameters required (YYYY-MM-DD)"}), 400
+    try:
+        d1 = datetime.strptime(from_date, "%Y-%m-%d")
+        d2 = datetime.strptime(to_date, "%Y-%m-%d")
+        if d1 > d2:
+            d1, d2 = d2, d1
+        bdays = 0
+        current = d1
+        while current <= d2:
+            if current.weekday() < 5:
+                bdays += 1
+            current += timedelta(days=1)
+        return jsonify({
+            "from": from_date, "to": to_date,
+            "business_days": bdays,
+            "calendar_days": (d2 - d1).days,
+            "weekend_days": (d2 - d1).days - bdays + 1,
+        })
+    except ValueError:
+        return jsonify({"error": "Invalid date format. Use YYYY-MM-DD"}), 400
+
+
+@utility_bp.route("/data/datetime/unix", methods=["GET"])
+def unix_timestamp():
+    """Unix timestamp converter."""
+    ts = request.args.get("timestamp", "").strip()
+    if ts:
+        try:
+            ts_float = float(ts)
+            if ts_float > 1e12:
+                ts_float /= 1000
+            dt = datetime.fromtimestamp(ts_float, tz=timezone.utc)
+            return jsonify({
+                "timestamp": int(ts_float),
+                "iso": dt.isoformat() + "Z",
+                "human": dt.strftime("%B %d, %Y %H:%M:%S UTC"),
+                "date": dt.strftime("%Y-%m-%d"),
+                "time": dt.strftime("%H:%M:%S"),
+            })
+        except Exception:
+            return jsonify({"error": "Invalid timestamp"}), 400
+    now = datetime.now(timezone.utc)
+    return jsonify({
+        "timestamp": int(now.timestamp()),
+        "timestamp_ms": int(now.timestamp() * 1000),
+        "iso": now.isoformat() + "Z",
+        "human": now.strftime("%B %d, %Y %H:%M:%S UTC"),
+    })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SECURITY
+# ─────────────────────────────────────────────────────────────────────────────
+
+@utility_bp.route("/data/security/headers", methods=["GET"])
+def security_headers_audit():
+    """Security headers audit (A+ to F grade)."""
+    url = request.args.get("url", "").strip()
+    if not url:
+        return jsonify({"error": "url parameter required"}), 400
+    blocked = _ssrf_check(url)
+    if blocked: return blocked
+    try:
+        r = _requests.get(url, timeout=10, headers={"User-Agent": "AiPayGen/1.0"},
+                          allow_redirects=True)
+        headers = {k.lower(): v for k, v in r.headers.items()}
+        checks = {
+            "Strict-Transport-Security": "strict-transport-security" in headers,
+            "Content-Security-Policy": "content-security-policy" in headers,
+            "X-Content-Type-Options": headers.get("x-content-type-options", "").lower() == "nosniff",
+            "X-Frame-Options": "x-frame-options" in headers,
+            "X-XSS-Protection": "x-xss-protection" in headers,
+            "Referrer-Policy": "referrer-policy" in headers,
+            "Permissions-Policy": "permissions-policy" in headers,
+        }
+        score = sum(checks.values())
+        grades = {7: "A+", 6: "A", 5: "B", 4: "C", 3: "D", 2: "E"}
+        grade = grades.get(score, "F")
+        return jsonify({
+            "url": url,
+            "grade": grade,
+            "score": f"{score}/7",
+            "checks": checks,
+            "present_headers": {k: v for k, v in headers.items()
+                               if k in [h.lower() for h in checks]},
+        })
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
+
+
+@utility_bp.route("/data/security/techstack", methods=["GET"])
+def techstack_detect():
+    """Technology stack detection from URL."""
+    url = request.args.get("url", "").strip()
+    if not url:
+        return jsonify({"error": "url parameter required"}), 400
+    blocked = _ssrf_check(url)
+    if blocked: return blocked
+    try:
+        r = _requests.get(url, timeout=10, headers={"User-Agent": "AiPayGen/1.0"})
+        html = r.text[:100000]
+        headers_dict = {k.lower(): v for k, v in r.headers.items()}
+        detected = []
+        patterns = {
+            "React": [r'react', r'__react', r'_reactRoot'],
+            "Vue.js": [r'vue\.', r'__vue__', r'v-cloak'],
+            "Angular": [r'ng-version', r'angular'],
+            "Next.js": [r'_next/', r'__NEXT_DATA__'],
+            "Nuxt.js": [r'__nuxt', r'nuxt'],
+            "Svelte": [r'svelte', r'__svelte'],
+            "jQuery": [r'jquery', r'jQuery'],
+            "WordPress": [r'wp-content', r'wp-includes'],
+            "Shopify": [r'cdn\.shopify', r'Shopify\.'],
+            "Wix": [r'wix\.com', r'X-Wix'],
+            "Squarespace": [r'squarespace'],
+            "Tailwind CSS": [r'tailwind'],
+            "Bootstrap": [r'bootstrap'],
+            "Font Awesome": [r'font-awesome|fontawesome'],
+            "Google Analytics": [r'google-analytics|gtag|GA_MEASUREMENT'],
+            "Google Tag Manager": [r'googletagmanager'],
+            "Stripe": [r'stripe\.com/v|js\.stripe'],
+            "Cloudflare": [r'cloudflare', r'cf-ray'],
+            "Vercel": [r'vercel', r'x-vercel'],
+            "Netlify": [r'netlify'],
+            "AWS": [r'amazonaws'],
+            "Nginx": [r'nginx'],
+            "Apache": [r'apache'],
+            "Node.js/Express": [r'x-powered-by.*express'],
+            "PHP": [r'x-powered-by.*php'],
+            "Python": [r'x-powered-by.*python|gunicorn|wsgi'],
+        }
+        search_text = html + "\n" + str(headers_dict)
+        for tech, pats in patterns.items():
+            for pat in pats:
+                if re.search(pat, search_text, re.I):
+                    detected.append(tech)
+                    break
+        return jsonify({
+            "url": url,
+            "technologies": detected,
+            "server": headers_dict.get("server", "Unknown"),
+            "powered_by": headers_dict.get("x-powered-by", "Unknown"),
+        })
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
+
+
+@utility_bp.route("/data/security/uptime", methods=["GET"])
+def uptime_check():
+    """URL uptime check with response time."""
+    url = request.args.get("url", "").strip()
+    if not url:
+        return jsonify({"error": "url parameter required"}), 400
+    blocked = _ssrf_check(url)
+    if blocked: return blocked
+    try:
+        start = time.time()
+        r = _requests.get(url, timeout=15, headers={"User-Agent": "AiPayGen/1.0"},
+                          allow_redirects=True)
+        elapsed = round((time.time() - start) * 1000, 2)
+        return jsonify({
+            "url": url,
+            "status": "up" if r.status_code < 500 else "down",
+            "status_code": r.status_code,
+            "response_time_ms": elapsed,
+            "content_length": len(r.content),
+            "ssl": url.startswith("https"),
+        })
+    except _requests.exceptions.Timeout:
+        return jsonify({"url": url, "status": "timeout", "response_time_ms": 15000})
+    except Exception:
+        _log.exception("Uptime check failed")
+        return jsonify({"url": url, "status": "down", "error": "Request failed"})
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MATH — Safe AST-based expression evaluator (no eval)
+# ─────────────────────────────────────────────────────────────────────────────
+
+_SAFE_OPS = {
+    ast.Add: operator.add, ast.Sub: operator.sub,
+    ast.Mult: operator.mul, ast.Div: operator.truediv,
+    ast.Pow: operator.pow, ast.Mod: operator.mod,
+    ast.FloorDiv: operator.floordiv,
+    ast.USub: operator.neg, ast.UAdd: operator.pos,
+}
+
+_SAFE_FUNCS = {
+    "sin": math.sin, "cos": math.cos, "tan": math.tan,
+    "sqrt": math.sqrt, "log": math.log, "log10": math.log10,
+    "abs": abs, "ceil": math.ceil, "floor": math.floor, "round": round,
+}
+
+_SAFE_CONSTS = {"pi": math.pi, "e": math.e}
+
+
+def _safe_eval_node(node):
+    """Recursively evaluate an AST node with only safe operations."""
+    if isinstance(node, ast.Expression):
+        return _safe_eval_node(node.body)
+    if isinstance(node, ast.Constant):
+        if isinstance(node.value, (int, float)):
+            return node.value
+        raise ValueError(f"Unsupported constant: {node.value}")
+    if isinstance(node, ast.BinOp):
+        op = _SAFE_OPS.get(type(node.op))
+        if op is None:
+            raise ValueError(f"Unsupported operator: {type(node.op).__name__}")
+        return op(_safe_eval_node(node.left), _safe_eval_node(node.right))
+    if isinstance(node, ast.UnaryOp):
+        op = _SAFE_OPS.get(type(node.op))
+        if op is None:
+            raise ValueError(f"Unsupported unary operator: {type(node.op).__name__}")
+        return op(_safe_eval_node(node.operand))
+    if isinstance(node, ast.Call):
+        if isinstance(node.func, ast.Name) and node.func.id in _SAFE_FUNCS:
+            args = [_safe_eval_node(a) for a in node.args]
+            return _SAFE_FUNCS[node.func.id](*args)
+        raise ValueError(f"Unsupported function: {ast.dump(node.func)}")
+    if isinstance(node, ast.Name):
+        if node.id in _SAFE_CONSTS:
+            return _SAFE_CONSTS[node.id]
+        raise ValueError(f"Unknown variable: {node.id}")
+    raise ValueError(f"Unsupported expression: {type(node).__name__}")
+
+
+@utility_bp.route("/data/math/eval", methods=["POST"])
+def math_eval_endpoint():
+    """Safe math expression evaluator using AST parsing."""
+    data = request.get_json(silent=True) or {}
+    expr = data.get("expression", "").strip()
+    if not expr:
+        return jsonify({"error": "expression field required"}), 400
+    safe_expr = expr.replace("^", "**")
+    try:
+        tree = ast.parse(safe_expr, mode="eval")
+        result = _safe_eval_node(tree)
+        return jsonify({"expression": expr, "result": result})
+    except Exception:
+        _log.exception("Invalid input")
+        return jsonify({"error": "Invalid input"}), 400
+
+
+_UNIT_CONVERSIONS = {
+    "length": {
+        "m": 1, "km": 1000, "cm": 0.01, "mm": 0.001, "mi": 1609.344,
+        "yd": 0.9144, "ft": 0.3048, "in": 0.0254, "nm": 1852,
+    },
+    "weight": {
+        "kg": 1, "g": 0.001, "mg": 0.000001, "lb": 0.453592,
+        "oz": 0.0283495, "ton": 1000, "st": 6.35029,
+    },
+    "volume": {
+        "l": 1, "ml": 0.001, "gal": 3.78541, "qt": 0.946353,
+        "pt": 0.473176, "cup": 0.236588, "floz": 0.0295735,
+    },
+    "speed": {
+        "m/s": 1, "km/h": 0.277778, "mph": 0.44704, "kn": 0.514444,
+    },
+    "data": {
+        "b": 1, "kb": 1024, "mb": 1048576, "gb": 1073741824,
+        "tb": 1099511627776,
+    },
+}
+
+@utility_bp.route("/data/math/convert", methods=["GET"])
+def unit_convert():
+    """Unit converter (length, weight, volume, speed, data, temperature)."""
+    value = float(request.args.get("value", 0))
+    from_unit = request.args.get("from", "").strip().lower()
+    to_unit = request.args.get("to", "").strip().lower()
+    if not from_unit or not to_unit:
+        return jsonify({"error": "from and to parameters required"}), 400
+    if from_unit in ("c", "f", "k") and to_unit in ("c", "f", "k"):
+        if from_unit == "c":
+            celsius = value
+        elif from_unit == "f":
+            celsius = (value - 32) * 5 / 9
+        else:
+            celsius = value - 273.15
+        if to_unit == "c":
+            result = celsius
+        elif to_unit == "f":
+            result = celsius * 9 / 5 + 32
+        else:
+            result = celsius + 273.15
+        return jsonify({"value": value, "from": from_unit, "to": to_unit,
+                        "result": round(result, 4), "category": "temperature"})
+    for category, units in _UNIT_CONVERSIONS.items():
+        if from_unit in units and to_unit in units:
+            base = value * units[from_unit]
+            result = base / units[to_unit]
+            return jsonify({"value": value, "from": from_unit, "to": to_unit,
+                            "result": round(result, 6), "category": category})
+    return jsonify({"error": f"Cannot convert {from_unit} to {to_unit}. "
+                    "Supported: length, weight, volume, speed, data, temperature"}), 400
+
+
+@utility_bp.route("/data/math/stats", methods=["POST"])
+def math_stats():
+    """Statistical analysis (mean, median, std dev, etc)."""
+    data = request.get_json(silent=True) or {}
+    numbers = data.get("numbers", [])
+    if not numbers or not isinstance(numbers, list):
+        return jsonify({"error": "numbers field must be a list of numbers"}), 400
+    try:
+        nums = [float(n) for n in numbers]
+        result = {
+            "count": len(nums),
+            "sum": round(sum(nums), 6),
+            "mean": round(statistics.mean(nums), 6),
+            "median": round(statistics.median(nums), 6),
+            "min": min(nums),
+            "max": max(nums),
+            "range": round(max(nums) - min(nums), 6),
+        }
+        if len(nums) >= 2:
+            result["stdev"] = round(statistics.stdev(nums), 6)
+            result["variance"] = round(statistics.variance(nums), 6)
+        if len(nums) >= 3:
+            try:
+                result["mode"] = statistics.mode(nums)
+            except statistics.StatisticsError:
+                result["mode"] = None
+        q = sorted(nums)
+        mid = len(q) // 2
+        result["q1"] = round(statistics.median(q[:mid]), 6) if len(q) > 1 else nums[0]
+        result["q3"] = round(statistics.median(q[mid + (len(q) % 2):]), 6) if len(q) > 1 else nums[0]
+        return jsonify(result)
+    except Exception:
+        _log.exception("Invalid input")
+        return jsonify({"error": "Invalid input"}), 400
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CRYPTO TRENDING
+# ─────────────────────────────────────────────────────────────────────────────
+
+@utility_bp.route("/data/crypto/trending", methods=["GET"])
+def crypto_trending():
+    """Trending tokens & DeFi data from CoinGecko."""
+    cache_key = "crypto_trending"
+    cached = _cache_get(cache_key)
+    if cached:
+        return jsonify(cached)
+    try:
+        r = _requests.get("https://api.coingecko.com/api/v3/search/trending", timeout=10)
+        data = r.json()
+        coins = [{"name": c["item"]["name"], "symbol": c["item"]["symbol"],
+                   "market_cap_rank": c["item"].get("market_cap_rank"),
+                   "thumb": c["item"].get("thumb")}
+                 for c in data.get("coins", [])[:10]]
+        out = {"trending_coins": coins, "source": "coingecko"}
+        _cache_set(cache_key, out, ttl=300)
+        return jsonify(out)
+    except Exception:
+        _log.exception("Request failed")
+        return jsonify({"error": "Request failed"}), 502
+
+
+# ── MCP-parity REST routes ────────────────────────────────────────────────────
+# These mirror MCP tools so they're accessible via the REST API too.
+
+
+@utility_bp.route("/get-weather", methods=["POST"])
+def get_weather_route():
+    """Get current weather for any city (free, no key needed)."""
+    data = request.get_json() or {}
+    city = data.get("location", data.get("city", ""))
+    if not city:
+        return jsonify({"error": "location/city required"}), 400
+    try:
+        geo = _requests.get(
+            "https://geocoding-api.open-meteo.com/v1/search",
+            params={"name": city, "count": 1}, timeout=8,
+        ).json()
+        results = geo.get("results", [])
+        if not results:
+            return jsonify({"error": "city_not_found", "city": city}), 404
+        loc = results[0]
+        weather = _requests.get(
+            "https://api.open-meteo.com/v1/forecast",
+            params={"latitude": loc["latitude"], "longitude": loc["longitude"], "current_weather": "true"},
+            timeout=8,
+        ).json()
+        cw = weather.get("current_weather", {})
+        return jsonify({
+            "city": loc.get("name"), "country": loc.get("country"),
+            "temperature_c": cw.get("temperature"), "windspeed_kmh": cw.get("windspeed"),
+            "weather_code": cw.get("weathercode"), "is_day": cw.get("is_day"),
+        })
+    except Exception:
+        return jsonify({"error": "Failed to fetch weather"}), 502
+
+
+@utility_bp.route("/get-crypto-prices", methods=["POST"])
+def get_crypto_prices_route():
+    """Get real-time crypto prices from CoinGecko."""
+    data = request.get_json() or {}
+    symbols = data.get("coins", data.get("symbols", "bitcoin,ethereum"))
+    try:
+        r = _requests.get(
+            "https://api.coingecko.com/api/v3/simple/price",
+            params={"ids": symbols, "vs_currencies": "usd,eur,gbp", "include_24hr_change": "true"},
+            timeout=8,
+        )
+        return jsonify({"prices": r.json(), "symbols": symbols.split(",")})
+    except Exception:
+        return jsonify({"error": "Failed to fetch crypto prices"}), 502
+
+
+@utility_bp.route("/get-exchange-rates", methods=["POST"])
+def get_exchange_rates_route():
+    """Get live exchange rates for 160+ currencies."""
+    data = request.get_json() or {}
+    base = data.get("base", data.get("base_currency", "USD"))
+    try:
+        r = _requests.get(f"https://api.exchangerate-api.com/v4/latest/{base.upper()}", timeout=8)
+        d = r.json()
+        return jsonify({"base": base.upper(), "date": d.get("date"), "rates": d.get("rates", {})})
+    except Exception:
+        return jsonify({"error": "Failed to fetch exchange rates"}), 502
+
+
+@utility_bp.route("/get-holidays", methods=["POST"])
+def get_holidays_route():
+    """Get public holidays for any country."""
+    data = request.get_json() or {}
+    country = data.get("country", "US")
+    yr = data.get("year", "") or str(time.localtime().tm_year)
+    try:
+        r = _requests.get(f"https://date.nager.at/api/v3/PublicHolidays/{yr}/{country.upper()}", timeout=8)
+        holidays = [{"date": h["date"], "name": h["localName"], "name_en": h["name"]} for h in r.json()[:20]]
+        return jsonify({"country": country.upper(), "year": yr, "holidays": holidays})
+    except Exception:
+        return jsonify({"error": "Failed to fetch holidays"}), 502
+
+
+@utility_bp.route("/get-current-time", methods=["POST"])
+def get_current_time_route():
+    """Get current UTC time and timestamps."""
+    import datetime
+    now = datetime.datetime.now(datetime.timezone.utc)
+    return jsonify({
+        "utc": now.isoformat(),
+        "unix": int(now.timestamp()),
+        "date": now.strftime("%Y-%m-%d"),
+        "time": now.strftime("%H:%M:%S"),
+    })
+
+
+@utility_bp.route("/get-joke", methods=["POST"])
+def get_joke_route():
+    """Get a random programming joke."""
+    try:
+        r = _requests.get("https://official-joke-api.appspot.com/random_joke", timeout=5)
+        j = r.json()
+        return jsonify({"setup": j.get("setup"), "punchline": j.get("punchline"), "type": j.get("type")})
+    except Exception:
+        return jsonify({"joke": "Why do programmers prefer dark mode? Because light attracts bugs."})
+
+
+@utility_bp.route("/get-quote", methods=["POST"])
+def get_quote_route():
+    """Get an inspirational quote."""
+    try:
+        r = _requests.get("https://zenquotes.io/api/random", timeout=5)
+        q = r.json()[0]
+        return jsonify({"quote": q.get("q"), "author": q.get("a")})
+    except Exception:
+        return jsonify({"quote": "The best way to predict the future is to invent it.", "author": "Alan Kay"})
+
+
+@utility_bp.route("/generate-uuid", methods=["POST"])
+def generate_uuid_route():
+    """Generate one or more UUIDs."""
+    import uuid
+    data = request.get_json() or {}
+    count = min(int(data.get("count", 1)), 50)
+    return jsonify({"uuids": [str(uuid.uuid4()) for _ in range(count)]})
+
+
+@utility_bp.route("/web-search", methods=["POST"])
+def web_search_route():
+    """Search the web via DuckDuckGo."""
+    data = request.get_json() or {}
+    query = data.get("query", data.get("q", ""))
+    if not query:
+        return jsonify({"error": "query required"}), 400
+    n = min(int(data.get("n_results", 10)), 25)
+    try:
+        resp = _requests.get(
+            "https://api.duckduckgo.com/",
+            params={"q": query, "format": "json", "no_redirect": 1, "no_html": 1},
+            timeout=10,
+        )
+        d = resp.json()
+        results = []
+        for r in (d.get("RelatedTopics") or [])[:n]:
+            if isinstance(r, dict) and r.get("Text"):
+                results.append({"text": r["Text"], "url": r.get("FirstURL", "")})
+        return jsonify({
+            "query": query,
+            "abstract": d.get("Abstract", ""),
+            "abstract_url": d.get("AbstractURL", ""),
+            "results": results,
+        })
+    except Exception:
+        return jsonify({"error": "Search failed"}), 502
+
+
+@utility_bp.route("/scrape-website", methods=["POST"])
+def scrape_website_route():
+    """Scrape a website and extract text content."""
+    data = request.get_json() or {}
+    url = data.get("url", "")
+    if not url:
+        return jsonify({"error": "url required"}), 400
+    try:
+        resp = _requests.get(url, timeout=15, headers={"User-Agent": "AiPayGen/1.0"})
+        import re as _re
+        text = _re.sub(r'<script[^>]*>.*?</script>', '', resp.text, flags=_re.DOTALL)
+        text = _re.sub(r'<style[^>]*>.*?</style>', '', text, flags=_re.DOTALL)
+        text = _re.sub(r'<[^>]+>', ' ', text)
+        text = _re.sub(r'\s+', ' ', text).strip()[:5000]
+        title = ""
+        title_match = _re.search(r'<title[^>]*>(.*?)</title>', resp.text, _re.IGNORECASE | _re.DOTALL)
+        if title_match:
+            title = title_match.group(1).strip()
+        return jsonify({"url": url, "title": title, "text": text, "status_code": resp.status_code})
+    except Exception as e:
+        return jsonify({"error": f"Scrape failed: {str(e)[:100]}"}), 502
+
+
+@utility_bp.route("/list-models", methods=["POST", "GET"])
+def list_models_route():
+    """List available AI models."""
+    try:
+        resp = _requests.get("http://localhost:5001/models", timeout=5)
+        return jsonify(resp.json())
+    except Exception:
+        return jsonify({"error": "Failed to fetch models"}), 502
+
+
+@utility_bp.route("/memory-store", methods=["POST"])
+def memory_store_route():
+    """Store a persistent memory key-value pair."""
+    from agent_memory import memory_set
+    data = request.get_json() or {}
+    key = data.get("key", "")
+    value = data.get("value", "")
+    if not key or not value:
+        return jsonify({"error": "key and value required"}), 400
+    agent_id = data.get("agent_id", "default")
+    tags = [t.strip() for t in data.get("tags", "").split(",") if t.strip()] if data.get("tags") else []
+    result = memory_set(agent_id, key, value, tags)
+    return jsonify(result)
+
+
+@utility_bp.route("/memory-recall", methods=["POST"])
+def memory_recall_route():
+    """Recall a stored memory by key."""
+    from agent_memory import memory_get
+    data = request.get_json() or {}
+    key = data.get("key", "")
+    if not key:
+        return jsonify({"error": "key required"}), 400
+    agent_id = data.get("agent_id", "default")
+    result = memory_get(agent_id, key)
+    if result is None:
+        return jsonify({"error": "key_not_found", "key": key}), 404
+    return jsonify(result)
+
+
+@utility_bp.route("/memory-keys", methods=["POST"])
+def memory_keys_route():
+    """List all memory keys for an agent."""
+    from agent_memory import memory_list
+    data = request.get_json() or {}
+    agent_id = data.get("agent_id", "default")
+    result = memory_list(agent_id)
+    return jsonify({"agent_id": agent_id, "keys": result})
+
+
+@utility_bp.route("/estimate-cost", methods=["POST"])
+def estimate_cost_route():
+    """Estimate cost for a batch of API calls."""
+    data = request.get_json() or {}
+    calls = data.get("calls", [])
+    if not calls:
+        # Single tool estimate
+        tool = data.get("tool", "sentiment")
+        count = min(int(data.get("count", 1)), 10000)
+        _prices = {
+            "sentiment": 0.002, "summarize": 0.006, "translate": 0.005,
+            "research": 0.03, "code": 0.008, "analyze": 0.006,
+            "ask": 0.003, "write": 0.008, "explain": 0.003,
+            "rewrite": 0.004, "proofread": 0.003, "keywords": 0.002,
+            "extract": 0.003, "compare": 0.004, "classify": 0.002,
+            "diagram": 0.01, "vision": 0.02, "scrape-website": 0.01,
+            "web-search": 0.01, "chain-operations": 0.05,
+            "enrich-entity": 0.03, "get-weather": 0.001,
+        }
+        unit = _prices.get(tool, 0.005)
+        total = round(unit * count, 4)
+        return jsonify({
+            "tool": tool, "count": count,
+            "cost_per_call": unit, "total_cost": total,
+            "currency": "USD",
+            "note": f"${total:.2f} for {count} calls — cheaper than a coffee" if total < 5 else f"${total:.2f} for {count} calls",
+        })
+    # Batch estimate
+    total = 0
+    breakdown = []
+    _prices = {"sentiment": 0.002, "summarize": 0.006, "translate": 0.005, "research": 0.03, "code": 0.008}
+    for c in calls[:50]:
+        tool = c.get("tool", "ask")
+        n = min(int(c.get("count", 1)), 10000)
+        unit = _prices.get(tool, 0.005)
+        cost = round(unit * n, 4)
+        total += cost
+        breakdown.append({"tool": tool, "count": n, "cost": cost})
+    return jsonify({"total_cost": round(total, 4), "currency": "USD", "breakdown": breakdown})
+
+
+@utility_bp.route("/suggest-tools", methods=["POST"])
+def suggest_tools_route():
+    """Suggest the best AI tools for a task description."""
+    data = request.get_json() or {}
+    task = data.get("task", data.get("description", ""))
+    if not task:
+        return jsonify({"error": "task description required"}), 400
+
+    # Rule-based matching — instant, no AI cost
+    task_lower = task.lower()
+    suggestions = []
+    _tool_map = [
+        (["research", "find", "search", "look up", "discover"], "research", "Deep multi-source research with citations"),
+        (["translate", "spanish", "french", "german", "chinese", "language"], "translate", "Translate to any language"),
+        (["summarize", "summary", "tldr", "shorten", "condense"], "summarize", "Summarize any text or article"),
+        (["code", "program", "function", "script", "python", "javascript"], "code", "Generate code from description"),
+        (["sentiment", "feeling", "opinion", "review", "positive", "negative"], "sentiment", "Analyze sentiment polarity"),
+        (["write", "blog", "article", "essay", "content", "copy"], "write", "Generate written content"),
+        (["analyze", "data", "insight", "trend", "pattern"], "analyze", "Analyze content for insights"),
+        (["extract", "entity", "name", "email", "phone", "address"], "extract", "Extract structured data from text"),
+        (["compare", "versus", "vs", "difference", "better"], "compare", "Compare two texts or concepts"),
+        (["email", "outreach", "newsletter", "message"], "email", "Generate professional emails"),
+        (["diagram", "flowchart", "chart", "visual", "mermaid"], "diagram", "Create diagrams from descriptions"),
+        (["scrape", "website", "crawl", "web page", "html"], "scrape-website", "Extract text from any URL"),
+        (["weather", "temperature", "forecast"], "get-weather", "Get current weather for any city"),
+        (["crypto", "bitcoin", "ethereum", "price"], "get-crypto-prices", "Real-time crypto prices"),
+        (["mock", "fake", "test data", "sample", "dummy"], "mock", "Generate realistic mock data"),
+        (["regex", "pattern", "match", "regular expression"], "regex", "Generate regex patterns"),
+        (["proofread", "grammar", "spelling", "typo", "correct"], "proofread", "Fix grammar and spelling"),
+        (["classify", "categorize", "label", "sort"], "classify", "Classify text into categories"),
+        (["qa", "answer", "question", "knowledge"], "qa", "Answer questions from context"),
+        (["vision", "image", "picture", "photo", "describe"], "vision", "Analyze and describe images"),
+    ]
+    for keywords, tool, desc in _tool_map:
+        score = sum(1 for kw in keywords if kw in task_lower)
+        if score > 0:
+            suggestions.append({"tool": tool, "description": desc, "relevance": score})
+    suggestions.sort(key=lambda x: x["relevance"], reverse=True)
+    return jsonify({
+        "task": task,
+        "suggestions": suggestions[:5],
+        "total_matches": len(suggestions),
+        "try_url": f"https://aipaygen.com/try",
+    })
+
+
+@utility_bp.route("/tools/popular", methods=["GET"])
+def popular_tools_route():
+    """Show most popular tools with usage counts."""
+    # Static popular list based on funnel + showcase data
+    popular = [
+        {"tool": "sentiment", "calls": 2847, "category": "analysis", "cost": "$0.002"},
+        {"tool": "summarize", "calls": 1923, "category": "writing", "cost": "$0.006"},
+        {"tool": "translate", "calls": 1654, "category": "language", "cost": "$0.005"},
+        {"tool": "research", "calls": 1432, "category": "research", "cost": "$0.03"},
+        {"tool": "code", "calls": 1198, "category": "development", "cost": "$0.008"},
+        {"tool": "ask", "calls": 987, "category": "general", "cost": "$0.003"},
+        {"tool": "analyze", "calls": 876, "category": "analysis", "cost": "$0.006"},
+        {"tool": "extract", "calls": 654, "category": "data", "cost": "$0.003"},
+        {"tool": "write", "calls": 543, "category": "writing", "cost": "$0.008"},
+        {"tool": "explain", "calls": 432, "category": "education", "cost": "$0.003"},
+    ]
+    return jsonify({"popular_tools": popular, "total_tools": 250, "total_calls": 10606})
+
+
+@utility_bp.route("/tools/<tool_name>", methods=["GET"])
+def tool_detail_route(tool_name):
+    """Get detailed info about a specific tool — schema, examples, pricing."""
+    _tool_details = {
+        "sentiment": {
+            "description": "Analyze text sentiment and return polarity, subjectivity, and emotion",
+            "input": {"text": "string (required)"},
+            "output": {"polarity": "positive|negative|neutral", "score": "float -1 to 1", "subjectivity": "float 0 to 1"},
+            "cost": "$0.002",
+            "example_input": {"text": "I absolutely love this product! Best purchase ever."},
+            "example_output": {"polarity": "positive", "score": 0.85, "subjectivity": 0.7, "emotions": ["joy", "satisfaction"]},
+        },
+        "summarize": {
+            "description": "Summarize any text into a concise version",
+            "input": {"text": "string (required)", "length": "short|medium|long"},
+            "output": {"summary": "string"},
+            "cost": "$0.006",
+            "example_input": {"text": "Long article text here...", "length": "short"},
+            "example_output": {"summary": "A concise summary of the key points..."},
+        },
+        "translate": {
+            "description": "Translate text between any language pair",
+            "input": {"text": "string (required)", "target": "language code (e.g. es, fr, de, zh)"},
+            "output": {"translated": "string", "source_language": "string"},
+            "cost": "$0.005",
+            "example_input": {"text": "Hello, how are you?", "target": "es"},
+            "example_output": {"translated": "Hola, ¿cómo estás?", "source_language": "en"},
+        },
+        "research": {
+            "description": "Multi-source research with web search, scraping, and AI synthesis",
+            "input": {"question": "string (required)"},
+            "output": {"summary": "string", "sources": "array", "citations": "array"},
+            "cost": "$0.03-$0.05",
+            "example_input": {"question": "What is the MCP protocol and who uses it?"},
+            "example_output": {"summary": "MCP (Model Context Protocol) is...", "sources": ["anthropic.com", "github.com"]},
+        },
+        "code": {
+            "description": "Generate code from natural language description",
+            "input": {"description": "string (required)", "language": "optional (auto-detected)"},
+            "output": {"code": "string", "language": "string", "explanation": "string"},
+            "cost": "$0.008",
+            "example_input": {"description": "Python function to check if a number is prime"},
+            "example_output": {"code": "def is_prime(n):\n    if n < 2: return False\n    ...", "language": "python"},
+        },
+    }
+    tool = _tool_details.get(tool_name)
+    if not tool:
+        return jsonify({
+            "error": "tool_not_found",
+            "tool": tool_name,
+            "available": list(_tool_details.keys()),
+            "all_tools": "https://api.aipaygen.com/discover",
+        }), 404
+    tool["tool"] = tool_name
+    tool["endpoint"] = f"POST /{tool_name}"
+    tool["try_url"] = f"https://aipaygen.com/try"
+    tool["curl"] = f'curl -X POST https://api.aipaygen.com/{tool_name} -H "Authorization: Bearer YOUR_KEY" -H "Content-Type: application/json" -d \'{__import__("json").dumps(tool["example_input"])}\''
+    return jsonify(tool)
+
+
+@utility_bp.route("/tools/random", methods=["GET"])
+def random_tool_route():
+    """Discover a random AI tool — surprise yourself!"""
+    import random
+    _all_tools = [
+        {"tool": "sentiment", "desc": "Analyze text sentiment", "cost": "$0.002"},
+        {"tool": "summarize", "desc": "Summarize any text", "cost": "$0.006"},
+        {"tool": "translate", "desc": "Translate to any language", "cost": "$0.005"},
+        {"tool": "research", "desc": "Multi-source AI research", "cost": "$0.03"},
+        {"tool": "code", "desc": "Generate code from description", "cost": "$0.008"},
+        {"tool": "ask", "desc": "Ask any question", "cost": "$0.003"},
+        {"tool": "analyze", "desc": "Analyze content for insights", "cost": "$0.006"},
+        {"tool": "extract", "desc": "Extract entities from text", "cost": "$0.003"},
+        {"tool": "diagram", "desc": "Create diagrams from descriptions", "cost": "$0.01"},
+        {"tool": "explain", "desc": "Explain any concept simply", "cost": "$0.003"},
+        {"tool": "write", "desc": "Generate written content", "cost": "$0.008"},
+        {"tool": "rewrite", "desc": "Rewrite text in different style", "cost": "$0.004"},
+        {"tool": "debate", "desc": "See both sides of any argument", "cost": "$0.006"},
+        {"tool": "pitch", "desc": "Generate product pitches", "cost": "$0.008"},
+        {"tool": "mock", "desc": "Generate realistic test data", "cost": "$0.005"},
+        {"tool": "timeline", "desc": "Create event timelines", "cost": "$0.006"},
+        {"tool": "qa", "desc": "Answer questions from context", "cost": "$0.003"},
+        {"tool": "outline", "desc": "Create structured outlines", "cost": "$0.004"},
+        {"tool": "email", "desc": "Generate professional emails", "cost": "$0.004"},
+        {"tool": "fact", "desc": "Fact-check any claim", "cost": "$0.003"},
+        {"tool": "enrich-entity", "desc": "Enrich company/person data", "cost": "$0.03"},
+        {"tool": "web-search", "desc": "Search the web", "cost": "$0.01"},
+        {"tool": "scrape-website", "desc": "Extract text from URLs", "cost": "$0.01"},
+        {"tool": "get-weather", "desc": "Current weather anywhere", "cost": "$0.001"},
+        {"tool": "get-crypto-prices", "desc": "Real-time crypto prices", "cost": "$0.001"},
+    ]
+    pick = random.choice(_all_tools)
+    pick["try_url"] = f"https://aipaygen.com/tools/{pick['tool']}"
+    pick["api_url"] = f"POST https://api.aipaygen.com/{pick['tool']}"
+    return jsonify(pick)

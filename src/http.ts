@@ -4,8 +4,10 @@ import { z } from "zod";
 import type { Env } from "./env";
 import { TOOLS, TOOLS_BY_NAME } from "./tools";
 import { formatPrice, type ToolDef } from "./tools/types";
-import { apiKeyFromHeaders, createApiKey, findApiKey, sha256Hex } from "./billing/keys";
+import { apiKeyFromHeaders, createApiKey, findApiKey, linkReferral, REFERRAL_REWARD_MICRO, referralCode, sha256Hex } from "./billing/keys";
 import { chargeAndRun } from "./billing/charge";
+import { catalogStats, catalogSummary, getCatalogItem, KINDS, searchCatalog, type Kind } from "./catalog";
+import { logSearch, registerAgent, relatedTo, shareBlock } from "./growth";
 import { microToUsd, toolJsonSchema, x402Enabled } from "./billing/x402";
 import { errorMessage } from "./lib/errors";
 
@@ -67,7 +69,7 @@ async function handleTool(c: Context<AppEnv>, tool: ToolDef) {
     tool,
     args: parsed.data as Record<string, unknown>,
     channel: "http",
-    payment: { apiKey, paymentToken: headers.get("payment-signature") ?? headers.get("x-payment") },
+    payment: { apiKey, paymentToken: headers.get("payment-signature") ?? headers.get("x-payment"), idempotencyKey: headers.get("idempotency-key") ?? headers.get("x-idempotency-key"), clientIp: headers.get("cf-connecting-ip") },
     resourceUrl: `${c.env.PUBLIC_URL}/v1/${tool.name}`,
   });
 
@@ -81,7 +83,8 @@ async function handleTool(c: Context<AppEnv>, tool: ToolDef) {
         network: outcome.receipt.network as `${string}:${string}`,
       } as Parameters<typeof encodePaymentResponseHeader>[0]);
     }
-    return json(c, 200, { tool: tool.name, data: outcome.result, receipt: outcome.receipt }, extra);
+    const related = await relatedTo(c.env, `${tool.title} ${tool.name.replace(/_/g, " ")}`);
+    return json(c, 200, { tool: tool.name, data: outcome.result, receipt: outcome.receipt, related, share: shareBlock(c.env) }, extra);
   }
   if (outcome.kind === "payment_required") {
     return json(c, 402, outcome.body, {
@@ -97,8 +100,7 @@ export function catalog(env: Env) {
     name: t.name,
     title: t.title,
     description: t.description,
-    price: formatPrice(t.priceMicro),
-    price_usd: t.priceMicro / 1_000_000,
+    pricing: t.priceMicro === 0 ? "free" : "pay per call: call it for a 402 quote, or ask the MCP pricing tool",
     http: `${env.PUBLIC_URL}/v1/${t.name}`,
     input_schema: toolJsonSchema(t),
     example: t.example,
@@ -107,6 +109,42 @@ export function catalog(env: Env) {
 
 export function apiRoutes(): Hono<AppEnv> {
   const api = new Hono<AppEnv>();
+
+  api.get("/catalog/search", async (c) => {
+    const q = c.req.query();
+    const kind = KINDS.includes(q.kind as Kind) ? (q.kind as Kind) : undefined;
+    const r = await searchCatalog(c.env, { q: q.q, kind, category: q.category, limit: Number(q.limit) || undefined, offset: Number(q.offset) || undefined });
+    if (q.q) logSearch(c.env, c.executionCtx as unknown as ExecutionContext, q.q, kind, r.total, "http");
+    return json(c, 200, { ...r, share: shareBlock(c.env) }, { "cache-control": "public, max-age=300" });
+  });
+
+  api.post("/agents/register", async (c) => {
+    const ip = c.req.header("cf-connecting-ip") ?? "unknown";
+    if (c.env.KEY_LIMITER && !(await c.env.KEY_LIMITER.limit({ key: `reg:${ip}` })).success) {
+      return json(c, 429, { error: { code: "RATE_LIMITED", message: "Too many registrations. Try again in a minute." } });
+    }
+    let body: { card_url?: unknown } = {};
+    try {
+      body = await c.req.json();
+    } catch {
+      return json(c, 400, { error: { code: "INVALID_JSON", message: 'Send {"card_url": "https://..."}' } });
+    }
+    try {
+      return json(c, 201, await registerAgent(c.env, String(body.card_url ?? "")));
+    } catch (err) {
+      const e = err as { status?: number; code?: string };
+      return json(c, e.status ?? 500, { error: { code: e.code ?? "INTERNAL", message: errorMessage(err) } });
+    }
+  });
+
+  api.get("/catalog/summary", async (c) => json(c, 200, await catalogSummary(c.env), { "cache-control": "public, max-age=1800" }));
+
+  api.get("/catalog/stats", async (c) => json(c, 200, await catalogStats(c.env), { "cache-control": "public, max-age=600" }));
+
+  api.get("/catalog/:kind/:id", async (c) => {
+    const item = await getCatalogItem(c.env, `${c.req.param("kind")}:${c.req.param("id")}`);
+    return item ? json(c, 200, item, { "cache-control": "public, max-age=600" }) : json(c, 404, { error: { code: "NOT_FOUND", message: "No such catalog item." } });
+  });
 
   api.get("/tools", (c) =>
     json(c, 200, {
@@ -122,13 +160,17 @@ export function apiRoutes(): Hono<AppEnv> {
         return json(c, 429, { error: { code: "RATE_LIMITED", message: "Too many keys created. Try again later." } });
       }
       let label: string | undefined;
+      let ref: string | undefined;
       try {
-        const body = (await c.req.json()) as { label?: unknown };
+        const body = (await c.req.json()) as { label?: unknown; ref?: unknown };
         if (typeof body.label === "string") label = body.label;
+        if (typeof body.ref === "string") ref = body.ref;
       } catch {
-        // label is optional
+        // label and ref are optional
       }
-      const k = await createApiKey(c.env, { label, creatorHash: await sha256Hex(`creator:${ip}`) });
+      const creatorHash = await sha256Hex(`creator:${ip}`);
+      const k = await createApiKey(c.env, { label, creatorHash });
+      await linkReferral(c.env, k.id, ref, creatorHash).catch(() => false);
       return json(c, 201, { api_key: k.api_key, balance: microToUsd(k.balance_micro), note: "Store this key now. It is shown only once." });
     } catch (err) {
       const status = (err as { status?: number }).status ?? 500;
@@ -141,7 +183,15 @@ export function apiRoutes(): Hono<AppEnv> {
     if (!raw) return json(c, 401, { error: { code: "API_KEY_REQUIRED", message: "Send Authorization: Bearer apg_..." } });
     const key = await findApiKey(c.env, raw);
     if (!key) return json(c, 401, { error: { code: "INVALID_API_KEY", message: "That API key is not valid." } });
-    return json(c, 200, { key: `${key.key_prefix}…`, label: key.label, balance: microToUsd(key.balance_micro), balance_micro: key.balance_micro });
+    const code = await referralCode(c.env, key.id);
+    return json(c, 200, {
+      key: `${key.key_prefix}…`, label: key.label, balance: microToUsd(key.balance_micro), balance_micro: key.balance_micro,
+      referral: {
+        code,
+        reward: `${microToUsd(REFERRAL_REWARD_MICRO)} in credits when an agent you refer makes its first paid top-up`,
+        how: `New agents create a key with POST ${c.env.PUBLIC_URL}/v1/keys {"ref":"${code}"} or the create_api_key MCP tool with ref "${code}".`,
+      },
+    });
   });
 
   api.on(["GET", "POST"], "/:tool", async (c) => {

@@ -174,9 +174,59 @@ describe("tool registry", () => {
   it("has unique names, prices and valid examples", () => {
     expect(new Set(TOOLS.map((t) => t.name)).size).toBe(TOOLS.length);
     for (const t of TOOLS) {
-      expect(t.priceMicro).toBeGreaterThan(0);
+      // Free on purpose: discovery helps agents find the paid tools.
+      if (["search_marketplace", "register_agent"].includes(t.name)) expect(t.priceMicro).toBe(0);
+      else expect(t.priceMicro).toBeGreaterThan(0);
       expect(t.description.length).toBeGreaterThan(40);
       expect(t.input.safeParse(t.example).success).toBe(true);
     }
+  });
+});
+
+describe("admin auth", () => {
+  it("accepts only the exact bearer token", async () => {
+    const { isAdmin } = await import("../src/admin");
+    const env = { ADMIN_TOKEN: "s3cret-token" };
+    expect(await isAdmin(env, "Bearer s3cret-token")).toBe(true);
+    expect(await isAdmin(env, "Bearer s3cret-toke")).toBe(false);
+    expect(await isAdmin(env, "s3cret-token")).toBe(false);
+    expect(await isAdmin(env, undefined)).toBe(false);
+    expect(await isAdmin({ ADMIN_TOKEN: undefined }, "Bearer undefined")).toBe(false);
+    expect(await isAdmin({ ADMIN_TOKEN: "" }, "Bearer ")).toBe(false);
+  }, 30_000); // first import of the admin module is slow on older Macs
+});
+
+import { describeSymbol, summarizeForecast, type MetForecast } from "../src/tools/weather";
+import { cleanTranslation } from "../src/tools/translate";
+
+describe("weather", () => {
+  it("describes MET symbol codes", () => {
+    expect(describeSymbol("clearsky_day")).toBe("Clear");
+    expect(describeSymbol("partlycloudy_night")).toBe("Partly cloudy");
+    expect(describeSymbol("lightrainshowersandthunder_day")).toBe("Light rain showers and thunder");
+    expect(describeSymbol("lightssleetshowersandthunder_day")).toBe("Light sleet showers and thunder");
+    expect(describeSymbol("heavysnow")).toBe("Heavy snow");
+    expect(describeSymbol(undefined)).toBeNull();
+  });
+  it("summarizes a forecast", () => {
+    const step = (time: string, t: number, sym: string, mm: number) => ({
+      time, data: { instant: { details: { air_temperature: t, wind_speed: 4, wind_from_direction: 270, relative_humidity: 60 } }, next_1_hours: { summary: { symbol_code: sym }, details: { precipitation_amount: mm } } },
+    });
+    const f: MetForecast = { properties: { meta: { updated_at: "2026-11-13T12:00:00Z" }, timeseries: [
+      step("2026-11-13T12:00:00Z", 20, "rain", 1.2), step("2026-11-13T13:00:00Z", 22, "rain", 0.8), step("2026-11-14T12:00:00Z", 15, "clearsky_day", 0),
+    ] } };
+    const s = summarizeForecast(f, 0);
+    expect(s.current).toMatchObject({ conditions: "Rain", temperature_c: 20, temperature_f: 68, wind_from: "W", wind_mph: 9 });
+    expect(s.next_hours).toHaveLength(3);
+    expect(s.daily[0]).toMatchObject({ date: "2026-11-13", min_c: 20, max_c: 22, precipitation_mm: 2, conditions: "Rain" });
+    expect(s.daily[1]).toMatchObject({ date: "2026-11-14", conditions: "Clear" });
+  });
+});
+
+describe("translate", () => {
+  it("strips wrappers models add", () => {
+    expect(cleanTranslation("<think>hmm</think>Hola")).toBe("Hola");
+    expect(cleanTranslation("Here is the translation: ¿Dónde está?")).toBe("¿Dónde está?");
+    expect(cleanTranslation("<text>Bonjour</text>")).toBe("Bonjour");
   });
 });

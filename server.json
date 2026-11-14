@@ -1,9 +1,9 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.Damien829/aipaygen",
-  "title": "AIPayGen Site Intel",
-  "description": "Website and company intel for agents: DNS, WHOIS, SSL, tech stack, email security, profiles",
-  "version": "2.0.0",
+  "title": "AIPayGen",
+  "description": "17k+ agent APIs, MCP servers and skills to search, plus an x402 facilitator and pay-per-call tools",
+  "version": "2.1.0",
   "repository": {
     "url": "https://github.com/Damien829/aipaygen",
     "source": "github"

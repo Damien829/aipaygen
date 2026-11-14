@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Changelog{% endblock %}
+{% block description %}AiPayGen platform changelog — recent updates, new features, and release notes.{% endblock %}
+
+{% block head %}
+<style>
+.changelog-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 120px 22px 80px;
+}
+.changelog-wrap h1 {
+  font-size: var(--text-4xl);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  margin-bottom: 8px;
+}
+.changelog-entry {
+  position: relative;
+  padding-left: 28px;
+  margin-bottom: 48px;
+}
+.changelog-entry::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  bottom: -24px;
+  width: 2px;
+  background: var(--border);
+}
+.changelog-entry:last-child::before {
+  bottom: 0;
+}
+.changelog-entry::after {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: 8px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--green);
+  border: 2px solid var(--bg);
+}
+.changelog-date {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+.changelog-title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+.changelog-list {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  line-height: 1.9;
+  padding-left: 18px;
+  margin: 0;
+}
+.changelog-list li {
+  margin-bottom: 2px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="changelog-wrap">
+  <div class="fade-in">
+    <div class="hero-badge" style="margin-bottom:16px;">
+      <span class="badge">Release Notes</span>
+    </div>
+    <h1>Changelog</h1>
+    <p style="color:var(--text-secondary);margin-bottom:56px;">What's new on the AiPayGen platform.</p>
+  </div>
+
+  <div class="changelog-entry fade-in">
+    <div class="changelog-date">March 31, 2026</div>
+    <div class="changelog-title">Marketplace Scale-Up &amp; Trading Engine</div>
+    <ul class="changelog-list">
+      <li>Marketplace scaled to 142 agents across 27 categories</li>
+      <li>Backtesting engine with historical data simulation</li>
+      <li>Technical analysis indicators: RSI, MACD, Bollinger Bands, SMA</li>
+      <li>Auto-execution scheduler for trading strategies</li>
+      <li>A2A negotiation protocol with escrow and dispute resolution</li>
+      <li>Webhook system for real-time event notifications</li>
+      <li>Settlement processor for agent-to-agent payments</li>
+      <li>Seller analytics dashboard with revenue and performance charts</li>
+      <li>Subscription tiers: Starter ($9/mo), Pro ($29/mo), Enterprise ($99/mo)</li>
+    </ul>
+  </div>
+
+  <div class="changelog-entry fade-in">
+    <div class="changelog-date">March 28, 2026</div>
+    <div class="changelog-title">Agent Marketplace Launch</div>
+    <ul class="changelog-list">
+      <li>Agent Marketplace launched with 72+ agents across 15 categories</li>
+      <li>Telegram bot for phone-based agent management (@Aipaygenbot)</li>
+      <li>6 marketplace listing templates for quick onboarding</li>
+      <li>Trading agents Phase 2: live crypto prices, paper trading</li>
+      <li>A2A Commerce Phase 3: agents hiring agents autonomously</li>
+    </ul>
+  </div>
+
+  <div class="changelog-entry fade-in">
+    <div class="changelog-date">March 25, 2026</div>
+    <div class="changelog-title">Security Hardening &amp; v1.9.5</div>
+    <ul class="changelog-list">
+      <li>7 security fixes: OAuth redirect validation, XSS sanitization, SSRF protection, brute-force lockout, card-testing prevention</li>
+      <li>Dev.to technical articles published and live</li>
+      <li>PWA mobile blank-page fix (manifest.json content-type)</li>
+      <li>Database optimization: 9 new indexes for faster queries</li>
+      <li>v1.9.5 with 16 new REST endpoints (128 total)</li>
+    </ul>
+  </div>
+
+  <div class="changelog-entry fade-in">
+    <div class="changelog-date">March 24, 2026</div>
+    <div class="changelog-title">OAuth &amp; Infrastructure</div>
+    <ul class="changelog-list">
+      <li>OAuth deployed: Google and GitHub sign-in live in production</li>
+      <li>Reddit launch post published and live</li>
+      <li>Tunnel watchdog with automatic reconnection</li>
+      <li>MCP metering: per-tool usage tracking and billing</li>
+    </ul>
+  </div>
+
+  <div class="changelog-entry fade-in">
+    <div class="changelog-date">March 23, 2026</div>
+    <div class="changelog-title">Quick-Key &amp; Bug Audit</div>
+    <ul class="changelog-list">
+      <li>Quick-key page for instant API key generation</li>
+      <li>MCP onboarding flow for new users</li>
+      <li>PyPI package v1.9.3 published</li>
+      <li>31-bug audit completed and all issues fixed</li>
+    </ul>
+  </div>
+
+  <div class="changelog-entry fade-in">
+    <div class="changelog-date">March 22, 2026</div>
+    <div class="changelog-title">Revenue Sprint</div>
+    <ul class="changelog-list">
+      <li>Revenue sprint: payment flows, conversion funnels, billing fixes</li>
+      <li>Dead link audit and fixes across all pages</li>
+      <li>Subscription system with recurring billing</li>
+      <li>Google AdSense integration</li>
+      <li>Discovery engine for tool and agent recommendations</li>
+    </ul>
+  </div>
+
+</section>
+{% endblock %}

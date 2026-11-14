@@ -1,0 +1,115 @@
+<h2>How Should We Build It?</h2>
+<p class="subtitle">Three approaches — pick the one that feels right</p>
+
+<div class="options">
+
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Marketplace-First (Recommended)</h3>
+      <p style="margin-bottom: 12px;">Start with the "Facebook Marketplace" — agent listings, ratings, buy/sell/rent. Then add trading agents as a <strong>category</strong> within the marketplace. Finally enable A2A commerce so agents can shop the marketplace themselves.</p>
+
+      <div style="display: flex; gap: 16px; margin-bottom: 12px;">
+        <div style="flex: 1;">
+          <div style="font-size: 12px; font-weight: 600; color: #238636; margin-bottom: 4px;">WHY THIS WORKS</div>
+          <ul style="font-size: 12px; color: #aaa; padding-left: 16px; margin: 0;">
+            <li>Revenue from day 1 — people list & buy agents</li>
+            <li>Builds on your existing marketplace code</li>
+            <li>No regulatory risk (you're not executing trades)</li>
+            <li>Each layer adds value to the previous one</li>
+            <li>Facebook Marketplace started with listings too</li>
+          </ul>
+        </div>
+        <div style="flex: 1;">
+          <div style="font-size: 12px; font-weight: 600; color: #e94560; margin-bottom: 4px;">TRADE-OFFS</div>
+          <ul style="font-size: 12px; color: #aaa; padding-left: 16px; margin: 0;">
+            <li>Trading agents come later (less hype factor early)</li>
+            <li>Need enough agent supply to feel alive</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="background: rgba(35,134,54,0.1); border: 1px solid rgba(35,134,54,0.3); border-radius: 8px; padding: 10px;">
+        <div style="font-size: 11px; color: #58a6ff;">
+          <strong>Build order:</strong> Enhanced Marketplace (2-3 weeks) → Trading Agent Category (2-3 weeks) → A2A Commerce (2-3 weeks)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Trading-First (Maximum Hype)</h3>
+      <p style="margin-bottom: 12px;">Lead with the flashiest feature — autonomous trading agents. Build the strategy engine, connect to exchanges/prediction markets, show live P&L. Then wrap it with a marketplace so people can sell their winning strategies.</p>
+
+      <div style="display: flex; gap: 16px; margin-bottom: 12px;">
+        <div style="flex: 1;">
+          <div style="font-size: 12px; font-weight: 600; color: #238636; margin-bottom: 4px;">WHY THIS WORKS</div>
+          <ul style="font-size: 12px; color: #aaa; padding-left: 16px; margin: 0;">
+            <li>Most viral — "my AI made $X today"</li>
+            <li>Clear value prop for crypto/trading crowd</li>
+            <li>Performance data drives marketplace ratings later</li>
+          </ul>
+        </div>
+        <div style="flex: 1;">
+          <div style="font-size: 12px; font-weight: 600; color: #e94560; margin-bottom: 4px;">TRADE-OFFS</div>
+          <ul style="font-size: 12px; color: #aaa; padding-left: 16px; margin: 0;">
+            <li>Regulatory complexity (financial advice, securities)</li>
+            <li>Exchange API integrations are heavy lifting</li>
+            <li>Users lose money = liability risk</li>
+            <li>Competing with well-funded platforms (NickAI, 3Commas)</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="background: rgba(233,69,96,0.1); border: 1px solid rgba(233,69,96,0.3); border-radius: 8px; padding: 10px;">
+        <div style="font-size: 11px; color: #e94560;">
+          <strong>Build order:</strong> Trading Engine (3-4 weeks) → Marketplace (2-3 weeks) → A2A Commerce (2-3 weeks)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Protocol-First (Most Defensible)</h3>
+      <p style="margin-bottom: 12px;">Build the A2A commerce protocol first — the "rails" that let any agent discover, negotiate, and pay any other agent. Then build the marketplace UI on top. Trading agents become just one use case of the protocol.</p>
+
+      <div style="display: flex; gap: 16px; margin-bottom: 12px;">
+        <div style="flex: 1;">
+          <div style="font-size: 12px; font-weight: 600; color: #238636; margin-bottom: 4px;">WHY THIS WORKS</div>
+          <ul style="font-size: 12px; color: #aaa; padding-left: 16px; margin: 0;">
+            <li>Most defensible long-term (you own the protocol)</li>
+            <li>Aligns with x402 + Google A2A trends</li>
+            <li>Other platforms build ON you, not against you</li>
+          </ul>
+        </div>
+        <div style="flex: 1;">
+          <div style="font-size: 12px; font-weight: 600; color: #e94560; margin-bottom: 4px;">TRADE-OFFS</div>
+          <ul style="font-size: 12px; color: #aaa; padding-left: 16px; margin: 0;">
+            <li>Hardest to explain to users</li>
+            <li>Slowest to show visible results</li>
+            <li>Infrastructure play = longer time to revenue</li>
+            <li>Needs critical mass of agents to be useful</li>
+          </ul>
+        </div>
+      </div>
+
+      <div style="background: rgba(83,52,131,0.1); border: 1px solid rgba(155,89,182,0.3); border-radius: 8px; padding: 10px;">
+        <div style="font-size: 11px; color: #9b59b6;">
+          <strong>Build order:</strong> A2A Protocol (3-4 weeks) → Marketplace UI (2-3 weeks) → Trading Agents (2-3 weeks)
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top: 24px; padding: 16px; border: 1px solid #30363d; border-radius: 12px; background: rgba(13,17,23,0.5);">
+  <h3 style="margin: 0 0 8px 0; color: #f0c040; font-size: 14px;">My Recommendation: Option A</h3>
+  <p style="font-size: 13px; color: #ccc; margin: 0;">
+    You already have marketplace infrastructure. Enhancing it into a full "Facebook Marketplace for AI" is the fastest path to something people can use and pay for. Trading agents become a <em>killer category</em> within the marketplace rather than the entire product — less risk, same upside. And once agents are trading on the marketplace, A2A commerce is the natural evolution where agents start shopping for each other autonomously.
+  </p>
+</div>

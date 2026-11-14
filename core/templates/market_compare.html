@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Compare Agents{% endblock %}
+{% block description %}Compare AI agents side by side on AiPayGen Agent Market{% endblock %}
+
+{% block content %}
+<section class="section" style="max-width:900px;margin:0 auto;padding-top:120px;">
+  <a href="/market" style="font-size:var(--text-sm);color:var(--text-muted);text-decoration:none;display:inline-block;margin-bottom:24px">&larr; Back to Market</a>
+  <h1 style="font-size:var(--text-3xl);font-weight:700;margin-bottom:8px;">Compare Agents</h1>
+  <p style="color:var(--text-secondary);margin-bottom:32px;">Side-by-side comparison of {{ agents|length }} agent{{ 's' if agents|length > 1 else '' }}.</p>
+
+  <div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;font-size:var(--text-sm);">
+      <thead>
+        <tr style="border-bottom:2px solid var(--border);">
+          <th style="text-align:left;padding:12px 16px;color:var(--text-muted);font-size:var(--text-xs);text-transform:uppercase;letter-spacing:0.1em;">Attribute</th>
+          {% for a in agents %}
+          <th style="text-align:left;padding:12px 16px;color:var(--text);font-weight:600;">
+            <a href="/market/agent/{{ a.listing_id }}" style="color:var(--accent);text-decoration:none;">{{ a.name }}</a>
+          </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:12px 16px;color:var(--text-muted);">Category</td>
+          {% for a in agents %}
+          <td style="padding:12px 16px;color:var(--text);">{{ a.category|default('general') }}</td>
+          {% endfor %}
+        </tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--surface);">
+          <td style="padding:12px 16px;color:var(--text-muted);">Price / Call</td>
+          {% for a in agents %}
+          <td style="padding:12px 16px;color:var(--text);font-family:var(--font-mono);">${{ "%.2f"|format(a.price_usd|default(0)|float) }}</td>
+          {% endfor %}
+        </tr>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:12px 16px;color:var(--text-muted);">Avg Rating</td>
+          {% for a in agents %}
+          <td style="padding:12px 16px;color:var(--text);font-family:var(--font-mono);">{{ "%.1f"|format(a.avg_rating|default(0)|float) }} / 5.0</td>
+          {% endfor %}
+        </tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--surface);">
+          <td style="padding:12px 16px;color:var(--text-muted);">Total Calls</td>
+          {% for a in agents %}
+          <td style="padding:12px 16px;color:var(--text);font-family:var(--font-mono);">{{ a.call_count|default(0) }}</td>
+          {% endfor %}
+        </tr>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:12px 16px;color:var(--text-muted);">Reviews</td>
+          {% for a in agents %}
+          <td style="padding:12px 16px;color:var(--text);font-family:var(--font-mono);">{{ a.review_count|default(0) }}</td>
+          {% endfor %}
+        </tr>
+        <tr style="border-bottom:1px solid var(--border);background:var(--surface);">
+          <td style="padding:12px 16px;color:var(--text-muted);">Verified</td>
+          {% for a in agents %}
+          <td style="padding:12px 16px;">
+            {% if a.get('is_verified') %}
+            <span style="color:var(--green);font-weight:600;">Yes</span>
+            {% else %}
+            <span style="color:var(--text-muted);">No</span>
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        <tr style="border-bottom:1px solid var(--border);">
+          <td style="padding:12px 16px;color:var(--text-muted);">Description</td>
+          {% for a in agents %}
+          <td style="padding:12px 16px;color:var(--text-secondary);font-size:var(--text-xs);line-height:1.6;">{{ a.description[:200] if a.description else 'No description' }}</td>
+          {% endfor %}
+        </tr>
+        <tr>
+          <td style="padding:12px 16px;"></td>
+          {% for a in agents %}
+          <td style="padding:12px 16px;">
+            <a href="/market/agent/{{ a.listing_id }}" class="btn btn-primary" style="font-size:var(--text-xs);padding:8px 16px;display:inline-block;">View Agent</a>
+          </td>
+          {% endfor %}
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

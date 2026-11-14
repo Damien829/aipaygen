@@ -1,5 +1,5 @@
 import type { Env } from "../env";
-import { addCredits, findApiKey, looksLikeApiKey } from "./keys";
+import { addCredits, findApiKey, looksLikeApiKey, rewardReferrer } from "./keys";
 
 /** Credit packs: what the customer pays (cents) and what they get (micro-USD). */
 export const PACKS: Record<string, { cents: number; creditMicro: number; label: string }> = {
@@ -83,5 +83,6 @@ export async function handleStripeWebhook(env: Env, payload: string, signature: 
   const pack = session.metadata?.pack ? PACKS[session.metadata.pack] : undefined;
   if (!keyId || !pack) return { status: 200, message: "missing metadata" };
   const applied = await addCredits(env, keyId, pack.creditMicro, "stripe", `stripe:${session.id}`);
+  if (applied) await rewardReferrer(env, keyId).catch(() => {});
   return { status: 200, message: applied ? "credited" : "already credited" };
 }

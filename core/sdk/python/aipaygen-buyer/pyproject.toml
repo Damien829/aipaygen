@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aipaygen-buyer"
+version = "0.1.0"
+description = "Python Buyer SDK for AiPayGen x402 micropayment APIs — auto-402 handling, policy engine, and transaction tracking"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+authors = [{name = "AiPayGen", email = "hello@aipaygen.com"}]
+keywords = [
+    "x402", "micropayments", "usdc", "base", "ai", "api",
+    "buyer-sdk", "agent", "pay-per-call", "aipaygen",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Office/Business :: Financial",
+]
+dependencies = [
+    "httpx>=0.25.0",
+    "pydantic>=2.0.0",
+    "eth-account>=0.10.0",
+    "eth-abi>=5.0.0",
+]
+
+[project.urls]
+Homepage = "https://aipaygen.com"
+Documentation = "https://api.aipaygen.com/docs"
+Repository = "https://github.com/Damien829/aipaygen"
+Issues = "https://github.com/Damien829/aipaygen/issues"

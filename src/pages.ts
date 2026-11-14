@@ -4,7 +4,7 @@ import { formatPrice } from "./tools/types";
 import { microToUsd, toolJsonSchema, x402Enabled } from "./billing/x402";
 import { PACKS, stripeEnabled } from "./billing/stripe";
 
-const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+export const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
 const STYLE = `
 :root{--bg:#fbfaf8;--fg:#17171a;--muted:#5f6068;--line:#e6e3dd;--card:#fff;--accent:#2b59ff;--accent-fg:#fff;--code:#f2f0ec}
@@ -12,7 +12,7 @@ const STYLE = `
 *{box-sizing:border-box}html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 .wrap{max-width:980px;margin:0 auto;padding:0 20px}
-header.top{display:flex;justify-content:space-between;align-items:center;padding:18px 0}
+header.top{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px 16px;padding:18px 0}.top nav{display:flex;flex-wrap:wrap;gap:4px 14px}
 .logo{font-weight:700;letter-spacing:-.02em;color:var(--fg);text-decoration:none}.logo span{color:var(--accent)}
 nav a{color:var(--muted);text-decoration:none;margin-left:18px;font-size:15px}nav a:hover{color:var(--fg)}
 h1{font-size:clamp(32px,6vw,52px);line-height:1.08;letter-spacing:-.03em;margin:48px 0 16px}
@@ -38,13 +38,13 @@ footer{margin:72px 0 40px;color:var(--muted);font-size:14px;border-top:1px solid
 .scroll{overflow-x:auto}
 `;
 
-function layout(env: Env, title: string, body: string, description: string): string {
+export function layout(env: Env, title: string, body: string, description: string, head = ""): string {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title><meta name="description" content="${esc(description)}">
 <meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(env.PUBLIC_URL)}">
-<link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt"><style>${STYLE}</style></head>
+<link rel="alternate" type="text/plain" href="/llms.txt" title="llms.txt">${head}<style>${STYLE}</style></head>
 <body><div class="wrap"><header class="top"><a class="logo" href="/">AIPay<span>Gen</span></a>
-<nav><a href="/#tools">Tools</a><a href="/#connect">Connect</a><a href="/billing">Billing</a><a href="/docs">Docs</a></nav></header>
+<nav><a href="/market">Marketplace</a><a href="/#tools">Tools</a><a href="/#connect">Connect</a><a href="/billing">Billing</a><a href="/docs">Docs</a></nav></header>
 ${body}
 <footer>${SERVICE_NAME} v${APP_VERSION} · Public data only · Failed calls are never charged · <a class="muted" href="/llms.txt">llms.txt</a> · <a class="muted" href="/openapi.json">OpenAPI</a></footer>
 </div></body></html>`;
@@ -53,14 +53,17 @@ ${body}
 export function landingPage(env: Env): string {
   const mcpUrl = `${env.PUBLIC_URL}/mcp`;
   const rows = TOOLS.map(
-    (t) => `<tr><td><code>${t.name}</code></td><td>${esc(t.description)}</td><td class="price">${formatPrice(t.priceMicro)}</td></tr>`,
+    (t) => `<tr><td><code>${t.name}</code></td><td>${esc(t.description)}</td><td class="price">${t.priceMicro === 0 ? "Free" : "Pay per call"}</td></tr>`,
   ).join("");
   const x402 = x402Enabled(env);
   const trial = microToUsd(Number(env.TRIAL_CREDITS_MICRO) || 0);
 
   const body = `
-<h1>Website and company intelligence for AI agents.</h1>
-<p class="lead">Give your agent ten tools for DNS, domain registration, certificates and subdomains, tech stack, email security, page content and full company profiles. Built on public data. Pay per call from ${formatPrice(TOOLS[0]!.priceMicro)}.</p>
+<h1>Everything your AI agent needs, one search away.</h1>
+<p>Search 11,000+ APIs, skills, agents and MCP servers for free, then pay per call only for what you use. No account needed with x402.</p>
+<form action="/market" role="search" aria-label="Search the marketplace" style="display:flex;gap:8px;margin:16px 0 28px"><input name="q" type="search" placeholder="e.g. weather API, translate, summarize PDF" aria-label="Search query" style="flex:1;min-width:0;padding:12px 14px;font:inherit;border:1px solid var(--line);border-radius:10px;background:var(--card);color:var(--fg)"><button type="submit" style="padding:12px 18px;font:inherit;border:0;border-radius:10px;background:var(--accent);color:var(--accent-fg);cursor:pointer">Search</button></form>
+<h2>Website and company intelligence for AI agents.</h2>
+<p class="lead">Give your agent ten tools for DNS, domain registration, certificates and subdomains, tech stack, email security, page content and full company profiles. Built on public data. Pay per call, only for calls that succeed.</p>
 <div class="btns"><button class="btn primary" id="getkey">Get a free API key</button><a class="btn" href="#connect">Connect via MCP</a></div>
 <div id="keybox" class="card"><h3>Your API key</h3><p>Copy it now; it is shown only once. It comes with <strong>${trial}</strong> of free credits.</p><pre><code id="keyval"></code></pre></div>
 
@@ -127,7 +130,7 @@ var buy=document.getElementById('buy');if(buy)buy.addEventListener('click',async
 
 export function docsPage(env: Env): string {
   const sections = TOOLS.map(
-    (t) => `<h2 id="${t.name}"><code>${t.name}</code></h2><p>${esc(t.description)}</p><p class="muted small">Price ${formatPrice(t.priceMicro)} · cached up to ${Math.round(t.cacheTtl / 60)} min</p>
+    (t) => `<h2 id="${t.name}"><code>${t.name}</code></h2><p>${esc(t.description)}</p><p class="muted small">${t.priceMicro === 0 ? "Free" : "Pay per call (quote on request)"} · cached up to ${Math.round(t.cacheTtl / 60)} min</p>
 <pre><code>GET ${esc(env.PUBLIC_URL)}/v1/${t.name}?${esc(new URLSearchParams(Object.entries(t.example).map(([k, v]) => [k, String(v)])).toString())}</code></pre>
 <details><summary class="small">Input schema</summary><pre><code>${esc(JSON.stringify(toolJsonSchema(t), null, 2))}</code></pre></details>`,
   ).join("");
@@ -147,6 +150,15 @@ export function llmsTxt(env: Env): string {
 
 - MCP endpoint (Streamable HTTP): ${env.PUBLIC_URL}/mcp
 - HTTP API: ${env.PUBLIC_URL}/v1/<tool> (GET query params or POST JSON)
+
+## Marketplace (free to search)
+
+11,000+ resources for agents: AIPayGen tools, 4,300+ third-party APIs (docs, auth, x402 support), 4,300+ skills, 950+ agents, 1,500+ agent services.
+
+- Search: ${env.PUBLIC_URL}/v1/catalog/search?q=<words>&kind=<listing|api|skill|agent|service>
+- One item: ${env.PUBLIC_URL}/v1/catalog/<kind>/<id>
+- Overview: ${env.PUBLIC_URL}/v1/catalog/stats
+- MCP tool: search_marketplace (free)
 - Tool catalog (JSON): ${env.PUBLIC_URL}/v1/tools
 - OpenAPI: ${env.PUBLIC_URL}/openapi.json
 - Free API key with trial credits: POST ${env.PUBLIC_URL}/v1/keys
@@ -154,7 +166,7 @@ export function llmsTxt(env: Env): string {
 
 ## Tools
 
-${TOOLS.map((t) => `- ${t.name} (${formatPrice(t.priceMicro)}): ${t.description}`).join("\n")}
+${TOOLS.map((t) => `- ${t.name}${t.priceMicro === 0 ? " (free)" : ""}: ${t.description}`).join("\n")}
 `;
 }
 
@@ -166,7 +178,7 @@ export function openApi(env: Env): Record<string, unknown> {
       get: {
         operationId: t.name,
         summary: t.title,
-        description: `${t.description} Price: ${formatPrice(t.priceMicro)} per call.`,
+        description: t.priceMicro === 0 ? `${t.description} Free.` : `${t.description} Pay per call: the 402 reply quotes the exact price.`,
         parameters: Object.entries(schema.properties ?? {}).map(([name, s]) => ({
           name,
           in: "query",
@@ -209,6 +221,6 @@ export function serverCard(env: Env): Record<string, unknown> {
     websiteUrl: env.PUBLIC_URL,
     remotes: [{ type: "streamable-http", url: `${env.PUBLIC_URL}/mcp` }],
     authentication: { type: "bearer", description: "Optional API key (apg_...). Without one, paid tools use x402 when enabled." },
-    tools: TOOLS.map((t) => ({ name: t.name, title: t.title, description: t.description, priceUSD: t.priceMicro / 1_000_000 })),
+    tools: TOOLS.map((t) => ({ name: t.name, title: t.title, description: t.description, free: t.priceMicro === 0 })),
   };
 }

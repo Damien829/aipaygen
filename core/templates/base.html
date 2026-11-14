@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}AiPayGen{% endblock %} — 65+ AI Tools as an MCP Server & API</title>
+<meta name="description" content="{% block description %}65+ AI tools as an MCP server & API. Research, write, code, scrape, translate, analyze. 15 models from Claude, GPT-4o, Gemini. Free to try. No sign up needed.{% endblock %}">
+<link rel="canonical" href="https://aipaygen.com{% block canonical %}{{ request.path }}{% endblock %}">
+<link rel="icon" href="/static/icon.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="/static/css/main.css?v=2" as="style">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/main.css?v=2">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="/static/manifest.json">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+<meta property="og:site_name" content="AiPayGen">
+<meta property="og:type" content="website">
+<meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
+<meta property="og:description" content="{% block og_desc %}65+ AI tools as an MCP server & API. Research, write, code, scrape, translate, analyze. Free to try.{% endblock %}">
+<meta property="og:image" content="https://aipaygen.com/og-image.png">
+<meta property="og:url" content="https://aipaygen.com{{ request.path }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@aipaygen">
+<meta name="twitter:title" content="{% block tw_title %}{{ self.title() }}{% endblock %}">
+<meta name="twitter:description" content="{% block tw_desc %}65+ AI tools. Research, write, code, scrape, translate, analyze. Free to try.{% endblock %}">
+<meta name="twitter:image" content="https://aipaygen.com/og-image.png">
+{% block head %}{% endblock %}
+{% if GA4_ID %}
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ GA4_ID }}"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{ GA4_ID }}');</script>
+{% endif %}
+</head>
+<body>
+<a href="#main-content" class="sr-only" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:9999" onfocus="this.style.position='static';this.style.width='auto';this.style.height='auto'" onblur="this.style.position='absolute';this.style.left='-9999px';this.style.width='1px';this.style.height='1px'">Skip to main content</a>
+
+<!-- Navigation -->
+<nav class="nav" id="mainNav" role="navigation" aria-label="Main navigation">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">
+      <span class="dot"></span>
+      AiPayGen
+    </a>
+    <button class="nav-hamburger" id="navToggle" aria-label="Toggle menu">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="/market" style="color:#d4a853;font-weight:600">Agent Market <span id="agent-count-badge" style="background:var(--accent);color:var(--bg);font-size:9px;padding:1px 5px;border-radius:8px;font-weight:700;vertical-align:middle;"></span></a></li>
+      <li><a href="/trading">Trading</a></li>
+      <li><a href="/a2a">A2A</a></li>
+      <li><a href="/docs">Docs</a></li>
+      <li><a href="/pricing">Pricing</a></li>
+      <li><a href="/products" style="color:#00d4a1;font-weight:600">Products</a></li>
+      <li><a href="/services">Hire Us</a></li>
+      <li><a href="/try">Try Free</a></li>
+      <li><a href="/quick-key" class="nav-cta">Get API Key</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main class="pt-nav" id="main-content">
+{% block content %}{% endblock %}
+
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <div class="logo">AiPayGen</div>
+      <p>65+ AI tools as an MCP server and API. Research, write, code, scrape, translate, analyze. Free to try.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Product</h4>
+      <a href="/market" style="color:#d4a853;font-weight:600">Agent Market</a>
+      <a href="/try">Open App</a>
+      <a href="/pricing">Pricing</a>
+      <a href="/discover">Browse Tools</a>
+      <a href="/playground">Playground</a>
+      <a href="/builder">Workflow Builder</a>
+      <a href="/products">Products</a>
+      <a href="/services">Services</a>
+    </div>
+    <div class="footer-col">
+      <h4>Developers</h4>
+      <a href="/docs">API Docs</a>
+      <a href="/quick-key">Get API Key</a>
+      <a href="/market/list">List Your Agent</a>
+      <a href="/market/stats">Market Stats</a>
+      <a href="/integrations">Integrations</a>
+      <a href="/openapi.json">OpenAPI Spec</a>
+      <a href="https://pypi.org/project/aipaygen-mcp/" target="_blank" rel="noopener">PyPI</a>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <a href="/blog">Blog</a>
+      <a href="/changelog">Changelog</a>
+      <a href="/support">Support</a>
+      <a href="/feedback">Give Feedback</a>
+      <a href="https://instagram.com/aipaygen" target="_blank" rel="noopener">Instagram</a>
+      <a href="https://x.com/aipaygen" target="_blank" rel="noopener">X / Twitter</a>
+      <a href="/status">Status</a>
+    </div>
+  </div>
+  <div style="max-width:400px;margin:0 auto 24px;text-align:center;">
+    <p style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:8px;">Get marketplace updates</p>
+    <form action="/api/subscribe-email" method="POST" style="display:flex;gap:8px;">
+      <input type="email" name="email" placeholder="you@example.com" required style="flex:1;padding:8px 12px;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:var(--text-xs);">
+      <button type="submit" class="btn btn-primary" style="padding:8px 16px;font-size:var(--text-xs);">Subscribe</button>
+    </form>
+  </div>
+  <div class="footer-bottom">
+    <span>&copy; 2026 AiPayGen. All rights reserved.</span>
+    <span><a href="/privacy" style="color:inherit;text-decoration:none;">Privacy Policy</a> &middot; <a href="/terms" style="color:inherit;text-decoration:none;">Terms of Service</a></span>
+  </div>
+</footer>
+
+<!-- Scroll to top -->
+<button class="scroll-top" id="scrollTop" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Scroll to top">&#8593;</button>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-json.min.js"></script>
+<script>
+// Mobile nav toggle
+document.getElementById('navToggle')?.addEventListener('click', () => {
+  document.getElementById('navLinks').classList.toggle('open');
+});
+
+// Nav scroll effect + scroll-to-top
+window.addEventListener('scroll', () => {
+  document.getElementById('mainNav')?.classList.toggle('scrolled', window.scrollY > 20);
+  document.getElementById('scrollTop')?.classList.toggle('visible', window.scrollY > 400);
+});
+
+// Scroll-triggered fade-in (Intersection Observer)
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }});
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+// Copy button for code blocks
+document.querySelectorAll('.code-block').forEach(block => {
+  const btn = block.querySelector('.copy-btn');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const code = block.querySelector('code')?.textContent || block.querySelector('pre')?.textContent || '';
+    navigator.clipboard.writeText(code).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  });
+});
+
+// Toast utility
+window.showToast = (msg, duration = 3000) => {
+  let t = document.querySelector('.toast');
+  if (!t) { t = document.createElement('div'); t.className = 'toast'; document.body.appendChild(t); }
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+};
+</script>
+<script>
+fetch('/marketplace/categories').then(r=>r.json()).then(d=>{
+  const total=Object.values(d.categories||{}).reduce((a,b)=>a+b,0);
+  const el=document.getElementById('agent-count-badge');
+  if(el&&total>0)el.textContent=total+'+';
+}).catch(()=>{});
+</script>
+{% block scripts %}{% endblock %}
+</body>
+</html>
