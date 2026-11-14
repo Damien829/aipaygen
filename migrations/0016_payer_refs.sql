@@ -8,3 +8,9 @@ CREATE TABLE IF NOT EXISTS payer_refs (
   first_at    INTEGER NOT NULL    -- ms; the share window starts here
 );
 CREATE INDEX IF NOT EXISTS idx_payer_refs_key ON payer_refs (ref_key_id);
+
+-- Wallet case: PayAI-settled usage rows hold lowercase wallets, CDP-settled ones EIP-55 checksummed.
+-- recordUsage now lowercases on write (normalizePayer in keys.ts); this backfills older rows so
+-- exact-match lookups (idx_usage_payer) see a wallet's whole history.
+UPDATE usage SET payer = lower(payer)
+WHERE payment = 'x402' AND payer LIKE '0x%' AND length(payer) = 42 AND payer <> lower(payer);

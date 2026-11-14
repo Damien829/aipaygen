@@ -93,12 +93,21 @@ export async function addCredits(env: Env, keyId: string, micro: number, reason:
   return true;
 }
 
+/**
+ * Wallet addresses are stored lowercase. Facilitators disagree on case (PayAI returns
+ * lowercase, Coinbase CDP EIP-55 checksummed), and lookups by payer must hit idx_usage_payer
+ * with an exact match. Key ids (key_...) pass through unchanged.
+ */
+export function normalizePayer(payer: string | null): string | null {
+  return payer && /^0x[0-9a-fA-F]{40}$/.test(payer) ? payer.toLowerCase() : payer;
+}
+
 export async function recordUsage(
   env: Env,
   u: { tool: string; channel: "mcp" | "http"; payment: "credits" | "x402"; payer: string | null; priceMicro: number; ok: boolean; ms: number; tx?: string | null },
 ): Promise<void> {
   await env.DB.prepare("INSERT INTO usage (tool, channel, payment, payer, price_micro, ok, ms, tx, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
-    .bind(u.tool, u.channel, u.payment, u.payer, u.priceMicro, u.ok ? 1 : 0, u.ms, u.tx ?? null, Date.now())
+    .bind(u.tool, u.channel, u.payment, normalizePayer(u.payer), u.priceMicro, u.ok ? 1 : 0, u.ms, u.tx ?? null, Date.now())
     .run();
 }
 

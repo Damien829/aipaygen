@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { DatabaseSync } from "node:sqlite";
 // @ts-ignore
 import { readFileSync } from "node:fs";
+import { normalizePayer } from "../src/billing/keys";
 import { linkPayerRef, payReferralShares, referralStats, REF_WINDOW_DAYS, shareOf, utcDayStart } from "../src/billing/refshare";
 
 /** A D1-shaped wrapper over node:sqlite, enough for refshare.ts and addCredits. */
@@ -78,5 +79,19 @@ describe("wallet-payer referrals", () => {
     const late = utcDayStart(linkedAt + (REF_WINDOW_DAYS + 1) * DAY);
     db.prepare("INSERT INTO usage (payment, payer, price_micro, ok, created_at) VALUES ('x402', ?, 10000, 1, ?)").run(W1, late + 1000);
     expect((await payReferralShares(env, late)).paid).toBe(0);
+  });
+});
+
+describe("wallet case", () => {
+  it("stores wallets lowercase and leaves key ids alone", () => {
+    expect(normalizePayer("0x55c27e9B8E70a37AF15F57b284BE4dC9aa26e617")).toBe("0x55c27e9b8e70a37af15f57b284be4dc9aa26e617");
+    expect(normalizePayer("key_AbC123")).toBe("key_AbC123");
+    expect(normalizePayer(null)).toBeNull();
+  });
+  it("the migration backfill lowercases checksummed wallets only", () => {
+    const { db } = fakeD1();
+    db.prepare("INSERT INTO usage (payment, payer, price_micro, ok, created_at) VALUES ('x402', ?, 1, 1, 1), ('credits', 'key_AbC', 1, 1, 1)").run("0x55c27e9B8E70a37AF15F57b284BE4dC9aa26e617");
+    db.exec(readFileSync("migrations/0016_payer_refs.sql", "utf8").replace(/CREATE (TABLE|INDEX) IF NOT EXISTS/g, "CREATE $1 IF NOT EXISTS"));
+    expect(db.prepare("SELECT payer FROM usage ORDER BY id").all()).toEqual([{ payer: "0x55c27e9b8e70a37af15f57b284be4dc9aa26e617" }, { payer: "key_AbC" }]);
   });
 });
