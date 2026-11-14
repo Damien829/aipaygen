@@ -245,6 +245,8 @@ describe("own tools in marketplace search", () => {
     expect(ownMatches(env, "translate text between languages")[0]?.meta.tool).toBe("translate");
     expect(ownMatches(env, "dmarc spf")[0]?.meta.tool).toBe("email_security");
     expect(ownMatches(env, "whois")[0]?.meta.tool).toBe("domain_whois");
+    expect(ownMatches(env, "translate text").map((i) => i.meta.tool)).toEqual(["translate"]);
+    expect(ownMatches(env, "dns whois").map((i) => i.meta.tool).sort()).toEqual(["dns_lookup", "domain_report", "domain_whois"]); // domain_report does both
   });
   it("stays out of unrelated searches and skips free helpers", () => {
     expect(ownMatches(env, "postgres mcp server")).toEqual([]);

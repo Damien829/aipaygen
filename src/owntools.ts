@@ -81,6 +81,8 @@ export function ownMatches(env: Pick<Env, "PUBLIC_URL">, query: string, max = 3)
     .map((t) => ({ t, score: matchScore(query, `${t.name.replace(/_/g, " ")} ${t.title} ${t.description} ${SYNONYMS[t.name] ?? ""}`) }))
     .filter((x) => x.score >= 0.5)
     .sort((a, b) => b.score - a.score)
+    // Only the best-matching tools: "translate text" shouldn't also offer page_to_markdown for the word "text".
+    .filter((x, _, all) => x.score >= all[0]!.score - 0.01)
     .slice(0, max)
     .map(({ t }) => toItem(env.PUBLIC_URL, t));
 }
