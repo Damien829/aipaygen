@@ -70,7 +70,7 @@ final class Admin: ObservableObject {
         return URLSession(configuration: c)
     }()
 
-    private func call(_ method: String, _ path: String, _ body: [String: Any]? = nil) async throws -> Data {
+    func call(_ method: String, _ path: String, _ body: [String: Any]? = nil) async throws -> Data {
         guard let token = Keychain.read() else { throw AdminError.noToken }
         var req = URLRequest(url: URL(string: Store.base + path)!)
         req.httpMethod = method
@@ -92,7 +92,7 @@ final class Admin: ObservableObject {
     }
 
     /// Runs one action, tracking the spinner and the result line.
-    private func run(_ label: String, _ work: () async throws -> String?) async -> Bool {
+    func run(_ label: String, _ work: () async throws -> String?) async -> Bool {
         busy = label
         defer { busy = nil }
         do {

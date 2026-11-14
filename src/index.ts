@@ -14,6 +14,7 @@ import { handleA2A } from "./a2a";
 import { facilitatorEnabled, facilitatorNetworks, facilitatorPaused, facilitatorStats, handleFacilitator } from "./facilitator";
 import { admin } from "./admin";
 import { edgeCache } from "./edgecache";
+import { loadPrices } from "./prices";
 import { wantedList, wantedPage } from "./discovery";
 import { agentCard, catalogItemMarkdown, catalogItemPage, DISCOVERY_LINK_HEADER, llmsFullTxt, marketItem, marketMarkdown, marketPage, robotsTxt, sitemapFor, sitemapIndex, x402Discovery } from "./discovery";
 
@@ -179,6 +180,8 @@ export default {
 
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    // Owner price overrides (src/prices.ts): one cached read per isolate per minute.
+    await loadPrices(env);
     if (url.pathname === "/mcp") {
       const host = new URL(env.PUBLIC_URL).hostname;
       // mcp.* and api.* keep the hostnames used by existing directory listings working.

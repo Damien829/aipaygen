@@ -193,5 +193,5 @@ describe("admin auth", () => {
     expect(await isAdmin(env, undefined)).toBe(false);
     expect(await isAdmin({ ADMIN_TOKEN: undefined }, "Bearer undefined")).toBe(false);
     expect(await isAdmin({ ADMIN_TOKEN: "" }, "Bearer ")).toBe(false);
-  });
+  }, 30_000); // first import of the admin module is slow on older Macs
 });

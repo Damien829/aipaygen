@@ -209,6 +209,9 @@ final class Store: ObservableObject {
         if let s = settlements { lastSettlements = s }
         if let g = mainGas, let before = mainnetGas, (g >= minGasEth) != (before >= minGasEth) {
             log(g >= minGasEth ? "Fee wallet funded: real payments on" : "Fee wallet low: real payments paused", "fuelpump.fill", g >= minGasEth ? .green : .orange)
+            if g < minGasEth, UserDefaults.standard.object(forKey: "notifyGas") as? Bool ?? true {
+                Notifier.send("Fee wallet is low", "Real payments for other sellers are paused. Send a little ETH on Base to \(shortAddress(mainnetWallet)).")
+            }
         }
 
         withAnimation(.spring(response: 0.6, dampingFraction: 0.85)) {

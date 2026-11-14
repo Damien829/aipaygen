@@ -2,16 +2,25 @@ import AppKit
 import SwiftUI
 
 @main
+@MainActor
 struct AIPayGenControlApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @StateObject private var store = Store()
-    @StateObject private var admin = Admin()
+    @StateObject private var admin: Admin
+    @StateObject private var owner: Owner
+
+    init() {
+        let a = Admin()
+        _admin = StateObject(wrappedValue: a)
+        _owner = StateObject(wrappedValue: Owner(admin: a))
+    }
 
     var body: some Scene {
         WindowGroup("AIPayGen Control") {
             RootView()
                 .environmentObject(store)
                 .environmentObject(admin)
+                .environmentObject(owner)
                 .frame(minWidth: 1180, minHeight: 740)
                 .preferredColorScheme(.dark)
         }
@@ -62,18 +71,69 @@ private struct Chip: View {
 
 // MARK: - Root
 
+enum Tab: String, CaseIterable, Identifiable {
+    case network = "Network", money = "Money", prices = "Prices", keys = "Keys", demand = "Demand"
+    var id: String { rawValue }
+    var symbol: String {
+        switch self {
+        case .network: return "circle.hexagongrid.fill"
+        case .money: return "dollarsign.circle.fill"
+        case .prices: return "tag.fill"
+        case .keys: return "key.fill"
+        case .demand: return "chart.bar.fill"
+        }
+    }
+}
+
 struct RootView: View {
     @EnvironmentObject var store: Store
+    @EnvironmentObject var admin: Admin
+    @EnvironmentObject var owner: Owner
+    @State private var tab: Tab = .network
 
     var body: some View {
         ZStack {
             NetworkView(controller: store.network) { store.pick($0) }
                 .ignoresSafeArea()
+            if tab == .network { networkOverlay } else { ownerOverlay }
+        }
+        .background(Color.black)
+        .task { await store.start() }
+        .task { await owner.startSalePolling() }
+    }
+
+    private var ownerOverlay: some View {
+        ZStack {
+            Color.black.opacity(0.72).ignoresSafeArea()
+            VStack(spacing: 14) {
+                Header(tab: $tab)
+                Group {
+                    if !admin.hasToken {
+                        LockedPage()
+                    } else {
+                        switch tab {
+                        case .money: MoneyPage()
+                        case .prices: PricesPageView()
+                        case .keys: KeysPageView()
+                        case .demand: DemandPage()
+                        case .network: EmptyView()
+                        }
+                    }
+                }
+                .frame(maxWidth: 1100)
+                Spacer(minLength: 0)
+            }
+            .padding(16)
+        }
+    }
+
+    private var networkOverlay: some View {
+        ZStack {
             LinearGradient(stops: [.init(color: .black.opacity(0.7), location: 0), .init(color: .clear, location: 0.28), .init(color: .clear, location: 0.72), .init(color: .black.opacity(0.7), location: 1)], startPoint: .leading, endPoint: .trailing)
                 .allowsHitTesting(false)
                 .ignoresSafeArea()
             VStack(spacing: 14) {
-                Header()
+                Header(tab: $tab)
                 HStack(alignment: .top, spacing: 0) {
                     LeftPanel().frame(width: 250)
                     Spacer(minLength: 0)
@@ -93,14 +153,14 @@ struct RootView: View {
             }
             .padding(.bottom, 18)
         }
-        .background(Color.black)
-        .task { await store.start() }
     }
 }
 
 private struct Header: View {
     @EnvironmentObject var store: Store
     @EnvironmentObject var admin: Admin
+    @EnvironmentObject var owner: Owner
+    @Binding var tab: Tab
     @State private var beat = false
     @State private var showControls = false
 
@@ -109,23 +169,40 @@ private struct Header: View {
             Text("AIPAYGEN").font(.system(size: 15, weight: .heavy)).tracking(3)
             Text("CONTROL").font(.system(size: 15, weight: .light)).tracking(3).foregroundStyle(accent)
             Spacer()
-            Circle()
-                .fill(store.online ? Color.green : Color.red)
-                .frame(width: 8, height: 8)
-                .shadow(color: store.online ? .green : .red, radius: beat ? 7 : 2)
-                .onAppear { withAnimation(.easeInOut(duration: 1.1).repeatForever()) { beat = true } }
-            Text(store.online ? "Live" : "Offline").font(.system(size: 12, weight: .semibold))
-            if let v = store.health?.version { Text("v\(v)").font(.system(size: 11)).foregroundStyle(.white.opacity(0.5)) }
-            TimelineView(.periodic(from: .now, by: 1)) { ctx in
-                Text(store.lastUpdated.map { "updated \(max(0, Int(ctx.date.timeIntervalSince($0))))s ago" } ?? "connecting…")
-                    .font(.system(size: 11).monospacedDigit()).foregroundStyle(.white.opacity(0.5))
+            HStack(spacing: 2) {
+                ForEach(Tab.allCases) { t in
+                    Button { withAnimation(.easeOut(duration: 0.2)) { tab = t } } label: {
+                        Label(t.rawValue, systemImage: t.symbol)
+                            .font(.system(size: 11, weight: .semibold))
+                            .padding(.horizontal, 10).padding(.vertical, 4)
+                            .background(Capsule().fill(tab == t ? accent.opacity(0.25) : Color.clear))
+                            .foregroundStyle(tab == t ? accent : Color.white.opacity(0.7))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            Button { Task { await store.refresh() } } label: {
-                Image(systemName: "arrow.clockwise")
-                    .rotationEffect(.degrees(store.loading ? 360 : 0))
-                    .animation(store.loading ? .linear(duration: 0.9).repeatForever(autoreverses: false) : .default, value: store.loading)
+            .padding(2)
+            .background(Capsule().fill(Color.white.opacity(0.07)))
+            Spacer()
+            HStack(spacing: 12) {
+                Circle()
+                    .fill(store.online ? Color.green : Color.red)
+                    .frame(width: 8, height: 8)
+                    .shadow(color: store.online ? .green : .red, radius: beat ? 7 : 2)
+                    .onAppear { withAnimation(.easeInOut(duration: 1.1).repeatForever()) { beat = true } }
+                Text(store.online ? "Live" : "Offline").font(.system(size: 12, weight: .semibold))
+                if let v = store.health?.version { Text("v\(v)").font(.system(size: 11)).foregroundStyle(.white.opacity(0.5)) }
+                TimelineView(.periodic(from: .now, by: 1)) { ctx in
+                    Text(store.lastUpdated.map { "updated \(max(0, Int(ctx.date.timeIntervalSince($0))))s ago" } ?? "connecting…")
+                        .font(.system(size: 11).monospacedDigit()).foregroundStyle(.white.opacity(0.5))
+                }
+                Button { Task { await store.refresh() } } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .rotationEffect(.degrees(store.loading ? 360 : 0))
+                        .animation(store.loading ? .linear(duration: 0.9).repeatForever(autoreverses: false) : .default, value: store.loading)
+                }
+                .buttonStyle(.plain).help("Refresh now")
             }
-            .buttonStyle(.plain).help("Refresh now")
             Button { showControls.toggle() } label: {
                 Label("Controls", systemImage: admin.hasToken ? "slider.horizontal.3" : "lock.fill")
                     .font(.system(size: 11, weight: .semibold))
@@ -134,7 +211,7 @@ private struct Header: View {
             }
             .buttonStyle(.plain)
             .popover(isPresented: $showControls, arrowEdge: .bottom) {
-                ControlsView().environmentObject(store).environmentObject(admin)
+                ControlsView().environmentObject(store).environmentObject(admin).environmentObject(owner)
             }
         }
         .padding(.leading, 70)
