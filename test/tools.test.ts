@@ -246,7 +246,7 @@ describe("own tools in marketplace search", () => {
     expect(ownMatches(env, "dmarc spf")[0]?.meta.tool).toBe("email_security");
     expect(ownMatches(env, "whois")[0]?.meta.tool).toBe("domain_whois");
     expect(ownMatches(env, "translate text").map((i) => i.meta.tool)).toEqual(["translate"]);
-    expect(ownMatches(env, "dns whois").map((i) => i.meta.tool).sort()).toEqual(["dns_lookup", "domain_report", "domain_whois"]); // domain_report does both
+    expect(ownMatches(env, "dns whois").map((i) => i.meta.tool).sort()).toEqual(["dns_lookup", "domain_whois"]);
   });
   it("stays out of unrelated searches and skips free helpers", () => {
     expect(ownMatches(env, "postgres mcp server")).toEqual([]);
@@ -277,5 +277,80 @@ describe("find_tool ranking", () => {
     const up = scoreCandidate({ ...base, verified: 1, checks_total: 10, checks_ok: 10 }, 0, null).score;
     expect(unchecked).toBeGreaterThan(down);
     expect(up).toBeGreaterThan(unchecked);
+  });
+});
+
+import { parseJsonObject } from "../src/lib/llm";
+import { classifyText, extractData, parseFields, summarize } from "../src/tools/ai";
+import { parseArxiv } from "../src/tools/data";
+import { expandIPv6, osvEcosystem, reverseName, summarizeVuln } from "../src/tools/devtools";
+
+const fakeAi = (reply: string) => ({ AI: { run: async () => ({ response: reply }) } }) as never;
+
+describe("AI text tools", () => {
+  it("pulls JSON out of chatty replies", () => {
+    expect(parseJsonObject('Sure! ```json\n{"a": "x}", "b": {"c": 1}}\n``` done')).toEqual({ a: "x}", b: { c: 1 } });
+    expect(parseJsonObject("no json here")).toBeNull();
+    expect(parseJsonObject("[1,2]")).toBeNull();
+  });
+  it("normalizes field specs", () => {
+    expect(parseFields(["Company Name", "price: in USD", " :x"])).toEqual([
+      { key: "company_name", hint: null },
+      { key: "price", hint: "in USD" },
+    ]);
+  });
+  it("extracts only the requested keys", async () => {
+    const r = await extractData.run({ text: "Acme raised $5M", fields: ["company", "amount"] }, { env: fakeAi('{"company":"Acme","amount":"$5M","extra":1}') });
+    expect(r.data).toEqual({ company: "Acme", amount: "$5M" });
+    expect(r.fields_found).toBe(2);
+  });
+  it("keeps classify labels to the allowed set", async () => {
+    const r = await classifyText.run({ text: "charged twice", labels: ["Billing", "Bug"] }, { env: fakeAi('{"labels":["billing"],"confidence":0.93,"reason":"payment"}') });
+    expect(r.label).toBe("Billing");
+    expect(r.confidence).toBe(0.93);
+    await expect(classifyText.run({ text: "x" }, { env: fakeAi('{"labels":["angry"]}') })).rejects.toThrow(/valid label/);
+  });
+  it("summarizes into bullets", async () => {
+    const r = await summarize.run({ text: "long text" }, { env: fakeAi("Here is the summary:\n- one\n- two") });
+    expect(r.bullets).toEqual(["one", "two"]);
+    await expect(summarize.run({}, { env: fakeAi("x") })).rejects.toThrow(/text or url/);
+  });
+});
+
+describe("data and dev tool helpers", () => {
+  it("parses arXiv feeds", () => {
+    const xml = `<feed><opensearch:totalResults>42</opensearch:totalResults><entry><id>http://arxiv.org/abs/2601.1v1</id><title>A &amp; B
+      paper</title><published>2026-01-01T00:00:00Z</published><summary> Abs </summary><author><name>Ann Lee</name></author><author><name>Bo</name></author>
+      <link href="https://arxiv.org/pdf/2601.1v1" rel="related" type="application/pdf" title="pdf"/><category term="cs.AI" scheme="x"/></entry></feed>`;
+    const { total, papers } = parseArxiv(xml);
+    expect(total).toBe(42);
+    expect(papers[0]).toMatchObject({ title: "A & B paper", authors: ["Ann Lee", "Bo"], abstract: "Abs", url: "https://arxiv.org/abs/2601.1v1", pdf: "https://arxiv.org/pdf/2601.1v1", categories: ["cs.AI"] });
+  });
+  it("maps package ecosystems", () => {
+    expect(osvEcosystem("python")).toBe("PyPI");
+    expect(osvEcosystem("Cargo")).toBe("crates.io");
+    expect(() => osvEcosystem("cobol")).toThrow(/Unknown ecosystem/);
+  });
+  it("summarizes OSV advisories", () => {
+    const v = summarizeVuln(
+      { id: "GHSA-1", aliases: ["CVE-2020-1"], summary: "ReDoS", database_specific: { severity: "MODERATE" }, affected: [{ package: { name: "lodash" }, ranges: [{ events: [{ introduced: "4.0.0" }, { fixed: "4.17.21" }] }] }] },
+      "lodash",
+    );
+    expect(v).toMatchObject({ cve: "CVE-2020-1", severity: "MODERATE", fixed_in: ["4.17.21"] });
+  });
+  it("builds reverse-DNS names", () => {
+    expect(reverseName("8.8.8.8")).toBe("8.8.8.8.in-addr.arpa");
+    expect(expandIPv6("2001:db8::1")).toBe("2001:0db8:0000:0000:0000:0000:0000:0001");
+    expect(reverseName("2001:db8::1")?.startsWith("1.0.0.0.0.0.0.0")).toBe(true);
+    expect(expandIPv6("1::2::3")).toBeNull();
+    expect(expandIPv6("hello")).toBeNull();
+  });
+  it("finds the new tools in marketplace search", () => {
+    const env = { PUBLIC_URL: "https://aipaygen.com" };
+    expect(ownMatches(env, "exchange rates")[0]?.meta.tool).toBe("currency_convert");
+    expect(ownMatches(env, "npm vulnerability")[0]?.meta.tool).toBe("package_vulns");
+    expect(ownMatches(env, "sentiment analysis")[0]?.meta.tool).toBe("classify_text");
+    expect(ownMatches(env, "unshorten url")[0]?.meta.tool).toBe("redirect_check");
+    expect(ownMatches(env, "arxiv papers")[0]?.meta.tool).toBe("paper_search");
   });
 });

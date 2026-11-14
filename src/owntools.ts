@@ -25,6 +25,18 @@ const SYNONYMS: Record<string, string> = {
   tech_stack: "technology tech stack framework cms builtwith wappalyzer website",
   company_profile: "company enrichment business firmographics lead profile",
   domain_report: "domain report audit website analysis due diligence",
+  summarize: "summary summarizer tldr digest condense article recap llm",
+  extract_data: "extract extraction structured json parse scrape fields entity llm",
+  classify_text: "classify classification sentiment analysis categorize label intent topic spam moderation",
+  currency_convert: "currency exchange rate fx forex convert money usd eur",
+  public_holidays: "holiday holidays calendar business day bank national",
+  wikipedia: "wiki encyclopedia knowledge facts summary entity lookup",
+  hacker_news: "hn hackernews news stories tech discussion ycombinator",
+  paper_search: "paper papers research academic arxiv science scholar publication",
+  package_vulns: "vulnerability vulnerabilities cve security advisory dependency osv npm pypi",
+  package_info: "package npm pypi crates library dependency version registry downloads",
+  ip_lookup: "ip address geolocation owner asn network rdap reverse",
+  redirect_check: "redirect unshorten shortener link url expand bitly tracking",
 };
 
 /** Not offered as search results: free helpers, and run_skill (it runs other listings). */
@@ -78,11 +90,17 @@ function toItem(base: string, t: Tool): CatalogItem {
 /** Up to `max` of our paid tools that match the query, best first. */
 export function ownMatches(env: Pick<Env, "PUBLIC_URL">, query: string, max = 3): CatalogItem[] {
   return listed()
-    .map((t) => ({ t, score: matchScore(query, `${t.name.replace(/_/g, " ")} ${t.title} ${t.description} ${SYNONYMS[t.name] ?? ""}`) }))
-    .filter((x) => x.score >= 0.5)
-    .sort((a, b) => b.score - a.score)
+    .map((t) => {
+      // "Strong" words are the tool's name, title and synonyms: a hit there counts more than one in the description.
+      const strong = matchScore(query, `${t.name.replace(/_/g, " ")} ${t.title} ${SYNONYMS[t.name] ?? ""}`);
+      const score = matchScore(query, `${t.name.replace(/_/g, " ")} ${t.title} ${t.description} ${SYNONYMS[t.name] ?? ""}`);
+      return { t, score, strong, rank: score + strong / 2 };
+    })
+    // Half the words matching only in the description is too weak ("image generation" vs "...an image...").
+    .filter((x) => x.score >= 0.5 && (x.strong > 0 || x.score === 1))
+    .sort((a, b) => b.rank - a.rank)
     // Only the best-matching tools: "translate text" shouldn't also offer page_to_markdown for the word "text".
-    .filter((x, _, all) => x.score >= all[0]!.score - 0.01)
+    .filter((x, _, all) => x.rank >= all[0]!.rank - 0.01)
     .slice(0, max)
     .map(({ t }) => toItem(env.PUBLIC_URL, t));
 }
