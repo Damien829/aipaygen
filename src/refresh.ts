@@ -78,7 +78,8 @@ async function probe(kind: string, url: string, x402: boolean): Promise<Probe> {
   return { alive: res.status < 500, verified: false, ms: Date.now() - t0 };
 }
 
-export async function healthCheck(env: Env, limit = 40) {
+// 34 probes leaves room under the free plan's 50 outbound requests per invocation for agent refreshes, both feeds and the alert.
+export async function healthCheck(env: Env, limit = 34) {
   // One indexed query per kind (idx_catalog_health), least recently checked first.
   // MCP servers and APIs get most of the budget: they are what agents call.
   type HealthRow = { id: string; kind: string; url: string; x402: number; fail_count: number; latency_ms: number | null };
