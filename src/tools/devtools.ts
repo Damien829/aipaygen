@@ -199,6 +199,30 @@ function findRole(list: RdapEntity[] | undefined, role: string): RdapEntity | un
   return undefined;
 }
 
+interface RdapIp {
+  name?: string; handle?: string; startAddress?: string; endAddress?: string; country?: string; type?: string;
+  cidr0_cidrs?: { v4prefix?: string; v6prefix?: string; length: number }[]; entities?: RdapEntity[];
+  events?: { eventAction: string; eventDate: string }[]; port43?: string;
+}
+
+/**
+ * RDAP for an IP. ARIN answers for its own space and redirects to RIPE, APNIC,
+ * LACNIC or AFRINIC for theirs. rdap.org is the fallback (it rate-limits shared
+ * cloud IPs, so it isn't first).
+ */
+async function rdapIp(addr: string): Promise<{ status: number; data: RdapIp | null }> {
+  let last = { status: 0, data: null as RdapIp | null };
+  for (const url of [`https://rdap.arin.net/registry/ip/${addr}`, `https://rdap.org/ip/${addr}`]) {
+    try {
+      last = await fetchJson<RdapIp>(url, { timeoutMs: 8000, headers: { accept: "application/rdap+json" } });
+      if (last.data) return last;
+    } catch {
+      // try the next source
+    }
+  }
+  return last;
+}
+
 export const ipLookup = defineTool({
   name: "ip_lookup",
   title: "IP address owner lookup",
@@ -216,11 +240,7 @@ export const ipLookup = defineTool({
 
     const ptrName = reverseName(addr)!;
     const [rdap, ptr] = await Promise.all([
-      fetchJson<{
-        name?: string; handle?: string; startAddress?: string; endAddress?: string; country?: string; type?: string;
-        cidr0_cidrs?: { v4prefix?: string; v6prefix?: string; length: number }[]; entities?: RdapEntity[];
-        events?: { eventAction: string; eventDate: string }[]; port43?: string;
-      }>(`https://rdap.org/ip/${addr}`, { timeoutMs: 8000, headers: { accept: "application/rdap+json" } }),
+      rdapIp(addr),
       fetchJson<{ Answer?: { type: number; data: string }[] }>(`https://cloudflare-dns.com/dns-query?name=${ptrName}&type=PTR`, {
         timeoutMs: 4000,
         headers: { accept: "application/dns-json" },
