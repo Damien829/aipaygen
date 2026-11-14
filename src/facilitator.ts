@@ -165,7 +165,15 @@ export async function handleFacilitator(request: Request, env: Env, ctx?: Execut
     const v1Names: Record<string, string> = { "eip155:8453": "base", "eip155:84532": "base-sepolia" };
     const v1 = new Set(networks.map((n) => v1Names[n]).filter(Boolean));
     const s = fac.getSupported();
-    return json({ ...s, kinds: s.kinds.filter((k) => (k.x402Version >= 2 ? ours.has(k.network) : v1.has(k.network))) });
+    // One entry per version, scheme and network: the scheme registers v1 names once per network it serves.
+    const seen = new Set<string>();
+    const kinds = s.kinds.filter((k) => {
+      const id = `${k.x402Version}|${k.scheme}|${k.network}`;
+      if (seen.has(id) || !(k.x402Version >= 2 ? ours.has(k.network) : v1.has(k.network))) return false;
+      seen.add(id);
+      return true;
+    });
+    return json({ ...s, kinds });
   }
 
   if (request.method === "POST" && path === "/verify") {
