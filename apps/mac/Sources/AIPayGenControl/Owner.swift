@@ -140,6 +140,13 @@ final class Owner: ObservableObject {
         }
     }
 
+    /// Same as loadMoney but without the spinner or messages, for background refreshes.
+    func refreshMoneyQuietly() async {
+        guard admin.hasToken, let m: Money = try? await get("/admin/money") else { return }
+        money = m
+        if let w = await Owner.usdcBalance(m.pay_to) { walletUSDC = w }
+    }
+
     func loadPrices() async {
         _ = await admin.run("Loading prices") {
             prices = (try await get("/admin/prices") as PricesPage).tools
@@ -190,13 +197,17 @@ final class Owner: ObservableObject {
         guard !polling else { return }
         polling = true
         Notifier.requestPermission()
+        var ticks = 0
         while !Task.isCancelled {
+            var newSales = false
+            defer { ticks += 1 }
             if admin.hasToken, let page: SalesPage = try? await get("/admin/sales?after=\(lastSaleId)") {
                 if lastSaleId == 0 {
                     lastSaleId = page.last_id // first run: start from now, don't replay history
                 } else if !page.sales.isEmpty {
                     lastSaleId = max(lastSaleId, page.sales.map(\.id).max() ?? lastSaleId)
                     lastSale = page.sales.last
+                    newSales = true
                     if notifySales {
                         let total = page.sales.reduce(0) { $0 + $1.price_micro }
                         if page.sales.count == 1, let s = page.sales.first {
@@ -207,15 +218,25 @@ final class Owner: ObservableObject {
                     }
                 }
             }
+            // Earnings and the wallet follow new sales right away, and refresh every 5 minutes anyway.
+            if newSales || ticks % 5 == 0 { await refreshMoneyQuietly() }
             try? await Task.sleep(nanoseconds: 60_000_000_000)
         }
     }
 
-    /// USDC balance on Base mainnet from a public RPC (no database reads).
+    /// USDC balance on Base mainnet from free public RPCs, tried in order (no database reads).
     nonisolated static func usdcBalance(_ address: String) async -> Double? {
+        for rpc in ["https://base-rpc.publicnode.com", "https://1rpc.io/base", "https://mainnet.base.org"] {
+            if let v = await usdcBalance(address, rpc: rpc) { return v }
+        }
+        return nil
+    }
+
+    nonisolated private static func usdcBalance(_ address: String, rpc: String) async -> Double? {
         let hex = address.lowercased().replacingOccurrences(of: "0x", with: "")
-        guard hex.count == 40, let url = URL(string: "https://mainnet.base.org") else { return nil }
+        guard hex.count == 40, let url = URL(string: rpc) else { return nil }
         var req = URLRequest(url: url)
+        req.timeoutInterval = 10
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let data = "0x70a08231" + String(repeating: "0", count: 24) + hex
@@ -364,7 +385,7 @@ struct MoneyPage: View {
         Panel {
             VStack(alignment: .leading, spacing: 3) {
                 caption("YOUR WALLET · USDC ON BASE")
-                Text(owner.walletUSDC.map { String(format: "$%.2f", $0) } ?? "—")
+                Text(owner.walletUSDC.map { String(format: $0 < 1 ? "$%.3f" : "$%.2f", $0) } ?? "—")
                     .font(.system(size: 30, weight: .bold, design: .rounded).monospacedDigit()).foregroundStyle(Color.green)
                 HStack(spacing: 8) {
                     Text(shortAddress(owner.money?.pay_to)).font(.system(size: 11, design: .monospaced)).foregroundStyle(.white.opacity(0.55))
