@@ -517,3 +517,20 @@ describe("search diversity", () => {
     expect(out).toHaveLength(items.length);
   });
 });
+
+describe("own-tool ranking prefers full name matches", () => {
+  const env = { PUBLIC_URL: "https://aipaygen.com" };
+  it("weather vs weather_alerts", () => {
+    expect(ownMatches(env, "weather in paris")[0]?.meta.tool).toBe("weather");
+    expect(ownMatches(env, "weather alerts in texas")[0]?.meta.tool).toBe("weather_alerts");
+  });
+});
+
+describe("word-order phrases", () => {
+  const env = { PUBLIC_URL: "https://aipaygen.com" };
+  it("tells speech-to-text from text-to-speech", () => {
+    expect(ownMatches(env, "speech to text")[0]?.meta.tool).toBe("transcribe_audio");
+    expect(ownMatches(env, "text to speech")[0]?.meta.tool).toBe("text_to_speech");
+    expect(ownMatches(env, "text to image")[0]?.meta.tool).toBe("generate_image");
+  });
+});

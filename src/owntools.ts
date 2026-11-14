@@ -77,6 +77,14 @@ const SYNONYMS: Record<string, string> = {
   sec_filings: "sec edgar filings 10-k 10-q 8-k annual report revenue earnings financials public company stock ticker"
 };
 
+/** Phrases where word order decides the tool ("speech to text" vs "text to speech"); word matching alone can't tell. */
+const PHRASES: [RegExp, string][] = [
+  [/speech[\s-]*(to|2)[\s-]*text|\bstt\b|transcri/i, "transcribe_audio"],
+  [/text[\s-]*(to|2)[\s-]*speech|\btts\b|read (it )?aloud/i, "text_to_speech"],
+  [/image[\s-]*(to|2)[\s-]*text|\bocr\b/i, "describe_image"],
+  [/text[\s-]*(to|2)[\s-]*image/i, "generate_image"],
+];
+
 /** Not offered as search results: free helpers, and run_skill (it runs other listings). */
 const SKIP = new Set(["search_marketplace", "register_agent", "run_skill"]);
 
@@ -134,7 +142,12 @@ export function ownMatches(env: Pick<Env, "PUBLIC_URL">, query: string, max = 3)
       const score = matchScore(query, `${t.name.replace(/_/g, " ")} ${t.title} ${t.description} ${SYNONYMS[t.name] ?? ""}`);
       // A query that is exactly a tool's name ("weather") should rank that tool above its relatives ("weather_alerts").
       const exact = words(query).join(" ") === t.name.replace(/_/g, " ") ? 1 : 0;
-      return { t, score, strong, rank: score + strong / 2 + exact };
+      // Share of the tool's own name the query covers: "weather in paris" covers all of weather but half of weather_alerts.
+      const nameWords = t.name.split("_");
+      const qStems = new Set(words(query).map(stem));
+      const coverage = nameWords.filter((w) => qStems.has(stem(w))).length / nameWords.length;
+      const phrase = PHRASES.some(([re, tool]) => tool === t.name && re.test(query)) ? 1 : 0;
+      return { t, score, strong, rank: score + strong / 2 + exact + coverage * 0.3 + phrase };
     })
     // Half the words matching only in the description is too weak ("image generation" vs "...an image...").
     .filter((x) => x.score >= 0.5 && (x.strong > 0 || x.score === 1))
