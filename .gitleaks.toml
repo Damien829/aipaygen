@@ -5,6 +5,8 @@ useDefault = true
 
 [allowlist]
 description = "Documentation placeholders, template variables and test fixtures"
+# Made-up key and token formats that test the search log's secret filter.
+paths = ['''^test/prices\.test\.ts$''']
 regexTarget = "match"
 regexes = [
   # apk_YOUR_KEY, apk_your_key, apk_testkey, apk_THE_KEY, apk_xxx, apk_...
