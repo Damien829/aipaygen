@@ -3,6 +3,7 @@ import { registerExactEvmScheme } from "@x402/evm/exact/server";
 import { declareDiscoveryExtension } from "@x402/extensions/bazaar";
 import { z } from "zod";
 import type { Env } from "../env";
+import { CDP_FACILITATOR, cdpAuthHeaders } from "./cdpauth";
 import type { ToolDef } from "../tools/types";
 
 type ResourceServer = InstanceType<typeof x402ResourceServer>;
@@ -23,10 +24,18 @@ export function x402Enabled(env: Env): boolean {
   return /^0x[0-9a-fA-F]{40}$/.test(env.PAY_TO ?? "");
 }
 
+/** CDP's facilitator when its API key is set (lists us in the CDP Bazaar), else FACILITATOR_URL. */
+export function usesCdp(env: Env): boolean {
+  return !!(env.CDP_API_KEY_ID && env.CDP_API_KEY_SECRET);
+}
+
 function resourceServer(env: Env): { server: ResourceServer; ready: Promise<void> } {
-  const key = `${env.FACILITATOR_URL}|${env.X402_NETWORK}`;
+  const cdp = usesCdp(env);
+  const key = `${cdp ? `cdp:${env.CDP_API_KEY_ID}` : env.FACILITATOR_URL}|${env.X402_NETWORK}`;
   if (cached?.key === key) return cached;
-  const server = new x402ResourceServer(new HTTPFacilitatorClient({ url: env.FACILITATOR_URL, timeoutMs: 20_000 }));
+  const server = new x402ResourceServer(new HTTPFacilitatorClient(cdp
+    ? { url: CDP_FACILITATOR, timeoutMs: 20_000, createAuthHeaders: () => cdpAuthHeaders(env.CDP_API_KEY_ID!, env.CDP_API_KEY_SECRET!) }
+    : { url: env.FACILITATOR_URL, timeoutMs: 20_000 }));
   registerExactEvmScheme(server);
   const ready = server.initialize().catch((err: unknown) => {
     cached = null;

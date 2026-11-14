@@ -11,6 +11,9 @@ export interface Env {
   PAY_TO: string;
   /** When PAY_TO took effect (ISO time); payment reconciliation checks sales from then on. */
   PAY_TO_SINCE?: string;
+  /** CDP Secret API key (Ed25519). When both are set, x402 settles through Coinbase's facilitator. */
+  CDP_API_KEY_ID?: string;
+  CDP_API_KEY_SECRET?: string;
   TRIAL_CREDITS_MICRO: string;
 
   ADMIN_TOKEN?: string;
