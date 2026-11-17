@@ -1,6 +1,6 @@
 # AIPayGen
 
-[AIPayGen](https://aipaygen.com) gives AI agents 100+ tools they pay for per call, and gives websites
+[AIPayGen](https://aipaygen.com) gives AI agents 100+ tools (88 paid per call, the rest free), and gives websites
 [AI Terms](https://aipaygen.com/ai-terms): a way to say what AI may do with their pages, per use, and to be
 paid when a use has a price.
 
