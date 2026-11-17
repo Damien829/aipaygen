@@ -1,0 +1,85 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Damien829/aipaygen",
+  "title": "AIPayGen",
+  "description": "100+ pay-per-call x402 tools for AI agents (web, company, crypto, media); 22,000+ APIs to search",
+  "version": "2.5.0",
+  "repository": {
+    "url": "https://github.com/Damien829/aipaygen",
+    "source": "github"
+  },
+  "websiteUrl": "https://aipaygen.com",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.aipaygen.com/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Bearer apg_... API key (free trial key at https://aipaygen.com). Optional when paying per call with x402.",
+          "isRequired": false,
+          "isSecret": true
+        }
+      ]
+    }
+  ],
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "aipaygen-mcp",
+      "version": "2.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "AIPAYGEN_API_KEY",
+          "description": "Optional prepaid key (apg_...). Without it, paid tools answer with an x402 price; 3 calls a day are free on tools up to $0.005.",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "AIPAYGEN_TOOLSET",
+          "description": "Optional focused tool set: web, company, crypto, media, agent, data, dev or site.",
+          "isRequired": false
+        }
+      ]
+    },
+    {
+      "registryType": "pypi",
+      "identifier": "aipaygen-mcp",
+      "version": "2.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "AIPAYGEN_API_KEY",
+          "description": "Optional prepaid key (apg_...).",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "AIPAYGEN_TOOLSET",
+          "description": "Optional focused tool set: web, company, crypto, media, agent, data, dev or site.",
+          "isRequired": false
+        }
+      ]
+    }
+  ],
+  "_meta": {
+    "io.modelcontextprotocol.registry/publisher-provided": {
+      "toolSets": {
+        "description": "The same server with a shorter tool list: each URL lists one kind of tool plus find_tool, search_marketplace, create_api_key and account_balance. https://mcp.aipaygen.com/mcp lists every tool.",
+        "web": "https://mcp.aipaygen.com/mcp/web",
+        "company": "https://mcp.aipaygen.com/mcp/company",
+        "crypto": "https://mcp.aipaygen.com/mcp/crypto",
+        "media": "https://mcp.aipaygen.com/mcp/media",
+        "agent": "https://mcp.aipaygen.com/mcp/agent",
+        "data": "https://mcp.aipaygen.com/mcp/data",
+        "dev": "https://mcp.aipaygen.com/mcp/dev",
+        "site": "https://mcp.aipaygen.com/mcp/site"
+      }
+    }
+  }
+}

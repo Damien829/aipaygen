@@ -1,0 +1,15 @@
+{
+  "name": "aipaygen-mcp",
+  "version": "2.1.0",
+  "description": "AIPayGen MCP server for stdio clients (Claude Desktop, Cursor, VS Code...): 100+ tools for AI agents (web, company data, crypto, media; 88 paid per call, the rest free), paid with x402 or a prepaid key. No dependencies.",
+  "bin": { "aipaygen-mcp": "bin/aipaygen-mcp.js" },
+  "files": ["bin/", "README.md", "LICENSE"],
+  "type": "module",
+  "engines": { "node": ">=18" },
+  "keywords": ["mcp", "model-context-protocol", "mcp-server", "claude", "cursor", "ai-agents", "x402", "web-search", "crypto", "tools"],
+  "license": "MIT",
+  "homepage": "https://aipaygen.com/tools",
+  "repository": { "type": "git", "url": "git+https://github.com/Damien829/aipaygen.git" },
+  "bugs": { "url": "https://github.com/Damien829/aipaygen/issues" },
+  "mcpName": "io.github.Damien829/aipaygen"
+}
