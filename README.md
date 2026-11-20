@@ -11,7 +11,7 @@ a call, and new keys come with free trial credit. Details: [aipaygen.com/docs#pa
 [AI Terms](https://aipaygen.com/ai-terms) file (`/.well-known/ai-terms`) and says whether a use (search, answers,
 training, agents) is allowed, priced or refused.
 
-Plus 100+ tools for agents (88 paid per call, the rest free): web, company and domain data, crypto, media,
+Plus 100+ tools for agents, most paid per call: web, company and domain data, crypto, media,
 memory, watches and notifications.
 
 ```json
