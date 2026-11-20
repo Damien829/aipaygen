@@ -4,7 +4,12 @@
 Claude Code, VS Code, Windsurf and others. It relays to the hosted server at
 `https://mcp.aipaygen.com/mcp` and has no dependencies.
 
-**100+ tools for AI agents** (88 paid per call, the rest free): web search and page-to-markdown, company and domain
+**Read pages that charge AI agents.** `paid_fetch` buys a page that answers HTTP 402 (x402) for your agent from
+AIPayGen prepaid credit: no wallet. It costs the site's price plus 15%, plus $0.001 a call; set `AIPAYGEN_API_KEY`
+to a key (free, with trial credit: `curl -X POST https://aipaygen.com/v1/keys`). `ai_terms` (free) says what a
+site's AI Terms allow before you read.
+
+**Plus 100+ tools for AI agents** (88 paid per call, the rest free): web search and page-to-markdown, company and domain
 data (DNS, WHOIS, SSL, tech stack, email security), crypto and DeFi data, image, speech and document
 tools, plus memory, watches, schedules and notifications for agents. Search 22,000+ APIs and MCP
 servers for free with `search_marketplace`.

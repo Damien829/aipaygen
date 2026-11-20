@@ -2,8 +2,8 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.Damien829/aipaygen",
   "title": "AIPayGen",
-  "description": "100+ pay-per-call x402 tools for AI agents (web, company, crypto, media); 22,000+ APIs to search",
-  "version": "2.5.0",
+  "description": "Read x402-priced pages with paid_fetch from prepaid credit (no wallet); AI Terms checks; 100+ tools",
+  "version": "2.6.0",
   "repository": {
     "url": "https://github.com/Damien829/aipaygen",
     "source": "github"
