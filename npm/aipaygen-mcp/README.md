@@ -5,7 +5,7 @@ Claude Code, VS Code, Windsurf and others. It relays to the hosted server at
 `https://mcp.aipaygen.com/mcp` and has no dependencies.
 
 **Read pages that charge AI agents.** `paid_fetch` buys a page that answers HTTP 402 (x402) for your agent from
-credit you buy with a top-up: no wallet. It costs the site's price plus 15%, plus $0.001 a call; set
+credit you top up (USDC today), so your agent needs no wallet. It costs the site's price plus 15%, plus $0.001 a call; set
 `AIPAYGEN_API_KEY` to your key. One free key per person, with up to $0.05 of trial credit for tools (not for paying sites):
 `curl -X POST https://aipaygen.com/v1/keys`. `ai_terms` (free) says what a site's AI Terms allow before you read.
 

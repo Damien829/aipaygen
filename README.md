@@ -4,8 +4,8 @@
 
 **Let your agent read pages that charge AI agents.** Some sites answer AI agents with HTTP 402 and an
 [x402](https://aipaygen.com/x402) price per page. [AIPayGen](https://aipaygen.com)'s `paid_fetch` tool buys the
-page for your agent from credit you buy with a top-up: no wallet, no crypto setup. It costs the site's price plus
-15%, plus $0.001 a call. One free key per person, with up to $0.05 of trial credit for tools (not for paying sites).
+page for your agent, so your agent needs no wallet: it pays from credit you top up (USDC today). It costs the site's
+price plus 15%, plus $0.001 a call. One free key per person, with up to $0.05 of trial credit for tools (not for paying sites).
 Details: [aipaygen.com/docs#paid-fetch](https://aipaygen.com/docs#paid-fetch).
 
 **Check a site's AI Terms first.** The free `ai_terms` tool reads a site's
