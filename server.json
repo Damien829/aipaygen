@@ -2,7 +2,7 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.Damien829/aipaygen",
   "title": "AIPayGen",
-  "description": "Read x402-priced pages with paid_fetch from prepaid credit (no wallet); AI Terms checks; 100+ tools",
+  "description": "Read x402-priced pages with paid_fetch from credit you buy (card or USDC); AI Terms; 100+ tools",
   "version": "2.6.0",
   "repository": {
     "url": "https://github.com/Damien829/aipaygen",

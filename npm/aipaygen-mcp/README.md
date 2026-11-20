@@ -5,9 +5,9 @@ Claude Code, VS Code, Windsurf and others. It relays to the hosted server at
 `https://mcp.aipaygen.com/mcp` and has no dependencies.
 
 **Read pages that charge AI agents.** `paid_fetch` buys a page that answers HTTP 402 (x402) for your agent from
-AIPayGen prepaid credit: no wallet. It costs the site's price plus 15%, plus $0.001 a call; set `AIPAYGEN_API_KEY`
-to a key (free, with trial credit: `curl -X POST https://aipaygen.com/v1/keys`). `ai_terms` (free) says what a
-site's AI Terms allow before you read.
+credit you buy (card or USDC): no wallet. It costs the site's price plus 15%, plus $0.001 a call; set
+`AIPAYGEN_API_KEY` to your key. One free key per person, with $0.05 of trial credit for tools (not for paying sites):
+`curl -X POST https://aipaygen.com/v1/keys`. `ai_terms` (free) says what a site's AI Terms allow before you read.
 
 **Plus 100+ tools for AI agents**, most paid per call: web search and page-to-markdown, company and domain
 data (DNS, WHOIS, SSL, tech stack, email security), crypto and DeFi data, image, speech and document
@@ -44,8 +44,8 @@ Prefer a remote server? Point your client at `https://mcp.aipaygen.com/mcp` dire
 
 - **No key:** 3 calls a day are free on tools up to $0.005. Paid tools answer with an
   [x402](https://aipaygen.com/x402) price your agent can pay in USDC on Base, wallet to wallet.
-- **Prepaid key:** add `"env": { "AIPAYGEN_API_KEY": "apg_..." }`. Get a free key with trial credit
-  from the `create_api_key` tool or at [aipaygen.com/tools](https://aipaygen.com/tools); top up at
+- **Prepaid key:** add `"env": { "AIPAYGEN_API_KEY": "apg_..." }`. One free key per person, with $0.05 of trial
+  credit for tools (not for paying sites), from the `create_api_key` tool or at [aipaygen.com/tools](https://aipaygen.com/tools); top up at
   [aipaygen.com/billing](https://aipaygen.com/billing). Prepaid credit is held by us until you spend it.
 
 Failed calls are never charged, with one exception: `paid_fetch` (buying a page from another site)

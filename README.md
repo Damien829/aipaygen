@@ -4,8 +4,9 @@
 
 **Let your agent read pages that charge AI agents.** Some sites answer AI agents with HTTP 402 and an
 [x402](https://aipaygen.com/x402) price per page. [AIPayGen](https://aipaygen.com)'s `paid_fetch` tool buys the
-page for your agent from prepaid credit: no wallet, no crypto setup. It costs the site's price plus 15%, plus $0.001
-a call, and new keys come with free trial credit. Details: [aipaygen.com/docs#paid-fetch](https://aipaygen.com/docs#paid-fetch).
+page for your agent from credit you buy (card or USDC): no wallet, no crypto setup. It costs the site's price plus
+15%, plus $0.001 a call. One free key per person, with $0.05 of trial credit for tools (not for paying sites).
+Details: [aipaygen.com/docs#paid-fetch](https://aipaygen.com/docs#paid-fetch).
 
 **Check a site's AI Terms first.** The free `ai_terms` tool reads a site's
 [AI Terms](https://aipaygen.com/ai-terms) file (`/.well-known/ai-terms`) and says whether a use (search, answers,
@@ -18,8 +19,9 @@ memory, watches and notifications.
 { "mcpServers": { "aipaygen": { "command": "npx", "args": ["-y", "aipaygen-mcp"], "env": { "AIPAYGEN_API_KEY": "apg_..." } } } }
 ```
 
-That works in Claude Desktop, Cursor, VS Code, Windsurf and other stdio clients. paid_fetch needs the key (get one
-free: `curl -X POST https://aipaygen.com/v1/keys`). Claude Code connects directly:
+That works in Claude Desktop, Cursor, VS Code, Windsurf and other stdio clients. Get your free key with
+`curl -X POST https://aipaygen.com/v1/keys`; paid_fetch pays sites only from credit you add to it
+([aipaygen.com/billing#topup](https://aipaygen.com/billing#topup)). Claude Code connects directly:
 `claude mcp add --transport http aipaygen https://mcp.aipaygen.com/mcp --header "Authorization: Bearer apg_..."`
 
 This repository holds the open-source MCP packages. The hosted service itself is not open source.
