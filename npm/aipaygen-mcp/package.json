@@ -1,7 +1,7 @@
 {
   "name": "aipaygen-mcp",
   "version": "2.1.0",
-  "description": "AIPayGen MCP server for stdio clients (Claude Desktop, Cursor, VS Code...): paid_fetch reads pages that charge AI agents (x402) from credit you buy (card or USDC), no wallet; ai_terms checks a site's AI Terms; plus 100+ tools, most paid per call. No dependencies.",
+  "description": "AIPayGen MCP server for stdio clients (Claude Desktop, Cursor, VS Code...): paid_fetch reads pages that charge AI agents (x402) from credit you buy with a top-up, no wallet; ai_terms checks a site's AI Terms; plus 100+ tools, most paid per call. No dependencies.",
   "bin": { "aipaygen-mcp": "bin/aipaygen-mcp.js" },
   "files": ["bin/", "README.md", "LICENSE"],
   "type": "module",
