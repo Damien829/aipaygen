@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aipaygen-mcp"
-version = "2.1.0"
+version = "2.1.1"
 description = "AIPayGen MCP server for stdio clients: paid_fetch reads pages that charge AI agents (x402) from credit you top up (USDC today), no agent wallet; ai_terms checks a site's AI Terms; plus 100+ tools, most paid per call. No dependencies."
 readme = "README.md"
 license = "MIT"

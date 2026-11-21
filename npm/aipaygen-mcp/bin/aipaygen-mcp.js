@@ -11,7 +11,7 @@
 //   AIPAYGEN_MCP_URL   override the endpoint (default https://mcp.aipaygen.com/mcp)
 import { createInterface } from "node:readline";
 
-const VERSION = "2.1.0";
+const VERSION = "2.1.1";
 const DEFAULT_URL = "https://mcp.aipaygen.com/mcp";
 const TOOLSETS = ["web", "company", "crypto", "media", "agent", "data", "dev", "site"];
 const TIMEOUT_MS = 120_000;

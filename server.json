@@ -3,7 +3,7 @@
   "name": "io.github.Damien829/aipaygen",
   "title": "AIPayGen",
   "description": "Read x402-priced pages with paid_fetch from credit you top up (USDC today); AI Terms; 100+ tools",
-  "version": "2.6.0",
+  "version": "2.6.1",
   "repository": {
     "url": "https://github.com/Damien829/aipaygen",
     "source": "github"
@@ -27,7 +27,7 @@
     {
       "registryType": "npm",
       "identifier": "aipaygen-mcp",
-      "version": "2.1.0",
+      "version": "2.1.1",
       "transport": {
         "type": "stdio"
       },
@@ -48,7 +48,7 @@
     {
       "registryType": "pypi",
       "identifier": "aipaygen-mcp",
-      "version": "2.1.0",
+      "version": "2.1.1",
       "transport": {
         "type": "stdio"
       },
