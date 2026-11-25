@@ -1,6 +1,6 @@
 # AIPayGen
 
-[![AiPayGen — 65+ AI Tools as an MCP on mcprush](https://mcprush.com/badge/aipaygen-65-ai-tools-as-an-mcp/score.svg)](https://mcprush.com/to/aipaygen-65-ai-tools-as-an-mcp?ref=badge)
+[![AIPayGen on MCPRush](https://mcprush.com/badge/aipaygen-65-ai-tools-as-an-mcp/score.svg)](https://mcprush.com/to/aipaygen-65-ai-tools-as-an-mcp?ref=badge)
 [![Damien829/aipaygen MCP server](https://glama.ai/mcp/servers/Damien829/aipaygen/badges/score.svg)](https://glama.ai/mcp/servers/Damien829/aipaygen)
 
 **Let your agent read pages that charge AI agents.** Some sites answer AI agents with HTTP 402 and an
