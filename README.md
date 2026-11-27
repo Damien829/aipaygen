@@ -13,8 +13,14 @@ Details: [aipaygen.com/docs#paid-fetch](https://aipaygen.com/docs#paid-fetch).
 [AI Terms](https://aipaygen.com/ai-terms) file (`/.well-known/ai-terms`) and says whether a use (search, answers,
 training, agents) is allowed, priced or refused.
 
-Plus 100+ tools for agents, most paid per call: web, company and domain data, crypto, media,
-memory, watches and notifications.
+**Find a service before you pay.** The free `find_tool` and `search_marketplace` tools search 150,000+ APIs, MCP
+servers and skills for the one that fits a job. The [x402 directory](https://aipaygen.com/x402/services) lists
+4,600+ sites that sell calls over x402, each with its quoted price, our own health checks, its last check and whether its owner
+proved the domain; it is also a free JSON API ([aipaygen.com/x402/api](https://aipaygen.com/x402/api)), and
+[x402 for agents](https://aipaygen.com/x402/for-agents) shows how to find, judge and pay a service from code.
+
+Plus 108 pay-per-call tools for agents (111 listed over MCP with the free helpers): web, company and domain data,
+crypto, media, memory, watches and notifications.
 
 ```json
 { "mcpServers": { "aipaygen": { "command": "npx", "args": ["-y", "aipaygen-mcp"], "env": { "AIPAYGEN_API_KEY": "apg_..." } } } }
@@ -23,7 +29,7 @@ memory, watches and notifications.
 That works in Claude Desktop, Cursor, VS Code, Windsurf and other stdio clients. Get your free key with
 `curl -X POST https://aipaygen.com/v1/keys`; paid_fetch pays sites only from credit you add to it
 ([aipaygen.com/billing#topup](https://aipaygen.com/billing#topup)). Claude Code connects directly:
-`claude mcp add --transport http aipaygen https://mcp.aipaygen.com/mcp --header "Authorization: Bearer apg_..."`
+`claude mcp add --transport http aipaygen https://aipaygen.com/mcp --header "Authorization: Bearer apg_..."`
 
 This repository holds the open-source MCP packages. The hosted service itself is not open source.
 
@@ -34,7 +40,7 @@ This repository holds the open-source MCP packages. The hosted service itself is
 | `aipaygent-mcp` on PyPI (old name, forwards to the above) | | [python/aipaygent-mcp-moved](python/aipaygent-mcp-moved) |
 
 Both packages relay a stdio MCP client (Claude Desktop, Cursor, Claude Code, VS Code, Windsurf and others) to
-the hosted server at `https://mcp.aipaygen.com/mcp`. You can also point a client at that URL directly.
+the hosted server at `https://aipaygen.com/mcp`. You can also point a client at that URL directly.
 
 ```json
 { "mcpServers": { "aipaygen": { "command": "npx", "args": ["-y", "aipaygen-mcp"] } } }
