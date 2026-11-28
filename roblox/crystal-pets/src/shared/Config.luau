@@ -52,6 +52,7 @@ Config.Pets = {
 	Dragon = { Icon = "🐉", Rarity = "Legendary", Mult = 10 },
 	Phoenix = { Icon = "🔥", Rarity = "Mythic", Mult = 40 },
 	Celestial = { Icon = "🌟", Rarity = "Mythic", Mult = 120 },
+	FrostWyrm = { Icon = "❄️", Rarity = "Mythic", Mult = 25 }, -- limited-time (Winter Egg)
 }
 
 -- Zones: Center is world position; players unlock them with coins ---------
@@ -98,6 +99,17 @@ Config.Eggs = {
 		Name = "Magma Egg", Cost = 120000, Zone = "Volcano", Offset = Vector3.new(0, 0, 0),
 		Color = Color3.fromRGB(255, 110, 50),
 		Pets = { { "Wolf", 40 }, { "Owl", 30 }, { "Unicorn", 20 }, { "Dragon", 9 }, { "Phoenix", 1 } },
+	},
+	-- Limited-time event egg: only hatchable inside its Event window (server time, UTC).
+	-- Copy this entry for each seasonal event; it is the cheapest way to spike revenue and returns.
+	Winter = {
+		Name = "Winter Egg", Cost = 20000, Zone = "Meadow", Offset = Vector3.new(34, 0, -32),
+		Color = Color3.fromRGB(150, 220, 255),
+		Event = {
+			Start = os.time({ year = 2026, month = 12, day = 1, hour = 0 }),
+			End = os.time({ year = 2027, month = 1, day = 6, hour = 0 }),
+		},
+		Pets = { { "Fox", 30 }, { "Wolf", 35 }, { "Unicorn", 20 }, { "Dragon", 10 }, { "FrostWyrm", 5 } },
 	},
 	Sky = {
 		Name = "Celestial Egg", Cost = 3000000, Zone = "Sky", Offset = Vector3.new(0, 0, 0),

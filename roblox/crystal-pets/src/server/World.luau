@@ -194,7 +194,8 @@ function World.Build(handlers)
 			CanCollide = false,
 			Parent = world,
 		})
-		addLabel(orb, egg.Name .. "\n" .. Format.Number(egg.Cost) .. " coins", 5)
+		local title = egg.Event and ("LIMITED: " .. egg.Name) or egg.Name
+		addLabel(orb, title .. "\n" .. Format.Number(egg.Cost) .. " coins", 5)
 		local prompt = addPrompt(pedestal, "Hatch", egg.Name, 0.4, 12)
 		prompt.Triggered:Connect(function(player)
 			handlers.Hatch(player, key)

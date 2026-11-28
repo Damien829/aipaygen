@@ -53,6 +53,9 @@ function Pets.Hatch(player, eggKey)
 	end
 	lastHatch[player] = now
 
+	if egg.Event and not (os.time() >= egg.Event.Start and os.time() < egg.Event.End) then
+		return Economy.Toast(player, egg.Name .. " is not available right now!")
+	end
 	if not data.Zones[egg.Zone] then
 		return Economy.Toast(player, "Unlock " .. Config.ZoneById[egg.Zone].Name .. " first!")
 	end
