@@ -137,6 +137,25 @@ Config.Products = {
 	Boost = { Id = 0, Name = "2x Boost (15 min)", Price = 79, BoostSeconds = 900 },
 }
 
+-- Shiny variants: every pet gets a "Shiny <name>" that can only come from hatching ------
+-- (rare chance on any egg; the Lucky Hatch pass raises it). 2.5x the pet's multiplier.
+Config.ShinyChance = 0.02
+Config.LuckyShinyChance = 0.05
+Config.ShinyMultiplier = 2.5
+
+local shinies = {}
+for name, info in Config.Pets do
+	shinies["Shiny " .. name] = {
+		Icon = "✨" .. info.Icon,
+		Rarity = info.Rarity,
+		Mult = info.Mult * Config.ShinyMultiplier,
+		Shiny = true,
+	}
+end
+for name, info in shinies do
+	Config.Pets[name] = info
+end
+
 -- Lookups ---------------------------------------------------------------
 Config.ZoneById = {}
 for _, zone in Config.Zones do

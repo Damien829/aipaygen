@@ -63,7 +63,11 @@ function Pets.Hatch(player, eggKey)
 		return Economy.Toast(player, "You need " .. Format.Number(egg.Cost) .. " coins for this egg.")
 	end
 
-	local name = roll(egg, Economy.HasPass(player, "LuckyHatch"))
+	local lucky = Economy.HasPass(player, "LuckyHatch")
+	local name = roll(egg, lucky)
+	if math.random() < (lucky and Config.LuckyShinyChance or Config.ShinyChance) then
+		name = "Shiny " .. name
+	end
 	data.Pets[name] = (data.Pets[name] or 0) + 1
 
 	-- Auto-equip if there is a free slot.

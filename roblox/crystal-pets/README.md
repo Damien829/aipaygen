@@ -52,6 +52,8 @@ Revenue levers: passes (`2x Coins`, `Auto Collect`), consumable coin packs and t
 
 ## Tuning
 
+- Shiny pets: any hatch has a 2% chance (5% with Lucky Hatch) to be a Shiny with 2.5x the multiplier. Change `ShinyChance` in `Config.luau`.
+
 - Too slow or fast? Change `CrystalValue`, egg `Cost`, and zone `Cost` in `Config.luau`.
 - More content = more retention: add pets, eggs and zones by copying the existing entries.
 - Ship updates weekly. Fresh updates are what Roblox's recommendations reward.
