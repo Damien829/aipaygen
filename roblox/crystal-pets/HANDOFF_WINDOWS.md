@@ -19,7 +19,7 @@ and no Luau syntax checker in the cloud session. Your first playtest is the firs
    - Install the CLI: download `rojo-7.x.x-windows-x86_64.zip` from https://github.com/rojo-rbx/rojo/releases, unzip it
      and put `rojo.exe` somewhere on your PATH (or into the project folder).
    - Alternative: install [Aftman](https://github.com/LPGhatguy/aftman) and run `aftman install` in the project folder
-     (`aftman.toml` pins Rojo 7.4.4).
+     (`aftman.toml` pins Rojo 7.7.1).
 
 ### 2. Get the code
 Open PowerShell (a normal one, not admin):
@@ -39,7 +39,7 @@ cd roblox\crystal-pets
 ### 4. Sync and play
 1. In PowerShell (inside `roblox\crystal-pets`): `rojo serve`
 2. In Studio: **Plugins > Rojo > Connect**.
-3. Press **Play** (F5). Walk around, hold **E** on a crystal and on the egg pedestals.
+3. Press **Play** (F5). Walk around, press **E** on a crystal, and hold **E** on the egg pedestals.
 
 ### 5. First-playtest checklist (tell Claude about anything that fails)
 - [ ] Map appears: 4 colored zones, glowing crystals, egg pedestals near the spawn.

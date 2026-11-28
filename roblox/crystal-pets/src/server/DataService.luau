@@ -78,6 +78,7 @@ end
 function DataService.Load(player)
 	local key = "Player_" .. player.UserId
 	local ok, result
+	local errors = 0
 	for _ = 1, LOCK_RETRIES do
 		local locked = false
 		ok, result = pcall(function()
@@ -97,6 +98,13 @@ function DataService.Load(player)
 		end
 		if ok and locked then
 			ok, result = false, "session locked by another server"
+		else
+			-- A real DataStore error (not a lock). In Studio this almost always means the place is not
+			-- published or API access is off, so fail fast instead of stalling the player for ~24 seconds.
+			errors += 1
+			if RunService:IsStudio() or errors >= 3 then
+				break
+			end
 		end
 		task.wait(LOCK_WAIT)
 	end
@@ -110,6 +118,11 @@ function DataService.Load(player)
 		if not RunService:IsStudio() then
 			return nil -- caller kicks the player so we never overwrite real progress
 		end
+		warn(
+			"[DataService] SAVING IS OFF in this test. Fix: File > Save to Roblox, then Home > Game Settings >"
+				.. " Security > Enable Studio Access to API Services, then press Play again."
+		)
+		player:SetAttribute("SavingOff", true)
 		data = deepCopy(DEFAULT)
 	end
 

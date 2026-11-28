@@ -679,7 +679,12 @@ offerClose.Activated:Connect(function()
 end)
 
 -- Remote handlers --------------------------------------------------------------
+local warnedSaving = false
 Remotes.State.OnClientEvent:Connect(function(newState)
+	if not state and player:GetAttribute("SavingOff") and not warnedSaving then
+		warnedSaving = true
+		task.delay(1, toast, "Test mode: progress won't save. Turn on Studio API access (see Output).")
+	end
 	state = newState
 	stateAt = os.clock()
 	dailyDot.Visible = newState.DailyReady
