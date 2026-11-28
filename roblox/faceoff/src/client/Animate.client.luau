@@ -34,139 +34,171 @@ local JOINTS = {
 }
 local UPPER = { RS = true, LS = true, RE = true, LE = true, W = true, N = true }
 
--- +X on a shoulder or hip swings the limb forward/up; +X on an elbow or knee bends it.
--- The guard: fists up by the chin, lead shoulder forward, knees soft.
-local GUARD = {
-	RS = A(50, 0, -12),
-	RE = A(105),
-	LS = A(62, 0, 12),
-	LE = A(100),
-	W = A(-6, 18),
-	N = A(4, -14),
-	RH = A(12),
-	RK = A(-22),
-	LH = A(18),
+-- Joint directions (checked against the R15 rig, character faces -Z):
+--   shoulder/hip +X = limb swings forward/up; elbow +X = forearm bends up; knee -X = bends
+--   (shin goes back); waist/root +Y = turn so the RIGHT shoulder comes forward; waist -X = lean in.
+-- Fighting-animation rules used here (from fighting-game animation guides):
+--   * a jab snaps out with no wind-up and barely disturbs the stance
+--   * power punches load first (hips turn away), then the hips turn INTO the punch, weight
+--     shifts onto the front foot and the rear heel lifts
+--   * a little overshoot on the way back, then settle into the guard
+--   * hips turn the whole body while the legs counter-turn so the feet stay planted
+--   * knees stay soft; no popping up and down
+
+-- A pose helper: hip turn (Root yaw) with the feet kept planted, plus any joint overrides.
+local function pose(hipYaw, joints)
+	joints = joints or {}
+	local root = A(0, hipYaw)
+	if joints.Shift then
+		root = root * joints.Shift
+		joints.Shift = nil
+	end
+	joints.Root = root
+	joints.RH = (joints.RH or A(14)) * A(0, -hipYaw)
+	joints.LH = (joints.LH or A(18)) * A(0, -hipYaw)
+	return joints
+end
+
+-- The guard: orthodox stance (left side forward), lead fist out, rear fist by the chin.
+local GUARD = pose(-16, {
+	LS = A(62, 0, 10),
+	LE = A(96),
+	RS = A(46, 0, -14),
+	RE = A(114),
+	W = A(-6, -6),
+	N = A(4, 20),
+	RK = A(-24),
 	LK = A(-18),
-	Root = P(0, -0.12, 0),
-}
+	Shift = P(0, -0.12, 0),
+})
 local REST = { RH = CFrame.identity, LH = CFrame.identity, RK = CFrame.identity, LK = CFrame.identity, Root = CFrame.identity }
 
--- Keyframes { time, pose }. A pose lists only the joints that leave the guard.
+-- Keyframes { time, pose, ease }. ease "out" = explosive start (strikes); default = smooth.
+-- A pose lists only what leaves the guard.
 local ANIMS = {
-	Light = { -- straight right
+	Light = { -- lead jab: fast, no wind-up
 		{ 0.0, {} },
-		{ 0.07, { RS = A(92, 0, -4), RE = A(4), W = A(-8, -32), N = A(4, 18), LS = A(66, 0, 14), LE = A(105) } },
-		{ 0.15, { RS = A(92, 0, -4), RE = A(4), W = A(-8, -32), N = A(4, 18), LS = A(66, 0, 14), LE = A(105) } },
-		{ 0.3, {} },
+		{ 0.05, pose(-26, { LS = A(90, 0, 3), LE = A(2), W = A(-8, -10), N = A(4, 30), RS = A(48, 0, -14), RE = A(114), RK = A(-24), LK = A(-16) }), "out" },
+		{ 0.1, pose(-26, { LS = A(90, 0, 3), LE = A(2), W = A(-8, -10), N = A(4, 30), RS = A(48, 0, -14), RE = A(114), RK = A(-24), LK = A(-16) }) },
+		{ 0.15, pose(-14, { LS = A(52, 0, 12), LE = A(104) }) },
+		{ 0.24, {} },
 	},
-	LightLeft = { -- jab with the lead hand
+	LightLeft = { -- rear cross: small load, hips turn through, rear heel lifts
 		{ 0.0, {} },
-		{ 0.06, { LS = A(92, 0, 4), LE = A(4), W = A(-6, 28), N = A(4, -26) } },
-		{ 0.14, { LS = A(92, 0, 4), LE = A(4), W = A(-6, 28), N = A(4, -26) } },
-		{ 0.28, {} },
+		{ 0.05, pose(-24, { W = A(-4, -10), Shift = P(0, -0.15, 0.05) }) },
+		{ 0.12, pose(28, { RS = A(92, 0, -6), RE = A(2), LS = A(56, 0, 14), LE = A(110), W = A(-12, 14), N = A(4, -22), RK = A(-32), LK = A(-12), Shift = P(0, -0.15, -0.3) }), "out" },
+		{ 0.18, pose(28, { RS = A(92, 0, -6), RE = A(2), LS = A(56, 0, 14), LE = A(110), W = A(-12, 14), N = A(4, -22), RK = A(-32), LK = A(-12), Shift = P(0, -0.15, -0.3) }) },
+		{ 0.27, pose(-22, { RS = A(40, 0, -16), RE = A(118), W = A(-4, -10) }) },
+		{ 0.36, {} },
 	},
 
 	-- ARMS (heavy attacks)
-	Gloves = { -- Big Punch: load up, then a full-body haymaker
+	Gloves = { -- Big Punch: load the hips back, then a full-body haymaker
 		{ 0.0, {} },
-		{ 0.22, { RS = A(30, 0, 25), RE = A(125), W = A(4, 40), N = A(0, -30), RH = A(28), RK = A(-40), LH = A(25), LK = A(-35) } },
-		{ 0.31, { RS = A(96, 0, -8), RE = A(0), LS = A(40, 0, 20), LE = A(115), W = A(-14, -48), N = A(6, 30), RH = A(-22), RK = A(-6), LH = A(40), LK = A(-30), Root = P(0, -0.2, -0.45) } },
-		{ 0.52, { RS = A(96, 0, -8), RE = A(0), LS = A(40, 0, 20), LE = A(115), W = A(-14, -48), N = A(6, 30), RH = A(-22), RK = A(-6), LH = A(40), LK = A(-30), Root = P(0, -0.2, -0.45) } },
-		{ 0.8, {} },
-	},
-	Spring = { -- Boing Punch: coil, then a long lunging punch
-		{ 0.0, {} },
-		{ 0.24, { RS = A(25, 0, 20), RE = A(130), W = A(10, 35), RH = A(35), RK = A(-55), LH = A(35), LK = A(-55), Root = P(0, -0.3, 0.25) } },
-		{ 0.33, { RS = A(94), RE = A(0), LS = A(20, 0, 25), LE = A(90), W = A(-24, -40), N = A(10, 30), RH = A(-30), RK = A(-4), LH = A(45), LK = A(-20), Root = P(0, -0.25, -0.8) } },
-		{ 0.6, { RS = A(94), RE = A(0), LS = A(20, 0, 25), LE = A(90), W = A(-24, -40), N = A(10, 30), RH = A(-30), LH = A(45), LK = A(-20), Root = P(0, -0.25, -0.8) } },
+		{ 0.2, pose(-34, { RS = A(25, 0, 35), RE = A(112), LS = A(60, 0, 15), LE = A(95), W = A(2, -20), N = A(0, 30), RK = A(-40), LK = A(-32), Shift = P(0, -0.2, 0.2) }) },
+		{ 0.3, pose(40, { RS = A(96, 0, -10), RE = A(0), LS = A(45, 0, 25), LE = A(110), W = A(-14, 22), N = A(6, -32), RH = A(-12), LH = A(32), RK = A(-14), LK = A(-30), Shift = P(0, -0.18, -0.5) }), "out" },
+		{ 0.48, pose(40, { RS = A(96, 0, -10), RE = A(0), LS = A(45, 0, 25), LE = A(110), W = A(-14, 22), N = A(6, -32), RH = A(-12), LH = A(32), RK = A(-14), LK = A(-30), Shift = P(0, -0.18, -0.5) }) },
+		{ 0.62, pose(-22, { RS = A(40, 0, -18), RE = A(118), W = A(-4, -10) }) },
 		{ 0.85, {} },
 	},
-	Drill = { -- Drill Rush: three fast alternating punches, then a finisher
+	Spring = { -- Boing Punch: coil low, then lunge into a long punch
 		{ 0.0, {} },
-		{ 0.12, { RS = A(92), RE = A(5), W = A(-10, -28), N = A(0, 20) } },
-		{ 0.2, { LS = A(92), LE = A(5), W = A(-10, 28), N = A(0, -20) } },
-		{ 0.28, { RS = A(92), RE = A(5), W = A(-10, -28), N = A(0, 20) } },
-		{ 0.38, { RS = A(98, 0, -10), RE = A(0), LS = A(98, 0, 10), LE = A(0), W = A(-22), RH = A(-20), LH = A(35), LK = A(-25), Root = P(0, -0.2, -0.5) } },
-		{ 0.62, { RS = A(98, 0, -10), RE = A(0), LS = A(98, 0, 10), LE = A(0), W = A(-22), RH = A(-20), LH = A(35), LK = A(-25), Root = P(0, -0.2, -0.5) } },
+		{ 0.22, pose(-30, { RS = A(25, 0, 25), RE = A(125), W = A(6, -15), RK = A(-55), LK = A(-55), RH = A(35), LH = A(35), Shift = P(0, -0.3, 0.25) }) },
+		{ 0.32, pose(32, { RS = A(94), RE = A(0), LS = A(25, 0, 25), LE = A(95), W = A(-24, 18), N = A(10, -30), RH = A(-30), LH = A(45), LK = A(-20), RK = A(-6), Shift = P(0, -0.22, -0.85) }), "out" },
+		{ 0.58, pose(32, { RS = A(94), RE = A(0), LS = A(25, 0, 25), LE = A(95), W = A(-24, 18), N = A(10, -30), RH = A(-30), LH = A(45), LK = A(-20), RK = A(-6), Shift = P(0, -0.22, -0.85) }) },
 		{ 0.85, {} },
 	},
-	Hammer = { -- Ground Pound: both fists high overhead, then smash down
+	Drill = { -- Drill Rush: jab, cross, jab, then a two-fisted finisher
 		{ 0.0, {} },
-		{ 0.34, { RS = A(165, 0, -15), RE = A(25), LS = A(165, 0, 15), LE = A(25), W = A(14), N = A(18), RH = A(-5), LH = A(8) } },
-		{ 0.45, { RS = A(60, 0, -10), RE = A(10), LS = A(60, 0, 10), LE = A(10), W = A(-42), N = A(-12), RH = A(45), RK = A(-60), LH = A(45), LK = A(-60), Root = P(0, -0.55, -0.2) } },
-		{ 0.75, { RS = A(60, 0, -10), RE = A(10), LS = A(60, 0, 10), LE = A(10), W = A(-42), N = A(-12), RH = A(45), RK = A(-60), LH = A(45), LK = A(-60), Root = P(0, -0.55, -0.2) } },
+		{ 0.1, pose(-26, { LS = A(90, 0, 3), LE = A(2), W = A(-8, -10), N = A(4, 30) }), "out" },
+		{ 0.18, pose(28, { RS = A(92, 0, -6), RE = A(2), W = A(-12, 14), N = A(4, -22), RK = A(-32) }), "out" },
+		{ 0.26, pose(-26, { LS = A(90, 0, 3), LE = A(2), W = A(-8, -10), N = A(4, 30) }), "out" },
+		{ 0.36, pose(10, { RS = A(96, 0, -12), RE = A(0), LS = A(96, 0, 12), LE = A(0), W = A(-22), RH = A(-18), LH = A(34), LK = A(-28), Shift = P(0, -0.2, -0.5) }), "out" },
+		{ 0.6, pose(10, { RS = A(96, 0, -12), RE = A(0), LS = A(96, 0, 12), LE = A(0), W = A(-22), RH = A(-18), LH = A(34), LK = A(-28), Shift = P(0, -0.2, -0.5) }) },
+		{ 0.85, {} },
+	},
+	Hammer = { -- Ground Pound: both fists high overhead, then smash down with the whole body
+		{ 0.0, {} },
+		{ 0.32, pose(0, { RS = A(165, 0, -15), RE = A(25), LS = A(165, 0, 15), LE = A(25), W = A(14), N = A(18), RK = A(-10), LK = A(-10), Shift = P(0, 0.05, 0.1) }) },
+		{ 0.43, pose(0, { RS = A(62, 0, -10), RE = A(10), LS = A(62, 0, 10), LE = A(10), W = A(-40), N = A(-12), RH = A(48), RK = A(-62), LH = A(48), LK = A(-62), Shift = P(0, -0.5, -0.2) }), "out" },
+		{ 0.72, pose(0, { RS = A(62, 0, -10), RE = A(10), LS = A(62, 0, 10), LE = A(10), W = A(-40), N = A(-12), RH = A(48), RK = A(-62), LH = A(48), LK = A(-62), Shift = P(0, -0.5, -0.2) }) },
 		{ 1.0, {} },
 	},
-	Claw = { -- Grab and Toss: reach and grab, then spin and fling behind
+	Claw = { -- Grab and Toss: reach and grab, then turn the whole body and fling behind
 		{ 0.0, {} },
-		{ 0.17, { RS = A(88, 0, 18), RE = A(20), LS = A(88, 0, -18), LE = A(20), W = A(-16), Root = P(0, -0.1, -0.35) } },
-		{ 0.3, { RS = A(80, 0, 60), RE = A(30), LS = A(80, 0, 30), LE = A(40), W = A(-4, 80) } },
-		{ 0.44, { RS = A(50, 0, 95), RE = A(10), LS = A(60, 0, 70), LE = A(20), W = A(6, 150), N = A(0, -40) } },
+		{ 0.16, pose(0, { RS = A(88, 0, 18), RE = A(20), LS = A(88, 0, -18), LE = A(20), W = A(-16), Shift = P(0, -0.1, -0.35) }), "out" },
+		{ 0.3, pose(-60, { RS = A(80, 0, 30), RE = A(30), LS = A(80, 0, 60), LE = A(30), W = A(-4, -40) }) },
+		{ 0.44, pose(-90, { RS = A(55, 0, 60), RE = A(10), LS = A(50, 0, 95), LE = A(10), W = A(6, -60), N = A(0, 40) }), "out" },
 		{ 0.75, {} },
 	},
 	Rocket = { -- Rocket Fist: brace, fire, recoil
 		{ 0.0, {} },
-		{ 0.18, { RS = A(55), RE = A(120), W = A(0, 30), LS = A(55), LE = A(105), RH = A(25), RK = A(-35), LH = A(25), LK = A(-35) } },
-		{ 0.24, { RS = A(95), RE = A(0), W = A(-10, -35), N = A(4, 25) } },
-		{ 0.4, { RS = A(100), RE = A(0), W = A(12, -20), N = A(10, 20), Root = P(0, 0, 0.35) } },
+		{ 0.16, pose(-24, { RS = A(55), RE = A(120), LS = A(60), LE = A(100), W = A(0, -10), RK = A(-38), LK = A(-34), Shift = P(0, -0.2, 0.1) }) },
+		{ 0.23, pose(26, { RS = A(95), RE = A(0), W = A(-10, 12), N = A(4, -24), Shift = P(0, -0.15, -0.25) }), "out" },
+		{ 0.38, pose(20, { RS = A(102), RE = A(0), W = A(10, 10), N = A(10, -20), Shift = P(0, -0.1, 0.3) }) },
 		{ 0.75, {} },
 	},
 
 	-- HEADS (special moves)
-	Bolt = { -- Zap Burst: gather energy, then explode into a star
+	Bolt = { -- Zap Burst: gather energy low, then explode into a star
 		{ 0.0, {} },
-		{ 0.15, { RS = A(40, 0, -35), RE = A(120), LS = A(40, 0, 35), LE = A(120), W = A(-18), N = A(-18), RH = A(35), RK = A(-55), LH = A(35), LK = A(-55), Root = P(0, -0.35, 0) } },
-		{ 0.25, { RS = A(10, 0, 115), RE = A(0), LS = A(10, 0, -115), LE = A(0), W = A(10), N = A(20), RH = A(0, 0, 18), LH = A(0, 0, -18) } },
-		{ 0.48, { RS = A(10, 0, 115), RE = A(0), LS = A(10, 0, -115), LE = A(0), W = A(10), N = A(20), RH = A(0, 0, 18), LH = A(0, 0, -18) } },
+		{ 0.15, pose(0, { RS = A(40, 0, -35), RE = A(120), LS = A(40, 0, 35), LE = A(120), W = A(-18), N = A(-18), RH = A(35), RK = A(-55), LH = A(35), LK = A(-55), Shift = P(0, -0.32, 0) }) },
+		{ 0.24, pose(0, { RS = A(10, 0, 115), RE = A(0), LS = A(10, 0, -115), LE = A(0), W = A(10), N = A(20), RH = A(4, 0, 16), LH = A(4, 0, -16), RK = A(-6), LK = A(-6) }), "out" },
+		{ 0.46, pose(0, { RS = A(10, 0, 115), RE = A(0), LS = A(10, 0, -115), LE = A(0), W = A(10), N = A(20), RH = A(4, 0, 16), LH = A(4, 0, -16), RK = A(-6), LK = A(-6) }) },
 		{ 0.75, {} },
 	},
-	Blaster = { -- Laser: snap a finger-gun forward, kick back on the shot
+	Blaster = { -- Laser: snap into a pointing pose, kick back on the shot
 		{ 0.0, {} },
-		{ 0.07, { RS = A(92), RE = A(0), LS = A(70, 0, -20), LE = A(80), W = A(-6, -24), N = A(0, 20) } },
-		{ 0.14, { RS = A(104), RE = A(0), LS = A(70, 0, -20), LE = A(80), W = A(6, -24), N = A(4, 20) } },
-		{ 0.4, { RS = A(92), RE = A(0), LS = A(70, 0, -20), LE = A(80), W = A(-6, -24), N = A(0, 20) } },
+		{ 0.07, pose(24, { RS = A(92), RE = A(0), LS = A(70, 0, -20), LE = A(80), W = A(-6, 8), N = A(0, -22) }), "out" },
+		{ 0.14, pose(22, { RS = A(102), RE = A(0), LS = A(70, 0, -20), LE = A(80), W = A(6, 8), N = A(4, -22), Shift = P(0, -0.1, 0.15) }) },
+		{ 0.4, pose(24, { RS = A(92), RE = A(0), LS = A(70, 0, -20), LE = A(80), W = A(-6, 8), N = A(0, -22) }) },
 		{ 0.6, {} },
 	},
 	Magnet = { -- Magnet Pull: reach out with both hands, then heave back
 		{ 0.0, {} },
-		{ 0.16, { RS = A(92, 0, 8), RE = A(0), LS = A(92, 0, -8), LE = A(0), W = A(-16), Root = P(0, -0.1, -0.3) } },
-		{ 0.36, { RS = A(40, 0, 25), RE = A(115), LS = A(40, 0, -25), LE = A(115), W = A(18), N = A(10), RH = A(-15), LH = A(28), LK = A(-25), Root = P(0, -0.15, 0.4) } },
-		{ 0.55, { RS = A(40, 0, 25), RE = A(115), LS = A(40, 0, -25), LE = A(115), W = A(18), N = A(10), RH = A(-15), LH = A(28), LK = A(-25), Root = P(0, -0.15, 0.4) } },
+		{ 0.16, pose(0, { RS = A(92, 0, 8), RE = A(0), LS = A(92, 0, -8), LE = A(0), W = A(-16), Shift = P(0, -0.1, -0.3) }), "out" },
+		{ 0.36, pose(0, { RS = A(40, 0, 25), RE = A(115), LS = A(40, 0, -25), LE = A(115), W = A(18), N = A(10), RH = A(-15), LH = A(28), LK = A(-25), Shift = P(0, -0.15, 0.4) }) },
+		{ 0.55, pose(0, { RS = A(40, 0, 25), RE = A(115), LS = A(40, 0, -25), LE = A(115), W = A(18), N = A(10), RH = A(-15), LH = A(28), LK = A(-25), Shift = P(0, -0.15, 0.4) }) },
 		{ 0.8, {} },
 	},
-	Frost = { -- Freeze Ray: two-handed cast
+	Frost = { -- Freeze Ray: draw back, then a two-handed cast
 		{ 0.0, {} },
-		{ 0.1, { RS = A(55, -20), RE = A(70), LS = A(55, 20), LE = A(70), W = A(10, 0), Root = P(0, -0.15, 0.15) } },
-		{ 0.17, { RS = A(92, -22), RE = A(0), LS = A(92, 22), LE = A(0), W = A(-12), N = A(-6), Root = P(0, -0.15, -0.2) } },
-		{ 0.45, { RS = A(92, -22), RE = A(0), LS = A(92, 22), LE = A(0), W = A(-12), N = A(-6), Root = P(0, -0.15, -0.2) } },
+		{ 0.1, pose(0, { RS = A(55, -20), RE = A(70), LS = A(55, 20), LE = A(70), W = A(10), Shift = P(0, -0.15, 0.15) }) },
+		{ 0.17, pose(0, { RS = A(92, -22), RE = A(0), LS = A(92, 22), LE = A(0), W = A(-12), N = A(-6), LH = A(30), LK = A(-25), Shift = P(0, -0.15, -0.25) }), "out" },
+		{ 0.45, pose(0, { RS = A(92, -22), RE = A(0), LS = A(92, 22), LE = A(0), W = A(-12), N = A(-6), LH = A(30), LK = A(-25), Shift = P(0, -0.15, -0.25) }) },
 		{ 0.7, {} },
 	},
 	Dragon = { -- Fireball: rear back, then breathe fire forward
 		{ 0.0, {} },
-		{ 0.2, { W = A(26), N = A(28), RS = A(10, 0, 40), RE = A(60), LS = A(10, 0, -40), LE = A(60), Root = P(0, 0, 0.3) } },
-		{ 0.3, { W = A(-32), N = A(-26), RS = A(-30, 0, 25), RE = A(20), LS = A(-30, 0, -25), LE = A(20), RH = A(-20), LH = A(35), LK = A(-25), Root = P(0, -0.15, -0.5) } },
-		{ 0.6, { W = A(-32), N = A(-26), RS = A(-30, 0, 25), RE = A(20), LS = A(-30, 0, -25), LE = A(20), RH = A(-20), LH = A(35), LK = A(-25), Root = P(0, -0.15, -0.5) } },
+		{ 0.2, pose(0, { W = A(26), N = A(28), RS = A(10, 0, 40), RE = A(60), LS = A(10, 0, -40), LE = A(60), Shift = P(0, 0, 0.3) }) },
+		{ 0.3, pose(0, { W = A(-32), N = A(-26), RS = A(-30, 0, 25), RE = A(20), LS = A(-30, 0, -25), LE = A(20), RH = A(-20), LH = A(35), LK = A(-25), Shift = P(0, -0.15, -0.5) }), "out" },
+		{ 0.6, pose(0, { W = A(-32), N = A(-26), RS = A(-30, 0, 25), RE = A(20), LS = A(-30, 0, -25), LE = A(20), RH = A(-20), LH = A(35), LK = A(-25), Shift = P(0, -0.15, -0.5) }) },
 		{ 0.9, {} },
 	},
 	Thunder = { -- Thunder Strike: fist to the sky, then point the bolt down
 		{ 0.0, {} },
-		{ 0.15, { RS = A(175, 0, -5), RE = A(0), N = A(28), W = A(12), LS = A(20, 0, -30), LE = A(40) } },
-		{ 0.6, { RS = A(175, 0, -5), RE = A(0), N = A(28), W = A(12), LS = A(20, 0, -30), LE = A(40) } },
-		{ 0.72, { RS = A(80), RE = A(0), N = A(-10, 15), W = A(-14, -20), LS = A(30, 0, -20), LE = A(60) } },
+		{ 0.15, pose(10, { RS = A(175, 0, -5), RE = A(0), N = A(28), W = A(12), LS = A(20, 0, -30), LE = A(40) }) },
+		{ 0.6, pose(10, { RS = A(175, 0, -5), RE = A(0), N = A(28), W = A(12), LS = A(20, 0, -30), LE = A(40) }) },
+		{ 0.72, pose(25, { RS = A(80), RE = A(0), N = A(-10, -15), W = A(-14, 10), LS = A(30, 0, -20), LE = A(60), Shift = P(0, -0.15, -0.3) }), "out" },
 		{ 1.0, {} },
 	},
 
 	-- Movement and reactions
 	Dodge = { -- duck and cover
 		{ 0.0, {} },
-		{ 0.07, { RS = A(85, 0, 10), RE = A(140), LS = A(85, 0, -10), LE = A(140), W = A(-30, 0, 10), N = A(-20), RH = A(55), RK = A(-80), LH = A(55), LK = A(-80), Root = P(0, -0.6, 0) } },
-		{ 0.27, { RS = A(85, 0, 10), RE = A(140), LS = A(85, 0, -10), LE = A(140), W = A(-30, 0, 10), N = A(-20), RH = A(55), RK = A(-80), LH = A(55), LK = A(-80), Root = P(0, -0.6, 0) } },
+		{ 0.07, pose(0, { RS = A(85, 0, 10), RE = A(140), LS = A(85, 0, -10), LE = A(140), W = A(-30, 0, 10), N = A(-20), RH = A(55), RK = A(-80), LH = A(55), LK = A(-80), Shift = P(0, -0.55, 0) }), "out" },
+		{ 0.27, pose(0, { RS = A(85, 0, 10), RE = A(140), LS = A(85, 0, -10), LE = A(140), W = A(-30, 0, 10), N = A(-20), RH = A(55), RK = A(-80), LH = A(55), LK = A(-80), Shift = P(0, -0.55, 0) }) },
 		{ 0.42, {} },
 	},
-	Hurt = { -- snap back from the hit
+	Flinch = { -- small hit: head snaps back, guard stays up
 		{ 0.0, {} },
-		{ 0.05, { W = A(30, 0, 8), N = A(32), RS = A(30, 0, 65), RE = A(30), LS = A(30, 0, -65), LE = A(30), RH = A(-20), LH = A(30), Root = P(0, 0, 0.2) } },
-		{ 0.3, { W = A(20, 0, 5), N = A(20), RS = A(25, 0, 50), RE = A(40), LS = A(25, 0, -50), LE = A(40) } },
+		{ 0.04, pose(-10, { W = A(14, 8), N = A(18, 10), LS = A(70, 0, 14), LE = A(110), RS = A(55, 0, -10), RE = A(120), Shift = P(0, -0.12, 0.15) }), "out" },
+		{ 0.24, {} },
+	},
+	Hurt = { -- big hit: knocked off balance, arms thrown out
+		{ 0.0, {} },
+		{ 0.05, pose(0, { W = A(30, 0, 8), N = A(32), RS = A(30, 0, 65), RE = A(30), LS = A(30, 0, -65), LE = A(30), RH = A(-20), LH = A(30), Shift = P(0, 0, 0.2) }), "out" },
+		{ 0.3, pose(0, { W = A(20, 0, 5), N = A(20), RS = A(25, 0, 50), RE = A(40), LS = A(25, 0, -50), LE = A(40) }) },
 		{ 0.5, {} },
 	},
 }
@@ -283,7 +315,9 @@ local function sample(frames, t, joint, guard)
 	for i = 1, #frames - 1 do
 		local a, b = frames[i], frames[i + 1]
 		if t >= a[1] and t < b[1] then
-			local alpha = smooth((t - a[1]) / (b[1] - a[1]))
+			local raw = (t - a[1]) / (b[1] - a[1])
+			-- "out" segments are strikes: explosive start, then ease into the hit pose.
+			local alpha = b[3] == "out" and (1 - (1 - raw) ^ 3) or smooth(raw)
 			local pa = a[2][joint] or rest
 			local pb = b[2][joint] or rest
 			return pa:Lerp(pb, alpha)
@@ -294,10 +328,18 @@ end
 
 -- Never stack on top of our own last write: on joints the Animator doesn't touch, Transform
 -- still holds what we wrote last frame, so start again from the base we used then.
-local function baseOf(motor)
+-- Roblox rounds a Transform slightly when it applies it, so compare with a small tolerance.
+local function same(a, b)
+	return (a.Position - b.Position).Magnitude < 1e-3 and a.LookVector:Dot(b.LookVector) > 0.99999 and a.UpVector:Dot(b.UpVector) > 0.99999
+end
+
+local function baseOf(motor, owned)
+	if owned then
+		return CFrame.identity -- bots: nothing else animates them, so always start from the rest pose
+	end
 	local current = motor.Transform
 	local prev = applied[motor]
-	if prev and current == prev.Result then
+	if prev and same(current, prev.Result) then
 		return prev.Base
 	end
 	return current
@@ -344,18 +386,23 @@ local function animateModel(model, dt, now)
 	end
 
 	for joint, motor in set do
-		local base = baseOf(motor)
+		local base = baseOf(motor, npc)
 		if UPPER[joint] then
 			-- Arms, torso and head are posed directly (guard + attack), blended by the weight.
-			local pose = anim and sample(anim.Frames, t, joint, guard) or (guard[joint] or CFrame.identity)
+			local goal = anim and sample(anim.Frames, t, joint, guard) or (guard[joint] or CFrame.identity)
 			if w <= 0.001 then
 				write(motor, base, base)
 			else
-				write(motor, base, base:Lerp(pose, w))
+				write(motor, base, base:Lerp(goal, w))
 			end
 		else
 			-- Legs and hips are layered on top of the walk animation.
 			local offset = anim and sample(anim.Frames, t, joint, guard) or (guard[joint] or CFrame.identity)
+			if joint == "Root" and fighting and not anim then
+				-- A boxer's bounce: tiny, so it reads as alive, not as popping up and down.
+				local phase = now * 4.2 + (walkPhase[model] or 0)
+				offset = offset * P(math.sin(phase * 0.5) * 0.04, math.abs(math.sin(phase)) * 0.05, 0)
+			end
 			if npc then
 				if joint == "RH" then
 					offset = offset * A(swing * 38)
@@ -406,12 +453,17 @@ Remotes.Notify.OnClientEvent:Connect(function(msg)
 	if msg.Type == "Anim" then
 		play(msg.Model, msg.Anim)
 	elseif msg.Type == "Hit" then
+		-- Hitlag: the attacker's swing freezes on contact, then the victim reacts.
+		local hitlag = msg.Hitlag or 0.06
 		local anim = msg.Attacker and playing[msg.Attacker]
 		if anim then
-			anim.Start += math.clamp((msg.Power or 30) / 900, 0.04, 0.12)
+			anim.Start += hitlag
 		end
-		if msg.Victim and (msg.Power or 0) > 18 then
-			play(msg.Victim, "Hurt")
+		if msg.Victim then
+			local victim = msg.Victim
+			task.delay(hitlag * 0.5, function()
+				play(victim, msg.Tumble and "Hurt" or "Flinch")
+			end)
 		end
 	end
 end)

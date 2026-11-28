@@ -241,14 +241,29 @@ local function targetsNear(attacker, point, radius)
 end
 
 -- Hits and launches ------------------------------------------------------------------------------
-function Combat.Launch(rec, velocity, stun)
+-- flinch = a small hit: the target stays on its feet and slides back (like real fighting games).
+-- Otherwise the target is launched into the air and tumbles.
+function Combat.Launch(rec, velocity, stun, flinch)
 	rec.StunUntil = now() + stun
 	if rec.Player then
-		Remotes.Knockback:FireClient(rec.Player, velocity, stun)
+		Remotes.Knockback:FireClient(rec.Player, velocity, stun, flinch == true)
 		return
 	end
 	local token = {}
 	rec.StunToken = token
+	if flinch then
+		rec.Humanoid.PlatformStand = false -- in case an earlier launch was still running
+		task.spawn(function()
+			local started = now()
+			while rec.StunToken == token and rec.Root.Parent and now() - started < stun do
+				local k = 1 - (now() - started) / stun
+				local v = rec.Root.AssemblyLinearVelocity
+				rec.Root.AssemblyLinearVelocity = Vector3.new(velocity.X * k, v.Y, velocity.Z * k)
+				RunService.Heartbeat:Wait()
+			end
+		end)
+		return
+	end
 	rec.Humanoid.PlatformStand = true
 	rec.Root.AssemblyLinearVelocity = velocity
 	if velocity.Magnitude > 65 then
@@ -315,9 +330,24 @@ function Combat.Hit(attacker, target, move, dir, opts)
 		flat = Vector3.new(1, 0, 0)
 	end
 	flat = flat.Unit
-	local velocity = flat * math.cos(angle) * speed + Vector3.new(0, math.sin(angle) * speed, 0)
-	local stun = math.clamp(F.HitstunBase + speed * F.HitstunPerSpeed, F.HitstunBase, F.HitstunMax)
-	Combat.Launch(target, velocity, stun)
+	-- Below the tumble threshold the target only flinches and stays grounded; above it they launch.
+	local tumble = speed >= F.TumbleSpeed
+	local velocity, stun
+	if tumble then
+		velocity = flat * math.cos(angle) * speed + Vector3.new(0, math.sin(angle) * speed, 0)
+		stun = math.clamp(F.HitstunBase + speed * F.HitstunPerSpeed, F.HitstunBase, F.HitstunMax)
+	else
+		velocity = flat * speed * 0.7
+		stun = math.clamp(0.1 + speed * 0.003, 0.1, 0.3)
+	end
+	-- Hitlag: both fighters freeze for a few frames on contact before the knockback starts.
+	local hitlag = math.clamp(0.035 + amount * 0.005, 0.04, 0.14)
+	target.StunUntil = now() + hitlag + stun
+	task.delay(hitlag, function()
+		if alive(target) and not target.Out and not target.KOing then
+			Combat.Launch(target, velocity, stun, not tumble)
+		end
+	end)
 	if move.Freeze then
 		Combat.Freeze(target, move.Freeze)
 	end
@@ -327,6 +357,8 @@ function Combat.Hit(attacker, target, move, dir, opts)
 		Amount = amount,
 		Power = speed,
 		Color = move.Color,
+		Hitlag = hitlag,
+		Tumble = tumble,
 		Victim = target.Model,
 		Attacker = attacker.Model,
 	})
@@ -524,7 +556,7 @@ function Combat.Attack(rec, kind)
 		task.delay(move.Windup * 0.8, function()
 			if alive(rec) and rec.StunUntil < now() and not rec.Locked then
 				local v = rec.Root.AssemblyLinearVelocity
-				rec.Root.AssemblyLinearVelocity = Vector3.new(0, math.max(v.Y, 6), 0) + facing(rec) * 30
+				rec.Root.AssemblyLinearVelocity = Vector3.new(0, v.Y, 0) + facing(rec) * 28
 			end
 		end)
 	end
