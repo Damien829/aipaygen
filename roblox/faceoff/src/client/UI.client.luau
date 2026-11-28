@@ -1183,6 +1183,9 @@ local function refresh()
 	if firstState then
 		firstState = false
 		task.delay(1, function()
+			while player:GetAttribute("IntroPlaying") do
+				task.wait(0.2) -- let the intro finish first
+			end
 			if match then
 				return
 			end

@@ -29,8 +29,132 @@ local function fallbackRig(color)
 	return model
 end
 
+-- Robot builds, so every bot is a real character, not a plain block body.
+-- Scale = body proportions; the rest are gadgets welded onto the body.
+local KITS = {
+	Brawler = { Height = 1.05, Width = 1.2, Depth = 1.1, Head = 1.0, Material = "Metal", Eye = "Visor", Pads = true, Core = true },
+	Speedster = { Height = 1.0, Width = 0.85, Depth = 0.9, Head = 0.95, Material = "SmoothPlastic", Eye = "Visor", Fins = true, Stripes = true },
+	Tank = { Height = 1.1, Width = 1.3, Depth = 1.25, Head = 0.9, Material = "DiamondPlate", Eye = "Visor", Pads = true, Pack = true },
+	Scout = { Height = 0.92, Width = 0.95, Depth = 0.95, Head = 1.15, Material = "SmoothPlastic", Eye = "Visor", Antenna = true, Pack = true },
+	Gremlin = { Height = 0.85, Width = 1.0, Depth = 1.0, Head = 1.35, Material = "Metal", Eye = "Cyclops", Antenna = true, Core = true },
+}
+local KIT_ORDER = { "Brawler", "Speedster", "Tank", "Scout", "Gremlin" }
+Npc.KitOrder = KIT_ORDER
+
+local function kitFor(def)
+	if def.Kit and KITS[def.Kit] then
+		return def.Kit
+	end
+	local hash = 0
+	for i = 1, #def.Name do
+		hash += string.byte(def.Name, i) * i
+	end
+	return KIT_ORDER[hash % #KIT_ORDER + 1]
+end
+
+local function gadget(model, body, size, offset, color, material, shape)
+	if not body then
+		return
+	end
+	local part = Visuals.Part({
+		Name = "Gadget",
+		Anchored = false,
+		Shape = shape or Enum.PartType.Block,
+		Size = size,
+		Color = color,
+		Material = material,
+		CanCollide = false,
+		CanQuery = false,
+		CanTouch = false,
+		Massless = true,
+		CastShadow = false,
+		CFrame = body.CFrame * offset,
+	})
+	local weld = Instance.new("WeldConstraint")
+	weld.Part0 = body
+	weld.Part1 = part
+	weld.Parent = part
+	part.Parent = model:FindFirstChild("RobotKit") or model
+	return part
+end
+
+-- Adds the eyes, armor and gadgets for the bot's build (after any scaling).
+local function addKit(model, def)
+	local kit = KITS[kitFor(def)]
+	local folder = Instance.new("Folder")
+	folder.Name = "RobotKit"
+	folder.Parent = model
+	local color = def.Color or Color3.fromRGB(200, 200, 210)
+	local trim = color:Lerp(Color3.new(1, 1, 1), 0.55)
+	local glow = def.Glow or Color3.fromHSV((color:ToHSV() + 0.5) % 1, 0.8, 1)
+	local material = Enum.Material[kit.Material]
+	for _, part in model:GetChildren() do
+		if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+			part.Material = material
+		end
+	end
+	local head = model:FindFirstChild("Head")
+	local torso = model:FindFirstChild("UpperTorso")
+	if head then
+		local face = head:FindFirstChildOfClass("Decal")
+		if face then
+			face:Destroy() -- robots get glowing eyes instead
+		end
+		local s = head.Size
+		if kit.Eye == "Cyclops" then
+			gadget(model, head, Vector3.one * s.Y * 0.5, CFrame.new(0, s.Y * 0.08, -s.Z * 0.42), glow, Enum.Material.Neon, Enum.PartType.Ball)
+		else
+			gadget(model, head, Vector3.new(s.X * 0.85, s.Y * 0.22, 0.12), CFrame.new(0, s.Y * 0.1, -s.Z * 0.5 - 0.04), glow, Enum.Material.Neon)
+		end
+		if kit.Antenna then
+			gadget(model, head, Vector3.new(0.12, s.Y * 0.7, 0.12), CFrame.new(s.X * 0.3, s.Y * 0.8, 0), trim, Enum.Material.Metal)
+			gadget(model, head, Vector3.one * 0.32, CFrame.new(s.X * 0.3, s.Y * 1.15, 0), glow, Enum.Material.Neon, Enum.PartType.Ball)
+		end
+	end
+	if torso then
+		local s = torso.Size
+		if kit.Core then
+			gadget(model, torso, Vector3.one * s.Y * 0.32, CFrame.new(0, s.Y * 0.1, -s.Z * 0.48), glow, Enum.Material.Neon, Enum.PartType.Ball)
+		end
+		if kit.Pack then
+			gadget(model, torso, Vector3.new(s.X * 0.7, s.Y * 0.75, 0.55), CFrame.new(0, 0, s.Z * 0.5 + 0.27), trim, Enum.Material.Metal)
+			for _, x in { -0.2, 0.2 } do
+				gadget(model, torso, Vector3.one * 0.35, CFrame.new(s.X * x, -s.Y * 0.45, s.Z * 0.5 + 0.3), glow, Enum.Material.Neon, Enum.PartType.Ball)
+			end
+		end
+		if kit.Fins then
+			for _, x in { -1, 1 } do
+				gadget(model, torso, Vector3.new(0.12, s.Y * 0.8, 0.9), CFrame.new(s.X * 0.25 * x, s.Y * 0.1, s.Z * 0.5 + 0.4) * CFrame.Angles(math.rad(-25), 0, math.rad(15 * x)), glow, Enum.Material.Neon)
+			end
+		end
+	end
+	if kit.Pads then
+		for _, name in { "RightUpperArm", "LeftUpperArm" } do
+			local arm = model:FindFirstChild(name)
+			if arm then
+				local s = arm.Size
+				gadget(model, arm, Vector3.new(s.X * 1.7, s.Y * 0.35, s.Z * 1.7), CFrame.new(0, s.Y * 0.4, 0), trim, Enum.Material.Metal)
+			end
+		end
+	end
+	if kit.Stripes then
+		for _, name in { "RightUpperLeg", "LeftUpperLeg" } do
+			local leg = model:FindFirstChild(name)
+			if leg then
+				local s = leg.Size
+				gadget(model, leg, Vector3.new(s.X + 0.05, s.Y * 0.15, s.Z + 0.05), CFrame.new(0, 0, 0), glow, Enum.Material.Neon)
+			end
+		end
+	end
+end
+
 local function buildRig(def)
+	local kit = KITS[kitFor(def)]
 	local desc = Instance.new("HumanoidDescription")
+	desc.HeightScale = kit.Height
+	desc.WidthScale = kit.Width
+	desc.DepthScale = kit.Depth
+	desc.HeadScale = kit.Head
 	local color = def.Color or Color3.fromRGB(200, 200, 210)
 	local dark = color:Lerp(Color3.new(0, 0, 0), 0.25)
 	desc.HeadColor = color
@@ -85,6 +209,7 @@ function Npc.Spawn(ctx, def, position, team, parent)
 			model:ScaleTo(scale)
 		end)
 	end
+	addKit(model, def)
 	Visuals.Dress(model, def.Loadout, def.Paint, scale)
 	for _, part in model:GetDescendants() do
 		if part:IsA("BasePart") then
@@ -215,7 +340,9 @@ function Npc.StartAI(rec)
 			local dirX = dx >= 0 and 1 or -1
 			local reach = 4.5 * rec.Scale + target.HitRadius
 			local nearEdge = math.abs(pos.X + dirX * 3 - ctx.Origin.X) > ctx.StageHalf - 2
-			if dist > reach * 0.8 and not (nearEdge and grounded and dy < 2) then
+			if dist < 2.6 and math.abs(dy) < 3 and not nearEdge then
+				humanoid:Move(Vector3.new(-dirX, 0, 0)) -- too close: step back to punching distance
+			elseif dist > reach * 0.8 and not (nearEdge and grounded and dy < 2) then
 				humanoid:Move(Vector3.new(dirX, 0, 0))
 			else
 				humanoid:Move(Vector3.zero)
@@ -277,6 +404,7 @@ function Npc.RandomBot(rng)
 		Name = Config.BotNames[rng:NextInteger(1, #Config.BotNames)],
 		Loadout = { Head = pick("Head"), Arms = pick("Arms"), Legs = pick("Legs") },
 		Color = Color3.fromHSV(rng:NextNumber(), 0.55, 0.9),
+		Kit = KIT_ORDER[rng:NextInteger(1, #KIT_ORDER)],
 		Scale = 1,
 		Weight = 1,
 		Speed = 0.9,

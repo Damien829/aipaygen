@@ -92,6 +92,7 @@ and press **Ctrl+C**.
 
 ### 5. Checklist (tell Claude about anything that fails)
 **Lobby**
+- [ ] A short fly-over intro plays when you join (Skip works). New players see the full tour; returning players see only the title shot.
 - [ ] You spawn on a gold plaza. The big "MIX & SMASH" title floats north, and signposts point to Battle, Part Forge, Training and Star Road.
 - [ ] The "How to play" panel opens on your first visit. On later days, the Daily panel opens instead.
 - [ ] Your character wears its parts: a yellow helmet (Bolt Head), red boxing gloves and white sneakers.
@@ -113,6 +114,7 @@ and press **Ctrl+C**.
 - [ ] Hitting raises % and knocks the other fighter away. At high %, a heavy hit launches them past the pink wall: "KO!", an explosion, and they lose a life.
 - [ ] After a KO, the fighter reappears above the stage on a glowing platform and flashes gold (can't be hit) for about 2 seconds.
 - [ ] F dodges with a quick dash and a white flash. Hits during it do nothing.
+- [ ] In a fight, both fighters hold a boxing guard. Punches swing from the guard, big hits make you cartwheel through the air, and bots are robot characters (5 builds) that keep punching distance.
 - [ ] The round move buttons (bottom right) show your moves by name, for example "Zap Burst" and "Big Punch". Clicking them works like the keys, and they darken while recharging.
 - [ ] Fighters pass through each other. The bot follows you up onto platforms and drops down after you. Damage numbers pop out of whoever gets hit.
 - [ ] When someone loses all 3 lives: "GAME!", then the results card (coins, Star XP, KOs, trophies if ranked), then you're back in the lobby after about 5 seconds.
@@ -177,6 +179,7 @@ Rojo syncs the change while it's connected. Anything left at `Id = 0` shows "Not
 | `src/client/UI.client.luau` | All menus, the fight HUD, dialogue, results and pop-ups |
 | `src/client/Effects.client.luau` | Hit sparks, KO blasts, spinning displays, rainbow paint, Star Road tiles |
 | `src/client/Animate.client.luau` | Fighting animations made in code: jabs, every arm's heavy attack, every head's special move, dodge, getting hit, and bot walk cycles |
+| `src/client/Intro.client.luau` | The fly-over intro with titles when you join |
 
 ## Ideas for later
 - More story chapters (Config.Chapters is easy to extend: copy one and change the text).
