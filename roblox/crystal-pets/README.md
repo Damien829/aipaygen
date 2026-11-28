@@ -45,7 +45,7 @@ Purchases are idempotent: the PurchaseId is saved before the receipt is granted.
 | File | Job |
 |---|---|
 | `src/shared/Config.luau` | All balance numbers, pets, eggs, zones, pass/product IDs |
-| `src/server/DataService.luau` | DataStore with retries; refuses to overwrite on a failed load |
+| `src/server/DataService.luau` | DataStore with retries and a session lock; refuses to overwrite on a failed load |
 | `src/server/Economy.luau` | Coins, multipliers, rebirth, daily streak, batched state sync |
 | `src/server/Pets.luau` | Weighted hatching (Lucky pass boosts odds), equip logic |
 | `src/server/Mining.luau` | Server-validated mining plus Auto Collect |

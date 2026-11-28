@@ -84,7 +84,7 @@ game:BindToClose(function()
 	for _, player in Players:GetPlayers() do
 		pending += 1
 		task.spawn(function()
-			DataService.Save(player)
+			DataService.Save(player, true)
 			pending -= 1
 		end)
 	end

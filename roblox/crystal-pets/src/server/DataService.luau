@@ -8,6 +8,18 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local DataService = {}
 
 local store = DataStoreService:GetDataStore("CrystalPets_v1")
+
+-- Session lock: stops two servers from editing the same player's data at once
+-- (e.g. rapid server hopping), which could roll back or duplicate purchases.
+local JOB_ID = game.JobId ~= "" and game.JobId or "studio"
+local LOCK_TIMEOUT = 90 -- a lock older than this (crashed server) can be taken over
+local LOCK_RETRIES = 8
+local LOCK_WAIT = 3
+
+local function lockedByOther(data)
+	local lock = type(data) == "table" and data.SessionLock
+	return lock and lock.JobId ~= JOB_ID and os.time() - lock.Time < LOCK_TIMEOUT
+end
 local profiles = {} -- [Player] = { Data, Key, CanSave }
 
 local DEFAULT = {
@@ -66,14 +78,27 @@ end
 function DataService.Load(player)
 	local key = "Player_" .. player.UserId
 	local ok, result
-	for _ = 1, 4 do
+	for _ = 1, LOCK_RETRIES do
+		local locked = false
 		ok, result = pcall(function()
-			return store:GetAsync(key)
+			return store:UpdateAsync(key, function(old)
+				locked = false
+				if lockedByOther(old) then
+					locked = true
+					return nil -- cancel: another server still owns this player
+				end
+				old = type(old) == "table" and old or {}
+				old.SessionLock = { JobId = JOB_ID, Time = os.time() }
+				return old
+			end)
 		end)
-		if ok then
+		if ok and not locked then
 			break
 		end
-		task.wait(1.5)
+		if ok and locked then
+			ok, result = false, "session locked by another server"
+		end
+		task.wait(LOCK_WAIT)
 	end
 
 	local data
@@ -98,7 +123,7 @@ function DataService.Get(player)
 	return profile and profile.Data
 end
 
-function DataService.Save(player)
+function DataService.Save(player, release)
 	local profile = profiles[player]
 	if not profile or not profile.CanSave then
 		return false
@@ -106,11 +131,22 @@ function DataService.Save(player)
 	local snapshot = deepCopy(profile.Data)
 	snapshot.LastSave = os.time()
 	for _ = 1, 3 do
+		local lost = false
 		local ok, err = pcall(function()
-			store:UpdateAsync(profile.Key, function()
+			store:UpdateAsync(profile.Key, function(old)
+				lost = false
+				if lockedByOther(old) then
+					lost = true
+					return nil -- we lost the lock; never overwrite the other server's data
+				end
+				snapshot.SessionLock = if release then nil else { JobId = JOB_ID, Time = os.time() }
 				return snapshot
 			end)
 		end)
+		if ok and lost then
+			warn("[DataService] Lost session lock for", player.Name, "- not saving")
+			return false
+		end
 		if ok then
 			return true
 		end
@@ -121,7 +157,7 @@ function DataService.Save(player)
 end
 
 function DataService.Release(player)
-	DataService.Save(player)
+	DataService.Save(player, true)
 	profiles[player] = nil
 end
 
