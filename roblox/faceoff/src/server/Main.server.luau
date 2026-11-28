@@ -83,6 +83,15 @@ local function onCharacter(player, character)
 	humanoid.BreakJointsOnDeath = false
 	humanoid.MaxHealth = 1e6
 	humanoid.Health = 1e6
+	local function setGroup(part)
+		if part:IsA("BasePart") then
+			part.CollisionGroup = "Fighters"
+		end
+	end
+	for _, part in character:GetDescendants() do
+		setGroup(part)
+	end
+	character.DescendantAdded:Connect(setGroup)
 	local data = DataService.Get(player)
 	if not data then
 		return
@@ -90,14 +99,37 @@ local function onCharacter(player, character)
 	Combat.Register(character, { Player = player, Name = player.DisplayName, Loadout = data.Loadout })
 	Profile.DressCharacter(player)
 	Profile.RefreshTag(player)
-	-- Avatar bundles can swap body parts once the appearance loads: dress again then.
-	task.spawn(function()
-		if not player:HasAppearanceLoaded() then
-			player.CharacterAppearanceLoaded:Wait()
+	-- Roblox swaps body parts while the avatar finishes loading, which drops parts welded to the
+	-- old ones. Dress again whenever a body part or the head is replaced, and check a few times.
+	local pending = false
+	local function redressSoon()
+		if pending then
+			return
 		end
-		if player.Character == character and character.Parent then
-			Profile.DressCharacter(player)
-			Profile.RefreshTag(player)
+		pending = true
+		task.delay(0.4, function()
+			pending = false
+			if player.Character == character and character.Parent then
+				Profile.DressCharacter(player)
+				Profile.RefreshTag(player)
+			end
+		end)
+	end
+	character.ChildAdded:Connect(function(child)
+		if child:IsA("BasePart") then
+			redressSoon()
+		end
+	end)
+	task.spawn(function()
+		for _, delay in { 1, 2, 4, 8 } do
+			task.wait(delay)
+			if player.Character ~= character or not character.Parent then
+				return
+			end
+			local folder = character:FindFirstChild("MixParts")
+			if not folder or #folder:GetChildren() == 0 or not character:FindFirstChild("FighterTag", true) then
+				redressSoon()
+			end
 		end
 	end)
 	if not Match.OnCharacter(player) then

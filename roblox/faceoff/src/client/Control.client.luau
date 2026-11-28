@@ -160,6 +160,22 @@ local function attack(kind)
 		return
 	end
 	Remotes.Attack:FireServer(kind)
+	-- Heavy attacks lunge you forward a little, so they feel like real punches.
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local root = character:FindFirstChild("HumanoidRootPart")
+	if kind == "Heavy" and root and humanoid and humanoid.WalkSpeed > 0 then
+		task.delay(0.18, function()
+			if os.clock() < stunUntil or parked or not root.Parent then
+				return
+			end
+			local look = root.CFrame.LookVector
+			local dir = match and Vector3.new(look.X >= 0 and 1 or -1, 0, 0) or Vector3.new(look.X, 0, look.Z)
+			if dir.Magnitude > 0.01 then
+				local v = root.AssemblyLinearVelocity
+				root.AssemblyLinearVelocity = Vector3.new(0, math.max(v.Y, 6), 0) + dir.Unit * 34
+			end
+		end)
+	end
 end
 
 local function dodge()
@@ -367,13 +383,13 @@ RunService:BindToRenderStep("MixCamera", Enum.RenderPriority.Camera.Value + 1, f
 	local cx = math.clamp((minX + maxX) / 2, b.MinX + 25, b.MaxX - 25)
 	local cy = math.clamp((minY + maxY) / 2, b.MinY + 25, b.MaxY - 30)
 	local spread = math.max((maxX - minX) * 0.85, (maxY - minY) * 1.5)
-	local dist = math.clamp(spread + 34, 46, 120)
-	local target = Vector3.new(cx, cy + 7, match.PlaneZ + dist)
+	local dist = math.clamp(spread * 0.6 + 20, 26, 85) -- close enough to see every punch
+	local target = Vector3.new(cx, cy + 4, match.PlaneZ + dist)
 	if not camPos then
 		camPos = target
 	end
 	camPos = camPos:Lerp(target, 1 - math.exp(-dt * 5))
-	local cf = CFrame.lookAt(camPos, Vector3.new(camPos.X, camPos.Y - 7, match.PlaneZ))
+	local cf = CFrame.lookAt(camPos, Vector3.new(camPos.X, camPos.Y - 3, match.PlaneZ))
 	if shake > 0 then
 		shake = math.max(0, shake - dt * 3)
 		local s = shake * 0.6
@@ -382,45 +398,139 @@ RunService:BindToRenderStep("MixCamera", Enum.RenderPriority.Camera.Value + 1, f
 	camera.CFrame = cf
 end)
 
--- Mobile action buttons -----------------------------------------------------------------------------------------
-if UserInputService.TouchEnabled then
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "MixButtons"
-	gui.ResetOnSpawn = false
-	gui.Parent = player:WaitForChild("PlayerGui")
-	local buttons = {
-		{ "Light", "👊", "Jab", UDim2.new(1, -96, 1, -230), Color3.fromRGB(240, 240, 250) },
-		{ "Heavy", "💪", "Heavy", UDim2.new(1, -176, 1, -190), Color3.fromRGB(255, 90, 90) },
-		{ "Special", "✨", "Special", UDim2.new(1, -170, 1, -280), Color3.fromRGB(255, 210, 60) },
-		{ "Dodge", "💨", "Dodge", UDim2.new(1, -92, 1, -320), Color3.fromRGB(110, 200, 255) },
-	}
-	for _, spec in buttons do
-		local kind = spec[1]
-		local b = Instance.new("TextButton")
-		b.Name = kind
-		b.Size = UDim2.fromOffset(70, 70)
-		b.Position = spec[4]
-		b.BackgroundColor3 = spec[5]
-		b.BackgroundTransparency = 0.25
-		b.Text = spec[2] .. "\n" .. spec[3]
-		b.TextSize = 15
-		b.Font = Enum.Font.FredokaOne
-		b.TextColor3 = Color3.fromRGB(20, 20, 30)
-		b.AutoButtonColor = true
-		local corner = Instance.new("UICorner")
-		corner.CornerRadius = UDim.new(1, 0)
-		corner.Parent = b
-		b.Parent = gui
-		b.Activated:Connect(function()
-			if kind == "Dodge" then
-				dodge()
-			else
-				attack(kind)
-			end
-		end)
-		RunService.Heartbeat:Connect(function()
-			local ready = (localCool[kind] or 0) <= os.clock()
-			b.BackgroundTransparency = ready and 0.25 or 0.7
-		end)
-	end
+-- Action bar: big move buttons with the move's name and a cooldown sweep. Always shown in fights
+-- (PC and phone), and in the lobby on phones. Clicking works as well as the keys.
+local touch = UserInputService.TouchEnabled
+local actionGui = Instance.new("ScreenGui")
+actionGui.Name = "MixActions"
+actionGui.ResetOnSpawn = false
+actionGui.Parent = player:WaitForChild("PlayerGui")
+local bar = Instance.new("Frame")
+bar.Name = "Bar"
+bar.BackgroundTransparency = 1
+bar.AnchorPoint = Vector2.new(1, 1)
+bar.Size = UDim2.fromOffset(250, 250)
+bar.Position = UDim2.new(1, -14, 1, -120)
+bar.Parent = actionGui
+
+local ACTIONS = {
+	{ Kind = "Light", Key = touch and "" or "Click", Color = Color3.fromRGB(235, 235, 250), Pos = UDim2.fromOffset(160, 150), Size = 86 },
+	{ Kind = "Heavy", Key = touch and "" or "E", Color = Color3.fromRGB(255, 80, 90), Pos = UDim2.fromOffset(60, 170), Size = 86 },
+	{ Kind = "Special", Key = touch and "" or "Q", Color = Color3.fromRGB(255, 205, 50), Pos = UDim2.fromOffset(110, 60), Size = 92 },
+	{ Kind = "Dodge", Key = touch and "" or "F", Color = Color3.fromRGB(100, 200, 255), Pos = UDim2.fromOffset(200, 50), Size = 64 },
+}
+local buttons = {}
+for _, spec in ACTIONS do
+	local b = Instance.new("TextButton")
+	b.Name = spec.Kind
+	b.AnchorPoint = Vector2.new(0.5, 0.5)
+	b.Size = UDim2.fromOffset(spec.Size, spec.Size)
+	b.Position = spec.Pos
+	b.BackgroundColor3 = spec.Color
+	b.BackgroundTransparency = 0.1
+	b.Text = ""
+	b.AutoButtonColor = true
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(1, 0)
+	corner.Parent = b
+	local outline = Instance.new("UIStroke")
+	outline.Thickness = 3
+	outline.Color = Color3.new(1, 1, 1)
+	outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	outline.Parent = b
+	local icon = Instance.new("TextLabel")
+	icon.BackgroundTransparency = 1
+	icon.Size = UDim2.fromScale(1, 0.5)
+	icon.Position = UDim2.fromScale(0, 0.08)
+	icon.TextScaled = true
+	icon.Font = Enum.Font.FredokaOne
+	icon.Text = ""
+	icon.Parent = b
+	local name = Instance.new("TextLabel")
+	name.BackgroundTransparency = 1
+	name.Size = UDim2.new(1, -8, 0.3, 0)
+	name.Position = UDim2.new(0, 4, 0.58, 0)
+	name.TextScaled = true
+	name.Font = Enum.Font.FredokaOne
+	name.TextColor3 = Color3.fromRGB(25, 20, 40)
+	name.Text = spec.Kind
+	name.Parent = b
+	local key = Instance.new("TextLabel")
+	key.BackgroundColor3 = Color3.fromRGB(25, 20, 40)
+	key.TextColor3 = Color3.new(1, 1, 1)
+	key.Size = UDim2.fromOffset(spec.Key == "Click" and 44 or 24, 22)
+	key.AnchorPoint = Vector2.new(0.5, 0.5)
+	key.Position = UDim2.fromScale(0.5, 0)
+	key.Font = Enum.Font.FredokaOne
+	key.TextSize = 14
+	key.Text = spec.Key
+	key.Visible = spec.Key ~= ""
+	local keyCorner = Instance.new("UICorner")
+	keyCorner.CornerRadius = UDim.new(0, 6)
+	keyCorner.Parent = key
+	key.Parent = b
+	local shade = Instance.new("Frame")
+	shade.Name = "Cooldown"
+	shade.BackgroundColor3 = Color3.new(0, 0, 0)
+	shade.BackgroundTransparency = 0.45
+	shade.AnchorPoint = Vector2.new(0, 1)
+	shade.Position = UDim2.fromScale(0, 1)
+	shade.Size = UDim2.fromScale(1, 0)
+	shade.BorderSizePixel = 0
+	local shadeCorner = Instance.new("UICorner")
+	shadeCorner.CornerRadius = UDim.new(1, 0)
+	shadeCorner.Parent = shade
+	shade.Parent = b
+	b.Parent = bar
+	b.Activated:Connect(function()
+		if spec.Kind == "Dodge" then
+			dodge()
+		else
+			attack(spec.Kind)
+		end
+	end)
+	buttons[spec.Kind] = { Button = b, Icon = icon, Name = name, Shade = shade, Total = 1 }
 end
+
+-- Names and icons follow your equipped parts.
+local function refreshLabels()
+	local character = player.Character
+	if not character then
+		return
+	end
+	local head = Config.Parts[character:GetAttribute("Head") or ""]
+	local arms = Config.Parts[character:GetAttribute("Arms") or ""]
+	buttons.Light.Icon.Text = "👊"
+	buttons.Light.Name.Text = "Jab"
+	buttons.Heavy.Icon.Text = arms and arms.Icon or "💪"
+	buttons.Heavy.Name.Text = arms and arms.Move.Name or "Heavy"
+	buttons.Special.Icon.Text = head and head.Icon or "✨"
+	buttons.Special.Name.Text = head and head.Move.Name or "Special"
+	buttons.Dodge.Icon.Text = "💨"
+	buttons.Dodge.Name.Text = "Dodge"
+end
+
+Remotes.Notify.OnClientEvent:Connect(function(msg)
+	if msg.Type == "Cooldown" and buttons[msg.Kind] then
+		buttons[msg.Kind].Total = msg.Seconds
+	end
+end)
+
+local labelClock = 0
+RunService.Heartbeat:Connect(function(dt)
+	bar.Visible = match ~= nil or touch
+	if not bar.Visible then
+		return
+	end
+	labelClock += dt
+	if labelClock > 0.5 then
+		labelClock = 0
+		refreshLabels()
+	end
+	local now = os.clock()
+	for kind, info in buttons do
+		local left = math.max(0, (localCool[kind] or 0) - now)
+		local total = kind == "Dodge" and F.DodgeCooldown or info.Total
+		info.Shade.Size = UDim2.fromScale(1, math.clamp(left / math.max(total, 0.01), 0, 1))
+	end
+end)

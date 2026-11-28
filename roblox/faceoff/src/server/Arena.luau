@@ -16,11 +16,21 @@ local Arena = {}
 local SLOTS = 12 -- one per player at the recommended server size of 12
 local used = {}
 
--- NPCs (server-simulated) pass through soft platforms; players get one-way platforms on their client.
+-- Players get one-way soft platforms on their own client. Bots (server-simulated) switch to the
+-- "NpcGhost" group while jumping up through or dropping down a platform, and are solid otherwise.
 pcall(function()
 	PhysicsService:RegisterCollisionGroup("SoftPlatform")
 	PhysicsService:RegisterCollisionGroup("NpcBody")
-	PhysicsService:CollisionGroupSetCollidable("SoftPlatform", "NpcBody", false)
+	PhysicsService:RegisterCollisionGroup("NpcGhost")
+	PhysicsService:CollisionGroupSetCollidable("SoftPlatform", "NpcGhost", false)
+	-- Fighters pass through each other (like real platform fighters), so nobody gets shoved off.
+	PhysicsService:RegisterCollisionGroup("Fighters")
+	PhysicsService:CollisionGroupSetCollidable("Fighters", "Fighters", false)
+	PhysicsService:CollisionGroupSetCollidable("Fighters", "NpcBody", false)
+	PhysicsService:CollisionGroupSetCollidable("NpcBody", "NpcBody", false)
+	PhysicsService:CollisionGroupSetCollidable("Fighters", "NpcGhost", false)
+	PhysicsService:CollisionGroupSetCollidable("NpcBody", "NpcGhost", false)
+	PhysicsService:CollisionGroupSetCollidable("NpcGhost", "NpcGhost", false)
 end)
 
 local folder = Instance.new("Folder")
@@ -139,18 +149,16 @@ function Arena.Build(slot, themeKey)
 	P({ Name = "BlastFloor", Size = Vector3.new(bounds.MaxX - bounds.MinX, 1, 24), CFrame = CFrame.new(origin.X, bounds.MinY, origin.Z), Color = Color3.fromRGB(255, 40, 90), Material = Enum.Material.Neon, Transparency = 0.7, CanCollide = false, CanQuery = false, Parent = model })
 
 	-- Name sign above the stage
-	local signAnchor = P({ Name = "SignAnchor", Size = Vector3.new(1, 1, 1), Transparency = 1, CanCollide = false, CanQuery = false, CFrame = CFrame.new(origin + Vector3.new(0, 46, -20)), Parent = model })
-	Visuals.Sign(signAnchor, theme.Name, theme.Accent, UDim2.fromOffset(420, 70), Vector3.zero)
 
 	model.Parent = folder
 
 	local spawns = {
+		origin + Vector3.new(-half * 0.35, 3.5, 0),
+		origin + Vector3.new(half * 0.35, 3.5, 0),
+		origin + Vector3.new(-half * 0.12, 3.5, 0),
+		origin + Vector3.new(half * 0.12, 3.5, 0),
 		origin + Vector3.new(-half * 0.55, 3.5, 0),
 		origin + Vector3.new(half * 0.55, 3.5, 0),
-		origin + Vector3.new(-half * 0.2, 3.5, 0),
-		origin + Vector3.new(half * 0.2, 3.5, 0),
-		origin + Vector3.new(-half * 0.8, 3.5, 0),
-		origin + Vector3.new(half * 0.8, 3.5, 0),
 	}
 	return {
 		Slot = slot,

@@ -241,9 +241,10 @@ local _, rankText = pill(3, 150, ACCENT)
 local _, streakText = pill(4, 110, Color3.fromRGB(255, 130, 50))
 local savingOff = label({
 	Size = UDim2.fromOffset(520, 26),
-	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 100),
-	Text = "⚠ SAVING IS OFF in this test (see HANDOFF.md: File > Save to Roblox + API access)",
+	AnchorPoint = Vector2.new(1, 1),
+	Position = UDim2.new(1, -10, 1, -8),
+	Text = "Studio test: saving is off until the place is published",
+	TextXAlignment = Enum.TextXAlignment.Right,
 	TextColor3 = Color3.fromRGB(255, 120, 120),
 	TextSize = 15,
 	TextStrokeTransparency = 0.3,
@@ -1126,17 +1127,9 @@ RunService.RenderStepped:Connect(function()
 		end
 		local left = (match.EndsAt or 0) - serverNow()
 		if match.Phase == "Countdown" then
-			bigLabel.Text = left > 0 and tostring(math.ceil(left)) or "FIGHT!"
+			bigLabel.Text = left > 0 and tostring(math.ceil(left)) or ""
 			timerLabel.Text = ""
 		elseif match.Phase == "Fight" then
-			if bigLabel.Text ~= "" and bigLabel.Text ~= "FIGHT!" then
-				bigLabel.Text = "FIGHT!"
-				task.delay(0.8, function()
-					if bigLabel.Text == "FIGHT!" then
-						bigLabel.Text = ""
-					end
-				end)
-			end
 			timerLabel.Text = match.Kind == "Match" and Format.Time(left) or ""
 		else
 			timerLabel.Text = ""
@@ -1174,7 +1167,7 @@ local function refresh()
 	rankText.Text = rank.Icon .. " " .. rank.Name .. " " .. state.Trophies
 	rankText.TextColor3 = rank.Color
 	streakText.Text = "🔥 " .. state.WinStreak .. "  📅 " .. state.DailyStreak
-	savingOff.Visible = state.SavingOff
+	savingOff.Visible = state.SavingOff and not match
 	local questReady = false
 	for _, q in state.Quests do
 		if q.Progress >= q.Goal and not q.Claimed then
@@ -1212,11 +1205,16 @@ end)
 
 Remotes.Match.OnClientEvent:Connect(function(payload)
 	local wasIn = match ~= nil
+	local oldPhase = match and match.Phase
 	match = payload.Phase ~= "None" and payload or nil
 	if match and not wasIn then
 		closePanels()
 		bigLabel.Text = ""
 	end
+	if match and match.Phase == "Fight" and oldPhase ~= "Fight" then
+		showSplash(match.Kind == "Story" and (match.Banner or "FIGHT!") or "FIGHT!", GOLD)
+	end
+	savingOff.Visible = (state and state.SavingOff and not match) or false
 	if not match then
 		bigLabel.Text = ""
 		revive.Visible = false

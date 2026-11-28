@@ -7,6 +7,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
+local Config = require(ReplicatedStorage.Shared.Config)
 local Remotes = require(ReplicatedStorage.Shared.Remotes)
 
 local function A(x, y, z)
@@ -163,32 +164,110 @@ for _, frames in ANIMS do
 end
 
 local playing = {} -- [Model] = { Frames, Start }
+local trailCache = {} -- [Model] = { Trail }
+local trailToken = {} -- [Model] = token
 local leftNext = {} -- [Model] = bool (alternate jabs)
 local applied = {} -- [Motor6D] = { Offset, Result }
 local motorCache = {} -- [Model] = { [joint] = Motor6D }
 
 local function motors(model)
 	local cached = motorCache[model]
-	if cached then
+	if cached and cached.RS and cached.RS:IsDescendantOf(model) then -- rebuild if the body was swapped
 		return cached
 	end
 	cached = {}
+	local found = false
 	for joint, spec in JOINTS do
 		local part = model:FindFirstChild(spec[1])
 		local motor = part and part:FindFirstChild(spec[2])
-		if motor and motor:IsA("Motor6D") then
+		-- Classic rigs use Motor6D; avatars with the newer joint system use AnimationConstraint.
+		-- Both have a Transform that the Animator drives, so both can be animated the same way.
+		if motor and (motor:IsA("Motor6D") or motor:IsA("AnimationConstraint")) then
 			cached[joint] = motor
+			found = true
 		end
+	end
+	if not found or not cached.RS or not cached.W then
+		return cached -- not fully loaded yet: don't cache, try again next time
 	end
 	motorCache[model] = cached
 	model.AncestryChanged:Connect(function()
 		if not model:IsDescendantOf(Workspace) then
 			motorCache[model] = nil
+			trailCache[model] = nil
+			trailToken[model] = nil
 			playing[model] = nil
 			leftNext[model] = nil
 		end
 	end)
 	return cached
+end
+
+-- Glowing streaks behind the hands and feet while an attack plays (only on this client).
+local TRAIL_LIMBS = { "RightHand", "LeftHand", "RightFoot", "LeftFoot" }
+
+local function trails(model)
+	local cached = trailCache[model]
+	if cached then
+		return cached
+	end
+	cached = {}
+	for _, limbName in TRAIL_LIMBS do
+		local limb = model:FindFirstChild(limbName)
+		if limb and limb:IsA("BasePart") then
+			local a0 = Instance.new("Attachment")
+			a0.Name = "TrailTop"
+			a0.Position = Vector3.new(0, 0.35, 0)
+			a0.Parent = limb
+			local a1 = Instance.new("Attachment")
+			a1.Name = "TrailBottom"
+			a1.Position = Vector3.new(0, -0.35, 0)
+			a1.Parent = limb
+			local trail = Instance.new("Trail")
+			trail.Attachment0 = a0
+			trail.Attachment1 = a1
+			trail.Lifetime = 0.22
+			trail.MinLength = 0.05
+			trail.FaceCamera = true
+			trail.LightEmission = 1
+			trail.Transparency = NumberSequence.new(0.1, 1)
+			trail.WidthScale = NumberSequence.new(1, 0.2)
+			trail.Enabled = false
+			trail.Parent = limb
+			table.insert(cached, trail)
+		end
+	end
+	trailCache[model] = cached
+	return cached
+end
+
+local TRAIL_COLORS = {
+	Light = Color3.fromRGB(255, 255, 255),
+	LightLeft = Color3.fromRGB(255, 255, 255),
+	Dodge = Color3.fromRGB(120, 210, 255),
+}
+local function streak(model, key, seconds)
+	if key == "Hurt" then
+		return
+	end
+	local color = TRAIL_COLORS[key]
+	if not color then
+		local part = Config.Parts[key]
+		color = part and part.Move and part.Move.Color or Color3.fromRGB(255, 220, 120)
+	end
+	local token = {}
+	trailToken[model] = token
+	for _, trail in trails(model) do
+		trail.Color = ColorSequence.new(color)
+		trail.Enabled = true
+	end
+	task.delay(seconds, function()
+		if trailToken[model] == token then
+			for _, trail in trails(model) do
+				trail.Enabled = false
+			end
+		end
+	end)
 end
 
 local function play(model, key)
@@ -205,6 +284,7 @@ local function play(model, key)
 	if frames then
 		motors(model)
 		playing[model] = { Frames = frames, Start = os.clock() }
+		streak(model, key, frames[#frames][1])
 	end
 end
 

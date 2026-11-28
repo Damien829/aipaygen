@@ -67,8 +67,47 @@ local function ring(position, color, radius)
 	Debris:AddItem(p, 0.65)
 end
 
+-- Damage numbers that pop out of whoever got hit.
+local function damageNumber(position, amount, power)
+	local anchor = Instance.new("Part")
+	anchor.Anchored = true
+	anchor.CanCollide = false
+	anchor.CanQuery = false
+	anchor.CanTouch = false
+	anchor.Transparency = 1
+	anchor.Size = Vector3.new(0.2, 0.2, 0.2)
+	anchor.CFrame = CFrame.new(position + Vector3.new(math.random() * 2 - 1, 2.5, 0))
+	anchor.Parent = fxFolder
+	local gui = Instance.new("BillboardGui")
+	gui.Size = UDim2.fromOffset(120, 60)
+	gui.AlwaysOnTop = true
+	gui.LightInfluence = 0
+	gui.Parent = anchor
+	local label = Instance.new("TextLabel")
+	label.BackgroundTransparency = 1
+	label.Size = UDim2.fromScale(1, 1)
+	label.Font = Enum.Font.FredokaOne
+	label.TextScaled = true
+	label.Text = "+" .. math.floor(amount) .. "%"
+	label.TextColor3 = power > 110 and Color3.fromRGB(255, 70, 70) or (power > 60 and Color3.fromRGB(255, 190, 50) or Color3.new(1, 1, 1))
+	label.TextStrokeTransparency = 0
+	label.Parent = gui
+	local scale = Instance.new("UIScale")
+	scale.Scale = 0.3
+	scale.Parent = label
+	TweenService:Create(scale, TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = power > 110 and 1.5 or 1 }):Play()
+	TweenService:Create(anchor, TweenInfo.new(0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { CFrame = anchor.CFrame + Vector3.new(0, 4, 0) }):Play()
+	task.delay(0.5, function()
+		TweenService:Create(label, TweenInfo.new(0.3), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+	end)
+	Debris:AddItem(anchor, 0.85)
+end
+
 Remotes.Notify.OnClientEvent:Connect(function(msg)
 	if msg.Type == "Hit" then
+		if msg.Amount then
+			damageNumber(msg.Position, msg.Amount, msg.Power or 30)
+		end
 		local power = msg.Power or 30
 		burst(msg.Position, msg.Color or Color3.new(1, 1, 1), 0.6, math.clamp(math.floor(power / 15), 4, 14), math.clamp(power / 12, 3, 12))
 		sound("rbxasset://sounds/swordlunge.wav", math.clamp(power / 150, 0.3, 1), math.clamp(1.4 - power / 300, 0.7, 1.4))

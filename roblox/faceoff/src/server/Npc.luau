@@ -46,6 +46,26 @@ local function buildRig(def)
 		warn("[Npc] Could not build a body, using a simple one:", model)
 		model = fallbackRig(color)
 	end
+	-- Newer avatars use physics joints (AnimationConstraint + ball sockets). Bots are simulated on the
+	-- server, so swap those for classic Motor6Ds, which every client can animate smoothly.
+	local swaps = {}
+	for _, d in model:GetDescendants() do
+		if d:IsA("AnimationConstraint") or d:IsA("BallSocketConstraint") then
+			table.insert(swaps, d)
+		end
+	end
+	for _, d in swaps do
+		if d:IsA("AnimationConstraint") and d.Attachment0 and d.Attachment1 then
+			local motor = Instance.new("Motor6D")
+			motor.Name = d.Name
+			motor.Part0 = d.Attachment0.Parent
+			motor.Part1 = d.Attachment1.Parent
+			motor.C0 = d.Attachment0.CFrame
+			motor.C1 = d.Attachment1.CFrame
+			motor.Parent = d.Parent
+		end
+		d:Destroy()
+	end
 	model.Name = def.Name
 	local humanoid = model:FindFirstChildOfClass("Humanoid")
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
@@ -131,6 +151,19 @@ function Npc.StartAI(rec)
 		local skill = rec.Def.Skill or 0.5
 		local airJumps = 0
 		local lastJump = 0
+		local dropUntil = 0
+		local ghost = false
+		local function setGhost(on)
+			if on == ghost then
+				return
+			end
+			ghost = on
+			for _, part in rec.Model:GetDescendants() do
+				if part:IsA("BasePart") then
+					part.CollisionGroup = on and "NpcGhost" or "NpcBody"
+				end
+			end
+		end
 		local rng = Random.new()
 		while rec.Model.Parent and Combat.Get(rec.Model) == rec do
 			task.wait(0.1)
@@ -152,6 +185,8 @@ function Npc.StartAI(rec)
 			if grounded then
 				airJumps = Combat.LegStats(rec).AirJumps
 			end
+			-- One-way platforms for bots: pass through while rising or dropping, solid when landing.
+			setGhost(root.AssemblyLinearVelocity.Y > 1 or t < dropUntil)
 
 			-- Off the stage: head back and jump.
 			local offX = pos.X - ctx.Origin.X
@@ -185,9 +220,16 @@ function Npc.StartAI(rec)
 			else
 				humanoid:Move(Vector3.zero)
 			end
-			if dy > 6 and grounded and t - lastJump > 0.6 then
+			-- Follow the target up onto platforms (jump + air jumps) or drop down through them.
+			if dy > 5 and grounded and t - lastJump > 0.5 then
 				humanoid.Jump = true
 				lastJump = t
+			elseif dy > 3 and not grounded and airJumps > 0 and root.AssemblyLinearVelocity.Y < 4 and t - lastJump > 0.3 then
+				airJumps -= 1
+				lastJump = t
+				root.AssemblyLinearVelocity = Vector3.new(dirX * humanoid.WalkSpeed, humanoid.JumpPower, 0)
+			elseif dy < -5 and grounded and pos.Y - ctx.Origin.Y > 6 then
+				dropUntil = t + 0.45
 			end
 
 			if rng:NextNumber() < skill * 0.55 then
@@ -238,7 +280,7 @@ function Npc.RandomBot(rng)
 		Scale = 1,
 		Weight = 1,
 		Speed = 0.9,
-		Skill = 0.45,
+		Skill = 0.6,
 	}
 end
 
