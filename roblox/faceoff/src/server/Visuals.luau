@@ -181,24 +181,38 @@ function Visuals.Display(partKey, paintKey, cframe, scale)
 end
 
 -- Floating text over a part. Returns the label so callers can update it.
-function Visuals.Sign(adornee, text, color, size, offset, maxDistance)
+-- Sizes are given in pixels but drawn in studs, so far-away signs shrink instead of crowding the screen.
+-- `pop` (studs): the sign stays hidden until you walk this close, then pops up (animated on the client).
+-- Leave `pop` nil for big landmark titles that should always show.
+local PIXELS_PER_STUD = 22
+function Visuals.Sign(adornee, text, color, size, offset, pop)
+	size = size or UDim2.fromOffset(240, 60)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "Sign"
-	gui.Size = size or UDim2.fromOffset(240, 60)
+	gui.Size = UDim2.fromScale(size.X.Offset / PIXELS_PER_STUD, size.Y.Offset / PIXELS_PER_STUD)
 	gui.StudsOffset = offset or Vector3.new(0, 4, 0)
 	gui.AlwaysOnTop = false
-	gui.MaxDistance = maxDistance or 120
 	gui.LightInfluence = 0
+	gui.MaxDistance = pop and (pop + 15) or 400
 	local label = Instance.new("TextLabel")
 	label.Size = UDim2.fromScale(1, 1)
 	label.BackgroundTransparency = 1
 	label.Font = Enum.Font.FredokaOne
 	label.TextScaled = true
 	label.TextColor3 = color or Color3.new(1, 1, 1)
-	label.TextStrokeTransparency = 0.2
+	label.TextStrokeTransparency = 0
+	label.TextStrokeColor3 = Color3.fromRGB(20, 15, 35)
 	label.RichText = true
 	label.Text = text
 	label.Parent = gui
+	if pop then
+		local scale = Instance.new("UIScale")
+		scale.Name = "Pop"
+		scale.Scale = 0
+		scale.Parent = label
+		gui:SetAttribute("PopRange", pop)
+		CollectionService:AddTag(gui, "PopSign")
+	end
 	gui.Adornee = adornee
 	gui.Parent = adornee
 	return label

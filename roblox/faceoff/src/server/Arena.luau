@@ -140,7 +140,7 @@ function Arena.Build(slot, themeKey)
 
 	-- Name sign above the stage
 	local signAnchor = P({ Name = "SignAnchor", Size = Vector3.new(1, 1, 1), Transparency = 1, CanCollide = false, CanQuery = false, CFrame = CFrame.new(origin + Vector3.new(0, 46, -20)), Parent = model })
-	Visuals.Sign(signAnchor, theme.Name, theme.Accent, UDim2.fromOffset(420, 70), Vector3.zero, 400)
+	Visuals.Sign(signAnchor, theme.Name, theme.Accent, UDim2.fromOffset(420, 70), Vector3.zero)
 
 	model.Parent = folder
 

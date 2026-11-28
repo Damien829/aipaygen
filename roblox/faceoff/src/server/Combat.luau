@@ -507,6 +507,8 @@ function Combat.Attack(rec, kind)
 	if rec.Player then
 		Remotes.Notify:FireClient(rec.Player, { Type = "Cooldown", Kind = kind, Seconds = move.Cooldown })
 	end
+	local animKey = kind == "Light" and "Light" or (kind == "Heavy" and rec.Loadout.Arms or rec.Loadout.Head)
+	notifyCtx(rec.Ctx, { Type = "Anim", Model = rec.Model, Anim = animKey })
 	task.spawn(execute, rec, move)
 	return true
 end
@@ -525,6 +527,7 @@ function Combat.Dodge(rec)
 	rec.Cool.Dodge = t + (legsStats(rec).DodgeCooldown or F.DodgeCooldown)
 	rec.InvulnUntil = math.max(rec.InvulnUntil, t + F.DodgeTime)
 	highlight(rec, F.DodgeTime, Color3.new(1, 1, 1))
+	notifyCtx(rec.Ctx, { Type = "Anim", Model = rec.Model, Anim = "Dodge" })
 	return true
 end
 

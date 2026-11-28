@@ -99,7 +99,8 @@ and press **Ctrl+C**.
 - [ ] **Part Forge** (east): 18 spinning parts on glowing pedestals. Press R on a Rare part with enough coins (you start with 150, so play a match first). It buys and equips it, your character changes, and the prompt says "Equipped ✓".
 - [ ] The **Build menu** shows all parts. Locked ones say where they come from. Equip works, and the Paint tab recolors your parts.
 - [ ] **Training Grounds** (west): hitting a dummy shows its % over its head, and it flies farther as % goes up. It walks back home after a few seconds.
-- [ ] Try E (heavy) and Q (special) on the dummies. You should see a colored flash, a projectile or lightning, depending on your parts.
+- [ ] Try E (heavy) and Q (special) on the dummies. Your fighter really moves: a haymaker with Boxing Gloves, an overhead slam with Hammer Arms, a star-burst pose with Bolt Head, and so on. Each part has its own move. The dummy flinches when hit.
+- [ ] Walk up to things: labels pop up when you get close and shrink away when you leave. From a distance you only see the big zone names.
 - [ ] **Daily chest** (next to spawn): press R. A celebration pops up with coins. Pressing R again says "Already claimed today".
 - [ ] **Star Road** (south): 30 tiles with reward labels. Tiles you've reached turn gold, and the next one turns blue.
 - [ ] The Shop stall shows VIP, Star Boost, Starter Bundle and coins. With Ids still 0, each stand says "coming soon". That's expected until you create them.
@@ -173,9 +174,9 @@ Rojo syncs the change while it's connected. Anything left at `Id = 0` shows "Not
 | `src/client/Control.client.luau` | Controls, air jumps, knockback, side camera, one-way platforms, phone buttons |
 | `src/client/UI.client.luau` | All menus, the fight HUD, dialogue, results and pop-ups |
 | `src/client/Effects.client.luau` | Hit sparks, KO blasts, spinning displays, rainbow paint, Star Road tiles |
+| `src/client/Animate.client.luau` | Fighting animations made in code: jabs, every arm's heavy attack, every head's special move, dodge, getting hit, and bot walk cycles |
 
 ## Ideas for later
 - More story chapters (Config.Chapters is easy to extend: copy one and change the text).
 - A global leaderboard (OrderedDataStore) for trophies.
-- Real attack animations: today attacks show as colored flashes and projectiles, and bots move without walk animations.
 - Bots fall through the floating platforms (only players can stand on them). A smarter bot could use them.

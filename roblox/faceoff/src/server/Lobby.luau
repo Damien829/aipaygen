@@ -110,9 +110,9 @@ local function plaza()
 		P({ Name = "Path", Size = p[2], CFrame = CFrame.new(p[1]), Color = p[3], Material = Enum.Material.SmoothPlastic, Parent = root })
 	end
 	local title = anchor(Vector3.new(0, 26, -30))
-	Sign(title, '<font color="#FFD23C">MIX</font> <font color="#FFFFFF">&amp;</font> <font color="#FF5AA0">SMASH</font>', Color3.new(1, 1, 1), UDim2.fromOffset(700, 140), Vector3.zero, 300)
+	Sign(title, '<font color="#FFD23C">MIX</font> <font color="#FFFFFF">&amp;</font> <font color="#FF5AA0">SMASH</font>', Color3.new(1, 1, 1), UDim2.fromOffset(700, 140), Vector3.zero)
 	local sub = anchor(Vector3.new(0, 20, -30))
-	Sign(sub, "Build your fighter from parts. Smash everyone off the stage!", rgb(230, 230, 255), UDim2.fromOffset(700, 40), Vector3.zero, 200)
+	Sign(sub, "Build your fighter from parts. Smash everyone off the stage!", rgb(230, 230, 255), UDim2.fromOffset(700, 40), Vector3.zero, 40)
 	-- Signposts
 	local posts = {
 		{ Vector3.new(0, 8, -24), "⚔️ BATTLE ⬆" },
@@ -122,7 +122,7 @@ local function plaza()
 	}
 	for _, post in posts do
 		P({ Name = "Post", Size = Vector3.new(0.6, 7, 0.6), CFrame = CFrame.new(post[1] - Vector3.new(0, 4.5, 0)), Color = rgb(120, 85, 50), Material = Enum.Material.Wood, Parent = root })
-		Sign(anchor(post[1]), post[2], Color3.new(1, 1, 1), UDim2.fromOffset(260, 50), Vector3.zero, 90)
+		Sign(anchor(post[1]), post[2], Color3.new(1, 1, 1), UDim2.fromOffset(260, 50), Vector3.zero, 40)
 	end
 	return CFrame.new(0, 4, 0)
 end
@@ -140,13 +140,13 @@ local function battleZone()
 			local a = math.rad(i * 90 + 45)
 			P({ Name = "PadPillar", Size = Vector3.new(1.2, 14, 1.2), CFrame = CFrame.new(pos + Vector3.new(math.cos(a) * 10, 7, math.sin(a) * 10)), Color = color, Material = Enum.Material.Neon, Parent = root })
 		end
-		local label = Sign(anchor(pos + Vector3.new(0, 12, 0)), title, Color3.new(1, 1, 1), UDim2.fromOffset(320, 120), Vector3.zero, 160)
+		local label = Sign(anchor(pos + Vector3.new(0, 12, 0)), title, Color3.new(1, 1, 1), UDim2.fromOffset(320, 120), Vector3.zero)
 		pads[mode] = { Part = pad, Label = label }
 	end
 	makePad("Ranked", -26, rgb(255, 60, 90), "1v1 RANKED")
 	makePad("FFA", 26, rgb(60, 150, 255), "FREE-FOR-ALL")
-	Sign(anchor(center + Vector3.new(-26, 17, 4)), "🏆 Win trophies, climb Bronze ➜ Champion", rgb(255, 210, 80), UDim2.fromOffset(360, 36), Vector3.zero, 100)
-	Sign(anchor(center + Vector3.new(26, 17, 4)), "💥 Up to 4 players, last one standing wins", rgb(150, 210, 255), UDim2.fromOffset(360, 36), Vector3.zero, 100)
+	Sign(anchor(center + Vector3.new(-26, 17, 4)), "🏆 Win trophies, climb Bronze ➜ Champion", rgb(255, 210, 80), UDim2.fromOffset(360, 36), Vector3.zero, 22)
+	Sign(anchor(center + Vector3.new(26, 17, 4)), "💥 Up to 4 players, last one standing wins", rgb(150, 210, 255), UDim2.fromOffset(360, 36), Vector3.zero, 22)
 
 	-- Story portal
 	local portalPos = center + Vector3.new(0, 0, -18)
@@ -156,7 +156,7 @@ local function battleZone()
 	end
 	P({ Name = "PortalCore", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 16, 16), CFrame = CFrame.new(portalPos + Vector3.new(0, 10, 0)) * CFrame.Angles(0, math.rad(90), 0), Color = rgb(120, 40, 220), Material = Enum.Material.Neon, Transparency = 0.45, CanCollide = false, Parent = root })
 	local portalStand = pedestal(portalPos + Vector3.new(0, 0, 5), rgb(170, 80, 255), root)
-	Sign(anchor(portalPos + Vector3.new(0, 22, 0)), "📖 STORY MODE\nThe Scrapyard Saga", rgb(220, 180, 255), UDim2.fromOffset(340, 90), Vector3.zero, 160)
+	Sign(anchor(portalPos + Vector3.new(0, 22, 0)), "📖 STORY MODE\nThe Scrapyard Saga", rgb(220, 180, 255), UDim2.fromOffset(340, 90), Vector3.zero)
 	prompt(portalStand, "Open Story", "Story Portal", function(player)
 		openPanel(player, "Story")
 	end)
@@ -172,8 +172,8 @@ local function forge()
 	P({ Name = "ForgeFloor", Size = Vector3.new(80, 0.4, 84), CFrame = CFrame.new(center + Vector3.new(0, 0.2, 8)), Color = rgb(90, 60, 40), Material = Enum.Material.WoodPlanks, Parent = folder })
 	P({ Name = "ForgeBackWall", Size = Vector3.new(2, 24, 84), CFrame = CFrame.new(center + Vector3.new(40, 12, 8)), Color = rgb(70, 45, 35), Material = Enum.Material.Brick, Parent = folder })
 	P({ Name = "ForgeFurnace", Size = Vector3.new(4, 10, 16), CFrame = CFrame.new(center + Vector3.new(37, 5, -14)), Color = rgb(255, 110, 20), Material = Enum.Material.Neon, Parent = folder })
-	Sign(anchor(center + Vector3.new(0, 22, -34), folder), "🔧 PART FORGE", rgb(255, 170, 60), UDim2.fromOffset(500, 90), Vector3.zero, 220)
-	Sign(anchor(center + Vector3.new(0, 17, -34), folder), "Mix a head, arms and legs. Every part works with every other part!", rgb(255, 230, 200), UDim2.fromOffset(620, 36), Vector3.zero, 160)
+	Sign(anchor(center + Vector3.new(0, 22, -34), folder), "🔧 PART FORGE", rgb(255, 170, 60), UDim2.fromOffset(500, 90), Vector3.zero)
+	Sign(anchor(center + Vector3.new(0, 17, -34), folder), "Mix a head, arms and legs. Every part works with every other part!", rgb(255, 230, 200), UDim2.fromOffset(620, 36), Vector3.zero, 30)
 
 	local buildStand = pedestal(center + Vector3.new(-34, 0, -26), rgb(255, 170, 60), folder)
 	prompt(buildStand, "Open Build menu", "Your fighter", function(player)
@@ -184,7 +184,7 @@ local function forge()
 	for _, slot in Config.Slots do
 		local z = rows[slot]
 		local info = Config.SlotInfo[slot]
-		Sign(anchor(center + Vector3.new(-32, 6, z), folder), info.Icon .. " " .. info.Title .. "\n" .. info.Role, Color3.new(1, 1, 1), UDim2.fromOffset(200, 70), Vector3.zero, 90)
+		Sign(anchor(center + Vector3.new(-32, 6, z), folder), info.Icon .. " " .. info.Title .. "\n" .. info.Role, Color3.new(1, 1, 1), UDim2.fromOffset(200, 70), Vector3.zero, 20)
 		for i, key in Config.PartOrder[slot] do
 			local part = Config.Parts[key]
 			local pos = center + Vector3.new(-20 + (i - 1) * 10.5, 0, z)
@@ -192,7 +192,7 @@ local function forge()
 			local display = Visuals.Display(key, "Default", CFrame.new(pos + Vector3.new(0, 6.2, 0)), 2)
 			display.Parent = folder
 			local cost = part.Price and ("🪙 " .. Format.Number(part.Price)) or ("🔒 " .. part.Source)
-			Sign(top, part.Icon .. " " .. part.Name .. '\n<font size="14">' .. part.Rarity .. " · " .. cost .. "</font>", Config.Rarities[part.Rarity], UDim2.fromOffset(220, 64), Vector3.new(0, 7.5, 0), 55)
+			Sign(top, part.Icon .. " " .. part.Name .. '\n<font color="#E6E6F5">' .. part.Rarity .. " · " .. cost .. "</font>", Config.Rarities[part.Rarity], UDim2.fromOffset(220, 64), Vector3.new(0, 7.5, 0), 11)
 			local pp = prompt(top, part.Price and "Buy" or "Locked", part.Name, function(player)
 				Profile.BuyPart(player, key)
 			end, 8)
@@ -208,7 +208,7 @@ local function forge()
 	table.sort(paintKeys, function(a, b)
 		return Config.Paints[a].Order < Config.Paints[b].Order
 	end)
-	Sign(anchor(center + Vector3.new(0, 12, 36), folder), "🎨 PAINT SHOP (just for looks)", rgb(255, 150, 220), UDim2.fromOffset(420, 50), Vector3.zero, 140)
+	Sign(anchor(center + Vector3.new(0, 12, 36), folder), "🎨 PAINT SHOP (just for looks)", rgb(255, 150, 220), UDim2.fromOffset(420, 50), Vector3.zero, 30)
 	for i, key in paintKeys do
 		local paint = Config.Paints[key]
 		local pos = center + Vector3.new(-31 + (i - 1) * 7, 0, 40)
@@ -229,7 +229,7 @@ local function forge()
 		else
 			cost = "⭐ " .. paint.Source
 		end
-		Sign(blob, paint.Name .. '\n<font size="13">' .. cost .. "</font>", paint.Color or Color3.new(1, 1, 1), UDim2.fromOffset(130, 50), Vector3.new(0, 3, 0), 45)
+		Sign(blob, paint.Name .. '\n<font color="#E6E6F5">' .. cost .. "</font>", paint.Color or Color3.new(1, 1, 1), UDim2.fromOffset(130, 50), Vector3.new(0, 3, 0), 8)
 		local pp = prompt(top, "Paint", paint.Name, function(player)
 			Profile.BuyPaint(player, key)
 		end, 7)
@@ -247,9 +247,9 @@ local function training()
 	for _, z in { -22, -11, 0, 11, 22 } do
 		P({ Name = "Stripe", Size = Vector3.new(64, 0.45, 0.6), CFrame = CFrame.new(center + Vector3.new(0, 0.2, z)), Color = rgb(255, 255, 255), Material = Enum.Material.Neon, Parent = folder })
 	end
-	Sign(anchor(center + Vector3.new(0, 18, -24), folder), "🎯 TRAINING GROUNDS", rgb(120, 210, 255), UDim2.fromOffset(460, 80), Vector3.zero, 200)
-	Sign(anchor(center + Vector3.new(0, 13, -24), folder), "Click = Jab · E = Heavy (arms) · Q = Special (head) · F = Dodge · Space = Jump", Color3.new(1, 1, 1), UDim2.fromOffset(700, 36), Vector3.zero, 150)
-	Sign(anchor(center + Vector3.new(0, 10, -24), folder), "Try every part combo here. More damage % = they fly farther!", rgb(255, 230, 150), UDim2.fromOffset(600, 32), Vector3.zero, 150)
+	Sign(anchor(center + Vector3.new(0, 18, -24), folder), "🎯 TRAINING GROUNDS", rgb(120, 210, 255), UDim2.fromOffset(460, 80), Vector3.zero)
+	Sign(anchor(center + Vector3.new(0, 13, -24), folder), "Click = Jab · E = Heavy (arms) · Q = Special (head) · F = Dodge · Space = Jump", Color3.new(1, 1, 1), UDim2.fromOffset(700, 36), Vector3.zero, 30)
+	Sign(anchor(center + Vector3.new(0, 10, -24), folder), "Try every part combo here. More damage % = they fly farther!", rgb(255, 230, 150), UDim2.fromOffset(600, 32), Vector3.zero, 30)
 	for _, z in { -12, 0, 12 } do
 		local pos = center + Vector3.new(-14, 3.2, z)
 		P({ Name = "DummyBase", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.6, 6, 6), CFrame = CFrame.new(pos.X, 0.5, pos.Z) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(255, 200, 80), Material = Enum.Material.Neon, Parent = folder })
@@ -283,8 +283,8 @@ local function starRoad()
 	local folder = Instance.new("Folder")
 	folder.Name = "StarRoad"
 	folder.Parent = root
-	Sign(anchor(Vector3.new(0, 16, 52), folder), "⭐ STAR ROAD ⭐", rgb(255, 220, 60), UDim2.fromOffset(460, 80), Vector3.zero, 220)
-	Sign(anchor(Vector3.new(0, 11.5, 52), folder), "FREE rewards. Earn Star XP from every match, story fight and quest. Tiles light up as you go!", Color3.new(1, 1, 1), UDim2.fromOffset(760, 36), Vector3.zero, 160)
+	Sign(anchor(Vector3.new(0, 16, 52), folder), "⭐ STAR ROAD ⭐", rgb(255, 220, 60), UDim2.fromOffset(460, 80), Vector3.zero)
+	Sign(anchor(Vector3.new(0, 11.5, 52), folder), "FREE rewards. Earn Star XP from every match, story fight and quest. Tiles light up as you go!", Color3.new(1, 1, 1), UDim2.fromOffset(760, 36), Vector3.zero, 30)
 	local gate = pedestal(Vector3.new(-12, 0, 50), rgb(255, 220, 60), folder)
 	prompt(gate, "View Star Road", "Star Road", function(player)
 		openPanel(player, "StarRoad")
@@ -303,7 +303,7 @@ local function starRoad()
 		if big then
 			P({ Name = "TileBeacon", Shape = Enum.PartType.Ball, Size = Vector3.new(3, 3, 3), CFrame = CFrame.new(pos + Vector3.new(0, 5, 0)), Color = rgb(255, 220, 60), Material = Enum.Material.Neon, CanCollide = false, Parent = folder })
 		end
-		Sign(tile, "<b>" .. tier .. "</b>\n" .. rewardText(reward), big and rgb(255, 230, 120) or Color3.new(1, 1, 1), UDim2.fromOffset(150, big and 70 or 56), Vector3.new(0, big and 8 or 3.5, 0), 70)
+		Sign(tile, "<b>" .. tier .. "</b>\n" .. rewardText(reward), big and rgb(255, 230, 120) or Color3.new(1, 1, 1), UDim2.fromOffset(150, big and 70 or 56), Vector3.new(0, big and 8 or 3.5, 0), 12)
 		if col == 9 and row < 2 or (col == 0 and row == 1) then
 			-- Connector to the next row
 			P({ Name = "TileLink", Size = Vector3.new(4, 0.5, 10), CFrame = CFrame.new(pos + Vector3.new(0, 0, 10)), Color = rgb(255, 220, 60), Material = Enum.Material.Neon, Parent = folder })
@@ -319,7 +319,7 @@ local function spawnExtras()
 	local chest = P({ Name = "DailyChest", Size = Vector3.new(5, 3.4, 3.4), CFrame = CFrame.new(chestPos + Vector3.new(0, 1.7, 0)), Color = rgb(150, 90, 40), Material = Enum.Material.Wood, Parent = root })
 	P({ Name = "ChestLid", Size = Vector3.new(5.2, 1, 3.6), CFrame = CFrame.new(chestPos + Vector3.new(0, 3.8, 0)), Color = rgb(255, 200, 50), Material = Enum.Material.Foil, Parent = root })
 	P({ Name = "ChestGlow", Shape = Enum.PartType.Ball, Size = Vector3.new(1.4, 1.4, 1.4), CFrame = CFrame.new(chestPos + Vector3.new(0, 2.2, -1.8)), Color = rgb(255, 240, 120), Material = Enum.Material.Neon, Parent = root })
-	Sign(chest, "📅 DAILY REWARD\nCome back every day!", rgb(255, 220, 90), UDim2.fromOffset(220, 60), Vector3.new(0, 5, 0), 80)
+	Sign(chest, "📅 DAILY REWARD\nCome back every day!", rgb(255, 220, 90), UDim2.fromOffset(220, 60), Vector3.new(0, 5, 0), 18)
 	prompt(chest, "Claim daily reward", "Daily Chest", function(player)
 		if not Profile.ClaimDaily(player) then
 			Profile.Toast(player, "Already claimed today. Come back tomorrow to keep your streak!")
@@ -354,8 +354,8 @@ local function spawnExtras()
 	-- Robux shop stall: every stand shows exactly what you get.
 	local stallCenter = Vector3.new(26, 0, 28)
 	P({ Name = "ShopFloor", Size = Vector3.new(30, 0.4, 16), CFrame = CFrame.new(stallCenter + Vector3.new(0, 0.25, 0)) * CFrame.Angles(0, math.rad(-35), 0), Color = rgb(255, 230, 150), Material = Enum.Material.SmoothPlastic, Parent = root })
-	Sign(anchor(stallCenter + Vector3.new(0, 13, 0)), "🛒 SHOP", rgb(255, 210, 80), UDim2.fromOffset(240, 60), Vector3.zero, 160)
-	Sign(anchor(stallCenter + Vector3.new(0, 9.5, 0)), "Every item shows exactly what you get. No random boxes.", Color3.new(1, 1, 1), UDim2.fromOffset(460, 30), Vector3.zero, 90)
+	Sign(anchor(stallCenter + Vector3.new(0, 13, 0)), "🛒 SHOP", rgb(255, 210, 80), UDim2.fromOffset(240, 60), Vector3.zero)
+	Sign(anchor(stallCenter + Vector3.new(0, 9.5, 0)), "Every item shows exactly what you get. No random boxes.", Color3.new(1, 1, 1), UDim2.fromOffset(460, 30), Vector3.zero, 20)
 	local stands = {
 		{ "Pass", "VIP", rgb(255, 200, 50) },
 		{ "Pass", "StarBoost", rgb(255, 240, 120) },
@@ -369,8 +369,8 @@ local function spawnExtras()
 		local pos = (CFrame.new(stallCenter) * rot * CFrame.new(-10.5 + (i - 1) * 7, 0, 0)).Position
 		local top = pedestal(pos, color, root)
 		local icon = anchor(pos + Vector3.new(0, 6, 0))
-		Sign(icon, info.Icon, Color3.new(1, 1, 1), UDim2.fromOffset(70, 70), Vector3.zero, 70)
-		Sign(top, info.Name .. (info.Id ~= 0 and (' · R$ ' .. info.Price) or ' · coming soon') .. '\n<font size="12">' .. info.Desc .. "</font>", color, UDim2.fromOffset(230, 80), Vector3.new(0, 9, 0), 50)
+		Sign(icon, info.Icon, Color3.new(1, 1, 1), UDim2.fromOffset(70, 70), Vector3.zero, 14)
+		Sign(top, info.Name .. (info.Id ~= 0 and (' · R$ ' .. info.Price) or ' · coming soon') .. '\n<font color="#E6E6F5">' .. info.Desc .. "</font>", color, UDim2.fromOffset(230, 80), Vector3.new(0, 9, 0), 10)
 		prompt(top, info.Id ~= 0 and ("Buy (R$ " .. info.Price .. ")") or "Coming soon", info.Name, function(player)
 			if kind == "Pass" then
 				Profile.PromptPass(player, key)

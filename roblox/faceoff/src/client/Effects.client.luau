@@ -208,3 +208,66 @@ end)
 task.delay(2, function()
 	Remotes.RequestState:FireServer()
 end)
+
+-- Pop-up signs: lobby labels stay hidden until you walk close, then bounce in (and shrink away
+-- when you leave), so the lobby never looks crowded.
+local player = game:GetService("Players").LocalPlayer
+local shown = {} -- [BillboardGui] = true while popped up
+local POP_IN = TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+local POP_OUT = TweenInfo.new(0.15, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+
+local function setShown(gui, show)
+	local label = gui:FindFirstChildOfClass("TextLabel")
+	local scale = label and label:FindFirstChild("Pop")
+	if not scale then
+		return
+	end
+	if show then
+		shown[gui] = true
+		gui.Enabled = true
+		TweenService:Create(scale, POP_IN, { Scale = 1 }):Play()
+	else
+		shown[gui] = nil
+		local tween = TweenService:Create(scale, POP_OUT, { Scale = 0 })
+		tween.Completed:Connect(function()
+			if not shown[gui] then
+				gui.Enabled = false
+			end
+		end)
+		tween:Play()
+	end
+end
+
+CollectionService:GetInstanceAddedSignal("PopSign"):Connect(function(gui)
+	gui.Enabled = false
+end)
+for _, gui in CollectionService:GetTagged("PopSign") do
+	gui.Enabled = false
+end
+
+task.spawn(function()
+	while true do
+		task.wait(0.15)
+		local character = player.Character
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		local here = root and root.Position
+		for _, gui in CollectionService:GetTagged("PopSign") do
+			local adornee = gui.Adornee
+			local near = false
+			if here and adornee and adornee:IsA("BasePart") then
+				local range = gui:GetAttribute("PopRange") or 15
+				local spot = adornee.Position + gui.StudsOffset
+				local flat = Vector3.new(spot.X - here.X, 0, spot.Z - here.Z)
+				near = flat.Magnitude <= range and math.abs(spot.Y - here.Y) < range + 20
+			end
+			if near ~= (shown[gui] == true) then
+				setShown(gui, near)
+			end
+		end
+		for gui in shown do
+			if not gui.Parent then
+				shown[gui] = nil
+			end
+		end
+	end
+end)

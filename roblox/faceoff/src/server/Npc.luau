@@ -1,4 +1,5 @@
 -- Computer fighters: matchmaking bots, story minions, bosses and the lobby's training dummies.
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
@@ -83,6 +84,7 @@ function Npc.Spawn(ctx, def, position, team, parent)
 			root:SetNetworkOwner(nil)
 		end)
 	end
+	CollectionService:AddTag(model, "NpcFighter") -- clients give it a walk cycle
 	local sub = def.Boss and "★ BOSS ★" or (def.IsDummy and "Hit me!" or "")
 	Visuals.Tag(model, def.Name, sub, def.Boss and Color3.fromRGB(255, 90, 90) or Color3.new(1, 1, 1), Color3.fromRGB(255, 200, 80))
 	local rec = Combat.Register(model, {
