@@ -17,6 +17,9 @@ local F = Config.Fight
 local match = nil -- current arena state from the server (nil in the lobby)
 local stunUntil = 0
 local stunToken = nil
+local tumbleFacing = Vector3.new(1, 0, 0)
+local tumbleAngle = 0
+local tumbleSpeed = 0
 local parked = false
 local airJumpsLeft = 0
 local lastGroundJump = 0
@@ -107,6 +110,11 @@ Remotes.Knockback.OnClientEvent:Connect(function(velocity, stun)
 	local token = {}
 	stunToken = token
 	stunUntil = os.clock() + stun
+	local look = root.CFrame.LookVector
+	tumbleFacing = Vector3.new(look.X, 0, look.Z).Magnitude > 0.1 and Vector3.new(look.X, 0, look.Z).Unit or Vector3.new(1, 0, 0)
+	tumbleAngle = 0
+	-- Spin the way you're flying (a backflip-style cartwheel), only for hits that really launch you.
+	tumbleSpeed = velocity.Magnitude > 65 and (velocity.X >= 0 and -1 or 1) * math.clamp(velocity.Magnitude / 9, 8, 20) or 0
 	dashUntil = 0
 	humanoid.PlatformStand = true
 	root.AssemblyLinearVelocity = velocity
@@ -303,7 +311,7 @@ local function softPlatforms(root, humanoid, dropping)
 	end
 end
 
-RunService:BindToRenderStep("MixControl", Enum.RenderPriority.Input.Value + 1, function()
+RunService:BindToRenderStep("MixControl", Enum.RenderPriority.Input.Value + 1, function(dt)
 	local character, humanoid, root = parts()
 	if not character then
 		return
@@ -311,11 +319,14 @@ RunService:BindToRenderStep("MixControl", Enum.RenderPriority.Input.Value + 1, f
 	local now = os.clock()
 	local stunned = now < stunUntil
 	if stunned and not parked then
-		-- Fly upright (no tumbling), so the camera and controls stay readable.
-		local look = root.CFrame.LookVector
-		local flat = Vector3.new(look.X, 0, look.Z)
-		if flat.Magnitude > 0.1 then
-			root.CFrame = CFrame.lookAt(root.Position, root.Position + flat)
+		-- Small hits: fly upright. Big hits: cartwheel through the air (spinning in the screen plane).
+		local flat = tumbleFacing
+		local upright = CFrame.lookAt(root.Position, root.Position + flat)
+		if tumbleSpeed ~= 0 then
+			tumbleAngle += tumbleSpeed * dt
+			root.CFrame = CFrame.new(root.Position) * CFrame.Angles(0, 0, tumbleAngle) * (upright - upright.Position)
+		else
+			root.CFrame = upright
 		end
 		root.AssemblyAngularVelocity = Vector3.zero
 	end

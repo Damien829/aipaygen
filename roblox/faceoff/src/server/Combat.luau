@@ -1,5 +1,6 @@
 -- The fighting engine. Every fighter (player, bot, boss, training dummy) is a "rec".
 -- Hits add damage %; the more % you have, the farther you fly. Leaving the blast zone = KO.
+local CollectionService = game:GetService("CollectionService")
 local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -111,6 +112,8 @@ function Combat.Register(model, opts)
 		Locked = false,
 	}
 	fighters[model] = rec
+	CollectionService:AddTag(model, "Fighter")
+	model:SetAttribute("Fighting", not rec.Ctx.Lobby)
 	model.AncestryChanged:Connect(function()
 		if not model:IsDescendantOf(Workspace) and fighters[model] == rec then
 			fighters[model] = nil
@@ -162,6 +165,7 @@ function Combat.SetCtx(rec, ctx)
 	rec.KOGraceUntil = now() + 1.5 -- a teleport takes a moment to reach the server; no instant KO
 	rec.Out = false
 	rec.Model:SetAttribute("Damage", 0)
+	rec.Model:SetAttribute("Fighting", not ctx.Lobby) -- clients show a fighting guard stance in arenas
 	Visuals.SetDamageTag(rec.Model, 0, not ctx.Lobby)
 end
 
@@ -247,6 +251,10 @@ function Combat.Launch(rec, velocity, stun)
 	rec.StunToken = token
 	rec.Humanoid.PlatformStand = true
 	rec.Root.AssemblyLinearVelocity = velocity
+	if velocity.Magnitude > 65 then
+		-- Big hits send bots cartwheeling (spinning in the screen plane).
+		rec.Root.AssemblyAngularVelocity = Vector3.new(0, 0, (velocity.X >= 0 and -1 or 1) * math.clamp(velocity.Magnitude / 9, 8, 18))
+	end
 	task.delay(stun, function()
 		if rec.StunToken == token and rec.Humanoid.Parent then
 			rec.Humanoid.PlatformStand = false
@@ -511,6 +519,15 @@ function Combat.Attack(rec, kind)
 	end
 	local animKey = kind == "Light" and "Light" or (kind == "Heavy" and rec.Loadout.Arms or rec.Loadout.Head)
 	notifyCtx(rec.Ctx, { Type = "Anim", Model = rec.Model, Anim = animKey })
+	if not rec.Player and kind == "Heavy" then
+		-- Bots step into their heavy attacks (players lunge on their own client).
+		task.delay(move.Windup * 0.8, function()
+			if alive(rec) and rec.StunUntil < now() and not rec.Locked then
+				local v = rec.Root.AssemblyLinearVelocity
+				rec.Root.AssemblyLinearVelocity = Vector3.new(0, math.max(v.Y, 6), 0) + facing(rec) * 30
+			end
+		end)
+	end
 	task.spawn(execute, rec, move)
 	return true
 end

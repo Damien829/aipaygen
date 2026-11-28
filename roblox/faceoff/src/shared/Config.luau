@@ -571,7 +571,7 @@ Config.Chapters = {
 			{ "Clank", "CLANK SMASH! You want my Hammer Arms? Come and take them!" },
 			{ "Bolt", "He's heavy, so it takes more damage to launch him. Keep hitting!" },
 		},
-		BossDef = { Name = "Clank the Crusher", Loadout = { Head = "Bolt", Arms = "Hammer", Legs = "Treads" }, Color = c(130, 130, 150), Scale = 1.8, Weight = 0.8, Stocks = 2, Speed = 0.9, Skill = 0.55, Boss = true },
+		BossDef = { Kit = "Tank", Name = "Clank the Crusher", Loadout = { Head = "Bolt", Arms = "Hammer", Legs = "Treads" }, Color = c(130, 130, 150), Scale = 1.8, Weight = 0.8, Stocks = 2, Speed = 0.9, Skill = 0.55, Boss = true },
 		Outro = {
 			{ "Clank", "Clank... tired. Take the hammers..." },
 			{ "Bolt", "The Hammer Arms are yours! Equip them in the Build menu and try a Ground Pound." },
@@ -597,7 +597,7 @@ Config.Chapters = {
 			{ "Frostbyte", "Ssssso cold... ssso lonely... Stay here and FREEZE with me!" },
 			{ "Bolt", "Her Freeze Ray stops you in place. Dodge with F!" },
 		},
-		BossDef = { Name = "Frostbyte", Loadout = { Head = "Frost", Arms = "Spring", Legs = "SpringLegs" }, Color = c(140, 220, 255), Scale = 1.6, Weight = 0.9, Stocks = 2, Speed = 1.0, Skill = 0.6, Boss = true },
+		BossDef = { Kit = "Speedster", Name = "Frostbyte", Loadout = { Head = "Frost", Arms = "Spring", Legs = "SpringLegs" }, Color = c(140, 220, 255), Scale = 1.6, Weight = 0.9, Stocks = 2, Speed = 1.0, Skill = 0.6, Boss = true },
 		Outro = {
 			{ "Frostbyte", "Warm... for the first time... Take my Frost Head. Freeze him for me." },
 			{ "Bolt", "Frost Head unlocked! Freeze someone, then smack them with a heavy." },
@@ -623,7 +623,7 @@ Config.Chapters = {
 		BossIntro = {
 			{ "Blaze", "ROOOAR! My Rocket Boots let me fly over the lava. Can you?" },
 		},
-		BossDef = { Name = "Blaze Jaw", Loadout = { Head = "Dragon", Arms = "Drill", Legs = "RocketBoots" }, Color = c(255, 100, 40), Scale = 1.9, Weight = 0.85, Stocks = 2, Speed = 1.05, Skill = 0.65, Boss = true },
+		BossDef = { Kit = "Brawler", Name = "Blaze Jaw", Loadout = { Head = "Dragon", Arms = "Drill", Legs = "RocketBoots" }, Color = c(255, 100, 40), Scale = 1.9, Weight = 0.85, Stocks = 2, Speed = 1.05, Skill = 0.65, Boss = true },
 		Outro = {
 			{ "Blaze", "Fine, FINE! The boots are yours. Don't burn your toes." },
 			{ "Bolt", "Rocket Boots! Your air jumps now dash wherever you point." },
@@ -649,7 +649,7 @@ Config.Chapters = {
 			{ "Gale", "Yarr! I float like a cloud and hit like a storm. Ye'll never knock me down!" },
 			{ "Bolt", "She floats a long time. Launch her hard, toward the sides!" },
 		},
-		BossDef = { Name = "Captain Gale", Loadout = { Head = "Magnet", Arms = "Claw", Legs = "Cloud" }, Color = c(90, 190, 255), Scale = 1.7, Weight = 0.9, Stocks = 3, Speed = 1.05, Skill = 0.7, Boss = true },
+		BossDef = { Kit = "Scout", Name = "Captain Gale", Loadout = { Head = "Magnet", Arms = "Claw", Legs = "Cloud" }, Color = c(90, 190, 255), Scale = 1.7, Weight = 0.9, Stocks = 3, Speed = 1.05, Skill = 0.7, Boss = true },
 		Outro = {
 			{ "Gale", "Ye fight like a true sky pirate. Take me Cloud Legs, matey." },
 			{ "Bolt", "Cloud Legs! Hold jump to float. Now, to the tower!" },
@@ -676,7 +676,7 @@ Config.Chapters = {
 			{ "Mega", "SYSTEMS ONLINE. TARGET: MIXER. INITIATING SMASH." },
 			{ "Bolt", "It's huge and heavy. Freeze it, pull it, pound it. Use everything!" },
 		},
-		BossDef = { Name = "MEGA JUNK", Loadout = { Head = "Thunder", Arms = "Rocket", Legs = "Treads" }, Color = c(255, 70, 100), Scale = 2.3, Weight = 0.7, Stocks = 3, Speed = 1.0, Skill = 0.8, Boss = true },
+		BossDef = { Kit = "Tank", Name = "MEGA JUNK", Loadout = { Head = "Thunder", Arms = "Rocket", Legs = "Treads" }, Color = c(255, 70, 100), Scale = 2.3, Weight = 0.7, Stocks = 3, Speed = 1.0, Skill = 0.8, Boss = true },
 		Outro = {
 			{ "Mega", "SYSTEM... FAILURE... *clunk*" },
 			{ "Junk", "No! I had every part! How did you beat me with those leftovers?" },

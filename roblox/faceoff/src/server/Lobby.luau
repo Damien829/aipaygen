@@ -64,13 +64,13 @@ local function lighting()
 	atmosphere.Haze = 0.6
 	atmosphere.Parent = Lighting
 	local cc = Instance.new("ColorCorrectionEffect")
-	cc.Saturation = 0.25
+	cc.Saturation = 0.12
 	cc.Contrast = 0.08
 	cc.Parent = Lighting
 	local bloom = Instance.new("BloomEffect")
-	bloom.Intensity = 0.6
+	bloom.Intensity = 0.25
 	bloom.Size = 30
-	bloom.Threshold = 1.6
+	bloom.Threshold = 2.4
 	bloom.Parent = Lighting
 end
 
@@ -82,8 +82,8 @@ end
 -- Spawn plaza ---------------------------------------------------------------------------------------------
 local function plaza()
 	P({ Name = "Ground", Size = Vector3.new(460, 2, 460), CFrame = CFrame.new(0, -1, 0), Color = rgb(110, 200, 110), Material = Enum.Material.Grass, Parent = root })
-	P({ Name = "Plaza", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.4, 70, 70), CFrame = CFrame.new(0, 0.2, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(245, 235, 220), Material = Enum.Material.Pavement, Parent = root })
-	P({ Name = "PlazaRing", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 72, 72), CFrame = CFrame.new(0, 0.15, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(255, 120, 200), Material = Enum.Material.Neon, Parent = root })
+	P({ Name = "Plaza", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.4, 70, 70), CFrame = CFrame.new(0, 0.2, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(222, 218, 212), Material = Enum.Material.Pavement, Parent = root })
+	P({ Name = "PlazaRing", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.3, 73, 73), CFrame = CFrame.new(0, 0.1, 0) * CFrame.Angles(0, 0, math.rad(90)), Color = rgb(95, 85, 140), Material = Enum.Material.SmoothPlastic, Parent = root }) -- a soft rim, below the plaza top so it never flickers
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "MixSpawn"
 	spawn.Size = Vector3.new(12, 1, 12)
@@ -92,7 +92,7 @@ local function plaza()
 	spawn.Neutral = true
 	spawn.Duration = 0
 	spawn.Color = rgb(255, 210, 60)
-	spawn.Material = Enum.Material.Neon
+	spawn.Material = Enum.Material.SmoothPlastic
 	spawn.TopSurface = Enum.SurfaceType.Smooth
 	spawn.Parent = root
 	local decal = spawn:FindFirstChildOfClass("Decal")

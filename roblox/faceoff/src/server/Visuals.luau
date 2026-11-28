@@ -273,6 +273,10 @@ function Visuals.SetDamageTag(model, damage, show)
 	if sub then
 		sub.Visible = not show -- in fights, the rank line hides so the % is easy to read
 	end
+	local nameLabel = gui and gui:FindFirstChild("Name")
+	if nameLabel then
+		nameLabel.Visible = not show -- names are on the bottom cards during a fight
+	end
 	if label then
 		label.Visible = show
 		label.Text = math.floor(damage) .. "%"
