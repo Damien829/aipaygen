@@ -7,6 +7,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Format = require(ReplicatedStorage.Shared.Format)
 local DataService = require(script.Parent.DataService)
 local Economy = require(script.Parent.Economy)
+local Cosmetics = require(script.Parent.Cosmetics)
 
 local Monetization = {}
 
@@ -16,6 +17,14 @@ local function findByProductId(productId)
 	for key, info in Config.Products do
 		if info.Id ~= 0 and info.Id == productId then
 			return key, info
+		end
+	end
+end
+
+local function findCosmetic(productId)
+	for key, info in Config.Cosmetics do
+		if info.Id and info.Id ~= 0 and info.Id == productId then
+			return key
 		end
 	end
 end
@@ -30,13 +39,19 @@ local function processReceipt(receipt)
 		return Enum.ProductPurchaseDecision.PurchaseGranted
 	end
 
-	local key, info = findByProductId(receipt.ProductId)
-	if not key then
-		warn("[Monetization] Unknown product id", receipt.ProductId)
-		return Enum.ProductPurchaseDecision.NotProcessedYet
+	local cosmeticId = findCosmetic(receipt.ProductId)
+	local key, info
+	if not cosmeticId then
+		key, info = findByProductId(receipt.ProductId)
+		if not key then
+			warn("[Monetization] Unknown product id", receipt.ProductId)
+			return Enum.ProductPurchaseDecision.NotProcessedYet
+		end
 	end
 
-	if info.Coins then
+	if cosmeticId then
+		Cosmetics.Grant(player, cosmeticId)
+	elseif info.Coins then
 		local amount = info.Coins * (1 + data.Rebirths)
 		Economy.AddCoins(player, amount)
 		Economy.Toast(player, "+" .. Format.Number(amount) .. " coins!")

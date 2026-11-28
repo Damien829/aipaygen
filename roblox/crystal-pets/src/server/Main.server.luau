@@ -7,6 +7,7 @@ local DataService = require(script.Parent.DataService)
 local Economy = require(script.Parent.Economy)
 local Pets = require(script.Parent.Pets)
 local Mining = require(script.Parent.Mining)
+local Cosmetics = require(script.Parent.Cosmetics)
 local Monetization = require(script.Parent.Monetization)
 local World = require(script.Parent.World)
 
@@ -25,6 +26,7 @@ Mining.Init(crystals)
 Remotes.EquipPet.OnServerInvoke = Pets.Toggle
 Remotes.Rebirth.OnServerInvoke = Economy.Rebirth
 Remotes.ClaimDaily.OnServerInvoke = Economy.ClaimDaily
+Remotes.Cosmetic.OnServerInvoke = Cosmetics.Handle
 
 local function onPlayerAdded(player)
 	local data = DataService.Load(player)
@@ -39,6 +41,7 @@ local function onPlayerAdded(player)
 	Economy.SetupPlayer(player)
 	Economy.LoadPasses(player)
 	Pets.Refresh(player)
+	Cosmetics.Refresh(player)
 end
 
 local function onPlayerRemoving(player)

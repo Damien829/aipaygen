@@ -202,6 +202,8 @@ local function buildState(player)
 		Slots = Economy.GetSlots(player),
 		Passes = passes[player] or {},
 		BoostUntil = data.BoostUntil,
+		OwnedCosmetics = data.OwnedCosmetics,
+		EquippedTrail = data.EquippedTrail,
 		DailyReady = dailyReady(data),
 		DailyStreak = data.DailyStreak,
 		RebirthCost = Config.RebirthCost(data.Rebirths),

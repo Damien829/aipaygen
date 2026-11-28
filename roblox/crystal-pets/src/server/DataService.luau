@@ -20,6 +20,8 @@ local DEFAULT = {
 	LastDaily = 0,
 	DailyStreak = 0,
 	BoostUntil = 0,
+	OwnedCosmetics = {}, -- [cosmeticId] = true
+	EquippedTrail = "",
 	Receipts = {}, -- recent PurchaseIds (idempotent ProcessReceipt)
 }
 
@@ -54,6 +56,9 @@ local function sanitize(data)
 	end
 	data.Equipped = cleaned
 	data.Zones.Meadow = true
+	if data.EquippedTrail ~= "" and not data.OwnedCosmetics[data.EquippedTrail] then
+		data.EquippedTrail = ""
+	end
 end
 
 function DataService.Load(player)

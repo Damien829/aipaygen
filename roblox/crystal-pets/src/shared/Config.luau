@@ -137,6 +137,25 @@ Config.Products = {
 	Boost = { Id = 0, Name = "2x Boost (15 min)", Price = 79, BoostSeconds = 900 },
 }
 
+-- Cosmetic trails: Cost = coins (a coin sink), Id/Price = Robux developer product ---------
+Config.CosmeticOrder = { "Sparkle", "Ocean", "Sunset", "Rainbow", "Galaxy" }
+Config.Cosmetics = {
+	Sparkle = { Name = "Gold Sparkle", Cost = 5000, Colors = { Color3.fromRGB(255, 220, 90), Color3.fromRGB(255, 255, 255) } },
+	Ocean = { Name = "Ocean Wave", Cost = 50000, Colors = { Color3.fromRGB(60, 200, 255), Color3.fromRGB(40, 80, 255) } },
+	Sunset = { Name = "Sunset Glow", Cost = 400000, Colors = { Color3.fromRGB(255, 200, 60), Color3.fromRGB(255, 90, 90), Color3.fromRGB(150, 60, 220) } },
+	Rainbow = {
+		Name = "Rainbow Trail", Id = 0, Price = 149,
+		Colors = {
+			Color3.fromRGB(255, 70, 70), Color3.fromRGB(255, 200, 60), Color3.fromRGB(90, 220, 110),
+			Color3.fromRGB(60, 200, 255), Color3.fromRGB(150, 90, 255),
+		},
+	},
+	Galaxy = {
+		Name = "Galaxy Trail", Id = 0, Price = 299,
+		Colors = { Color3.fromRGB(30, 20, 90), Color3.fromRGB(170, 90, 255), Color3.fromRGB(255, 255, 255) },
+	},
+}
+
 -- Shiny variants: every pet gets a "Shiny <name>" that can only come from hatching ------
 -- (rare chance on any egg; the Lucky Hatch pass raises it). 2.5x the pet's multiplier.
 Config.ShinyChance = 0.02

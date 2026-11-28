@@ -440,6 +440,71 @@ builders.Shop = {
 	end,
 }
 
+-- Style (cosmetic trails) -----------------------------------------------------
+builders.Style = {
+	title = "Style - Trails",
+	sig = function(s)
+		local owned = {}
+		for _, key in Config.CosmeticOrder do
+			table.insert(owned, tostring(s.OwnedCosmetics[key] == true))
+		end
+		return table.concat(owned, ",") .. ";" .. s.EquippedTrail
+	end,
+	build = function(c)
+		local scroll = scrollList(c, new("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }))
+		for i, key in Config.CosmeticOrder do
+			local info = Config.Cosmetics[key]
+			local frame = new("Frame", {
+				Size = UDim2.new(1, -10, 0, 52), BackgroundColor3 = CARD, LayoutOrder = i, Parent = scroll,
+			}, { corner(10) })
+			local swatch = new("Frame", {
+				Size = UDim2.fromOffset(28, 28), Position = UDim2.fromOffset(12, 12), BackgroundColor3 = WHITE, Parent = frame,
+			}, { corner(6) })
+			local stops = {}
+			for j, color in info.Colors do
+				table.insert(stops, ColorSequenceKeypoint.new(#info.Colors == 1 and 0 or (j - 1) / (#info.Colors - 1), color))
+			end
+			if #stops == 1 then
+				table.insert(stops, ColorSequenceKeypoint.new(1, info.Colors[1]))
+			end
+			new("UIGradient", { Color = ColorSequence.new(stops), Parent = swatch })
+			label({
+				Size = UDim2.new(1, -170, 1, 0), Position = UDim2.fromOffset(52, 0), Text = info.Name,
+				TextXAlignment = Enum.TextXAlignment.Left, Parent = frame,
+			})
+			local owned = state.OwnedCosmetics[key] == true
+			local text, color, onClick
+			if owned and state.EquippedTrail == key then
+				text, color = "Unequip", GREEN
+				onClick = function()
+					Remotes.Cosmetic:InvokeServer("Equip", "")
+				end
+			elseif owned then
+				text, color = "Equip", ACCENT
+				onClick = function()
+					Remotes.Cosmetic:InvokeServer("Equip", key)
+				end
+			elseif info.Cost then
+				text, color = Format.Number(info.Cost) .. " coins", GOLD
+				onClick = function()
+					Remotes.Cosmetic:InvokeServer("Buy", key)
+				end
+			else
+				text, color = "R$ " .. info.Price, RED
+				onClick = function()
+					promptProduct(info)
+				end
+			end
+			local b = button(text, color, UDim2.fromOffset(116, 34), frame)
+			b.Position = UDim2.new(1, -126, 0.5, -17)
+			b.TextSize = 14
+			b.Activated:Connect(function()
+				task.spawn(onClick)
+			end)
+		end
+	end,
+}
+
 -- Rebirth -------------------------------------------------------------------
 builders.Rebirth = {
 	title = "Rebirth",
@@ -513,7 +578,7 @@ builders.Daily = {
 
 -- Bottom bar ----------------------------------------------------------------
 local bar = new("Frame", {
-	Size = UDim2.fromOffset(380, 52),
+	Size = UDim2.fromOffset(480, 52),
 	AnchorPoint = Vector2.new(0.5, 1),
 	Position = UDim2.new(0.5, 0, 1, -14),
 	BackgroundTransparency = 1,
@@ -526,7 +591,7 @@ local bar = new("Frame", {
 	}),
 })
 local dailyDot
-for _, entry in { { "Pets", ACCENT }, { "Shop", GOLD }, { "Rebirth", GREEN }, { "Daily", RED } } do
+for _, entry in { { "Pets", ACCENT }, { "Style", Color3.fromRGB(170, 90, 255) }, { "Shop", GOLD }, { "Rebirth", GREEN }, { "Daily", RED } } do
 	local name, color = entry[1], entry[2]
 	local b = button(name, color, UDim2.fromOffset(86, 48), bar)
 	b.TextSize = 18

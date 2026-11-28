@@ -27,6 +27,7 @@ Create these on the Creator Dashboard (Experience > Monetization), then paste ea
 | Game pass | `VIP` | 499 R$ |
 | Developer product | `CoinsSmall` / `CoinsMedium` / `CoinsLarge` | 49 / 199 / 799 R$ |
 | Developer product | `Boost` (15 min 2x) | 79 R$ |
+| Developer product | Cosmetics `Rainbow` / `Galaxy` (`Config.Cosmetics`) | 149 / 299 R$ |
 
 Purchases are idempotent: the PurchaseId is saved before the receipt is granted.
 
@@ -39,9 +40,11 @@ Purchases are idempotent: the PurchaseId is saved before the receipt is granted.
 | `src/server/Economy.luau` | Coins, multipliers, rebirth, daily streak, batched state sync |
 | `src/server/Pets.luau` | Weighted hatching (Lucky pass boosts odds), equip logic |
 | `src/server/Mining.luau` | Server-validated mining plus Auto Collect |
+| `src/server/Cosmetics.luau` | Trail cosmetics (coin sink plus Robux trails) |
 | `src/server/Monetization.luau` | Game passes and `ProcessReceipt` |
 | `src/server/World.luau` | Procedural map, crystals, eggs, unlock pedestals |
 | `src/client/UI.client.luau` | HUD, Pets, Shop, Rebirth and Daily panels, hatch popup |
+| `src/client/TrailRenderer.client.luau` | Draws equipped trails on every player |
 | `src/client/PetRenderer.client.luau` | Pets follow every player (rendered client-side) |
 
 ## Retention and revenue loop
