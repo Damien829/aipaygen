@@ -74,8 +74,9 @@ local function processReceipt(receipt)
 	end
 
 	if not DataService.Save(player) then
-		-- Could not persist the receipt; make Roblox retry later rather than risk a double grant.
-		table.remove(data.Receipts)
+		-- Could not persist yet. The item is already granted, so KEEP the receipt id in memory:
+		-- Roblox will retry, the table.find check above then confirms it without a second grant,
+		-- and the normal autosave / leave-save persists the data and the receipt together.
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 	return Enum.ProductPurchaseDecision.PurchaseGranted
