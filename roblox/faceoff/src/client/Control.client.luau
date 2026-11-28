@@ -20,6 +20,9 @@ local stunToken = nil
 local tumbleFacing = Vector3.new(1, 0, 0)
 local tumbleAngle = 0
 local tumbleSpeed = 0
+local flinchVelocity = Vector3.zero
+local flinchStart = 0
+local flinchTime = 0
 local parked = false
 local airJumpsLeft = 0
 local lastGroundJump = 0
@@ -102,7 +105,7 @@ Remotes.Match.OnClientEvent:Connect(function(state)
 	end
 end)
 
-Remotes.Knockback.OnClientEvent:Connect(function(velocity, stun)
+Remotes.Knockback.OnClientEvent:Connect(function(velocity, stun, flinch)
 	local _, humanoid, root = parts()
 	if not humanoid then
 		return
@@ -110,6 +113,17 @@ Remotes.Knockback.OnClientEvent:Connect(function(velocity, stun)
 	local token = {}
 	stunToken = token
 	stunUntil = os.clock() + stun
+	if flinch then
+		-- Small hit: stay on your feet and slide back a little.
+		flinchVelocity = Vector3.new(velocity.X, 0, velocity.Z)
+		flinchStart = os.clock()
+		flinchTime = stun
+		humanoid.PlatformStand = false -- in case a launch was still running
+		tumbleSpeed = 0
+		shake = math.max(shake, 0.15)
+		return
+	end
+	flinchTime = 0
 	local look = root.CFrame.LookVector
 	tumbleFacing = Vector3.new(look.X, 0, look.Z).Magnitude > 0.1 and Vector3.new(look.X, 0, look.Z).Unit or Vector3.new(1, 0, 0)
 	tumbleAngle = 0
@@ -130,6 +144,7 @@ end)
 Remotes.Notify.OnClientEvent:Connect(function(msg)
 	local _, humanoid, root = parts()
 	if msg.Type == "Respawned" then
+		flinchTime = 0
 		stunUntil = 0
 		stunToken = nil
 		parked = false
@@ -180,7 +195,7 @@ local function attack(kind)
 			local dir = match and Vector3.new(look.X >= 0 and 1 or -1, 0, 0) or Vector3.new(look.X, 0, look.Z)
 			if dir.Magnitude > 0.01 then
 				local v = root.AssemblyLinearVelocity
-				root.AssemblyLinearVelocity = Vector3.new(0, math.max(v.Y, 6), 0) + dir.Unit * 34
+				root.AssemblyLinearVelocity = Vector3.new(0, v.Y, 0) + dir.Unit * 30
 			end
 		end)
 	end
@@ -318,8 +333,13 @@ RunService:BindToRenderStep("MixControl", Enum.RenderPriority.Input.Value + 1, f
 	end
 	local now = os.clock()
 	local stunned = now < stunUntil
-	if stunned and not parked then
-		-- Small hits: fly upright. Big hits: cartwheel through the air (spinning in the screen plane).
+	local flinching = flinchTime > 0 and now - flinchStart < flinchTime
+	if flinching and not parked then
+		local k = 1 - (now - flinchStart) / flinchTime
+		local v = root.AssemblyLinearVelocity
+		root.AssemblyLinearVelocity = Vector3.new(flinchVelocity.X * k, v.Y, flinchVelocity.Z * k)
+	elseif stunned and not parked then
+		-- Launched: fly upright, or cartwheel through the air (spinning in the screen plane).
 		local flat = tumbleFacing
 		local upright = CFrame.lookAt(root.Position, root.Position + flat)
 		if tumbleSpeed ~= 0 then

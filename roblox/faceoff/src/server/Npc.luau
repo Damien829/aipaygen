@@ -348,7 +348,7 @@ function Npc.StartAI(rec)
 				humanoid:Move(Vector3.zero)
 			end
 			-- Follow the target up onto platforms (jump + air jumps) or drop down through them.
-			if dy > 5 and grounded and t - lastJump > 0.5 then
+			if dy > 5 and grounded and t - lastJump > 1.1 and target.Humanoid.FloorMaterial ~= Enum.Material.Air then
 				humanoid.Jump = true
 				lastJump = t
 			elseif dy > 3 and not grounded and airJumps > 0 and root.AssemblyLinearVelocity.Y < 4 and t - lastJump > 0.3 then

@@ -22,6 +22,7 @@ Config.Fight = {
 	BlastSide = 60, -- blast walls this far past the stage edge
 	BlastBottom = 55,
 	BlastTop = 105,
+	TumbleSpeed = 70, -- knockback speed needed to launch someone into the air (smaller hits = flinch)
 	HitstunBase = 0.12,
 	HitstunPerSpeed = 0.0042,
 	HitstunMax = 1.1,
