@@ -178,7 +178,8 @@ Rojo syncs the change while it's connected. Anything left at `Id = 0` shows "Not
 | `src/client/Control.client.luau` | Controls, air jumps, knockback, side camera, one-way platforms, phone buttons |
 | `src/client/UI.client.luau` | All menus, the fight HUD, dialogue, results and pop-ups |
 | `src/client/Effects.client.luau` | Hit sparks, KO blasts, spinning displays, rainbow paint, Star Road tiles |
-| `src/client/Animate.client.luau` | Fighting animations made in code: jabs, every arm's heavy attack, every head's special move, dodge, getting hit, and bot walk cycles |
+| `src/shared/AnimPack.luau` | The Mix & Smash Animation Pack: keyframed punches (jab, cross, hooks, uppercut), every heavy and special move, dodge and hit reactions, with easing curves |
+| `src/client/Animate.client.luau` | Plays the pack in layers (guard, shuffle, air, tumble), with overlapping action and hitlag |
 | `src/client/Intro.client.luau` | The fly-over intro with titles when you join |
 
 ## Ideas for later
