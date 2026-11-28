@@ -269,6 +269,10 @@ function Visuals.SetDamageTag(model, damage, show)
 	local head = model:FindFirstChild("Head")
 	local gui = head and head:FindFirstChild("FighterTag")
 	local label = gui and gui:FindFirstChild("Damage")
+	local sub = gui and gui:FindFirstChild("Sub")
+	if sub then
+		sub.Visible = not show -- in fights, the rank line hides so the % is easy to read
+	end
 	if label then
 		label.Visible = show
 		label.Text = math.floor(damage) .. "%"

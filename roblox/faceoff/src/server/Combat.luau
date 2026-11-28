@@ -159,6 +159,7 @@ function Combat.SetCtx(rec, ctx)
 	rec.Ctx = ctx
 	rec.Damage = 0
 	rec.KOing = false
+	rec.KOGraceUntil = now() + 1.5 -- a teleport takes a moment to reach the server; no instant KO
 	rec.Out = false
 	rec.Model:SetAttribute("Damage", 0)
 	Visuals.SetDamageTag(rec.Model, 0, not ctx.Lobby)
@@ -315,6 +316,7 @@ function Combat.Hit(attacker, target, move, dir, opts)
 	notifyCtx(attacker.Ctx, {
 		Type = "Hit",
 		Position = target.Root.Position,
+		Amount = amount,
 		Power = speed,
 		Color = move.Color,
 		Victim = target.Model,
@@ -539,6 +541,7 @@ function Combat.Respawn(rec, cframe, invuln)
 	rec.LastHitBy = nil
 	rec.KOing = false
 	local seconds = invuln or F.RespawnInvuln
+	rec.KOGraceUntil = now() + 1.5
 	rec.InvulnUntil = now() + seconds
 	highlight(rec, seconds, Color3.fromRGB(255, 240, 120))
 	local ice = rec.Model:FindFirstChild("IceBlock")
@@ -568,7 +571,7 @@ end
 RunService.Heartbeat:Connect(function()
 	for _, rec in fighters do
 		local ctx = rec.Ctx
-		if ctx.Bounds and not rec.Out and not rec.KOing and rec.Root and rec.Root.Parent then
+		if ctx.Bounds and not rec.Out and not rec.KOing and rec.Root and rec.Root.Parent and (rec.KOGraceUntil or 0) < now() then
 			local p = rec.Root.Position
 			local b = ctx.Bounds
 			if p.X < b.MinX or p.X > b.MaxX or p.Y < b.MinY or p.Y > b.MaxY then

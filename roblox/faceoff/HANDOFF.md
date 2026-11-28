@@ -113,6 +113,8 @@ and press **Ctrl+C**.
 - [ ] Hitting raises % and knocks the other fighter away. At high %, a heavy hit launches them past the pink wall: "KO!", an explosion, and they lose a life.
 - [ ] After a KO, the fighter reappears above the stage on a glowing platform and flashes gold (can't be hit) for about 2 seconds.
 - [ ] F dodges with a quick dash and a white flash. Hits during it do nothing.
+- [ ] The round move buttons (bottom right) show your moves by name, for example "Zap Burst" and "Big Punch". Clicking them works like the keys, and they darken while recharging.
+- [ ] Fighters pass through each other. The bot follows you up onto platforms and drops down after you. Damage numbers pop out of whoever gets hit.
 - [ ] When someone loses all 3 lives: "GAME!", then the results card (coins, Star XP, KOs, trophies if ranked), then you're back in the lobby after about 5 seconds.
 - [ ] With 2 players in Ranked, the winner gets +25 trophies and the loser -12. The name tag rank updates.
 - [ ] The blue pad (Free-for-All) with 2 players starts after a 10-second countdown on the sign.
@@ -179,4 +181,4 @@ Rojo syncs the change while it's connected. Anything left at `Id = 0` shows "Not
 ## Ideas for later
 - More story chapters (Config.Chapters is easy to extend: copy one and change the text).
 - A global leaderboard (OrderedDataStore) for trophies.
-- Bots fall through the floating platforms (only players can stand on them). A smarter bot could use them.
+
