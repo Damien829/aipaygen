@@ -51,7 +51,7 @@ Purchases are idempotent: the PurchaseId is saved before the receipt is granted.
 
 Mine, then hatch, then equip, then earn faster, then unlock a zone, then hatch a better egg, then rebirth. The daily streak brings players back.
 Revenue levers: passes (`2x Coins`, `Auto Collect`), consumable coin packs and the timed boost, and
-`Lucky Hatch`. Players who use Auto Collect also stay in the server longer, which helps Premium payouts.
+`Lucky Hatch`. Players who use Auto Collect also stay longer, which helps engagement-based creator rewards (check the Creator Hub for the current program).
 
 ## Tuning
 
