@@ -687,6 +687,14 @@ Remotes.State.OnClientEvent:Connect(function(newState)
 	refreshPanel()
 end)
 
+-- Keep asking until the server has our state (it may still be loading our data).
+task.spawn(function()
+	while not state do
+		Remotes.RequestState:FireServer()
+		task.wait(2)
+	end
+end)
+
 Remotes.Notify.OnClientEvent:Connect(function(info)
 	if info.Type == "Toast" then
 		toast(info.Text)

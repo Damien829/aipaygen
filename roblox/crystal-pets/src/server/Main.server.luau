@@ -27,6 +27,10 @@ Remotes.EquipPet.OnServerInvoke = Pets.Toggle
 Remotes.Rebirth.OnServerInvoke = Economy.Rebirth
 Remotes.ClaimDaily.OnServerInvoke = Economy.ClaimDaily
 Remotes.Cosmetic.OnServerInvoke = Cosmetics.Handle
+-- The client asks for its state once its UI is ready (the join-time push can arrive too early).
+Remotes.RequestState.OnServerEvent:Connect(function(player)
+	Economy.Push(player)
+end)
 
 local function onPlayerAdded(player)
 	local data = DataService.Load(player)
