@@ -172,7 +172,7 @@ end
 
 -- HUD ----------------------------------------------------------------------
 local hud = new("Frame", {
-	Size = UDim2.fromOffset(240, 108),
+	Size = UDim2.fromOffset(240, 132),
 	Position = UDim2.fromOffset(12, 12),
 	BackgroundColor3 = BG,
 	BackgroundTransparency = 0.15,
@@ -195,6 +195,7 @@ local coinsLabel = hudLine(1, GOLD)
 local rebirthLabel = hudLine(2, WHITE)
 local multLabel = hudLine(3, GREEN)
 local boostLabel = hudLine(4, ACCENT)
+local friendLabel = hudLine(5, Color3.fromRGB(255, 150, 210))
 coinsLabel.TextSize = 20
 
 local function refreshHud()
@@ -206,7 +207,8 @@ local function refreshHud()
 	multLabel.Text = "Multiplier: x" .. string.format("%.2f", state.Multiplier)
 	local serverNow = state.ServerTime + (os.clock() - stateAt)
 	local remaining = state.BoostUntil - serverNow
-	boostLabel.Text = remaining > 0 and ("2x Boost: " .. Format.Time(remaining)) or ""
+	boostLabel.Text = remaining > 0 and ("2x Boost: " .. Format.Time(remaining)) or (state.Club and "Crystal Club active" or "")
+	friendLabel.Text = state.FriendBonus > 0 and string.format("Friends bonus: +%d%%", math.floor(state.FriendBonus * 100 + 0.5)) or "Play with friends: +10% each"
 end
 
 task.spawn(function()
@@ -387,6 +389,13 @@ local function promptProduct(info)
 	MarketplaceService:PromptProductPurchase(player, info.Id)
 end
 
+local function promptSubscription()
+	if Config.Subscription.Id == "" then
+		return toast("Set the subscription Id in Config.luau first (see README).")
+	end
+	MarketplaceService:PromptSubscriptionPurchase(player, Config.Subscription.Id)
+end
+
 builders.Shop = {
 	title = "Shop",
 	sig = function(s)
@@ -394,7 +403,7 @@ builders.Shop = {
 		for _, key in Config.PassOrder do
 			table.insert(owned, tostring(s.Passes[key] == true))
 		end
-		return table.concat(owned, ",")
+		return table.concat(owned, ",") .. tostring(s.Club) .. tostring(s.StarterBought)
 	end,
 	build = function(c)
 		local scroll = scrollList(c, new("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }))
@@ -420,6 +429,12 @@ builders.Shop = {
 				buy.AutoButtonColor = false
 			end
 		end
+		local sub = Config.Subscription
+		if state.Club then
+			row(sub.Name, sub.Desc, "Active", GREEN, nil)
+		else
+			row(sub.Name .. " (monthly)", sub.Desc, "R$ " .. sub.Price .. "/mo", Color3.fromRGB(170, 90, 255), promptSubscription)
+		end
 		for _, key in Config.PassOrder do
 			local info = Config.GamePasses[key]
 			if state.Passes[key] then
@@ -432,10 +447,15 @@ builders.Shop = {
 		end
 		for _, key in Config.ProductOrder do
 			local info = Config.Products[key]
-			local desc = info.Coins and ("+" .. Format.Number(info.Coins) .. " coins (x rebirths)") or "Double all coins for 15 minutes."
-			row(info.Name, desc, "R$ " .. info.Price, GOLD, function()
-				promptProduct(info)
-			end)
+			if not (info.OneTime and state.StarterBought) then
+				local desc = "Double all coins for 15 minutes."
+				if info.Coins then
+					desc = "+" .. Format.Number(info.Coins) .. " coins" .. (info.Pet and (" + " .. info.Pet .. " pet") or " (x rebirths)")
+				end
+				row(info.Name, desc, "R$ " .. info.Price, GOLD, function()
+					promptProduct(info)
+				end)
+			end
 		end
 	end,
 }
@@ -448,7 +468,7 @@ builders.Style = {
 		for _, key in Config.CosmeticOrder do
 			table.insert(owned, tostring(s.OwnedCosmetics[key] == true))
 		end
-		return table.concat(owned, ",") .. ";" .. s.EquippedTrail
+		return table.concat(owned, ",") .. ";" .. s.EquippedTrail .. tostring(s.Club)
 	end,
 	build = function(c)
 		local scroll = scrollList(c, new("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }))
@@ -472,7 +492,7 @@ builders.Style = {
 				Size = UDim2.new(1, -170, 1, 0), Position = UDim2.fromOffset(52, 0), Text = info.Name,
 				TextXAlignment = Enum.TextXAlignment.Left, Parent = frame,
 			})
-			local owned = state.OwnedCosmetics[key] == true
+			local owned = state.OwnedCosmetics[key] == true or (info.ClubOnly == true and state.Club == true)
 			local text, color, onClick
 			if owned and state.EquippedTrail == key then
 				text, color = "Unequip", GREEN
@@ -489,6 +509,9 @@ builders.Style = {
 				onClick = function()
 					Remotes.Cosmetic:InvokeServer("Buy", key)
 				end
+			elseif info.ClubOnly then
+				text, color = "Club only", Color3.fromRGB(170, 90, 255)
+				onClick = promptSubscription
 			else
 				text, color = "R$ " .. info.Price, RED
 				onClick = function()
@@ -606,6 +629,55 @@ for _, entry in { { "Pets", ACCENT }, { "Style", Color3.fromRGB(170, 90, 255) },
 	end
 end
 
+-- Contextual purchase offer card -----------------------------------------------
+local offerFrame = new("Frame", {
+	Size = UDim2.fromOffset(290, 100),
+	AnchorPoint = Vector2.new(1, 1),
+	Position = UDim2.new(1, -14, 1, -84),
+	BackgroundColor3 = BG,
+	Visible = false,
+	Parent = gui,
+}, { corner(12), new("UIStroke", { Thickness = 2, Color = GOLD }) })
+local offerText = label({
+	Size = UDim2.new(1, -16, 0, 46), Position = UDim2.fromOffset(8, 6), TextWrapped = true, TextSize = 14,
+	TextXAlignment = Enum.TextXAlignment.Left, Parent = offerFrame,
+})
+local offerBuy = button("Buy", GOLD, UDim2.fromOffset(130, 32), offerFrame)
+offerBuy.Position = UDim2.fromOffset(8, 58)
+local offerClose = button("No thanks", Color3.fromRGB(90, 90, 110), UDim2.fromOffset(110, 32), offerFrame)
+offerClose.Position = UDim2.fromOffset(150, 58)
+local offerProduct, offerToken = nil, 0
+
+local function showOffer(info)
+	local product = Config.Products[info.Product]
+	if not product then
+		return
+	end
+	offerToken += 1
+	local token = offerToken
+	offerProduct = product
+	offerText.Text = info.Text
+	offerBuy.Text = "R$ " .. product.Price
+	offerFrame.Visible = true
+	task.delay(20, function()
+		if token == offerToken then
+			offerFrame.Visible = false
+		end
+	end)
+end
+
+offerBuy.Activated:Connect(function()
+	if offerProduct then
+		promptProduct(offerProduct)
+	end
+	offerFrame.Visible = false
+	offerToken += 1
+end)
+offerClose.Activated:Connect(function()
+	offerFrame.Visible = false
+	offerToken += 1
+end)
+
 -- Remote handlers --------------------------------------------------------------
 Remotes.State.OnClientEvent:Connect(function(newState)
 	state = newState
@@ -622,5 +694,7 @@ Remotes.Notify.OnClientEvent:Connect(function(info)
 		floatText(info.Position, "+" .. Format.Number(info.Amount))
 	elseif info.Type == "Hatch" then
 		showHatch(info)
+	elseif info.Type == "Offer" then
+		showOffer(info)
 	end
 end)

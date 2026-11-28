@@ -1,5 +1,6 @@
 -- Coins, multipliers, passes, rebirth, daily rewards, and state sync to clients.
 local MarketplaceService = game:GetService("MarketplaceService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage.Shared.Config)
@@ -11,6 +12,9 @@ local Economy = {}
 
 local passes = {} -- [Player] = { [passKey] = true }
 local dirty = {} -- [Player] = true
+local club = {} -- [Player] = true while subscribed
+local friendSets = {} -- [Player] = { [Player] = true }
+local lastOffer = {} -- [Player] = os.clock()
 
 local function toast(player, text)
 	Remotes.Notify:FireClient(player, { Type = "Toast", Text = text })
@@ -35,6 +39,7 @@ function Economy.LoadPasses(player)
 			end
 		end
 	end
+	Economy.RefreshClub(player)
 	Economy.Push(player)
 end
 
@@ -48,6 +53,84 @@ end
 function Economy.ClearPlayer(player)
 	passes[player] = nil
 	dirty[player] = nil
+	club[player] = nil
+	lastOffer[player] = nil
+	for _, set in friendSets do
+		set[player] = nil
+	end
+	friendSets[player] = nil
+end
+
+-- Subscription (Crystal Club) ---------------------------------------------
+function Economy.IsClub(player)
+	return club[player] == true
+end
+
+function Economy.RefreshClub(player)
+	local id = Config.Subscription.Id
+	if id == "" then
+		return
+	end
+	local ok, status = pcall(function()
+		return MarketplaceService:GetUserSubscriptionStatusAsync(player, id)
+	end)
+	club[player] = ok and type(status) == "table" and status.IsSubscribed == true
+	Economy.Push(player)
+end
+
+-- Friends bonus ---------------------------------------------------------------
+function Economy.TrackFriends(player)
+	friendSets[player] = friendSets[player] or {}
+	for _, other in Players:GetPlayers() do
+		if other ~= player then
+			local ok, isFriend = pcall(function()
+				return player:IsFriendsWith(other.UserId)
+			end)
+			if ok and isFriend and player.Parent and other.Parent then
+				friendSets[player][other] = true
+				friendSets[other] = friendSets[other] or {}
+				friendSets[other][player] = true
+				Economy.Push(other)
+			end
+		end
+	end
+	Economy.Push(player)
+end
+
+function Economy.FriendCount(player)
+	local count = 0
+	for other in friendSets[player] or {} do
+		if other.Parent then
+			count += 1
+		end
+	end
+	return count
+end
+
+function Economy.FriendBonus(player)
+	return math.min(Economy.FriendCount(player), Config.FriendBonusCap) * Config.FriendBonus
+end
+
+-- Contextual purchase offers (only for products that are configured) ----------
+function Economy.Offer(player, productKey, text)
+	local info = Config.Products[productKey]
+	if not info or info.Id == 0 then
+		return
+	end
+	if lastOffer[player] and os.clock() - lastOffer[player] < 180 then
+		return
+	end
+	lastOffer[player] = os.clock()
+	Remotes.Notify:FireClient(player, { Type = "Offer", Product = productKey, Text = text })
+end
+
+function Economy.OfferCoins(player)
+	local data = DataService.Get(player)
+	if data and not data.StarterBought and Config.Products.StarterPack.Id ~= 0 then
+		Economy.Offer(player, "StarterPack", "Starter Pack: 25K coins + a Wolf pet for a great price!")
+	else
+		Economy.Offer(player, "CoinsSmall", "Short on coins? Grab a Coin Pack and keep going!")
+	end
 end
 
 -- Leaderstats ------------------------------------------------------------
@@ -75,7 +158,14 @@ end
 
 -- Multipliers ------------------------------------------------------------
 function Economy.GetSlots(player)
-	return Config.BaseSlots + (Economy.HasPass(player, "ExtraSlots") and Config.ExtraSlotsBonus or 0)
+	local slots = Config.BaseSlots
+	if Economy.HasPass(player, "ExtraSlots") then
+		slots += Config.ExtraSlotsBonus
+	end
+	if Economy.IsClub(player) then
+		slots += Config.Subscription.ExtraSlots
+	end
+	return slots
 end
 
 function Economy.GetMultiplier(player)
@@ -97,6 +187,10 @@ function Economy.GetMultiplier(player)
 	if data.BoostUntil > os.time() then
 		mult *= Config.BoostMultiplier
 	end
+	if Economy.IsClub(player) then
+		mult *= Config.Subscription.CoinMultiplier
+	end
+	mult *= 1 + Economy.FriendBonus(player)
 	return mult
 end
 
@@ -156,6 +250,7 @@ function Economy.Rebirth(player)
 	data.Rebirths += 1
 	Economy.SyncLeaderstats(player)
 	toast(player, "Rebirth " .. data.Rebirths .. "! Permanent bonus increased.")
+	Economy.Offer(player, "Boost", "Rebirth complete! Re-climb twice as fast with a 2x Boost.")
 	Economy.Push(player)
 	return true
 end
@@ -203,6 +298,9 @@ local function buildState(player)
 		Passes = passes[player] or {},
 		BoostUntil = data.BoostUntil,
 		OwnedCosmetics = data.OwnedCosmetics,
+		Club = Economy.IsClub(player),
+		FriendBonus = Economy.FriendBonus(player),
+		StarterBought = data.StarterBought,
 		EquippedTrail = data.EquippedTrail,
 		DailyReady = dailyReady(data),
 		DailyStreak = data.DailyStreak,

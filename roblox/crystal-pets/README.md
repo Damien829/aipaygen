@@ -27,9 +27,18 @@ Create these on the Creator Dashboard (Experience > Monetization), then paste ea
 | Game pass | `VIP` | 499 R$ |
 | Developer product | `CoinsSmall` / `CoinsMedium` / `CoinsLarge` | 49 / 199 / 799 R$ |
 | Developer product | `Boost` (15 min 2x) | 79 R$ |
+| Developer product | `StarterPack` (25K coins + Wolf, shows once) | 99 R$ |
+| Subscription | `Config.Subscription.Id` (Crystal Club: x1.5 coins, +1 slot, exclusive trail) | 199 R$/month |
 | Developer product | Cosmetics `Rainbow` / `Galaxy` (`Config.Cosmetics`) | 149 / 299 R$ |
 
 Purchases are idempotent: the PurchaseId is saved before the receipt is granted.
+
+## Revenue features built in
+
+- **Crystal Club subscription** (recurring revenue). Create it under Monetization > Subscriptions and paste its ID (looks like `EXS-...`) into `Config.Subscription.Id`.
+- **Contextual offers:** a small card offers the Starter Pack after 90 seconds, a coin pack when a player can't afford an egg, and the 2x Boost right after a rebirth. Offers only show for products whose ID is set, and at most once every 3 minutes.
+- **Friends bonus:** +10% coins per friend in the same server (max +50%) encourages invites and group play.
+- **Shiny pets, limited-time eggs and trails** keep players hatching and buying.
 
 ## What's inside
 

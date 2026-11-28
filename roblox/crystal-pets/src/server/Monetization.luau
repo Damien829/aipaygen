@@ -55,6 +55,13 @@ local function processReceipt(receipt)
 		local amount = info.Coins * (1 + data.Rebirths)
 		Economy.AddCoins(player, amount)
 		Economy.Toast(player, "+" .. Format.Number(amount) .. " coins!")
+		if info.Pet and Config.Pets[info.Pet] then
+			data.Pets[info.Pet] = (data.Pets[info.Pet] or 0) + 1
+		end
+		if info.OneTime then
+			data.StarterBought = true
+		end
+		Economy.Push(player)
 	elseif info.BoostSeconds then
 		data.BoostUntil = math.max(os.time(), data.BoostUntil) + info.BoostSeconds
 		Economy.Toast(player, "2x Boost active!")
@@ -76,6 +83,18 @@ end
 
 function Monetization.Init()
 	MarketplaceService.ProcessReceipt = processReceipt
+
+	MarketplaceService.PromptSubscriptionPurchaseFinished:Connect(function(player, subscriptionId)
+		if subscriptionId == Config.Subscription.Id then
+			task.spawn(function()
+				Economy.RefreshClub(player)
+				Cosmetics.Refresh(player)
+				if Economy.IsClub(player) then
+					Economy.Toast(player, "Welcome to " .. Config.Subscription.Name .. "!")
+				end
+			end)
+		end
+	end)
 
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, wasPurchased)
 		if not wasPurchased then

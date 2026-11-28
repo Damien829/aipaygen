@@ -43,7 +43,7 @@ Mostly blogs and tracker sites, so the numbers are rough. None are official per-
 
 ## What this means for Crystal Pets
 1. Lean on repeatable developer products (coin packs, boosts, cosmetic bundles). They are already in the shop. Add a prompt at moments of need: for example offer the 2x Boost right after a rebirth or when a player can't afford an egg.
-2. Add a subscription ("Crystal Club": daily coins, exclusive trail, bonus pet slot). Not built yet.
+2. Subscription ("Crystal Club": x1.5 coins, exclusive trail, bonus pet slot). Built. Needs a subscription ID.
 3. Treat a launch as a lottery. The distribution is brutal, so plan on fast iteration, outside promotion (creators, social) and weekly updates, not one big release.
 4. Keep content original and themed. Roblox is promoting novel games, and the market is full of clones.
 

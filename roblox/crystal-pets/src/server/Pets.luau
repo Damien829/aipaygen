@@ -60,6 +60,7 @@ function Pets.Hatch(player, eggKey)
 		return Economy.Toast(player, "Unlock " .. Config.ZoneById[egg.Zone].Name .. " first!")
 	end
 	if not Economy.SpendCoins(player, egg.Cost) then
+		Economy.OfferCoins(player)
 		return Economy.Toast(player, "You need " .. Format.Number(egg.Cost) .. " coins for this egg.")
 	end
 

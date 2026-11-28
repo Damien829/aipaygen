@@ -12,7 +12,12 @@ local Cosmetics = {}
 function Cosmetics.Refresh(player)
 	local data = DataService.Get(player)
 	if data then
-		player:SetAttribute("Trail", data.EquippedTrail)
+		local id = data.EquippedTrail
+		local info = Config.Cosmetics[id]
+		if info and info.ClubOnly and not Economy.IsClub(player) then
+			id = ""
+		end
+		player:SetAttribute("Trail", id)
 	end
 	Economy.Push(player)
 end
@@ -38,7 +43,7 @@ function Cosmetics.Handle(player, action, id)
 	if action == "Equip" then
 		if id == "" then
 			data.EquippedTrail = ""
-		elseif Config.Cosmetics[id] and data.OwnedCosmetics[id] then
+		elseif Config.Cosmetics[id] and (data.OwnedCosmetics[id] or (Config.Cosmetics[id].ClubOnly and Economy.IsClub(player))) then
 			data.EquippedTrail = id
 		else
 			return false

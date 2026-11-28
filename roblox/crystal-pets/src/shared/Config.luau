@@ -20,6 +20,8 @@ Config.HatchCooldown = 0.75
 Config.RebirthBonus = 0.5 -- +50% coins per rebirth (additive)
 Config.VIPMultiplier = 1.25
 Config.BoostMultiplier = 2 -- from the timed boost product
+Config.FriendBonus = 0.10 -- +10% coins per friend in your server...
+Config.FriendBonusCap = 5 -- ...up to 5 friends (+50%). Drives invites and group play.
 Config.LuckyBoost = { Rare = 1.5, Epic = 2, Legendary = 2.5, Mythic = 3 }
 
 function Config.RebirthCost(rebirths)
@@ -119,6 +121,17 @@ Config.Eggs = {
 }
 
 -- Monetization ----------------------------------------------------------
+-- Recurring revenue. Create a Subscription on the Creator Dashboard and paste its Id
+-- (looks like "EXS-1234567890") here. Empty string = disabled.
+Config.Subscription = {
+	Id = "",
+	Name = "Crystal Club",
+	Price = 199, -- Robux per month (set to match the dashboard)
+	CoinMultiplier = 1.5,
+	ExtraSlots = 1,
+	Desc = "x1.5 coins, +1 pet slot and an exclusive trail.",
+}
+
 Config.PassOrder = { "DoubleCoins", "AutoCollect", "LuckyHatch", "ExtraSlots", "VIP" }
 Config.GamePasses = {
 	DoubleCoins = { Id = 0, Name = "2x Coins", Price = 299, Desc = "Permanently double every coin you earn." },
@@ -128,9 +141,10 @@ Config.GamePasses = {
 	VIP = { Id = 0, Name = "VIP", Price = 499, Desc = "x1.25 coins and double daily rewards." },
 }
 
-Config.ProductOrder = { "CoinsSmall", "CoinsMedium", "CoinsLarge", "Boost" }
+Config.ProductOrder = { "StarterPack", "CoinsSmall", "CoinsMedium", "CoinsLarge", "Boost" }
 Config.Products = {
 	-- Coins granted = Coins * (1 + rebirths), so packs stay relevant late-game.
+	StarterPack = { Id = 0, Name = "Starter Pack", Price = 99, Coins = 25000, Pet = "Wolf", OneTime = true },
 	CoinsSmall = { Id = 0, Name = "Coin Pack", Price = 49, Coins = 5000 },
 	CoinsMedium = { Id = 0, Name = "Coin Bag", Price = 199, Coins = 50000 },
 	CoinsLarge = { Id = 0, Name = "Coin Chest", Price = 799, Coins = 500000 },
@@ -138,8 +152,9 @@ Config.Products = {
 }
 
 -- Cosmetic trails: Cost = coins (a coin sink), Id/Price = Robux developer product ---------
-Config.CosmeticOrder = { "Sparkle", "Ocean", "Sunset", "Rainbow", "Galaxy" }
+Config.CosmeticOrder = { "Club", "Sparkle", "Ocean", "Sunset", "Rainbow", "Galaxy" }
 Config.Cosmetics = {
+	Club = { Name = "Club Gold", ClubOnly = true, Colors = { Color3.fromRGB(255, 190, 40), Color3.fromRGB(255, 120, 200), Color3.fromRGB(255, 255, 255) } },
 	Sparkle = { Name = "Gold Sparkle", Cost = 5000, Colors = { Color3.fromRGB(255, 220, 90), Color3.fromRGB(255, 255, 255) } },
 	Ocean = { Name = "Ocean Wave", Cost = 50000, Colors = { Color3.fromRGB(60, 200, 255), Color3.fromRGB(40, 80, 255) } },
 	Sunset = { Name = "Sunset Glow", Cost = 400000, Colors = { Color3.fromRGB(255, 200, 60), Color3.fromRGB(255, 90, 90), Color3.fromRGB(150, 60, 220) } },

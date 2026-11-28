@@ -42,6 +42,12 @@ local function onPlayerAdded(player)
 	Economy.LoadPasses(player)
 	Pets.Refresh(player)
 	Cosmetics.Refresh(player)
+	task.spawn(Economy.TrackFriends, player)
+	task.delay(90, function()
+		if player.Parent then
+			Economy.Offer(player, "StarterPack", "New here? The Starter Pack gives 25K coins and a Wolf pet!")
+		end
+	end)
 end
 
 local function onPlayerRemoving(player)

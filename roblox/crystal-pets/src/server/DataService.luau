@@ -22,6 +22,7 @@ local DEFAULT = {
 	BoostUntil = 0,
 	OwnedCosmetics = {}, -- [cosmeticId] = true
 	EquippedTrail = "",
+	StarterBought = false,
 	Receipts = {}, -- recent PurchaseIds (idempotent ProcessReceipt)
 }
 
@@ -56,7 +57,8 @@ local function sanitize(data)
 	end
 	data.Equipped = cleaned
 	data.Zones.Meadow = true
-	if data.EquippedTrail ~= "" and not data.OwnedCosmetics[data.EquippedTrail] then
+	local trail = Config.Cosmetics[data.EquippedTrail]
+	if data.EquippedTrail ~= "" and not data.OwnedCosmetics[data.EquippedTrail] and not (trail and trail.ClubOnly) then
 		data.EquippedTrail = ""
 	end
 end
