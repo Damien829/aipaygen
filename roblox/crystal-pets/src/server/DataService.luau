@@ -7,7 +7,14 @@ local Config = require(ReplicatedStorage.Shared.Config)
 
 local DataService = {}
 
-local store = DataStoreService:GetDataStore("CrystalPets_v1")
+-- GetDataStore throws in an unpublished place; never let that stop the whole game from starting.
+local storeOk, store = pcall(function()
+	return DataStoreService:GetDataStore("CrystalPets_v1")
+end)
+if not storeOk then
+	warn("[DataService] DataStore unavailable:", store)
+	store = nil
+end
 
 -- Session lock: stops two servers from editing the same player's data at once
 -- (e.g. rapid server hopping), which could roll back or duplicate purchases.
@@ -80,6 +87,10 @@ function DataService.Load(player)
 	local ok, result
 	local errors = 0
 	for _ = 1, LOCK_RETRIES do
+		if not store then
+			ok, result = false, "DataStore unavailable (place not published?)"
+			break
+		end
 		local locked = false
 		ok, result = pcall(function()
 			return store:UpdateAsync(key, function(old)
