@@ -1,0 +1,6 @@
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+sourcemap.json
+roblox.yml
+rojo.exe
